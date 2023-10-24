@@ -321,6 +321,8 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_cpu->installEventFilter(this);
 	QHBoxLayout* lay = new QHBoxLayout;
 	lay->addWidget(cpuSplitter);
+	lay->setSpacing(2);
+	lay->setContentsMargins(2, 2, 2, 2);	// setMargin is gone in Qt6
 	cw->setLayout(lay);
 	setCentralWidget(cw);
 
@@ -383,6 +385,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	rtbar->setAllowedAreas(Qt::LeftToolBarArea | Qt::RightToolBarArea);
 	addToolBar(Qt::RightToolBarArea, rtbar);
 	rtbar->setContextMenuPolicy(Qt::PreventContextMenu);
+	setContextMenuPolicy(Qt::PreventContextMenu);
 
 	dumpwin = new QDialog(this);
 	labswin = new xLabeList(this);
@@ -404,7 +407,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL | XHS_AUTOW);
 		xhs->setVisible(false);
 		xhs->setFrame(false);
-		xhs->setMinimumHeight(25);
+		xhs->setMinimumHeight(21);
 		xhs->setAlignment(Qt::AlignCenter);
 		qcb = new QCheckBox(wid_cpu);
 		qcb->setVisible(false);
