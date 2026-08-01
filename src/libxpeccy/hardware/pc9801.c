@@ -10,7 +10,7 @@
 
 #include "../video/upd7220.h"
 
-#define regCol	reg[49]		// current color (16bit mode)
+#define regCol	reg[49]		// current color (16col mode)
 
 #define regKBDm reg[50]		// mode
 #define regKBDc reg[51]		// command
@@ -211,8 +211,6 @@ void pc98xx_mem_map(Computer* comp) {
 }
 
 void pc98xx_reset(Computer* comp) {
-	printf("pc98xx reset\n");
-//	cpu_reset(comp->cpu);
 	comp->DIPSW1 = 0x80;	// b0=0:15MHz dots, 50Hz frame in current layout
 	comp->DIPSW2 = 0x03;
 	comp->DIPSW3 = 0x81;
@@ -408,6 +406,24 @@ void pc98xx_dma_wr(Computer* comp, int adr, int val) {
 	} else {		// b1 = adr/cnt, b2,3 = channel
 		dma_wr(comp->dma1, (adr & 2) ? DMA_CH_BAR : DMA_CH_BWCR, ch, val);
 	}
+}
+
+int pc98xx_mrd(Computer*, int, int);
+int pc98_dma_mrd(int adr, int w, void* ptr) {
+	Computer* comp = (Computer*)ptr;
+	xreg16 r;
+	r.l = pc98xx_mrd(comp, adr, 0);
+	r.h = w ? pc98xx_mrd(comp, adr+1, 0) : 0;
+	return r.w;
+}
+
+void pc98xx_mwr(Computer*, int, int);
+void pc98_dma_mwr(int adr, int val, int w, void* ptr) {
+	Computer* comp = (Computer*)ptr;
+	xreg16 r;
+	r.w = val;
+	pc98xx_mwr(comp, adr, r.l);
+	if (w) pc98xx_mwr(comp, adr+1, r.h);
 }
 
 // uPD8251 - usart, keyboard controller (rw:41,rw:43)
@@ -749,9 +765,9 @@ void pc98xx_fnt_wr(Computer* comp, int adr, int val) {
 // c8,ca,cc,ce: 640MB flop (2DD)
 
 int pc98xx_fdc_rd(Computer* comp, int adr) {
-//	printf("PC98: %X: rd %.4X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr);
 	int res = -1;
 	difIn(comp->dif, (adr >> 1) & 3, &res, 0);
+//	printf("PC98: %X: rd %.4X = %.2X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr, res);
 	return res;
 }
 
@@ -760,17 +776,65 @@ void pc98xx_fdc_wr(Computer* comp, int adr, int val) {
 	difOut(comp->dif, (adr >> 1) & 3, val, 0);
 }
 
-// TODO: fdc2 irq, or 9801ux bios will stop
 int pc98xx_fdc2_rd(Computer* comp, int adr) {
 	int res = -1;
 	difIn(comp->dif, ((adr >> 1) & 3) | 4, &res, 0);
-	printf("PC98: %X: rd %.4X = %.2X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr, res);
+//	printf("PC98: %X: rd %.4X = %.2X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr, res);
 	return res;
 }
 
 void pc98xx_fdc2_wr(Computer* comp, int adr, int val) {
-	printf("PC98: %X: wr %.4X, %.2X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr, val);
+//	printf("PC98: %X: wr %.4X, %.2X\n", comp->cpu->oldpc + comp->cpu->cs.base, adr, val);
 	difOut(comp->dif, ((adr >> 1) & 3) | 4, val, 0);
+}
+
+// fdc1 dma transfer
+int pc98_dma_flp_rd(void* ptr, int* f) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	int res = -1;
+	*f = 0;
+	if (dif->fdc->dma && dif->fdc->irq && dif->fdc->drq && dif->fdc->dir) {		// dma,execution,data request, to cpu;
+		*f = difIn(dif, 1, &res, 0);
+	}
+	return res;
+}
+
+void pc98_dma_flp_wr(int val, void* ptr, int* f) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	*f = 0;
+	if (dif->fdc->dma && dif->fdc->irq && dif->fdc->drq && !dif->fdc->dir) {	// dma,execution,data request, from cpu;
+		*f = difOut(dif, 1, val, 0);
+	}
+}
+
+void pc98_dma_flp_tc(void* ptr) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	difTerminal(dif);		// stop current command execution
+}
+
+// fdc2 dma transfer
+
+int pc98_dma_flp2_rd(void* ptr, int* f) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	int res = -1;
+	*f = 0;
+	if (dif->fdc->dma && dif->fdc->irq && dif->fdc->drq && dif->fdc->dir) {		// dma,execution,data request, to cpu;
+		*f = difIn(dif, 5, &res, 0);
+	}
+	return res;
+}
+
+void pc98_dma_flp2_wr(int val, void* ptr, int* f) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	*f = 0;
+	if (dif->fdc->dma && dif->fdc->irq && dif->fdc->drq && !dif->fdc->dir) {	// dma,execution,data request, from cpu;
+		*f = difOut(dif, 5, val, 0);
+	}
+}
+
+void pc98_dma_flp2_tc(void* ptr) {
+	DiskIF* dif = ((Computer*)ptr)->dif;
+	difTerminal(dif);
 }
 
 // 51,53,55,57 - 320KB FDD on 8255
@@ -1065,6 +1129,17 @@ int pc98xx_ack(Computer* comp) {
 	return t;
 }
 
+// new info:
+// timer: master.irq0 (int 08)
+// keyboard: master.irq1 (int 09)
+// vsync: master.irq2 (int 0a)
+// rs232: master.irq4 (int 0c)
+// slave pic: paster.irq7
+// printer: slave.irq0 (int 10h)
+// fdc1 (internal): slave.irq3 (int 13h)
+// fpu: slave.irq6 (int 16h)
+// GND: slave.irq7
+// external devices: all others (master.3,5,6; slave.1,2,4,5)
 void pc98xx_irq(Computer* comp, int id) {
 	switch(id) {
 		case IRQ_PIT_CH0:		// ch0: interval (master pic int0 -> cpu int8)
@@ -1081,17 +1156,16 @@ void pc98xx_irq(Computer* comp, int id) {
 		case IRQ_VID_VBLANK:		// VBlank: if !flgVSync, master PIC interrupt #2
 			if (!comp->flgVSync) {
 				pic_int(comp->mpic, 2);
+				comp->flgVSync = 1;
 			}
-			comp->flgVSync = 1;
 			break;
 		case IRQ_KBD_DATA:
 		case IRQ_KBD_ACK:		// kbd data is ready
 			uart_ready(comp->uart);
 			break;
 		case IRQ_UART_0: pic_int(comp->mpic, 1); break;
-			// slave.2 for 2DD, slave.3 for 2HD fdc
-		case IRQ_FDC: pic_int(comp->spic, 2); break;
-		// case IRQ_FDC2: pic_int(comp->spic, 3); break;	slave pic int -> master pic 7
+		case IRQ_FDC: pic_int(comp->spic, 3); break;
+		case IRQ_FDC2: pic_int(comp->spic, 2); break;
 	}
 }
 
@@ -1099,13 +1173,17 @@ void pc98xx_sync(Computer* comp, int ns) {
 	difSync(comp->dif, ns);			// fdc
 	pit_sync(comp->pit, ns);		// timers
 	uart_sync(comp->uart, ns);		// kbd
+	dma_sync(comp->dma1, ns);
 }
 
 // kbd uart: 19200bps = 2400Bps
+// dma0,3 : external?
+// dma1: timer
+// dma2: internal fdc
 void pc98xx_init(Computer* comp) {
 	// 8255, system ports
 	ppi_set_cb(comp->ppi, comp, pc98xx_ppia_rd, pc98xx_ppia_wr, pc98xx_ppib_rd, pc98xx_ppib_wr, pc98xx_ppic_rd, pc98xx_ppich_wr, pc98xx_ppic_rd, pc98xx_ppicl_wr);
-	// 8255, fdc
+	// 8255, fdc (old one, do we need this?)
 	ppi_set_cb(comp->ppib, comp, NULL, NULL, ppi_fdc_rdb, ppi_fdc_wrb, ppi_fdc_rdc, ppi_fdc_wrc, ppi_fdc_rdc, ppi_fdc_wrc);
 	// keyboard uart
 	uart_set_type(comp->uart, UPD_8251);
@@ -1115,8 +1193,14 @@ void pc98xx_init(Computer* comp) {
 	// keyboard
 	kbd_set_type(comp->keyb, KBD_NEC98XX);
 	// fdc
+	comp->dif->fdc->upd = 1;
+	comp->dif->fdc2->upd = 1;
 	dif_align_flps(comp->dif, comp->dif->fdc, 0, 1, 0, 1);
 	dif_align_flps(comp->dif, comp->dif->fdc2, 2, 3, 2, 3);
+	// dma
+	dma_set_cb(comp->dma1, pc98_dma_mrd, pc98_dma_mwr);					// mrd/mwr callbacks
+	dma_set_chan(comp->dma1, 2, pc98_dma_flp_rd, pc98_dma_flp_wr, pc98_dma_flp_tc);		// ch2: fdc
+	dma_set_chan(comp->dma1, 3, pc98_dma_flp2_rd, pc98_dma_flp2_wr, pc98_dma_flp2_tc);	// ch3: fdc2
 }
 
 sndPair pc98xx_vol(Computer* comp, sndVolume* vol) {
@@ -1125,8 +1209,6 @@ sndPair pc98xx_vol(Computer* comp, sndVolume* vol) {
 	v.right = 0;
 	return v;
 }
-
-// TODO: need to avoid xt_press/xt_release in MainWin::keyPressEvent/keyReleaseEvent
 
 void pc98xx_keyp(Computer* comp, keyEntry* kent) {
 	kbd_press(comp->keyb, kent);

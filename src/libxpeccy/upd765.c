@@ -39,17 +39,20 @@ void unothing(FDC* fdc) {
 	fdc->wait += fdc->bytedelay; // turbo ? TRBBYTE : fdc->bytedelay;
 }
 
+void uidle(FDC* fdc) {
+	fdc->idle = 1;
+	fdc->drq = 1;
+	fdc->dir = 0;
+}
+
 void ustp(FDC* fdc) {
-	// fdc->idle = 1;
-	fdc->irq = 0;		// enter result phase (idle=0,irq=0)
+	fdc->irq = 0;		// enter result phase
 	fdc->pos++;
 	if (fdc->resCnt > 0) {
 		fdc->drq = 1;
 		fdc->dir = 1;
 	} else {
-		fdc->dir = 0;
-		fdc->drq = 0;
-		fdc->idle = 1;
+		uidle(fdc);
 	}
 }
 
@@ -64,7 +67,7 @@ void uResp(FDC* fdc, int len, int ie) {
 	fdc->resPos = 0;
 	fdc->resCnt = len;
 	fdc->dir = 1;
-	// printf("FDC resp:"); for(int i = 0; i < len; i++) {printf("%.2X ",fdc->resBuf[i]);} printf("\n");	// print resp
+	fdc->drq = !!len;	// 1 if answer size > 0
 	if (ie) {uInt(fdc);}
 }
 
@@ -354,7 +357,6 @@ void uread03(FDC* fdc) {
 	} else {
 		fdc->cnt = fdc->comBuf[7] + 1;			// DTL
 	}
-	fdc->state |= 0x10;		// wr/rd operation
 	fdc->drq = 0;
 	fdc->dir = 1;
 	fdc->tns = 0;
@@ -384,7 +386,6 @@ void uread04(FDC* fdc) {
 
 // check EOT, MT
 void uread05(FDC* fdc) {
-	fdc->state &= ~0x10;
 	fdc->sec++;
 	if (fdc->mr || (fdc->sr2 & 0x40)) {				// SR2:CM flag set - not right sector & SK=0... or TC
 		fdc->pos++;
@@ -830,7 +831,7 @@ static fdcCall uInvalid[] = {&uwargs,&uinv00,&uTerm};
 // 00001000 R [ST0],[PCN]
 // sense interrupt status
 
-// Idea: this com works properly only after seek/recalibrate coms?
+// TODO: pc98 upd765 wants status.bit4 = 1 after sending com 08
 void usint00(FDC* fdc) {
 	fdc->intr = 0;
 	if (!fdc->seekend && fdc->upd) {
@@ -906,6 +907,7 @@ void uWrite(FDC* fdc, int adr, unsigned char val) {
 		if (fdc->comCnt == 0) {
 			fdc->irq = 1;		// exec
 			fdc->drq = 0;
+			fdc->wait = 15000;	// insert pause before execution (otherwise some commands executed too fast)
 		}
 	} else if (fdc->drq && !fdc->dir) {	// data cpu->fdc
 		fdc->data = val;
@@ -915,6 +917,7 @@ void uWrite(FDC* fdc, int adr, unsigned char val) {
 	}
 }
 
+// msr.bit4: set when command is send, reset after last answer byte is readed
 unsigned char uRead(FDC* fdc, int adr) {
 	unsigned char res = 0xff;
 	fdc->intr = 0;					// reset interrupt
@@ -929,21 +932,16 @@ unsigned char uRead(FDC* fdc, int adr) {
 				fdc->resPos++;
 				fdc->resCnt--;
 				if (fdc->resCnt == 0) {	// result phase completed
-					fdc->dir = 0;	// cpu->fdc, waiting for command
-					fdc->idle = 1;
+					uidle(fdc);
 				}
 			} else {			// other
 				res = 0xff;
 			}
 		}
 	} else {			// RD 0 : main status register
-		if (fdc->idle) {
-			res = 0x80 | ((fdc->resCnt > 0) ? 0x40 : 0x00);
-		} else {
-			res = (fdc->state & 0x1f) | (fdc->drq << 7) | (fdc->dir << 6);
-			if (fdc->irq && !fdc->dma)		// only in non-dma mode
-				res |= 0x20;
-		}
+		res = (fdc->state & 0x0f) | (fdc->drq << 7) | (fdc->dir << 6) | (!fdc->idle << 4);
+		if (fdc->irq && !fdc->dma)		// only in non-dma mode
+			res |= 0x20;
 	}
 	return res;
 }
@@ -954,9 +952,10 @@ void uTCount(FDC* fdc) {
 }
 
 void uReset(FDC* fdc) {
-	fdc->idle = 1;
-	fdc->drq = 1;
-	fdc->dir = 1;
+//	fdc->idle = 1;
+//	fdc->drq = 1;
+//	fdc->dir = 0;	// cpu->fdc
+	uidle(fdc);
 	fdc->mr = 0;
 	fdc->plan = NULL;
 	fdc->wait = 0;
