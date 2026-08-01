@@ -60,6 +60,7 @@ xProfile* addProfile(std::string nm, std::string fp) {
 	if (findProfile(nm) != NULL) return NULL;
 	xProfile* nprof = new xProfile;
 	nprof->initrq = 1;
+	nprof->zx = NULL;		// created on first switch to this profile
 	nprof->name = nm;
 	nprof->file = fp;
 	nprof->layName = std::string("default");
@@ -99,6 +100,7 @@ int copyProfile(std::string src, std::string dst) {
 
 void prfClose() {
 	if (!conf.prof.cur) return;
+	if (!conf.prof.cur->zx) return;		// not initialized yet
 	ideCloseFiles(conf.prof.cur->zx->ide);
 	sdcCloseFile(conf.prof.cur->zx->sdc);
 }
@@ -142,6 +144,9 @@ int prf_load_conf(xProfile*, std::string, int);
 bool prfSetCurrent(std::string nm) {
 	xProfile* nprf = findProfile(nm);
 	if (nprf == NULL) return false;
+	// hold the emulation: conf.prof.cur is switched to a profile whose machine
+	// may not exist yet, and the rest of this call rebuilds that machine
+	emu_lock();
 	prfClose();
 	conf.prof.cur = nprf;
 	if (nprf->initrq) {
@@ -162,6 +167,7 @@ bool prfSetCurrent(std::string nm) {
 	conf.gpctrl->gpadb->loadMap(nprf->jmapNameB);
 	loadKeys();
 	prfSetHardware(nprf, "");
+	emu_unlock();
 	return true;
 }
 
@@ -236,6 +242,9 @@ void setDiskString(Computer* comp,Floppy* flp,std::string st) {
 void prfSetRomset(xProfile* prf, std::string rnm) {
 	if (prf == NULL)
 		prf = conf.prof.cur;
+	if ((prf == NULL) || (prf->zx == NULL))
+		return;			// profile is not initialized yet, nowhere to load
+	emu_lock();			// rom data is rewritten under the running machine
 	prf->rsName = rnm;
 	xRomset* rset = findRomset(rnm);
 	std::string fpath;
@@ -324,6 +333,7 @@ void prfSetRomset(xProfile* prf, std::string rnm) {
 	} else {
 		printf("Can't find romset %s\n", rnm.c_str());
 	}
+	emu_unlock();
 }
 
 int prf_load_conf(xProfile* prf, std::string cfname, int flag) {

@@ -17,6 +17,24 @@ QWaitCondition qwc;
 int sleepy = 1;
 #endif
 
+// Guards the emulated machine against the GUI thread. The GUI takes it while it
+// switches profile, hardware or romset: those rebuild the machine (and even
+// create it, profiles are initialized on first use), so the emulation must not
+// run at the same time. Recursive: the profile calls nest into each other.
+#if QT_VERSION >= QT_VERSION_CHECK(5, 14, 0)
+static QRecursiveMutex emuGuard;
+#else
+static QMutex emuGuard(QMutex::Recursive);
+#endif
+
+void emu_lock() {
+	emuGuard.lock();
+}
+
+void emu_unlock() {
+	emuGuard.unlock();
+}
+
 #define LOG_OUTPUT 0
 #if LOG_OUTPUT
 static FILE* file = nullptr;
@@ -237,20 +255,25 @@ void xThread::run() {
 #if !USEMUTEX
 		sleepy = 1;
 #endif
-		comp = conf.prof.cur->zx;
+		emu_lock();
+		// no machine yet: the profile is created on first switch to it
+		comp = conf.prof.cur ? conf.prof.cur->zx : NULL;
+		if (comp) {
 #if HAVEZLIB
-		if (comp->rzx.start) {
-			comp->rzx.start = 0;
-			comp->rzx.play = 1;
-			comp->rzx.fCount = 0;
-			comp->rzx.fCurrent = 0;
-			rewind(comp->rzx.file);
-			rzxGetFrame(comp);
-		}
+			if (comp->rzx.start) {
+				comp->rzx.start = 0;
+				comp->rzx.play = 1;
+				comp->rzx.fCount = 0;
+				comp->rzx.fCurrent = 0;
+				rewind(comp->rzx.file);
+				rzxGetFrame(comp);
+			}
 #endif
-		if (!conf.emu.pause) {
-			emuCycle(comp);
+			if (!conf.emu.pause) {
+				emuCycle(comp);
+			}
 		}
+		emu_unlock();
 #if USEMUTEX
 		if (!conf.emu.fast && !finish) {
 			emutex.lock();
