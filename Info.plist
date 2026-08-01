@@ -5,21 +5,21 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>Russian</string>
 	<key>CFBundleDisplayName</key>
-	<string>xpeccy</string>
+	<string>Xpeccy+</string>
 	<key>CFBundleExecutable</key>
-	<string>xpeccy</string>
+	<string>xpeccy-plus</string>
 	<key>CFBundleIconFile</key>
 	<string>xpeccy.icns</string>
 	<key>CFBundleIdentifier</key>
-	<string>ru.samstyle.xpeccy</string>
+	<string>space.kovalchuk.xpeccy-plus</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>xpeccy</string>
+	<string>Xpeccy+</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>0.6</string>
+	<string>2026.0</string>
 	<key>CFBundleSignature</key>
 	<string>iddqd</string>
 	<key>NSPrincipalClass</key>

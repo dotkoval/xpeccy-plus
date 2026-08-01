@@ -1,11 +1,11 @@
 [Desktop Entry]
 Version=1.0
-Name=Xpeccy
-Name[ru]=Xpeccy
+Name=Xpeccy+
+Name[ru]=Xpeccy+
 Comment=ZX Spectrum emulator
 Comment[ru]=Эмулятор ZX Spectrum
-Exec=xpeccy
-Icon=xpeccy
+Exec=xpeccy-plus
+Icon=xpeccy-plus
 Type=Application
 Terminal=false
 StartupNotify=true

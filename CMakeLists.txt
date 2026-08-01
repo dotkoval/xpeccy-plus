@@ -11,9 +11,10 @@ cmake_minimum_required(VERSION 3.5)
 # common
 
 set(PROJECT_NAME "xpeccy-plus")
-project(${PROJECT_NAME})
 
+# base version, without the "-dev" tail (see cmake/genversion.cmake)
 file(STRINGS "VERSION" XVER)
+project(${PROJECT_NAME} VERSION ${XVER})
 
 # clean version w/o "-dev" and build date, for release builds
 option(XRELEASE "build as a release version" OFF)
@@ -48,6 +49,8 @@ set(CPACK_PACKAGE_VERSION ${XVER})
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_PACKAGE_DESCRIPTION "ZX Spectrum emulator")
 set(CPACK_PACKAGE_VENDOR "Oleksandr Kovalchuk (.koval)")
+# deb Maintainer / rpm Packager: a project address, not a personal one
+set(CPACK_PACKAGE_CONTACT "Oleksandr Kovalchuk <xpeccy-plus@kovalchuk.space>")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/dotkoval/xpeccy-plus")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
@@ -80,8 +83,8 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME} DESTINATION bin
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_READ WORLD_EXECUTE GROUP_READ GROUP_EXECUTE
 	)
-	install(FILES images/xpeccy.png DESTINATION share/icons)
-	install(FILES Xpeccy.desktop DESTINATION share/applications)
+	install(FILES images/xpeccy.png RENAME ${PROJECT_NAME}.png DESTINATION share/icons)
+	install(FILES ${PROJECT_NAME}.desktop DESTINATION share/applications)
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "/BSD$/")
 
