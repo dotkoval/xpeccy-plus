@@ -10,10 +10,13 @@ cmake_minimum_required(VERSION 3.5)
 
 # common
 
-set(PROJECT_NAME "xpeccy")
+set(PROJECT_NAME "xpeccy-plus")
 project(${PROJECT_NAME})
 
-file(STRINGS "Release" XVER)
+file(STRINGS "VERSION" XVER)
+
+# clean version w/o "-dev" and build date, for release builds
+option(XRELEASE "build as a release version" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
@@ -44,8 +47,8 @@ set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${XVER})
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CMAKE_SYSTEM_PROCESSOR}")
 set(CPACK_PACKAGE_DESCRIPTION "ZX Spectrum emulator")
-set(CPACK_PACKAGE_VENDOR "SAM style")
-set(CPACK_PACKAGE_CONTACT "samstyle@list.ru")
+set(CPACK_PACKAGE_VENDOR "Oleksandr Kovalchuk (.koval)")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/dotkoval/xpeccy-plus")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -98,7 +101,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #	set(CPACK_DMG_BACKGROUND_IMAGE ${CMAKE_SOURCE_DIR}/background.png)
 
 	set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}.app)
-	set(MACOSX_BUNDLE_ICON_FILE ${PROJECT_NAME}.icns)
+	set(MACOSX_BUNDLE_ICON_FILE xpeccy.icns)
 	set(MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${XVER})
 
@@ -124,6 +127,21 @@ endif()
 set(INCLUDIRS
 	${CMAKE_BINARY_DIR}
 	./src
+)
+
+# version.h is generated (not stored in the sources) before every build
+
+set(VERSION_HEADER ${CMAKE_BINARY_DIR}/version.h)
+
+add_custom_target(version_header ALL
+	COMMAND ${CMAKE_COMMAND}
+		-DIN_FILE=${CMAKE_SOURCE_DIR}/cmake/version.h.in
+		-DOUT_FILE=${VERSION_HEADER}
+		-DXVERSION_BASE=${XVER}
+		-DXRELEASE=${XRELEASE}
+		-P ${CMAKE_SOURCE_DIR}/cmake/genversion.cmake
+	BYPRODUCTS ${VERSION_HEADER}
+	COMMENT "Generating version.h"
 )
 
 # sources
@@ -335,7 +353,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		COMMAND ${MACDEPLOYQTEXE} ARGS ${BUNDLE_PATH} -always-overwrite
 		COMMAND mkdir ARGS -p ${BUNDLE_PATH}/Contents/Frameworks
                 COMMAND cp ARGS -R -X /Library/Frameworks/${SDL_NAME}.framework ${BUNDLE_PATH}/Contents/Frameworks
-                COMMAND install_name_tool -change @rpath/${SDL_NAME}.framework/Versions/A/${SDL_NAME} @executable_path/../Frameworks/${SDL_NAME}.framework/Versions/A/${SDL_NAME} ${BUNDLE_PATH}/Contents/MacOS/xpeccy
+                COMMAND install_name_tool -change @rpath/${SDL_NAME}.framework/Versions/A/${SDL_NAME} @executable_path/../Frameworks/${SDL_NAME}.framework/Versions/A/${SDL_NAME} ${BUNDLE_PATH}/Contents/MacOS/${PROJECT_NAME}
 	)
 	set(CMAKE_INSTALL_PREFIX "/Applications")
 	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
@@ -345,6 +363,7 @@ endif()
 
 include_directories(${INCLUDIRS})
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+add_dependencies(${PROJECT_NAME} version_header)
 
 include(${CMAKE_ROOT}/Modules/CPack.cmake)
 
@@ -355,7 +374,7 @@ include(${CMAKE_ROOT}/Modules/CPack.cmake)
 message(STATUS "\n")
 message(STATUS "Project will be compiled with following options:\n")
 message(STATUS "Build type : ${CMAKE_BUILD_TYPE}")
-message(STATUS "Xpeccy version : ${XVER}")
+message(STATUS "Xpeccy+ version : ${XVER}")
 message(STATUS "OS : ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Qt version : ${QT_VER}")
 message(STATUS "SDL version : ${SDL_VER}")

@@ -29,7 +29,7 @@
    </size>
   </property>
   <property name="windowTitle">
-   <string>Xpeccy setup</string>
+   <string>Xpeccy+ setup</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../xpeccy.qrc">
@@ -3020,7 +3020,7 @@
           <normaloff>:/images/xpeccy.png</normaloff>:/images/xpeccy.png</iconset>
         </attribute>
         <attribute name="title">
-         <string>Xpeccy</string>
+         <string>Xpeccy+</string>
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_33">
          <item>
