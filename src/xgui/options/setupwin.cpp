@@ -749,6 +749,7 @@ void SetupWin::apply() {
 	xProfile* prof = conf.prof.cur;
 	Computer* comp = prof->zx;
 // machine
+	emu_lock();		// machine, romset, memory size and cpu are rebuilt below
 	HardWare *oldmac = comp->hw;
 	std::string new_hwname = std::string(getRFSData(ui.machbox).toUtf8().data());
 	if (prof->hwName != new_hwname) {
@@ -785,6 +786,7 @@ void SetupWin::apply() {
 	comp->flgEM1 = ui.scrpwait->isChecked();
 	if (comp->hw != oldmac) compReset(comp,RES_DEFAULT);
 	if (comp->hw->id == HW_ZX48) comp->mem->ramMask = MEM_128K - 1;		// TODO: find a better way
+	emu_unlock();
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
 	conf.vid.keepRatio = ui.cbKeepRatio->isChecked() ? 1 : 0;

@@ -190,6 +190,10 @@ void brkInstallAll();
 void brk_clear_tmp(Computer*);
 xBrkPoint* brk_find(int, int);
 
+// hold the emulation thread while the machine is rebuilt (defined in ethread.cpp)
+void emu_lock();
+void emu_unlock();
+
 // profiles
 
 typedef struct {

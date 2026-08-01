@@ -1212,14 +1212,18 @@ void MainWin::onPrfChange() {
 
 void MainWin::profileSelected(QAction* act) {
 	std::string str = QString(act->data().toByteArray()).toStdString();
+	emu_lock();		// onPrfChange resets the machine, keep it out of the emulation too
 	prfSetCurrent(str);
 	onPrfChange();
+	emu_unlock();
 }
 
 void MainWin::reset(QAction* act) {
 	Computer* comp = conf.prof.cur->zx;
 	emit s_rzx_stop();
+	emu_lock();		// reset re-inits the hardware
 	compReset(comp,act->data().toInt());
+	emu_unlock();
 }
 
 void MainWin::chLayout(QAction* act) {
