@@ -398,6 +398,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		lab->id = i;
 		lab->setVisible(false);
 		lab->setProperty("isbit", false);
+		lab->setContentsMargins(0, 0, 4, 0);	// don't let it touch the value
 
 		xhs = new xHexSpin(wid_cpu);
 		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL | XHS_AUTOW);
