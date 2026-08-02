@@ -11,6 +11,14 @@ xAYWidget::xAYWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 
 	connect(ui.sbChanNum, SIGNAL(valueChanged(int)), this, SLOT(draw()));
 	connect(ui.sbOpNum, SIGNAL(valueChanged(int)), this, SLOT(draw()));
+	connect(ui.fmChanOff, SIGNAL(stateChanged(int)), this, SLOT(offChan(int)));
+}
+
+void xAYWidget::offChan(int st) {
+	Computer* comp = conf.prof.cur->zx;
+	aymChip* chp = comp->ts->chipA;
+	int chn = ui.sbChanNum->value();
+	chp->chanFM[chn].off = (st == Qt::Checked);
 }
 
 QString getAYmix(aymChan* ch) {
@@ -89,9 +97,10 @@ void xAYWidget::draw() {
 	int opn = ui.sbOpNum->value() & 3;
 	fmChan* ch = &chp->chanFM[chn];
 	fmOper* op = &ch->op[opn];
-	ui.leFmChanFrq->setText(gethexword(ch->freq));
-	ui.leFmChanBase->setText(gethexbyte(ch->block));
-	ui.leFmChanStep->setText(gethexint(ch->freq << ch->block));
+	ui.fmChanOff->setChecked(ch->off);
+	ui.leFmChanFrq->setText(gethexword(op->freq));
+	ui.leFmChanBase->setText(gethexbyte(op->block));
+	ui.leFmChanStep->setText(gethexint(op->pstep));
 	ui.leFmChanAlg->setText(gethexbyte(ch->algo));
 	ui.leFmChanOut->setText(QString::number(ch->out));
 	ui.leFmOpStatus->setText(getOpStatusName(op->state));
@@ -103,7 +112,7 @@ void xAYWidget::draw() {
 	ui.leFmOpTL->setText(gethexword(op->tlev));
 	ui.leFmOpKS->setText(gethexbyte(op->ks));
 	ui.leFmOpEGAmp->setText(gethexword(op->amp));
-	ui.leFmOpPhase->setText(gethexint(op->phase));
+	ui.leFmOpPhase->setText(gethexint(op->phase).right(5));
 	ui.leFmOpOut->setText(QString::number(op->out));	// signed
 
 	drawHBar(ui.labBeep, comp->beep->val, 256);
