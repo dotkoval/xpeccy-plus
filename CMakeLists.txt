@@ -50,7 +50,7 @@ set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CM
 set(CPACK_PACKAGE_DESCRIPTION "ZX Spectrum emulator with a built-in debugger, a fork of Xpeccy by SAM style")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ZX Spectrum emulator with a debugger")
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE_eng")
-set(CPACK_PACKAGE_VENDOR "Oleksandr Kovalchuk (.koval)")
+set(CPACK_PACKAGE_VENDOR "Oleksandr Kovalchuk")
 # deb Maintainer / rpm Packager: a project address, not a personal one
 set(CPACK_PACKAGE_CONTACT "Oleksandr Kovalchuk <xpeccy-plus@kovalchuk.space>")
 set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/dotkoval/xpeccy-plus")
@@ -87,7 +87,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	)
 	install(FILES images/xpeccy.png RENAME ${PROJECT_NAME}.png DESTINATION share/icons)
 	install(FILES ${PROJECT_NAME}.desktop DESTINATION share/applications)
-	install(FILES LICENSE_eng LICENSE_rus README.md DESTINATION share/doc/${PROJECT_NAME})
+	install(FILES LICENSE_eng LICENSE_rus README.md CHANGELOG.md DESTINATION share/doc/${PROJECT_NAME})
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "/BSD$/")
 

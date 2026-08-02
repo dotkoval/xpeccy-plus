@@ -13,7 +13,7 @@ BEGIN
 	BEGIN
 		BLOCK "040904b0"	// english (US), unicode
 		BEGIN
-			VALUE "CompanyName", "Oleksandr Kovalchuk (.koval)"
+			VALUE "CompanyName", "Oleksandr Kovalchuk"
 			VALUE "FileDescription", "ZX Spectrum emulator with a debugger"
 			VALUE "FileVersion", "@XVER@"
 			VALUE "InternalName", "@PROJECT_NAME@"
