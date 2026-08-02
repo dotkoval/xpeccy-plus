@@ -3,6 +3,7 @@
 
 #include <QPalette>
 #include <QPainter>
+#include <QFontMetrics>
 #include <QDebug>
 
 QString gethexword(int);
@@ -67,6 +68,15 @@ void xHexSpin::updateMask() {
 	rxp.append(QString("{%0}").arg(len));	// 'len' times this char
 	setInputMask(QString(len, 'h'));	// to enter overwrite cursor mode. TODO:is there some legit method?
 	setRegExp(vldtr, rxp);
+	refitWidth();
+}
+
+// XHS_AUTOW: 'len' digits + a bit for the frame and cursor.
+// call it after a font change too, not only when the value length changes
+void xHexSpin::refitWidth() {
+	if (!(hsflag & XHS_AUTOW)) return;
+	QFontMetrics fm(font());
+	setFixedWidth(fm.horizontalAdvance(QString(len, '0')) + 10);
 }
 
 void xHexSpin::setBase(int b) {
