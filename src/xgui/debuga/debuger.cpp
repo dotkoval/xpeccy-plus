@@ -264,12 +264,41 @@ void DebugWin::onPrfChange() {
 // void DebugWin::reject() {stop();}
 void DebugWin::closeEvent(QCloseEvent*) {stop();}
 
+// saveState covers docks only, cpu panel is a part of the central widget.
+// showEvent comes before the childs are laid out, so the splitter has no real
+// width yet: remember what we want and set it when the layout is done
+void DebugWin::showEvent(QShowEvent* ev) {
+	QMainWindow::showEvent(ev);
+	if (cpuRestored) return;			// only once per run
+	cpuWantW = conf.dbg.cpuwidth;
+	if (cpuWantW > 0) {
+		QTimer::singleShot(0, this, SLOT(applyCpuWidth()));
+	} else {
+		cpuRestored = 1;			// nothing saved, just follow the user
+	}
+}
+
+void DebugWin::applyCpuWidth() {
+	int w = cpuWantW;
+	cpuWantW = 0;
+	if (w > 0) {
+		// window may still be growing to its saved size. stretch factor keeps
+		// the extra width on the disasm side, so the panel stays where we put it
+		QList<int> siz;
+		siz << w << ((cpuSplitter->width() > w) ? (cpuSplitter->width() - w) : w);
+		cpuSplitter->setSizes(siz);
+	}
+	cpuRestored = 1;
+}
+
 DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	int i;
 
 	curCpuCore = nullptr;
 	regCols = 0;
 	regPairW = 0;
+	cpuWantW = 0;
+	cpuRestored = 0;
 
 	setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
 	setWindowTitle("Xpeccy+ deBUGa");
@@ -1183,6 +1212,11 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 	// such a width must not be saved (same guard as in resizeEvent)
 	if ((obj == wid_cpu) && (ev->type() == QEvent::Resize) && isVisible()
 			&& regPairW && conf.prof.cur && conf.prof.cur->zx) {
+		// keep it here: ~DebugWin runs after the config is written.
+		// before the saved width is applied these are default sizes: saving them
+		// would wipe the value loaded from the config (reFormCPU resizes us early)
+		if (cpuRestored)
+			conf.dbg.cpuwidth = wid_cpu->width();
 		int cols = (wid_cpu->width() >= regPairW * 2 + RCOL_GAP) ? 2 : 1;
 		if (cols != regCols) {
 			xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
