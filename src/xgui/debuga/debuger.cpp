@@ -298,6 +298,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	curCpuCore = nullptr;
 	regCols = 0;
 	regPairW = 0;
+	regWideW = 0;
 	cpuWantW = 0;
 	cpuRestored = 0;
 
@@ -1178,10 +1179,19 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 		cnt++;
 	}
 	regPairW = labw + fldw;
-	// never demand more than one column, so the splitter can be dragged narrow
+	// two columns is as wide as the panel ever needs to be, but the flags row
+	// (8 of them side by side) may still ask for more
+	regWideW = regPairW * 2 + RCOL_GAP;
+	int flgw = dbgFlagBox[0]->sizeHint().width() * 8 + 7 * 2;
+	if (flgw > regWideW) regWideW = flgw;
+	// never demand more than one column, so the splitter can be dragged narrow,
+	// and never allow more than two: dragging further would only add empty space
 	wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+	wid_cpu->setMaximumWidth(regWideW);
+	// same value is the switch point: sizes are only exact once the widgets are
+	// styled, two thresholds could drift apart and lock the second column out
 	// start narrow: the width is not settled yet on the very first layout
-	regCols = (regCols && (wid_cpu->width() >= regPairW * 2 + RCOL_GAP)) ? 2 : 1;
+	regCols = (regCols && (wid_cpu->width() >= regWideW)) ? 2 : 1;
 
 	// 2nd pass: (re)build the layout
 	delete ui_cpu.verticalLayout->takeAt(VLI_REGS);	// registers stay alive, wid_cpu owns them
@@ -1225,7 +1235,7 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 		// would wipe the value loaded from the config (reFormCPU resizes us early)
 		if (cpuRestored)
 			conf.dbg.cpuwidth = wid_cpu->width();
-		int cols = (wid_cpu->width() >= regPairW * 2 + RCOL_GAP) ? 2 : 1;
+		int cols = (wid_cpu->width() >= regWideW) ? 2 : 1;
 		if (cols != regCols) {
 			xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
 			reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color
