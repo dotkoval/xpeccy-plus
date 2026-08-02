@@ -542,6 +542,7 @@ xRegBunch cpuGetRegs(CPU* cpu) {
 			reg->id = rd->id;
 			reg->size = rd->size;
 			reg->flag = rd->flag;
+			reg->pair = rd->pair;
 			reg->value = rd->get ? rd->get(cpu) : -1;
 			reg++;
 			i++;
