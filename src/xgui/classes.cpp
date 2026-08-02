@@ -39,7 +39,7 @@ int xHexSpin::getValue() {
 }
 
 void xHexSpin::updateMask() {
-	int mx;
+	unsigned mx;
 	QString rxp;
 	switch(base) {
 		case 8:
@@ -56,10 +56,12 @@ void xHexSpin::updateMask() {
 			//setStyleSheet("border:1px solid green;");
 			break;
 	}
+	// REG_32 gives max = 0xffffffff, which is -1 as int. count digits on the
+	// unsigned value and divide, so it neither stops at once nor overflows
 	len = 1;
-	mx = base;
-	while (mx <= max) {
-		mx *= base;
+	mx = (unsigned)max / base;
+	while (mx) {
+		mx /= base;
 		len++;
 	}
 	rxp.append(QString("{%0}").arg(len));	// 'len' times this char
