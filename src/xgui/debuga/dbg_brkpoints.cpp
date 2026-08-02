@@ -617,7 +617,7 @@ void xBreakWidget::saveBrk() {
 	QFile file(path);
 	QString nm,ar1,ar2,flag,act;
 	if (file.open(QFile::WriteOnly)) {
-		file.write("; Xpeccy deBUGa breakpoints list\n");
+		file.write("; Xpeccy+ deBUGa breakpoints list\n");
 		foreach(brk, conf.prof.cur->brk.list) {
 			switch(brk.type) {
 				case BRK_IOPORT:

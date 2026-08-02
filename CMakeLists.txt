@@ -10,10 +10,14 @@ cmake_minimum_required(VERSION 3.5)
 
 # common
 
-set(PROJECT_NAME "xpeccy")
-project(${PROJECT_NAME})
+set(PROJECT_NAME "xpeccy-plus")
 
-file(STRINGS "Release" XVER)
+# base version, without the "-dev" tail (see cmake/genversion.cmake)
+file(STRINGS "VERSION" XVER)
+project(${PROJECT_NAME} VERSION ${XVER})
+
+# clean version w/o "-dev" and build date, for release builds
+option(XRELEASE "build as a release version" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
@@ -43,9 +47,13 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g -DISDEBUG ${CMAKE_CXX_FLAGS_DEBUG}")
 set(CPACK_PACKAGE_NAME ${PROJECT_NAME})
 set(CPACK_PACKAGE_VERSION ${XVER})
 set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}_${CPACK_PACKAGE_VERSION}_${CMAKE_SYSTEM_PROCESSOR}")
-set(CPACK_PACKAGE_DESCRIPTION "ZX Spectrum emulator")
-set(CPACK_PACKAGE_VENDOR "SAM style")
-set(CPACK_PACKAGE_CONTACT "samstyle@list.ru")
+set(CPACK_PACKAGE_DESCRIPTION "ZX Spectrum emulator with a built-in debugger, a fork of Xpeccy by SAM style")
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "ZX Spectrum emulator with a debugger")
+set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_SOURCE_DIR}/LICENSE_eng")
+set(CPACK_PACKAGE_VENDOR "Oleksandr Kovalchuk")
+# deb Maintainer / rpm Packager: a project address, not a personal one
+set(CPACK_PACKAGE_CONTACT "Oleksandr Kovalchuk <xpeccy-plus@kovalchuk.space>")
+set(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/dotkoval/xpeccy-plus")
 
 if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
@@ -77,8 +85,9 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME} DESTINATION bin
 		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_READ WORLD_EXECUTE GROUP_READ GROUP_EXECUTE
 	)
-	install(FILES images/xpeccy.png DESTINATION share/icons)
-	install(FILES Xpeccy.desktop DESTINATION share/applications)
+	install(FILES images/xpeccy.png RENAME ${PROJECT_NAME}.png DESTINATION share/icons)
+	install(FILES ${PROJECT_NAME}.desktop DESTINATION share/applications)
+	install(FILES LICENSE_eng LICENSE_rus README.md CHANGELOG.md DESTINATION share/doc/${PROJECT_NAME})
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "/BSD$/")
 
@@ -98,7 +107,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #	set(CPACK_DMG_BACKGROUND_IMAGE ${CMAKE_SOURCE_DIR}/background.png)
 
 	set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}.app)
-	set(MACOSX_BUNDLE_ICON_FILE ${PROJECT_NAME}.icns)
+	set(MACOSX_BUNDLE_ICON_FILE xpeccy.icns)
 	set(MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${XVER})
 
@@ -124,6 +133,21 @@ endif()
 set(INCLUDIRS
 	${CMAKE_BINARY_DIR}
 	./src
+)
+
+# version.h is generated (not stored in the sources) before every build
+
+set(VERSION_HEADER ${CMAKE_BINARY_DIR}/version.h)
+
+add_custom_target(version_header ALL
+	COMMAND ${CMAKE_COMMAND}
+		-DIN_FILE=${CMAKE_SOURCE_DIR}/cmake/version.h.in
+		-DOUT_FILE=${VERSION_HEADER}
+		-DXVERSION_BASE=${XVER}
+		-DXRELEASE=${XRELEASE}
+		-P ${CMAKE_SOURCE_DIR}/cmake/genversion.cmake
+	BYPRODUCTS ${VERSION_HEADER}
+	COMMENT "Generating version.h"
 )
 
 # sources
@@ -335,16 +359,19 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		COMMAND ${MACDEPLOYQTEXE} ARGS ${BUNDLE_PATH} -always-overwrite
 		COMMAND mkdir ARGS -p ${BUNDLE_PATH}/Contents/Frameworks
                 COMMAND cp ARGS -R -X /Library/Frameworks/${SDL_NAME}.framework ${BUNDLE_PATH}/Contents/Frameworks
-                COMMAND install_name_tool -change @rpath/${SDL_NAME}.framework/Versions/A/${SDL_NAME} @executable_path/../Frameworks/${SDL_NAME}.framework/Versions/A/${SDL_NAME} ${BUNDLE_PATH}/Contents/MacOS/xpeccy
+                COMMAND install_name_tool -change @rpath/${SDL_NAME}.framework/Versions/A/${SDL_NAME} @executable_path/../Frameworks/${SDL_NAME}.framework/Versions/A/${SDL_NAME} ${BUNDLE_PATH}/Contents/MacOS/${PROJECT_NAME}
 	)
 	set(CMAKE_INSTALL_PREFIX "/Applications")
 	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
-	add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${UIHEADERS} ${RESOURCES} ${MOCHEADERS} ${CMAKE_SOURCE_DIR}/xpeccy.rc)
+	# icon + VERSIONINFO (product name and version in the exe properties)
+	configure_file(${CMAKE_SOURCE_DIR}/xpeccy.rc.in ${CMAKE_BINARY_DIR}/xpeccy.rc @ONLY)
+	add_executable(${PROJECT_NAME} WIN32 ${SOURCES} ${HEADERS} ${UIHEADERS} ${RESOURCES} ${MOCHEADERS} ${CMAKE_BINARY_DIR}/xpeccy.rc)
 endif()
 
 include_directories(${INCLUDIRS})
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
+add_dependencies(${PROJECT_NAME} version_header)
 
 include(${CMAKE_ROOT}/Modules/CPack.cmake)
 
@@ -355,7 +382,7 @@ include(${CMAKE_ROOT}/Modules/CPack.cmake)
 message(STATUS "\n")
 message(STATUS "Project will be compiled with following options:\n")
 message(STATUS "Build type : ${CMAKE_BUILD_TYPE}")
-message(STATUS "Xpeccy version : ${XVER}")
+message(STATUS "Xpeccy+ version : ${XVER}")
 message(STATUS "OS : ${CMAKE_SYSTEM_NAME}")
 message(STATUS "Qt version : ${QT_VER}")
 message(STATUS "SDL version : ${SDL_VER}")

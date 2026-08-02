@@ -32,7 +32,7 @@
 #endif
 
 void help() {
-	printf("Xpeccy command line arguments:\n");
+	printf("Xpeccy+ command line arguments:\n");
 	printf("-h | --help\t\tshow this help\n");
 	printf("-d | --debug\t\tstart debugging immediately\n");
 	printf("-s | --size {1..6}\tset window size x1..x6.\n");

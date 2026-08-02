@@ -267,7 +267,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	curCpuCore = nullptr;
 
 	setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
-	setWindowTitle("Xpeccy deBUGa");
+	setWindowTitle("Xpeccy+ deBUGa");
 	setWindowIcon(QIcon(":/images/bug.png"));
 
 	cw = new QWidget;
@@ -1322,7 +1322,7 @@ void DebugWin::saveDasm() {
 		int adr = (blockStart < 0) ? 0 : (blockStart & comp->mem->busmask);
 		int end = (blockEnd < 0) ? comp->mem->busmask : (blockEnd & comp->mem->busmask);
 		int work = 1;
-		strm << "; Created by Xpeccy deBUGa\n\n";
+		strm << "; Created by Xpeccy+ deBUGa\n\n";
 		strm << "\tORG 0x" << gethexword(adr) << "\n\n";
 		while ((adr <= end) && work) {
 			list = getDisasm(comp, adr);
