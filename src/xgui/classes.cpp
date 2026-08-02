@@ -3,6 +3,7 @@
 
 #include <QPalette>
 #include <QPainter>
+#include <QFontMetrics>
 #include <QDebug>
 
 QString gethexword(int);
@@ -39,7 +40,7 @@ int xHexSpin::getValue() {
 }
 
 void xHexSpin::updateMask() {
-	int mx;
+	unsigned mx;
 	QString rxp;
 	switch(base) {
 		case 8:
@@ -56,15 +57,26 @@ void xHexSpin::updateMask() {
 			//setStyleSheet("border:1px solid green;");
 			break;
 	}
+	// REG_32 gives max = 0xffffffff, which is -1 as int. count digits on the
+	// unsigned value and divide, so it neither stops at once nor overflows
 	len = 1;
-	mx = base;
-	while (mx <= max) {
-		mx *= base;
+	mx = (unsigned)max / base;
+	while (mx) {
+		mx /= base;
 		len++;
 	}
 	rxp.append(QString("{%0}").arg(len));	// 'len' times this char
 	setInputMask(QString(len, 'h'));	// to enter overwrite cursor mode. TODO:is there some legit method?
 	setRegExp(vldtr, rxp);
+	refitWidth();
+}
+
+// XHS_AUTOW: 'len' digits + a bit for the frame and cursor.
+// call it after a font change too, not only when the value length changes
+void xHexSpin::refitWidth() {
+	if (!(hsflag & XHS_AUTOW)) return;
+	QFontMetrics fm(font());
+	setFixedWidth(fm.horizontalAdvance(QString(len, '0')) + 10);
 }
 
 void xHexSpin::setBase(int b) {

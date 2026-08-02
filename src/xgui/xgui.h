@@ -35,6 +35,7 @@ void setRFIndex(QComboBox*, QVariant, int = 0);
 #define	XHS_DEC	(1<<1)		// hex/dec switch enabled
 #define XHS_FILL (1<<2)		// leading zeros
 #define XHS_UPD (1<<3)		// force update text, reset after using
+#define XHS_AUTOW (1<<4)	// keep width as narrow as the value needs
 
 class xHexSpin : public QLineEdit {
 	Q_OBJECT
@@ -45,6 +46,7 @@ class xHexSpin : public QLineEdit {
 		void setXFlag(int);
 		void setBase(int);
 		void updatePal();
+		void refitWidth();
 		int getMax();
 	signals:
 		void valueChanged(int);

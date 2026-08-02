@@ -23,6 +23,14 @@ before that point is upstream's history and is not repeated here.
 - **Windows exe properties**: product name, version, description and copyright, which the
   binary had none of.
 - Package description, license and documentation are now part of an installed package.
+- **AF and AF' are back in the debugger.** The accumulator is shown as a register pair, the
+  way ZX debuggers have always shown it, instead of `A` alone with the flags only as
+  checkboxes. `A` and `A'` still resolve by name in watcher expressions and breakpoint
+  conditions.
+- **Two-column register panel.** The border between the registers and the disassembly can be
+  dragged: wide puts a register next to its alternative (`AF` | `AF'`, `BC` | `BC'`, ...) and
+  the flags in a single row, narrow keeps the familiar single column. The chosen width is
+  remembered between runs.
 
 ### Changed
 
@@ -44,3 +52,7 @@ before that point is upstream's history and is not repeated here.
   by hand.
 - **Link error in MinSizeRel and Debug builds** (`lr_swaph` declared C99 `inline` with no
   external definition).
+- **32-bit register fields accepted a single digit of input** (`PSW` on BK0010). Present
+  upstream as well.
+- Register fields were one fixed width for every machine, too wide for a byte register and
+  too narrow for a 32-bit one. They now follow the value and the number base.

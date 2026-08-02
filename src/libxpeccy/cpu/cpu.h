@@ -55,6 +55,7 @@ typedef struct {
 	const char* name;
 	int value;	// register value (selector)
 	int base;	// base address for segment register
+	int pair;	// id of register to show in the same line in deBUGa (0 = none)
 } xRegister;
 
 typedef struct {
@@ -64,6 +65,7 @@ typedef struct {
 
 typedef struct CPU CPU;
 
+// 'pair' is optional: tables that don't set it get 0 = no pair
 typedef struct {
 	int id;
 	char* name;
@@ -71,6 +73,7 @@ typedef struct {
 	int flag;
 	int(*get)(CPU*);
 	void(*set)(CPU*,int);
+	int pair;
 } xRegDsc;
 
 // memrq rd
