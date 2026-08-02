@@ -105,6 +105,7 @@ void DebugWin::updateStyle() {
 // headers
 	str = getStyleString("dbg.header.bg", "dbg.header.txt");
 	ui_cpu.labHeadCpu->setStyleSheet(str);
+	ui_cpu.labHeadFlags->setStyleSheet(str);
 	ui_asm.labHeadDisasm->setStyleSheet(str);
 	ui_misc.labHeadMem->setStyleSheet(str);
 	ui_misc.labHeadRay->setStyleSheet(str);
@@ -297,6 +298,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	curCpuCore = nullptr;
 	regCols = 0;
 	regPairW = 0;
+	regWideW = 0;
 	cpuWantW = 0;
 	cpuRestored = 0;
 
@@ -396,6 +398,8 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		lab->id = i;
 		lab->setVisible(false);
 		lab->setProperty("isbit", false);
+		lab->setContentsMargins(0, 0, 4, 0);	// don't let it touch the value
+
 		xhs = new xHexSpin(wid_cpu);
 		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL | XHS_AUTOW);
 		xhs->setVisible(false);
@@ -1102,19 +1106,25 @@ void DebugWin::fillFlags(const char* fnam) {
 #define RCOL_LEFT	0
 #define RCOL_RIGHT	3
 #define RCOL_GAP	10
+// items of ui_cpu.verticalLayout, see form_cpu.ui:
+// cpu header, registers, gap, flags header, flags, spacer
+#define VLI_REGS	1
+#define VLI_FLAGS	4
 
 // flags follow the registers: 8 in a row when there is room for 2 columns, 4 otherwise
 void DebugWin::reFormFlags(int per) {
-	delete ui_cpu.verticalLayout->takeAt(3);	// flags stay alive, wid_cpu owns them
+	delete ui_cpu.verticalLayout->takeAt(VLI_FLAGS);	// flags stay alive, wid_cpu owns them
 	ui_cpu.flagsGrid = new QGridLayout;
 	ui_cpu.flagsGrid->setSpacing(2);
-	ui_cpu.verticalLayout->insertLayout(3, ui_cpu.flagsGrid);
+	ui_cpu.flagsGrid->setContentsMargins(0, 2, 0, 0);
+	ui_cpu.verticalLayout->insertLayout(VLI_FLAGS, ui_cpu.flagsGrid);
 	for (int i = 0; i < 16; i++) {
 		int p = 15 - i;				// flag 15 is the leftmost one
-		ui_cpu.flagsGrid->addWidget(dbgFlagLabs[i], (p / per) * 2, p % per);
-		ui_cpu.flagsGrid->addWidget(dbgFlagBox[i], (p / per) * 2 + 1, p % per);
+		ui_cpu.flagsGrid->addWidget(dbgFlagLabs[i], (p / per) * 2, p % per, Qt::AlignCenter);
+		ui_cpu.flagsGrid->addWidget(dbgFlagBox[i], (p / per) * 2 + 1, p % per, Qt::AlignCenter);
 	}
-	ui_cpu.flagsGrid->setColumnStretch(per, 1);	// keep flags packed to the left
+	for (int i = 0; i < per; i++)			// spread them over the panel width
+		ui_cpu.flagsGrid->setColumnStretch(i, 1);
 }
 
 // put one register into the grid. col is RCOL_LEFT or RCOL_RIGHT
@@ -1170,19 +1180,28 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 		cnt++;
 	}
 	regPairW = labw + fldw;
-	// never demand more than one column, so the splitter can be dragged narrow
+	// two columns is as wide as the panel ever needs to be, but the flags row
+	// (8 of them side by side) may still ask for more
+	regWideW = regPairW * 2 + RCOL_GAP;
+	int flgw = dbgFlagBox[0]->sizeHint().width() * 8 + 7 * 2;
+	if (flgw > regWideW) regWideW = flgw;
+	// never demand more than one column, so the splitter can be dragged narrow,
+	// and never allow more than two: dragging further would only add empty space
 	wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+	wid_cpu->setMaximumWidth(regWideW);
+	// same value is the switch point: sizes are only exact once the widgets are
+	// styled, two thresholds could drift apart and lock the second column out
 	// start narrow: the width is not settled yet on the very first layout
-	regCols = (regCols && (wid_cpu->width() >= regPairW * 2 + RCOL_GAP)) ? 2 : 1;
+	regCols = (regCols && (wid_cpu->width() >= regWideW)) ? 2 : 1;
 
 	// 2nd pass: (re)build the layout
-	delete ui_cpu.verticalLayout->takeAt(1);		// registers stay alive, wid_cpu owns them
+	delete ui_cpu.verticalLayout->takeAt(VLI_REGS);	// registers stay alive, wid_cpu owns them
 	ui_cpu.formRegs = new QGridLayout;
 	ui_cpu.formRegs->setHorizontalSpacing(0);
 	ui_cpu.formRegs->setVerticalSpacing(2);
 	ui_cpu.formRegs->setColumnMinimumWidth(2, RCOL_GAP);
 	ui_cpu.formRegs->setColumnStretch(5, 1);	// keep registers packed to the left
-	ui_cpu.verticalLayout->insertLayout(1, ui_cpu.formRegs);
+	ui_cpu.verticalLayout->insertLayout(VLI_REGS, ui_cpu.formRegs);
 	QVector<char> done(dbgRegLabs.size(), 0);
 	int row = 0;
 	for (i = 0; i < cnt; i++) {
@@ -1217,7 +1236,7 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 		// would wipe the value loaded from the config (reFormCPU resizes us early)
 		if (cpuRestored)
 			conf.dbg.cpuwidth = wid_cpu->width();
-		int cols = (wid_cpu->width() >= regPairW * 2 + RCOL_GAP) ? 2 : 1;
+		int cols = (wid_cpu->width() >= regWideW) ? 2 : 1;
 		if (cols != regCols) {
 			xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
 			reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color

@@ -73,6 +73,7 @@ class DebugWin : public QMainWindow {
 		QSplitter* cpuSplitter;
 		int regCols;		// register columns that fit now (1 or 2)
 		int regPairW;		// width one 'name + value' pair needs
+		int regWideW;		// panel width that fits two columns: max and switch point
 		int cpuWantW;		// width to restore after the window is laid out, 0 = done
 		unsigned cpuRestored:1;	// saved width applied, sizes may be tracked now
 		// tracer

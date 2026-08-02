@@ -29,8 +29,9 @@ before that point is upstream's history and is not repeated here.
   conditions.
 - **Two-column register panel.** The border between the registers and the disassembly can be
   dragged: wide puts a register next to its alternative (`AF` | `AF'`, `BC` | `BC'`, ...) and
-  the flags in a single row, narrow keeps the familiar single column. The chosen width is
-  remembered between runs.
+  the flags in a single row, narrow keeps the familiar single column. It does not widen past
+  two columns, and the flags moved up under the registers, under a `Flags` header of their
+  own. The chosen width is remembered between runs.
 
 ### Changed
 
