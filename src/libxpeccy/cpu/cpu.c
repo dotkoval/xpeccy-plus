@@ -29,6 +29,7 @@
 #undef flgN
 #undef flgH
 #undef flgZ
+#undef regA		// z80 keeps A in the high byte of AF, other cpus use the low one
 #include "Z80/z80.h"
 
 // common
