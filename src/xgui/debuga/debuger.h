@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QGridLayout>
 #include <QGroupBox>
+#include <QSplitter>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QTimer>
@@ -68,6 +69,10 @@ class DebugWin : public QMainWindow {
 		unsigned block:1;
 		int tabMode;
 		cpuCore* curCpuCore;
+		QWidget* wid_cpu;
+		QSplitter* cpuSplitter;
+		int regCols;		// register columns that fit now (1 or 2)
+		int regPairW;		// width one 'name + value' pair needs
 		// tracer
 		unsigned trace:1;
 		int traceType;
@@ -148,6 +153,9 @@ class DebugWin : public QMainWindow {
 		void fillStack();
 		void fillPorts();
 		void reFormCPU(xRegBunch*);
+		void reFormFlags(int);
+		void placeReg(xRegBunch*, int, int, int);
+		bool eventFilter(QObject*, QEvent*);
 
 		void chLayout();
 

@@ -7,6 +7,7 @@
 #include <QBuffer>
 #include <QPainter>
 #include <QToolBar>
+#include <QVector>
 #include <QFileDialog>
 #include <QTemporaryFile>
 #include <QTextCodec>
@@ -119,8 +120,10 @@ void DebugWin::updateStyle() {
 
 	setFont(conf.dbg.font);
 	foreach(xHexSpin* xhs, dbgRegEdit) {
-		xhs->updatePal();
+		xhs->updatePal();	// takes the new font from the parent
+		xhs->refitWidth();
 	}
+	curCpuCore = nullptr;		// font changed: re-measure the register columns
 	fillDisasm();
 	wid_dump->draw();
 	//ui.dumpTable->update();
@@ -265,21 +268,28 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	int i;
 
 	curCpuCore = nullptr;
+	regCols = 0;
+	regPairW = 0;
 
 	setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
 	setWindowTitle("Xpeccy+ deBUGa");
 	setWindowIcon(QIcon(":/images/bug.png"));
 
 	cw = new QWidget;
-	QWidget* wid_cpu = new QWidget;
+	wid_cpu = new QWidget;
 	QWidget* wid_dasm = new QWidget;
 	ui_cpu.setupUi(wid_cpu);
 
 	ui_asm.setupUi(wid_dasm);
+	// splitter: cpu panel is resizeable, it reflows to 1 or 2 columns (see reFormCPU)
+	cpuSplitter = new QSplitter(Qt::Horizontal);
+	cpuSplitter->addWidget(wid_cpu);
+	cpuSplitter->addWidget(wid_dasm);
+	cpuSplitter->setStretchFactor(1, 10);
+	cpuSplitter->setChildrenCollapsible(false);
+	wid_cpu->installEventFilter(this);
 	QHBoxLayout* lay = new QHBoxLayout;
-	lay->addWidget(wid_cpu);
-	lay->addWidget(wid_dasm);
-	lay->setStretchFactor(wid_dasm, 10);
+	lay->addWidget(cpuSplitter);
 	cw->setLayout(lay);
 	setCentralWidget(cw);
 
@@ -351,23 +361,24 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	QLabel* qlb;
 	QCheckBox* qcb;
 	for(i = 0; i < 32; i++) {		// set max registers here
-		lab = new xLabel;
+		// parent them at once: reFormCPU() shows a register before putting it into
+		// the layout, and a parentless visible widget is a window of its own
+		lab = new xLabel(wid_cpu);
 		lab->id = i;
 		lab->setVisible(false);
 		lab->setProperty("isbit", false);
-		xhs = new xHexSpin(this);
-		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL);
+		xhs = new xHexSpin(wid_cpu);
+		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL | XHS_AUTOW);
 		xhs->setVisible(false);
 		xhs->setFrame(false);
-		xhs->setFixedWidth(60);
 		xhs->setMinimumHeight(25);
 		xhs->setAlignment(Qt::AlignCenter);
-		qcb = new QCheckBox;
+		qcb = new QCheckBox(wid_cpu);
 		qcb->setVisible(false);
 		dbgRegLabs.append(lab);
 		dbgRegEdit.append(xhs);
 		dbgRegBits.append(qcb);
-		ui_cpu.formRegs->insertRow(i, lab, xhs);
+		// widgets are put into the layout by reFormCPU(), it knows the cpu register set
 		connect(lab, &xLabel::clicked, this, &DebugWin::regClick);
 		connect(xhs, &xHexSpin::textChanged, this, &DebugWin::setCPU);
 		connect(qcb, SIGNAL(toggled(bool)), this, SLOT(setCPU()));
@@ -376,15 +387,14 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	flagrp = new QButtonGroup;
 	flagrp->setExclusive(false);
 	for(i = 0; i < 16; i++) {
-		qlb = new QLabel;
-		qcb = new QCheckBox;
+		qlb = new QLabel(wid_cpu);
+		qcb = new QCheckBox(wid_cpu);
 		qlb->setVisible(false);
 		qcb->setVisible(false);
 		dbgFlagLabs.append(qlb);
 		dbgFlagBox.append(qcb);
 		flagrp->addButton(qcb);
-		ui_cpu.flagsGrid->addWidget(qlb, ((15 - i) & 0x0c) >> 1, (15 - i) & 3);
-		ui_cpu.flagsGrid->addWidget(qcb, (((15 - i) & 0x0c) >> 1) + 1, (15 - i) & 3);
+		// placed by reFormFlags(), it follows the register columns
 	}
 	connect(flagrp, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(setFlags()));
 
@@ -1059,46 +1069,127 @@ void DebugWin::fillFlags(const char* fnam) {
 	}
 }
 
+// grid columns: 0,1 = left pair (name + value), 3,4 = right pair, 2 is a gap between them
+#define RCOL_LEFT	0
+#define RCOL_RIGHT	3
+#define RCOL_GAP	10
+
+// flags follow the registers: 8 in a row when there is room for 2 columns, 4 otherwise
+void DebugWin::reFormFlags(int per) {
+	delete ui_cpu.verticalLayout->takeAt(3);	// flags stay alive, wid_cpu owns them
+	ui_cpu.flagsGrid = new QGridLayout;
+	ui_cpu.flagsGrid->setSpacing(2);
+	ui_cpu.verticalLayout->insertLayout(3, ui_cpu.flagsGrid);
+	for (int i = 0; i < 16; i++) {
+		int p = 15 - i;				// flag 15 is the leftmost one
+		ui_cpu.flagsGrid->addWidget(dbgFlagLabs[i], (p / per) * 2, p % per);
+		ui_cpu.flagsGrid->addWidget(dbgFlagBox[i], (p / per) * 2 + 1, p % per);
+	}
+	ui_cpu.flagsGrid->setColumnStretch(per, 1);	// keep flags packed to the left
+}
+
+// put one register into the grid. col is RCOL_LEFT or RCOL_RIGHT
+void DebugWin::placeReg(xRegBunch* b, int i, int row, int col) {
+	ui_cpu.formRegs->addWidget(dbgRegLabs[i], row, col);
+	dbgRegLabs[i]->setVisible(true);
+	if (b->regs[i].size == REG_BIT) {
+		dbgRegLabs[i]->setProperty("isbit", true);
+		ui_cpu.formRegs->addWidget(dbgRegBits[i], row, col + 1);
+		dbgRegBits[i]->setCheckable(!(b->regs[i].flag & REG_RO));
+		dbgRegBits[i]->setVisible(true);
+		dbgRegEdit[i]->setVisible(false);
+	} else {
+		dbgRegLabs[i]->setProperty("isbit", false);
+		ui_cpu.formRegs->addWidget(dbgRegEdit[i], row, col + 1);
+		dbgRegEdit[i]->setReadOnly(b->regs[i].flag & REG_RO);
+		dbgRegEdit[i]->setVisible(true);
+		dbgRegBits[i]->setVisible(false);
+	}
+}
+
+// index of a register in the bunch, -1 if it is not there
+static int find_bunch_reg(xRegBunch* b, int cnt, int id) {
+	for (int i = 0; i < cnt; i++) {
+		if (b->regs[i].id == id) return i;
+	}
+	return -1;
+}
+
 void DebugWin::reFormCPU(xRegBunch* b) {
-	ui_cpu.verticalLayout->takeAt(1);
-	ui_cpu.formRegs = new QFormLayout;
+	int i;
+	int cnt = 0;			// visible registers (bunch holds no REG_EMPTY ones)
+	int labw = 0;
+	int fldw = 0;
+	// 1st pass: set names and sizes, measure the widest name and value
+	while ((cnt < dbgRegLabs.size()) && (b->regs[cnt].id != REG_EOT)) {
+		dbgRegLabs[cnt]->setText(b->regs[cnt].name);
+		dbgRegLabs[cnt]->setProperty("regid", b->regs[cnt].id);
+		int mx;
+		switch(b->regs[cnt].size) {
+			case REG_2: mx = 2; break;
+			case REG_BYTE: mx = 0xff; break;
+			case REG_24: mx = 0xffffff; break;
+			case REG_32: mx = 0xffffffff; break;
+			default: mx = 0xffff; break;
+		}
+		// setMax resets the input mask and the text with it, so don't
+		// touch it on a simple reflow: it would drop the 'changed' color
+		if (dbgRegEdit[cnt]->getMax() != mx)
+			dbgRegEdit[cnt]->setMax(mx);
+		if (dbgRegLabs[cnt]->sizeHint().width() > labw) labw = dbgRegLabs[cnt]->sizeHint().width();
+		if (dbgRegEdit[cnt]->minimumWidth() > fldw) fldw = dbgRegEdit[cnt]->minimumWidth();
+		cnt++;
+	}
+	regPairW = labw + fldw;
+	// never demand more than one column, so the splitter can be dragged narrow
+	wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+	// start narrow: the width is not settled yet on the very first layout
+	regCols = (regCols && (wid_cpu->width() >= regPairW * 2 + RCOL_GAP)) ? 2 : 1;
+
+	// 2nd pass: (re)build the layout
+	delete ui_cpu.verticalLayout->takeAt(1);		// registers stay alive, wid_cpu owns them
+	ui_cpu.formRegs = new QGridLayout;
+	ui_cpu.formRegs->setHorizontalSpacing(0);
+	ui_cpu.formRegs->setVerticalSpacing(2);
+	ui_cpu.formRegs->setColumnMinimumWidth(2, RCOL_GAP);
+	ui_cpu.formRegs->setColumnStretch(5, 1);	// keep registers packed to the left
 	ui_cpu.verticalLayout->insertLayout(1, ui_cpu.formRegs);
-	int c = 0;
-	int r = 0;
-	while (r < dbgRegLabs.size()) {
-		if (b->regs[c].id != REG_EOT) {
-			if (b->regs[c].id != REG_EMPTY) {			// skip 'empty'
-				dbgRegLabs[r]->setText(b->regs[c].name);
-				dbgRegLabs[r]->setProperty("regid", b->regs[c].id);
-				dbgRegLabs[r]->setVisible(true);
-				switch(b->regs[c].size) {
-					case REG_2: dbgRegEdit[r]->setMax(2); break;
-					case REG_BYTE: dbgRegEdit[r]->setMax(0xff); break;
-					case REG_24: dbgRegEdit[r]->setMax(0xffffff); break;
-					case REG_32: dbgRegEdit[r]->setMax(0xffffffff); break;
-					default: dbgRegEdit[r]->setMax(0xffff); break;
-				}
-				if (b->regs[c].size == REG_BIT) {
-					dbgRegLabs[r]->setProperty("isbit", true);
-					ui_cpu.formRegs->addRow(dbgRegLabs[r], dbgRegBits[r]);
-					dbgRegBits[r]->setCheckable(!(b->regs[c].flag & REG_RO));
-					dbgRegBits[r]->setVisible(true);
-				} else {
-					dbgRegLabs[r]->setProperty("isbit", false);
-					ui_cpu.formRegs->addRow(dbgRegLabs[r], dbgRegEdit[r]);
-					dbgRegEdit[r]->setReadOnly(b->regs[c].flag & REG_RO);
-					dbgRegEdit[r]->setVisible(true);
-				}
-				r++;
+	QVector<char> done(dbgRegLabs.size(), 0);
+	int row = 0;
+	for (i = 0; i < cnt; i++) {
+		if (done[i]) continue;			// already taken as someone's pair
+		placeReg(b, i, row, RCOL_LEFT);
+		done[i] = 1;
+		if ((regCols > 1) && b->regs[i].pair) {
+			int p = find_bunch_reg(b, cnt, b->regs[i].pair);
+			if ((p >= 0) && !done[p]) {
+				placeReg(b, p, row, RCOL_RIGHT);
+				done[p] = 1;
 			}
-			c++;
-		} else {
-			dbgRegLabs[r]->setVisible(false);
-			dbgRegBits[r]->setVisible(false);
-			dbgRegEdit[r]->setVisible(false);
-			r++;
+		}
+		row++;
+	}
+	for (i = cnt; i < dbgRegLabs.size(); i++) {	// rest of the widgets is unused
+		dbgRegLabs[i]->setVisible(false);
+		dbgRegBits[i]->setVisible(false);
+		dbgRegEdit[i]->setVisible(false);
+	}
+	reFormFlags((regCols > 1) ? 8 : 4);
+}
+
+// cpu panel resized: reflow if another number of columns fits now
+bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
+	// isVisible: while the window is hidden the panel is squeezed to its minimum,
+	// such a width must not be saved (same guard as in resizeEvent)
+	if ((obj == wid_cpu) && (ev->type() == QEvent::Resize) && isVisible()
+			&& regPairW && conf.prof.cur && conf.prof.cur->zx) {
+		int cols = (wid_cpu->width() >= regPairW * 2 + RCOL_GAP) ? 2 : 1;
+		if (cols != regCols) {
+			xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
+			reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color
 		}
 	}
+	return QMainWindow::eventFilter(obj, ev);
 }
 
 void DebugWin::fillCPU() {
