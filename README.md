@@ -5,7 +5,7 @@ A ZX Spectrum emulator with a built-in debugger.
 Xpeccy+ is a fork of [Xpeccy](https://github.com/samstyle/Xpeccy) by SAM style. All the
 emulation code comes from that project. This fork does not claim authorship of it.
 
-Current version: **2026.0** (development). Forked from upstream build `20260802`.
+Current version: **2026.0** (development). Forked from upstream build `20260806`.
 
 Windows and Linux are built and tested here. macOS was supported in the original project
 and is wanted back, but there is no Mac to build and test on at the moment - help with that
@@ -43,7 +43,7 @@ and keeps doing its job; the work here goes into everything around it.
 
 ## What is already different
 
-On top of upstream build `20260802`: lower input lag, a memory heat map in the debugger,
+On top of upstream build `20260806`: lower input lag, a memory heat map in the debugger,
 tape loading fixes, and a fix for a crash on profile switching.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list.

@@ -4,7 +4,7 @@ Notable changes in Xpeccy+, newest first. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), versions use CalVer
 (`YEAR.NUMBER[.PATCH]`).
 
-Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260802`. Anything
+Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260806`. Anything
 before that point is upstream's history and is not repeated here.
 
 ## 2026.0 - unreleased
