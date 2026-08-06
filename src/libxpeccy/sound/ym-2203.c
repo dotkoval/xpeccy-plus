@@ -50,14 +50,14 @@
 // b0-2 b0..2 algoritm, b5..7 self-feedback level (op1 only)
 
 // algoritms
-// 000	op1->op2->op3->op4->out
-// 001	(op1+op2)->op3->op4->out
-// 010	((op2->op3)+op1)->op4->out
-// 011	(op1->op2)+(op3->op4)->out
-// 100	op1->op2->out, op3->op4->out
-// 101	op1->(op2,op3,op4)->out
-// 110	op1->op2->out, op3->out, op4->out
-// 111	op1->out, op2->out, op3->out, op4->out
+// 000	op0->op1->op2->op3->out
+// 001	(op0+op2)->op1->op3->out
+// 010	(op0+(op2->op1))->op3->out
+// 011	((op0->op2)+op1)->op3)->out
+// 100	op0->op2->out, op1->op3->out
+// 101	op0->(op1,op2,op3)->out
+// 110	op0->op2->out, op1->out, op3->out
+// 111	op0->out, op1->out, op2->out, op3->out
 
 /*
  envelope form (ADSR):
@@ -104,87 +104,68 @@
 #define SIN_BITS 10
 #define SIN_LEN (1 << SIN_BITS)
 #define SIN_MASK (SIN_LEN - 1)
-#define SIN_SHIFT (20 - SIN_BITS)
+#define SIN_SHIFT (10 - SIN_BITS)
 
 static float sin_tab[SIN_LEN];
+static int att_sin_log_tab[256];
+static int pow2_tab[256];
+static float pow2_m[2048];
 
 void init_sin_tab() {
 	int idx = 0;
 	float ang = 0;
 	while (idx < SIN_LEN) {
-		sin_tab[idx] = (sin(ang) + 1) / 4;
+		sin_tab[idx] = sin(ang);
 		ang += 2 * M_PI / SIN_LEN;
 		idx++;
 	}
+	for (idx = 0; idx < 256; idx++) {
+		att_sin_log_tab[idx] = round((-log2(sin((2 * idx + 1) / 512 * M_PI / 2))) * 256.0);
+		pow2_tab[idx] = round(pow(2, (-(idx + 1) / 256.0)) * 2048.0);		// 0.11 [0]~1 to [255]~.5 NOTE:in fact, pretty linear
+	}
+	for (idx = 0; idx < 2048; idx++) {
+		pow2_m[idx] = pow(2, -1.0*idx/64.0);	// 2^(-N) for x.6 values
+	}
 }
 
-static int dt_tab[8] = {0,1,2,3,0,-3,-2,-1};
+//static int dt_tab[8] = {0,1,2,3,0,-3,-2,-1};
+static int dt_tab[32][8] = {
+	{0,0,1,2,0,0,-1,-2},{0,0,1,2,0,0,-1,-2},{0,0,1,2,0,0,-1,-2},{0,0,1,2,0,0,-1,-2},
+	{0,1,2,2,0,-1,-2,-2},{0,1,2,3,0,-1,-2,-3},{0,1,2,3,0,-1,-2,-3},{0,1,2,3,0,-1,-2,-3},
+	{0,1,2,4,0,-1,-2,-4},{0,1,3,4,0,-1,-3,-4},{0,1,3,4,0,-1,-3,-4},{0,1,3,5,0,-1,-3,-5},
+	{0,2,4,5,0,-2,-4,-5},{0,2,4,6,0,-2,-4,-6},{0,2,4,6,0,-2,-4,-6},{0,2,5,7,0,-2,-5,-7},
+	{0,2,5,8,0,-2,-5,-8},{0,3,6,8,0,-3,-6,-8},{0,3,6,9,0,-3,-6,-9},{0,3,7,10,0,-3,-7,-10},
+	{0,4,8,11,0,-4,-8,-11},{0,4,8,12,0,-4,-8,-12},{0,4,9,13,0,-4,-9,-13},{0,5,10,14,0,-5,-10,-14},
+	{0,5,10,16,0,-5,-10,-16},{0,6,12,17,0,-6,-12,-17},{0,6,13,19,0,-6,-13,-19},{0,7,14,20,0,-7,-14,-20},
+	{0,8,16,22,0,-8,-16,-22},{0,8,16,22,0,-8,-16,-22},{0,8,16,22,0,-8,-16,-22},{0,8,16,22,0,-8,-16,-22}
+};
 
-// TODO: check eg_inc, this one is shit
-static const int eg_inc[52][8] = {
-	{0,0,0,0,0,0,0,1},
-	{0,0,0,0,0,0,1,1},
-	{0,0,0,0,1,0,1,1},
-	{0,0,0,0,1,1,1,1},
+// [adsr eff.rate][(ecount >> shift) & 7]
+int att_inc[64][8] = {
+	{0,0,0,0,0,0,0,0},{0,0,0,0,0,0,0,0},{1,0,1,0,1,0,1,0},{1,0,1,0,1,0,1,0},  // 0-3    (0x00-0x03)
+	{1,0,1,0,1,0,1,0},{1,0,1,0,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,0,1,1,1,0},  // 4-7    (0x04-0x07)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 8-11   (0x08-0x0B)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 12-15  (0x0C-0x0F)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 16-19  (0x10-0x13)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 20-23  (0x14-0x17)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 24-27  (0x18-0x1B)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 28-31  (0x1C-0x1F)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 32-35  (0x20-0x23)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 36-39  (0x24-0x27)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 40-43  (0x28-0x2B)
+	{1,0,1,0,1,0,1,0},{1,0,1,1,1,0,1,0},{1,1,1,0,1,1,1,0},{1,1,1,1,1,1,1,0},  // 44-47  (0x2C-0x2F)
+	{1,1,1,1,1,1,1,1},{2,1,1,1,2,1,1,1},{2,1,2,1,2,1,2,1},{2,2,2,1,2,2,2,1},  // 48-51  (0x30-0x33)
+	{2,2,2,2,2,2,2,2},{4,2,2,2,4,2,2,2},{4,2,4,2,4,2,4,2},{4,4,4,2,4,4,4,2},  // 52-55  (0x34-0x37)
+	{4,4,4,4,4,4,4,4},{8,4,4,4,8,4,4,4},{8,4,8,4,8,4,8,4},{8,8,8,4,8,8,8,4},  // 56-59  (0x38-0x3B)
+	{8,8,8,8,8,8,8,8},{8,8,8,8,8,8,8,8},{8,8,8,8,8,8,8,8},{8,8,8,8,8,8,8,8}   // 60-63  (0x3C-0x3F)
+};
 
-	{0,0,0,1,0,0,0,1},
-	{0,0,0,1,0,0,1,1},
-	{0,0,0,1,1,0,1,1},
-	{0,0,0,1,1,1,1,1},
-
-	{0,0,1,1,0,0,1,1},
-	{0,0,1,1,1,0,1,1},
-	{0,0,1,1,1,1,1,1},
-	{0,1,1,1,0,1,1,1},
-
-	{0,1,1,1,1,1,1,1},
-	{1,1,1,1,0,1,1,1},
-	{1,1,1,1,1,1,1,1},
-	{1,1,1,2,1,1,1,2},
-
-	{1,2,1,2,1,2,1,2},
-	{2,2,2,2,2,2,2,2},
-	{2,2,2,4,2,2,2,4},
-	{2,4,2,4,2,4,2,4},
-
-	{4,4,4,4,4,4,4,4},
-	{4,4,4,8,4,4,4,8},
-	{4,8,4,8,4,8,4,8},
-	{8,8,8,8,8,8,8,8},
-
-	{8,8,8,16,8,8,8,16},
-	{8,16,8,16,8,16,8,16},
-	{16,16,16,16,16,16,16,16},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0},
-	{0,0,0,0,0,0,0,0}
+// for every effecive rate (2*R + Rks)
+int shift_tab[64] = {
+	11,11,11,11,10,10,10,10, 9, 9, 9, 9, 8, 8, 8, 8,
+	 7, 7, 7, 7, 6, 6, 6, 6, 5, 5, 5, 5, 4, 4, 4, 4,
+	 3, 3, 3, 3, 2, 2, 2, 2, 1, 1, 1, 1, 0, 0, 0, 0,
+	 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
 /*
@@ -204,69 +185,95 @@ static int keyscale_tab[32 * 4] = {
 // TODO: pre-calc rate,shift,sel,eg_inc[] pointer
 void ym2203_eg_tick(fmOper* op, int ecount) {
 	int shift;
-	int sel;
 	int rate;
 	int inc;
-	switch(op->state) {
+	switch(op->eg.state) {
 		case OPST_OFF:
 			break;
+		case OPST_HOLD:
+			break;
 		case OPST_ATK:
-			rate = 2 * op->atkrate + op->kscale;
+			rate = 2 * op->eg.atkrate + op->eg.kscale;
 			if (rate > 63) rate = 63;
-			shift = (rate < 44) ? (11 - (rate >> 2)) : 0;
+			shift = shift_tab[rate]; // (rate < 44) ? (11 - (rate >> 2)) : 0;
 			if (!(ecount & ((1 << shift) - 1))) {
-				sel = (rate < 12) ? (rate & 3) : (rate - 12);
-				inc = (op->amp * eg_inc[sel][(ecount >> shift) & 7]) >> 4;
-				op->amp -= inc;
-				if ((op->amp <= op->tlev) || (inc == 0)) {		// tlev 0:max
-					op->amp = 0;
-					op->state = OPST_DEC;
+				inc = (~op->eg.att * att_inc[rate][(ecount >> shift) & 7]) >> 4;	// negative value
+				op->eg.att += inc;
+				if (op->eg.att <= 0) {
+					op->eg.att = 0;
+					op->eg.state = OPST_DEC;
 				}
 			}
 			break;
 		case OPST_DEC:
-			rate = 2 * op->decrate + op->kscale;
+			rate = 2 * op->eg.decrate + op->eg.kscale;
 			if (rate > 63) rate = 63;
-			shift = (rate < 44) ? (11 - (rate >> 2)) : 0;
+			shift = shift_tab[rate]; // (rate < 44) ? (11 - (rate >> 2)) : 0;
+			if (op->eg.envflag & 8) shift >>= 2;		// 4 times faster
 			if (!(ecount & ((1 << shift) - 1))) {
-				sel = (rate < 12) ? (rate & 3) : (rate - 12);
-				inc = eg_inc[sel][(ecount >> shift) & 7];
-				op->amp += inc;
-				if (op->amp >= op->suslev) {
-					op->state = OPST_SUS;
+				inc = att_inc[rate][(ecount >> shift) & 7];
+				op->eg.att += inc;
+				if (op->eg.att >= op->eg.suslev) {
+					op->eg.state = OPST_SUS;
 				}
 			}
 			break;
 		case OPST_SUS:
-			rate = 2 * op->susrate + op->kscale;
+			rate = 2 * op->eg.susrate + op->eg.kscale;
 			if (rate > 63) rate = 63;
-			shift = (rate < 44) ? (11 - (rate >> 2)) : 0;
+			shift = shift_tab[rate]; //(rate < 44) ? (11 - (rate >> 2)) : 0;
+			if (op->eg.envflag & 8) shift >>= 2;
 			if (!(ecount & ((1 << shift) - 1))) {
-				sel = (rate < 12) ? (rate & 3) : (rate - 12);
-				inc = eg_inc[sel][(ecount >> shift) & 7];
-				// inc = rate;
-				op->amp += inc;
-				if (op->amp >= 1023) {
-					op->amp = 1023;
-					op->state = OPST_OFF;
+				inc = att_inc[rate][(ecount >> shift) & 7];
+				op->eg.att += inc;
+				if (op->eg.att >= 1023) {
+					op->eg.att = 1023;
+					if (op->eg.envflag & 8) {			// ss
+						 if (op->eg.envflag & 1) {		// hold
+							 op->eg.envinv = !!(op->eg.envflag & 2);
+							 op->eg.state = OPST_HOLD;
+						 } else {				// repeat
+							if (op->eg.envflag & 2) op->eg.envinv ^= 1;
+							op->eg.state = OPST_ATK;
+						 }
+					} else {
+						op->eg.state = OPST_HOLD;
+					}
 				}
 			}
 			break;
 		case OPST_REL:
-			rate = 2 * op->relrate + op->kscale;
+			rate = 4 * op->eg.relrate + 2 + op->eg.kscale;
 			if (rate > 63) rate = 63;
-			shift = (rate < 44) ? (11 - (rate >> 2)) : 0;
+			shift = shift_tab[rate]; // (rate < 44) ? (11 - (rate >> 2)) : 0;
+			if (op->eg.envflag & 8) shift >>= 2;
 			if (!(ecount & ((1 << shift) - 1))) {
-				sel = (rate < 12) ? (rate & 3) : (rate - 12);
-				inc = eg_inc[sel][(ecount >> shift) & 7];
-				op->amp += inc;
-				if (op->amp >= 1023) {
-					op->amp = 1023;
-					op->state = OPST_OFF;
+				inc = att_inc[rate][(ecount >> shift) & 7];
+				op->eg.att += inc;
+				if (op->eg.att >= 1023) {
+					op->eg.att = 1023;
+					op->eg.state = OPST_OFF;
 				}
 			}
 			break;
 	}
+	if (op->eg.state == OPST_OFF) return;
+	if (op->eg.envflag & 8) {
+		// b0,1: 00 - repeat
+		//	01 - hold volume at end of 1st loop
+		//	10 - repeat with volume inversion at end of each loop
+		//	11 - hold inverted volume at end of 1st loop
+		// b2 - invert volume in the beninging
+		int inv = !!op->eg.envinv ^ !!(op->eg.envflag & 4);	// inverted output
+		if (inv) {
+			op->eg.out = op->eg.att ^ 0x3ff;
+		} else {
+			op->eg.out = op->eg.att;
+		}
+	} else {
+		op->eg.out = op->eg.att;
+	}
+	op->eg.out += op->tlev;	// adding TL making sound too silent
 }
 
 // update eg for all channel operators
@@ -279,15 +286,13 @@ void ym2203_cheg_tick(fmChan* ch, int ecount) {
 
 // press/release key for operator
 void ym2203_op_key(fmOper* op, int st) {
-	if (st) {	// key on
-		if (!op->key) {		// don't press twice
-			op->state = OPST_ATK;
-			op->phase = 0;
-			op->amp = 1023;
-			op->key = 1;
-		}
-	} else if (op->key) {		// key off (if not already off)
-		op->state = OPST_REL;
+	if (st && !op->key) {	// key on
+		op->eg.state = OPST_ATK;
+		op->pg.phase = 0;
+		op->eg.att = 1023;
+		op->key = 1;
+	} else if (!st && op->key) {	// key off
+		op->eg.state = OPST_REL;
 		op->key = 0;
 	}
 }
@@ -297,11 +302,48 @@ void ym2203_op_swkey(fmOper* op) {
 }
 
 // update phase generator only (mod will be applied later)
+// phase generator output is higher 10 bits of op->phase
 void ym2203_fmop_tick(fmOper* op) {
-	int step = op->pstep;
-	step = (step * op->mult) / 2;			// op->mult is scaled x2: 1,2,4,6,8,...
-	step += op->detune;
-	op->phase += step;
+	int step = op->pg.pstep;
+	step += op->pg.dt;				// detune before multiple
+	step &= (1<<17)-1;				// limit to 17bits?
+	step = (step * op->pg.mult) >> 1;		// op->mult is scaled x2: 1,2,4,6,8,...
+	op->pg.phase += step;
+}
+
+// apply modulator and calculate output
+void ym2203_fmop_exec(fmOper* op, int mod) {
+	if (op->eg.state == OPST_OFF) {
+		op->out = 0;
+	} else {
+// op->phase is 20bits(10.10), phase is higher 10 bits of it, modulator applied to this value
+// b0 of modulator has no effect, using bits 1-10 -> mod>>1
+		int phase = ((op->pg.phase >> 10) + (mod >> 1)) & 0x3ff;		// result phase is 10 bits
+#if 0
+// sign = phase.b9
+// idx = (phase.b8 ? (1ff - (phase & 1ff)) : (phase & ff)
+		int psign = phase & (1 << 9);
+		int idx = (phase & (1 << 8)) ? (0x1ff - (phase & 0x1ff)) : (phase & 0xff);	// sin_tab[0..1024], [0..256] is 1st quarter
+// x = ((2 * idx + 1) / 512) * pi/2
+// att = -log2(sin(x))
+// att = (att << 8).round()	<- (4.8) 12bit attenuation : TODO: store this value in att_sin_log_table ?
+		unsigned short att = att_sin_log_tab[idx];		// 4.8
+// N = att + (env_att << 2)	<- (5.8) 13-bit, env_att is envelope op->amp (10 bits as 4.6, see above, shifting to make it 4.8 as att)
+		att += ((op->eg.att + op->tlev) << 2);			// 5.8
+// chip computes 2^(-N) as 2^(-I) * 2^(-F) where I is integer part (5 bits), F is fractal part (8 bits). 2^(-F) from table: T[i] = (2^(-(N+1)/256) << 11) : 11 bits (0.11)
+//	so result is: fract=N&FF, intgr=N>>8, result=(T[fract] << 2) >> intgr : 13 bit value; if (intgr>13),result=0
+		op->out = (pow2_tab[att & 0xff] << 2) >> (att >> 8);
+// apply sign to result: this is 14-bit output value (sign + 13 bits: if this is modulator, it adds value in range [-8pi;+8pi] to next operator)
+		if (psign) op->out = -op->out;
+#else
+// 2^(-(att + (eg.att << 2)) = 2^(-(-log2(sin(x)) + eg.att)) = 2^(log2(sin(x))*2^(-eg.att) = 2^(-eg.att)*sin(x)
+		if (op->eg.out > 0x340) {
+			op->out = 0;
+		} else {
+			op->out = (1 << 13) * pow2_m[op->eg.out] * sin_tab[(phase >> SIN_SHIFT) & SIN_MASK];	// signed 12 bits. modulation [-8pi;+8pi]; b0 doesn't affect, 10 bits is 2pi, 2 bits doesn't matter (+2pi for sinus)
+		}
+#endif
+	}
 }
 
 // update phase generator for all operators
@@ -311,22 +353,22 @@ void ym2203_fmchan_tick(fmChan* ch) {
 	ym2203_fmop_tick(&ch->op[2]);
 	ym2203_fmop_tick(&ch->op[3]);
 	// not connected yet, connect when ym2203_vol to get output volume
-}
-
-// apply modulator and calculate output
-void ym2203_fmop_exec(fmOper* op, int mod) {
-	if (op->state == OPST_OFF) {
-		op->out = 0;
+	// fully calculate op0 for proper feedback
+	fmOper* op0 = &ch->op[0];
+	int fb = op0->feedback & 7;
+	if (fb) {
+		int mod = (op0->out + op0->outp) >> (7 - fb);	// out is previous, outp is pre-previous
+		op0->outp = op0->out;		// previous is pre-previous now
+		ym2203_fmop_exec(op0, mod);	// generate new out (will be previous @ next step until new generation)
 	} else {
-		int phase = (op->phase + mod) & ((1 << 20) - 1);
-		// TODO: cut phase to highest 8/9/10 bits and take sin from table
-		// op->out = (1024 - op->amp) * sin(phase * 3.1415 / (1 << 19));		// 2^20 of phase is 2pi
-		op->out = (1024 - op->amp) * sin_tab[(phase >> SIN_SHIFT) & SIN_MASK];			// [-1024;1024] on full sin, [0;1024] on lifted sin
+		op0->outp = op0->out;
+		ym2203_fmop_exec(op0, 0);
 	}
 }
 
 // calculate operators output + connect operators
 void ym2203_fmchan_connect(fmChan* ch) {
+/*
 	if (ch->op[0].feedback & 7) {
 		int shift = 7 - (ch->op[0].feedback & 7);
 		int mod = (ch->op[0].out + ch->op[0].outp) >> shift;	// out is previous, outp is pre-previous
@@ -336,65 +378,65 @@ void ym2203_fmchan_connect(fmChan* ch) {
 		ch->op[0].outp = ch->op[0].out;
 		ym2203_fmop_exec(&ch->op[0], 0);
 	}
+*/
 	switch(ch->algo & 7) {
 		case 0:		// op0->op1->op2->op3->out
 			ym2203_fmop_exec(&ch->op[1], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[2], ch->op[1].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[2].out);
-			ch->out = ch->op[3].out << 1;
+			ch->out = ch->op[3].out;
 			break;
 		case 1:		// (op0+op2)->op1->op3->out
 			ym2203_fmop_exec(&ch->op[2], 0);
 			ym2203_fmop_exec(&ch->op[1], ch->op[0].out + ch->op[2].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[2].out);
-			ch->out = ch->op[3].out << 1;
+			ch->out = ch->op[3].out;
 			break;
 		case 2:		// (op0+(op2->op1))->op3->out
 			ym2203_fmop_exec(&ch->op[2], 0);
 			ym2203_fmop_exec(&ch->op[1], ch->op[2].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[0].out + ch->op[1].out);
-			ch->out = ch->op[3].out << 1;
+			ch->out = ch->op[3].out;
 			break;
 		case 3:		// ((op0->op2)+op1)->op3)->out
 			ym2203_fmop_exec(&ch->op[1], 0);
 			ym2203_fmop_exec(&ch->op[2], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[2].out + ch->op[1].out);
-			ch->out = ch->op[3].out << 1;
+			ch->out = ch->op[3].out;
 			break;
 		case 4:		// op0->op2->out, op1->op3->out
 			ym2203_fmop_exec(&ch->op[1], 0);
 			ym2203_fmop_exec(&ch->op[2], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[1].out);
-			ch->out = (ch->op[2].out + ch->op[3].out);
+			ch->out = (ch->op[2].out + ch->op[3].out) / 2;
 			break;
 		case 5:		// op0->(op1,op2,op3)->out
 			ym2203_fmop_exec(&ch->op[1], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[2], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[3], ch->op[0].out);
-			ch->out = (ch->op[1].out + ch->op[2].out + ch->op[3].out) >> 1;
+			ch->out = (ch->op[1].out + ch->op[2].out + ch->op[3].out) / 3;
 			break;
 		case 6:		// op0->op2->out, op1->out, op3->out
 			ym2203_fmop_exec(&ch->op[1], 0);
 			ym2203_fmop_exec(&ch->op[2], ch->op[0].out);
 			ym2203_fmop_exec(&ch->op[3], 0);
-			ch->out = ch->op[1].out + ch->op[2].out + ch->op[3].out;
+			ch->out = (ch->op[1].out + ch->op[2].out + ch->op[3].out) / 3;
 			break;
 		case 7:		// op0->out, op1->out, op2->out, op3->out
 			ym2203_fmop_exec(&ch->op[1], 0);
 			ym2203_fmop_exec(&ch->op[2], 0);
 			ym2203_fmop_exec(&ch->op[3], 0);
-			ch->out = (ch->op[0].out + ch->op[1].out + ch->op[2].out + ch->op[3].out) >> 1;
+			ch->out = (ch->op[0].out + ch->op[1].out + ch->op[2].out + ch->op[3].out) / 4;
 			break;
 	}
 	if (ch->off) ch->out = 0;
-	// ch->out [-4096;4096] / [0..4096]
-	// ch->out = (ch->out >> 1) + 2048;	// TODO: silense must be 0
-	// if (ch->out < 0) ch->out = 0;
+	// ch->out signed 13 bit
+	// ch->out = (ch->out + (1 << 13));
 }
 
 // timings (chatgpt):
 // pre-scaler: Fclk / (2/3/6)
-// each 12 pre-scaler ticks - update FM (1/2:24, 1/3:36, 1/6:72 of Fclk)
+// each 24 pre-scaler ticks
 // eg_timer++ each FM-sample
 // each 3 FM ticks -> update EG:
 //	eg_clock() {eg_cnt++; update_eg_for_each_op();}		// eg_cnt as counter for ADSR steps (if eg_cnt && ((1 << shift) - 1) ...)
@@ -410,19 +452,19 @@ void ym2203_sync(aymChip* chip, int ns) {
 	chip->cnt -= ns;
 
 	while (chip->cnt < 0) {
+		if (chip->wait > 0) {
+			chip->wait--;
+		}
 		chip->cnt += chip->per;
-
-		chip->sg_cnt--;				// psg(ssg) divider control
-		if (chip->sg_cnt <= 0) {
-			chip->sg_cnt = chip->sgdiv;
+		chip->pscnt++;
+		// temporary: fix ssg clock by 1/2 of master clock
+		if (chip->pscnt & 1) {
 			ay_tick(chip);
 		}
-
-		chip->pscnt++;
 		if (chip->pscnt >= chip->fmdiv) {	// pre-scaler
 			chip->pscnt = 0;
 			chip->fmcnt++;
-			if (chip->fmcnt >= 24) {	// fm sampling (12 psticks, 24 half-periods)
+			if (chip->fmcnt >= 24) {
 				chip->fmcnt = 0;
 				// update fm channels (op phase generators)
 				ym2203_fmchan_tick(&chip->chanFM[0]);
@@ -433,6 +475,7 @@ void ym2203_sync(aymChip* chip, int ns) {
 				if (chip->eg_timer >= 3) {
 					chip->eg_timer = 0;
 					chip->eg_cnt++;
+					if (chip->eg_cnt == 0) chip->eg_cnt = 1;
 					ym2203_cheg_tick(&chip->chanFM[0], chip->eg_cnt);
 					ym2203_cheg_tick(&chip->chanFM[1], chip->eg_cnt);
 					ym2203_cheg_tick(&chip->chanFM[2], chip->eg_cnt);
@@ -479,7 +522,7 @@ sndPair ym2203_vol(aymChip* chip) {
 	int fmv = 0;
 	for (int i = 0; i < 3; i++) {
 		ym2203_fmchan_connect(&chip->chanFM[i]);
-		fmv += chip->chanFM[i].out * 4;
+		fmv += chip->chanFM[i].out << 1;
 	}
 	v.left += fmv / 3;
 	v.right += fmv / 3;
@@ -510,13 +553,13 @@ void ym2203_divmode(aymChip* chip) {
 			chip->sgdiv = 2;
 			break;
 	}
+	chip->fmcnt <<= 1;	// halfperiod -> period
 }
 
-int calc_kscale(int frq, int blk, int ks) {
+int calc_note(int frq, int blk) {
 	int nte = (frq & 0x400) ? 2 : 0;
 	if (((frq & 0x780) == 0x380) || ((frq & 0x400) && (frq & 0x380))) nte |= 1;
-	int idx = (nte & 3) | (blk << 2);
-	return idx >> (3 - ks);
+	return (nte & 3) | (blk << 2);
 }
 
 void op_update_freq(fmChan* ch, int opn, unsigned char regl, unsigned char regh) {
@@ -526,12 +569,15 @@ void op_update_freq(fmChan* ch, int opn, unsigned char regl, unsigned char regh)
 	int stp = (frq << blk) >> 1;		// F * (2 ^ (B - 1))
 	int all = !!(opn < 0);
 	if (all) opn = 0;
+	fmOper* op;
 	do {
-		ch->op[opn].freq = frq;
-		ch->op[opn].block = blk;
-		ch->op[opn].pstep = stp;
-		ch->op[opn].kscale = calc_kscale(frq, blk, ch->op[opn].ks); // idx >> (3 - ch->op[opn].ks);
-		// ch->op[opn].phase = 0;
+		op = &ch->op[opn];
+		op->pg.freq = frq;
+		op->pg.block = blk;
+		op->pg.pstep = stp;
+		op->pg.note = calc_note(frq, blk);
+		op->eg.kscale = op->pg.note >> (op->eg.ks ^ 3);
+		op->pg.dt = dt_tab[op->pg.note][op->pg.detune];		// step shift value
 		opn++;
 	} while (all && (opn < 4));
 }
@@ -551,33 +597,32 @@ void ch_update_ch3_frq(aymChip* chip) {
 extern void ay_set_reg(aymChip*, int);
 
 void ym2203_wr(aymChip* chip, int adr, int val) {
+	if (chip->wait > 0) return;
 	if (adr & 1) {
 		chip->curReg = val & 0xff;
+		if (chip->curReg > 0x0f) {
+			chip->wait = 17;
+		}
 	} else {
 		fmChan* ch;
 		chip->reg[chip->curReg] = val & 0xff;
+		chip->wait = (chip->curReg < 0x10) ? 0 : ((chip->curReg < 0xa0) ? 83 : 47);
 		if (chip->curReg < 0x10) {
 			ay_set_reg(chip, val);
 		} else if (chip->curReg < 0x30) {		// 20..2f
 			switch (chip->curReg) {
 				case 0x24:
-					chip->ta_value &= 3;
-					chip->ta_value |= (val << 2);
+					// chip->ta_value = (chip->reg[0x24] << 2) | (chip->reg[0x25] & 3);
+					chip->ta_value = chip->reg[0x24] | ((chip->reg[0x25] & 3) << 8);
 					break;
 				case 0x25:
-					chip->ta_value &= 0x3fc;
-					chip->ta_value |= (val & 3);
 					break;
 				case 0x26:
 					// reg[0x26] = tb_value;
 					break;
 				case 0x27:
-					if (val & 1) {
-						chip->ta_cnt = chip->ta_value;
-					}
-					if (val & 2) {
-						chip->tb_cnt = chip->reg[0x26];
-					}
+					if (val & 1) {chip->ta_cnt = chip->ta_value;}
+					if (val & 2) {chip->tb_cnt = chip->reg[0x26];}
 					if (val & 0x10) {chip->reg[0xff] &= ~2;}	// reset state of timerA
 					if (val & 0x20) {chip->reg[0xff] &= ~1;}	// reset state of timerB
 					ch_update_ch3_frq(chip);
@@ -611,30 +656,31 @@ void ym2203_wr(aymChip* chip, int adr, int val) {
 				fmOper* op = &ch->op[opn];
 				switch (chip->curReg & 0xf0) {
 					case 0x30:
-						op->mult = (val & 0x0f) << 1;	// b0..3: multiple (x2)
-						if (!op->mult) op->mult = 1;	// 0 -> 1/2
-						op->detune = dt_tab[(val >> 4) & 7];	// b4..6: detune
+						op->pg.mult = (val & 0x0f) << 1;	// b0..3: multiple (x2)
+						if (!op->pg.mult) op->pg.mult = 1;	// 0 -> 1/2
+						op->pg.detune = (val >> 4) & 7;		// b4..6: detune
+						op->pg.dt = dt_tab[op->pg.note][op->pg.detune];
 						break;
 					case 0x40:
 						op->tlev = (val & 0x7f) << 3;	// b0..5 total level
 						break;
 					case 0x50:
-						op->atkrate = val & 0x1f;	// b0..4 atk rate (0 - slow, 1f - fast)
-						op->ks = (val >> 6) & 3;	// b6,7 key scale (rate scale)
-						op->kscale = calc_kscale(op->freq, op->block, op->ks);
+						op->eg.atkrate = val & 0x1f;	// b0..4 atk rate (0 - slow, 1f - fast)
+						op->eg.ks = (val >> 6) & 3;	// b6,7 key scale (rate scale)
+						op->eg.kscale = op->pg.note >> (op->eg.ks ^ 3);
 						break;
 					case 0x60:
-						op->decrate = val & 0x1f;	// b0..4 decay rate
+						op->eg.decrate = val & 0x1f;	// b0..4 decay rate
 						break;
 					case 0x70:
-						op->susrate = val & 0x1f;	// b0..4 sustain rate
+						op->eg.susrate = val & 0x1f;	// b0..4 sustain rate
 						break;
 					case 0x80:
-						op->relrate = val & 0x0f;	// b0..3 release rate
-						op->suslev = (val & 0xf0) << 2;	// b4..7 sustain level
+						op->eg.relrate = val & 0x0f;	// b0..3 release rate
+						op->eg.suslev = (val & 0xf0) << 2;	// b4..7 sustain level
 						break;
 					case 0x90:
-						op->envflag = val & 0x0f;	// b0..3 envelope control (TODO)
+						op->eg.envflag = val & 0x0f;	// b0..3 envelope control (TODO)
 						break;
 					case 0xa0:
 						switch (chip->curReg & 0x0c) {
@@ -661,13 +707,27 @@ void ym2203_wr(aymChip* chip, int adr, int val) {
 	}
 }
 
+void ym2203_op_reset(fmOper* op) {
+	op->eg.state = OPST_OFF;
+	op->eg.att = 1023;
+	op->eg.out = 1023;
+	op->tlev = 0;
+}
+
+void ym2203_ch_reset(fmChan* ch) {
+	ym2203_op_reset(&ch->op[0]);
+	ym2203_op_reset(&ch->op[1]);
+	ym2203_op_reset(&ch->op[2]);
+	ym2203_op_reset(&ch->op[3]);
+}
+
 void ym2203_reset(aymChip* chip) {
 	ay_reset(chip);
-	for (int i = 0x10; i < 256; i++) {
+	for (int i = 256; i < 0x10; i--) {
 		chip->curReg = i;
 		ym2203_wr(chip, 0, 0);
 	}
-	chip->divmode = 3;
+	chip->divmode = 1;
 	ym2203_divmode(chip);
 	chip->pscnt = 0;
 	chip->fmcnt = 0;
@@ -675,4 +735,7 @@ void ym2203_reset(aymChip* chip) {
 	chip->eg_timer = 0;
 	chip->sg_cnt = 0;
 	chip->blk_fm = 0;
+	ym2203_ch_reset(&chip->chanFM[0]);
+	ym2203_ch_reset(&chip->chanFM[1]);
+	ym2203_ch_reset(&chip->chanFM[2]);
 }

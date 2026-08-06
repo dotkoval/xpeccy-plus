@@ -9,9 +9,15 @@ xAYWidget::xAYWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	hwList << HWG_ZX << HWG_MSX << HWG_ALF;
 	setObjectName("AYWIDGET");
 
+	ui.cbChipSelect->addItem("Sound chip A", 0);
+	ui.cbChipSelect->addItem("Sound chip B", 1);
+	ui.cbChipSelect->addItem("Sound chip C", 2);
+	// ui.cbChipSelect->addItem("Sound chip D", 3);
+
 	connect(ui.sbChanNum, SIGNAL(valueChanged(int)), this, SLOT(draw()));
 	connect(ui.sbOpNum, SIGNAL(valueChanged(int)), this, SLOT(draw()));
 	connect(ui.fmChanOff, SIGNAL(stateChanged(int)), this, SLOT(offChan(int)));
+	connect(ui.cbChipSelect, SIGNAL(currentIndexChanged(int)), this, SLOT(draw()));
 }
 
 void xAYWidget::offChan(int st) {
@@ -32,7 +38,12 @@ QString getAYmix(aymChan* ch) {
 void drawBar(QLabel* lab, int lev, int max, int dir) {
 	if (lev > max) lev = max;
 	if (lev < 0) lev = 0;
-	QPixmap pxm(100, lab->height() / 2);
+	QPixmap pxm;
+	if (dir) {
+		pxm = QPixmap(100, 10); // lab->height() / 2);
+	} else {
+		pxm = QPixmap(10, 100); // lab->height() / 2);
+	}
 	QPainter pnt;
 	pxm.fill(Qt::black);
 	pnt.begin(&pxm);
@@ -74,7 +85,13 @@ QString getOpStatusName(int id) {
 void xAYWidget::draw() {
 	Computer* comp = conf.prof.cur->zx;
 	tsGetVolume(comp->ts);		// to update FM output value
-	aymChip* chp = comp->ts->chipA;
+	aymChip* chp;
+	switch (ui.cbChipSelect->currentIndex()) {
+		case 1: chp = comp->ts->chipB; break;
+		case 2: chp = comp->ts->chipC; break;
+		case 3: chp = comp->ts->chipD; break;
+		default: chp = comp->ts->chipA; break;
+	}
 	ui.leToneA->setText(gethexword(((chp->reg[1] << 8) | chp->reg[0]) & 0x0fff));
 	ui.leToneB->setText(gethexword(((chp->reg[3] << 8) | chp->reg[2]) & 0x0fff));
 	ui.leToneC->setText(gethexword(((chp->reg[5] << 8) | chp->reg[4]) & 0x0fff));
@@ -98,21 +115,21 @@ void xAYWidget::draw() {
 	fmChan* ch = &chp->chanFM[chn];
 	fmOper* op = &ch->op[opn];
 	ui.fmChanOff->setChecked(ch->off);
-	ui.leFmChanFrq->setText(gethexword(op->freq));
-	ui.leFmChanBase->setText(gethexbyte(op->block));
-	ui.leFmChanStep->setText(gethexint(op->pstep));
+	ui.leFmChanFrq->setText(gethexword(op->pg.freq));
+	ui.leFmChanBase->setText(gethexbyte(op->pg.block));
+	ui.leFmChanStep->setText(gethexint(op->pg.pstep));
 	ui.leFmChanAlg->setText(gethexbyte(ch->algo));
 	ui.leFmChanOut->setText(QString::number(ch->out));
-	ui.leFmOpStatus->setText(getOpStatusName(op->state));
-	ui.leFmOpAR->setText(gethexbyte(op->atkrate));
-	ui.leFmOpDR->setText(gethexbyte(op->decrate));
-	ui.leFmOpSR->setText(gethexbyte(op->susrate));
-	ui.leFmOpSL->setText(gethexword(op->suslev));
-	ui.leFmOpRR->setText(gethexbyte(op->relrate));
+	ui.leFmOpStatus->setText(getOpStatusName(op->eg.state));
+	ui.leFmOpAR->setText(gethexbyte(op->eg.atkrate));
+	ui.leFmOpDR->setText(gethexbyte(op->eg.decrate));
+	ui.leFmOpSR->setText(gethexbyte(op->eg.susrate));
+	ui.leFmOpSL->setText(gethexword(op->eg.suslev));
+	ui.leFmOpRR->setText(gethexbyte(op->eg.relrate));
 	ui.leFmOpTL->setText(gethexword(op->tlev));
-	ui.leFmOpKS->setText(gethexbyte(op->ks));
-	ui.leFmOpEGAmp->setText(gethexword(op->amp));
-	ui.leFmOpPhase->setText(gethexint(op->phase).right(5));
+	ui.leFmOpKS->setText(gethexbyte(op->eg.ks));
+	ui.leFmOpEGAmp->setText(gethexword(op->eg.att));
+	ui.leFmOpPhase->setText(gethexint(op->pg.phase).right(5));
 	ui.leFmOpOut->setText(QString::number(op->out));	// signed
 
 	drawHBar(ui.labBeep, comp->beep->val, 256);

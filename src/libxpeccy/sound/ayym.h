@@ -93,30 +93,38 @@ enum {
 	OPST_ATK,
 	OPST_DEC,
 	OPST_SUS,
-	OPST_REL
+	OPST_REL,
+	OPST_HOLD
 };
 
 typedef struct {
 	unsigned key:1;
-	int state;
 	int feedback;	// op1 only
-	int mult;
-	int detune;
 	int tlev;	// 0:max, 1024:min
-	int ks;		// from reg.value (2bits)
-	int kscale;	// calculated (0-31)
-	int atkrate;
-	int decrate;
-	int susrate;
-	int suslev;	// [0;1024]
-	int relrate;
-	int envflag;
-	int amp;			// 0:max, 1023:min
-	unsigned phase:20;		// 20-bit phase (overflow is counted as 2*pi)
-	int freq;
-	int block;
-//	int note;
-	int pstep;			// phase step
+	struct {	// phase generator
+		unsigned phase:20;		// 20-bit phase 10.10 (max is 2*pi)
+		int freq;
+		int block;
+		int note;			// keycode
+		int pstep;			// phase step
+		int mult;
+		int detune;			// from register
+		int dt;				// calculated value
+	} pg;
+	struct {		// envelope generator
+		int state;	// atk/dec/sus/rel/off
+		int ks;		// from reg.value (2bits)
+		int kscale;	// calculated (0-31)
+		int atkrate;
+		int decrate;
+		int susrate;
+		int suslev;	// [0;1024]
+		int relrate;
+		int envflag;
+		int envinv;
+		int att;			// 0:max, 1023:min
+		int out;			// att + tlev;
+	} eg;
 	int out;
 	int outp;	// previous output for op1 (feedback)
 } fmOper;
@@ -125,9 +133,6 @@ typedef struct {
 	unsigned off:1;		// output = 0
 	fmOper op[4];		// operators
 	int algo;		// ops connection (algorithm)
-//	int spcfrq[4];		// for chan 3: special frq/blk for op0,1,2
-//	int spcblk[4];		// [3] is common for all ch0,1 operators and ch3 in non-special mode
-//	int spcstp[4];
 	int out;		// output (last operator output)
 } fmChan;
 
@@ -135,6 +140,7 @@ struct aymChip {
 	unsigned coarse:1;	// 4-bit DAC volume
 	unsigned blk_fm:1;	// 1:block fm output
 	int stereo;
+	int wait;		// waiting. chip is busy when >0
 
 	int type;
 	double frq;		// in MHz
@@ -160,7 +166,7 @@ struct aymChip {
 	int pscnt;	// pre-scaler: (2,3,6) of master ticks
 	int fmcnt;	// fm: 12 pre-scaled ticks
 	int eg_timer;	// eg: 3 fm ticks
-	int eg_cnt;	// inc each eg tick
+	unsigned eg_cnt:12;// inc each eg tick (12 bit)
 	int sg_cnt;	// ssg divider counter
 
 	fmChan chanFM[3];	// fm channels
