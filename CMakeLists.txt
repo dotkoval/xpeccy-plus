@@ -19,6 +19,10 @@ project(${PROJECT_NAME} VERSION ${XVER})
 # clean version w/o "-dev" and build date, for release builds
 option(XRELEASE "build as a release version" OFF)
 
+# Windows: drop the Qt plugins windeployqt copies but this app never loads
+# (see cmake/windeploy.cmake.in for the list and why each one goes)
+option(TRIMDEPLOY "trim unused Qt plugins from the installed folder" ON)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
 
@@ -123,6 +127,15 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	set(LIBRARIES ${LIBRARIES} winmm.dll)
 	set(INC_PATHS $ENV{INCLUDE} $ENV{PATH})
 	set(LIB_PATHS $ENV{LIBPATH} $ENV{PATH})
+
+	# CMAKE_SYSTEM_PROCESSOR reports the *host* arch on Windows, so a 32-bit
+	# MinGW build would otherwise be labelled AMD64. Ask the compiler instead.
+	if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+		set(XARCH "x64")
+	else()
+		set(XARCH "x86")
+	endif()
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-win-${XARCH}")
 
 else()
 
@@ -267,6 +280,7 @@ elseif(${QTVERSION} EQUAL 5)
 	endif()
 
 	set(QT_VER ${Qt5Widgets_VERSION})
+	get_target_property(QMAKE_EXE Qt5::qmake IMPORTED_LOCATION)
 
 elseif(${QTVERSION} EQUAL 6)
 #	message(FATAL_ERROR "Qt6 usage is not implemented yet")
@@ -298,6 +312,7 @@ elseif(${QTVERSION} EQUAL 6)
 	endif()
 
 	set(QT_VER ${Qt6Widgets_VERSION})
+	get_target_property(QMAKE_EXE Qt6::qmake IMPORTED_LOCATION)
 else()
 	message(FATAL_ERROR "Not supported Qt version defined")
 endif()
@@ -373,9 +388,53 @@ include_directories(${INCLUDIRS})
 target_link_libraries(${PROJECT_NAME} ${LIBRARIES})
 add_dependencies(${PROJECT_NAME} version_header)
 
-include(${CMAKE_ROOT}/Modules/CPack.cmake)
-
 # install
+#
+# Windows: a self-contained, ready-to-run folder. Build it with
+#	cmake --install <build-dir> --prefix <dist-dir>
+# Note that --install never deletes anything, so wipe the target dir first.
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+
+	install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION config)
+	install(FILES
+		${CMAKE_SOURCE_DIR}/README.md
+		${CMAKE_SOURCE_DIR}/CHANGELOG.md
+		${CMAKE_SOURCE_DIR}/LICENSE_eng
+		${CMAKE_SOURCE_DIR}/LICENSE_rus
+		DESTINATION .
+	)
+
+	# FindSDL2 only reports the import library, so locate the runtime dll too
+	find_file(SDL2_RUNTIME_LIBRARY SDL2.dll
+		HINTS $ENV{SDL2DIR} ${SDL2_INCLUDE_DIR}/..
+		PATH_SUFFIXES bin lib lib/x64 lib/x86
+	)
+	if(SDL2_RUNTIME_LIBRARY)
+		install(FILES ${SDL2_RUNTIME_LIBRARY} DESTINATION .)
+	else()
+		message(WARNING "SDL2.dll not found: the installed folder won't run")
+	endif()
+
+	# Qt runtime: dlls, platforms\qwindows.dll and the compiler runtime.
+	# Runs against the staged folder, not the build dir - windeployqt scans
+	# whatever directory the binary it is given lives in.
+	get_filename_component(QT_BIN_DIR "${QMAKE_EXE}" DIRECTORY)
+	find_program(WINDEPLOYQT windeployqt HINTS ${QT_BIN_DIR})
+	if(WINDEPLOYQT)
+		configure_file(
+			${CMAKE_SOURCE_DIR}/cmake/windeploy.cmake.in
+			${CMAKE_BINARY_DIR}/windeploy.cmake @ONLY
+		)
+		install(SCRIPT ${CMAKE_BINARY_DIR}/windeploy.cmake)
+	else()
+		message(WARNING "windeployqt not found: the installed folder won't run")
+	endif()
+
+endif()
+
+include(${CMAKE_ROOT}/Modules/CPack.cmake)
 
 # print messages
 

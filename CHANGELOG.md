@@ -57,6 +57,12 @@ before that point is upstream's history and is not repeated here.
   the flags in a single row, narrow keeps the familiar single column. It does not widen past
   two columns, and the flags moved up under the registers, under a `Flags` header of their
   own. The chosen width is remembered between runs.
+- **A Windows build that produces a ready-to-run folder.** `packaging\make-dist.ps1` builds
+  and stages the binary together with the Qt and SDL runtime, `config\` and the docs, and
+  can zip it; `packaging\fetch-deps.ps1` downloads SDL2, pinned by version and checksum in
+  `packaging\deps.json`. The layout itself is CMake's, so `cmake --install` gives the same
+  folder. Qt plugins the emulator never loads are dropped, which nearly halves the result.
+  Presets cover Qt 5 on x86 and x64 and Qt 6 on x64.
 
 ### Changed
 
@@ -99,3 +105,6 @@ before that point is upstream's history and is not repeated here.
   upstream as well.
 - Register fields were one fixed width for every machine, too wide for a byte register and
   too narrow for a 32-bit one. They now follow the value and the number base.
+- **The x86 trace log wrote one garbage character in place of the `CS` register**, since the
+  value was appended as a character rather than as a hex word. It also broke the Qt 6 build,
+  where that conversion is ambiguous.

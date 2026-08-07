@@ -1,0 +1,7 @@
+{
+	"sdl2": {
+		"version": "2.32.10",
+		"sha256": "F15CFF5FCA62EC9381A016EF1D42A95C638CD72D2F226BA5781C76FE43DBD1AC",
+		"source": "SDL2-devel-<version>-mingw.zip from https://github.com/libsdl-org/SDL/releases"
+	}
+}
