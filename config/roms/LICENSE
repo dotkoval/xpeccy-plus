@@ -1,0 +1,27 @@
+ROM images in this directory are NOT covered by the license of Xpeccy+
+======================================================================
+
+Xpeccy+ itself is distributed under the MIT license (see LICENSE_eng /
+LICENSE_rus in the root of the project). That license applies to the source
+code and to the binaries built from it. It does NOT apply to the files in this
+directory.
+
+The files in config/roms/ are firmware images of the emulated machines. Each of
+them stays under the terms of its own copyright holder. They are bundled here
+only so that the emulator is usable right after unpacking, and they may be
+redistributed only on those terms:
+
+  - the images must not be sold on their own, and must not be embedded into
+    hardware. Bundling them with a product is allowed as long as the charge is
+    for the product, not for the images;
+  - the copyright messages inside the images must not be removed or altered.
+    None of the bundled images was modified in any way;
+  - if you are a copyright holder of any bundled image and want it removed,
+    open an issue at https://github.com/dotkoval/xpeccy-plus/issues and it will
+    be dropped from the next release.
+
+AMSTRAD.copyright holds the canonical notice for the Sinclair/Amstrad images,
+copied verbatim from the Fuse emulator distribution.
+
+PROVENANCE.md lists every file actually bundled here, where it came from and
+what its status is.

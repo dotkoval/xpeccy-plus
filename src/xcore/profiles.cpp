@@ -355,7 +355,7 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 	int section = PS_NONE;
 	if (!file.good() && flag) {
 		printf("Profile config is missing. Default one will be created\n");
-		copyFile(":/conf/xpeccy.conf", cfname.c_str());
+		copyFile(":/res/fallback/xpeccy.conf", cfname.c_str());
 		file.open(cfname, std::ifstream::in);
 	}
 	if (!file.good()) {

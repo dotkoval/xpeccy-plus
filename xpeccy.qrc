@@ -1,8 +1,8 @@
 <RCC>
     <qresource prefix="/">
-        <file>conf/1982.rom</file>
-        <file>conf/config.conf</file>
-        <file>conf/xpeccy.conf</file>
+        <file>config/roms/48.rom</file>
+        <file>res/fallback/config.conf</file>
+        <file>res/fallback/xpeccy.conf</file>
         <file>images/cd.png</file>
         <file>images/hdd.png</file>
         <file>images/add.png</file>

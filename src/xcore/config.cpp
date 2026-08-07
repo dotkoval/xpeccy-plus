@@ -268,15 +268,15 @@ void loadConfig() {
 	char fname[FILENAME_MAX];
 	if (!file.good()) {
 		printf("Main config is missing. Default files will be copied\n");
-		copyFile(":/conf/config.conf", conf.path.confFile.c_str());
+		copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
 		strcpy(fname, conf.path.confDir.c_str());
 		strcat(fname, SLASH);
 		strcat(fname, "xpeccy.conf");
-		copyFile(":/conf/xpeccy.conf", fname);
+		copyFile(":/res/fallback/xpeccy.conf", fname);
 		strcpy(fname, conf.path.romDir.c_str());
 		strcat(fname, SLASH);
-		strcat(fname, "1982.rom");
-		copyFile(":/conf/1982.rom", fname);
+		strcat(fname, "48.rom");
+		copyFile(":/config/roms/48.rom", fname);
 		file.open(conf.path.confFile);
 		if (!file.good()) {
 			printf("%s\n",conf.path.confFile.c_str());
