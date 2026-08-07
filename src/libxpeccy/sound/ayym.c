@@ -142,7 +142,7 @@ void tsReset(TSound* ts) {
 	ts->curChip = ts->chipA;
 	ts->mute_l = 0;
 	ts->mute_r = 0;
-	ts->r_stat = 1;
+	ts->r_stat = 0;		// read chip registers, as any AY does. TSFM switches this on itself
 }
 
 void tsSetRomSize(TSound* ts, int sz) {
@@ -190,7 +190,7 @@ void tsLoadRom(TSound* ts, const char* path) {
 
 int tsIn(TSound* ts, int port) {
 	int res = -1;
-	if (ts->r_stat) {			// read status
+	if (ts->r_stat && (ts->type == TS_NEDOPC)) {	// read status (TSFM only)
 		res = ts->curChip->reg[0xff] & 3;
 		if (ts->curChip->wait > 0) res |= 0x80;
 	} else {				// read registers

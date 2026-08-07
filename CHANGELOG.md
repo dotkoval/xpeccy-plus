@@ -79,6 +79,13 @@ before that point is upstream's history and is not repeated here.
   into the binary selected the `NULL` sound output, and the emulation never stepped with it,
   so the window came up black. They now select SDL, and carry the 48K geometry, so the very
   first picture is a working Spectrum.
+- **The AY could not be detected through port `#FFFD` any more.** Upstream's TSFM work made
+  "read the status register" the state every machine powers up in, and only a NedoPC
+  TurboSound command could switch it back - so a program that probes the chip by writing a
+  register and reading it back got a status byte instead. A plain 128K reported no sound chip
+  at all, and TurboSound was only found when the emulator was set to NedoPC, by accident of
+  the probe's own chip-select write. Reading registers is the power-up state again, and the
+  status register is only readable where the hardware has one.
 - **Crash when switching profiles.** A profile's machine is created on first use, but the
   emulation thread could pick up the profile before that machine existed, and use it while
   it was still being built. Present upstream as well.
