@@ -1302,7 +1302,7 @@
                         </item>
                         <item>
                          <property name="text">
-                          <string>3.54</string>
+                          <string>3.5</string>
                          </property>
                         </item>
                        </widget>
@@ -1364,6 +1364,11 @@
                         <item>
                          <property name="text">
                           <string>1.7744</string>
+                         </property>
+                        </item>
+                        <item>
+                         <property name="text">
+                          <string>3.5</string>
                          </property>
                         </item>
                        </widget>
@@ -1456,6 +1461,11 @@
                         <item>
                          <property name="text">
                           <string>1.7744</string>
+                         </property>
+                        </item>
+                        <item>
+                         <property name="text">
+                          <string>3.5</string>
                          </property>
                         </item>
                        </widget>
