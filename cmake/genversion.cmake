@@ -7,7 +7,7 @@ if (XRELEASE)
 	set(XVERSION "${XVERSION_BASE}")
 else()
 	string(TIMESTAMP XBUILD_DATE "%Y%m%d")
-	set(XVERSION "${XVERSION_BASE}-dev (build ${XBUILD_DATE})")
+	set(XVERSION "${XVERSION_BASE}-dev+${XBUILD_DATE}")
 endif()
 
 # write to a temp file and copy it only if the content changed: the date changes
