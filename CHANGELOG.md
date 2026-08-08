@@ -17,20 +17,6 @@ before that point is upstream's history and is not repeated here.
   wall-clock timer now and shows the newest frame. The new "Low latency" switch in
   Options - Video is on by default; turn it off if the motion looks uneven on a plain 60 Hz
   display.
-- **A release runs right after unpacking.** `config/` carries 29 rom images covering every
-  ZX-compatible machine the emulator supports, with a romset and a ready profile for each -
-  its video geometry, contention, sound chips and the disk interface it shipped with - plus
-  20 CRT shaders, nine palettes and a default keyboard and gamepad mapping. Everything is
-  named after the machine it belongs to: profile `ZX Spectrum +3`, romset
-  `ZX Spectrum +2A/+3 (v4.0)`, geometry `ZX +2A/+3`. The rom images and the shaders keep
-  their own licenses, separate from the MIT license of the project - see
-  `config/roms/LICENSE`, `config/roms/PROVENANCE.md` and `config/shaders/README.md`.
-- **Defaults that suit a Spectrum**, rather than whatever the code fell back to: the
-  Sinclair line gets an AY-3-8912 at 1.7734 MHz in ACB stereo, the clones a YM2149 at
-  1.75 MHz in ABC with SounDrive, and the 128K family runs at its real 3.5469 MHz. The
-  picture is 3x with a 65% border and a CRT filter, the palette keeps bright and normal well
-  apart, and Kempston mouse is enabled everywhere - the pointer is still only captured on
-  the hotkey.
 - **Memory heat map**: per-cell read, write and exec counters for RAM and ROM, shown in the
   debugger and exported as CSV (also written next to a saved `.sna`). `tools/heatmap_png.py`
   renders the CSV as a PNG.
@@ -39,17 +25,31 @@ before that point is upstream's history and is not repeated here.
   checkboxes. `A` and `A'` still resolve by name in watcher expressions and breakpoint
   conditions. Widening the register panel puts each register next to its alternative in a
   second column.
+- **A release runs right after unpacking.** `config/` carries 29 rom images covering every
+  ZX-compatible machine the emulator supports, with a romset and a ready profile for each -
+  video geometry, contention, sound chips and the disk interface the machine shipped with -
+  plus 20 CRT shaders, nine palettes and a default keyboard and gamepad mapping. Everything
+  is named after the machine it belongs to: profile `ZX Spectrum +3`, romset
+  `ZX Spectrum +2A/+3 (v4.0)`, geometry `ZX +2A/+3`. The defaults are a Spectrum's rather
+  than the code's: an AY-3-8912 at 1.7734 MHz in ACB stereo on the Sinclair line, a YM2149
+  at 1.75 MHz in ABC with SounDrive on the clones, the real 3.5469 MHz on the 128K family,
+  a 3x picture with a 65% border and a CRT filter, Kempston mouse on everywhere. The rom
+  images and the shaders keep their own licenses, separate from the MIT license of the
+  project - see `config/roms/LICENSE`, `config/roms/PROVENANCE.md` and
+  `config/shaders/README.md`.
 - **Ready-to-run builds for both platforms.** On Windows `packaging\make-dist.ps1` stages
   the binary with the Qt and SDL runtime, `config\` and the docs, and can zip it; presets
   cover Qt 5 on x86 and x64 and Qt 6 on x64. On Linux `packaging/make-appimage.sh` packs an
   AppImage, so one file covers Ubuntu, Debian, Fedora, Arch and SteamOS. Both use CMake's
   own install layout, which a `.deb` or `.rpm` built with CPack carries too, and `config/`
   is part of it - a Linux package now starts with the same 16 machine profiles a Windows
-  release has instead of the single built-in 48K rom.
+  release has instead of the single built-in 48K rom. Each build also carries the metadata
+  its platform expects and neither had before: product name, version, description and
+  copyright on the Windows binary, description, license and documentation in a Linux
+  package.
 - **Version scheme**: the tracked `VERSION` file is the only source, and the window title
   carries the whole thing - `Xpeccy+ (2026.0-dev+20260807)` for a development build,
-  `Xpeccy+ (2026.0)` for a release. The Windows binary now has product name, version,
-  description and copyright, which it had none of.
+  `Xpeccy+ (2026.0)` for a release.
 
 ### Changed
 
