@@ -59,7 +59,7 @@ and with every emulator of them for decades.
 | `profi.rom` | Profi | Profi authors (KONDOR) | grey | Profi v0.2 with TR-DOS 5.04T, `65dff86e995761ffaffd0fc137f31fb2` |
 | `atm2.rom` | ATM Turbo 2+ | MicroART | grey | `28ce89a88089417db4d3057de942a1bb` |
 | `zxevo-fe.rom` | ZX Evo (BaseConf) | NedoPC group | grey | `6cf50dacdf721174903550a3e25b59f4` |
-| `tsconf.rom` | ZX Evo (TSConf) | TS-Labs | grey | `d5f199df3832dc749fe0d12f1ce8f26f` |
+| `tsconf.rom` | ZX Evo (TSConf) | TS-Labs | grey | TS-BIOS, shipped elsewhere as `ts-bios.rom`, `d5f199df3832dc749fe0d12f1ce8f26f` |
 | `phoenix.rom` | ZXM-Phoenix | ZXM-Phoenix authors | grey | BIOS 5.03, `892a393093f373ad3b4c9453f529b523` |
 
 Source: `256s-*.rom` from <https://github.com/trufanov-nok/fuse-extra-roms>; the rest
