@@ -132,6 +132,12 @@ before that point is upstream's history and is not repeated here.
 - **Windows with no icon of their own** - options, tape, rzx, watcher - had none at all on
   X11, where there is no exe resource to fall back to. The application now carries an icon,
   which Qt hands to every window that does not set one.
+- **`--confdir` set up the configuration twice.** The default directory was created and read
+  before the arguments were looked at, and the option then ran the whole initialisation again
+  - which leaked the gamepad controller, added a second `default` layout and profile, and
+  left the windows, already built by then, holding values from the first configuration. The
+  option is read before anything is initialised now, so it happens once and nothing is
+  created outside the directory that was asked for.
 - **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
   by hand.
 - **Link error in MinSizeRel and Debug builds** (`lr_swaph` declared C99 `inline` with no

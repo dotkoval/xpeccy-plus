@@ -144,7 +144,20 @@ int main(int ac,char** av) {
 #endif
 	sndInit();
 	pacingInit();
-	conf_init(av[0], NULL);
+
+	// --confdir has to be known before conf_init: everything below is built on
+	// top of what it sets up. Doing it again later would leak the gamepad
+	// controller, add a second "default" layout and profile, and leave the
+	// windows holding values read from the first configuration.
+	char* confdir = NULL;
+	for (int n = 1; n < ac - 1; n++) {
+		if (!strcmp(av[n], "--confdir")) {
+			confdir = av[n + 1];
+			break;
+		}
+	}
+
+	conf_init(av[0], confdir);
 	shortcut_init();
 	loadConfig();
 
@@ -316,9 +329,7 @@ int main(int ac,char** av) {
 				load_xmap(av[i]);
 				i++;
 			} else if (!strcmp(parg, "--confdir")) {
-				conf_init(av[0], av[i]);
-				i++;
-				loadConfig();
+				i++;		// handled before conf_init above
 			} else if (strlen(parg) > 0) {
 				load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
 			}
