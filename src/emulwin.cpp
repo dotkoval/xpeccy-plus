@@ -8,6 +8,7 @@
 #include <QMimeData>
 #include <QPainter>
 #include <QFileDialog>
+#include <QGuiApplication>
 
 #include <QDebug>
 
@@ -148,7 +149,7 @@ MainWin::MainWin() {
 
 	setWindowTitle(XPTITLE);
 	setMouseTracking(true);
-	icon = QIcon(":/images/xpeccy.png");
+	icon = QGuiApplication::windowIcon();
 	setWindowIcon(icon);
 	setAcceptDrops(true);
 	// setAutoFillBackground(false);

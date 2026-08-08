@@ -137,7 +137,11 @@ int main(int ac,char** av) {
 	// fallback icon for every window that doesn't set its own (options, tape,
 	// rzx, watcher). Windows takes it from the exe resource, X11 has nothing
 	// to take it from.
-	app.setWindowIcon(QIcon(":/images/xpeccy.png"));
+	static const int isize[] = {16, 24, 32, 48, 64, 128, 256};
+	QIcon icon;
+	for (unsigned i = 0; i < sizeof(isize) / sizeof(isize[0]); i++)
+		icon.addFile(QString(":/images/icons/xpeccy-plus-%1.png").arg(isize[i]));
+	app.setWindowIcon(icon);
 
 #ifdef _WIN32
 	app.addLibraryPath(".\\");

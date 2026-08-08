@@ -106,7 +106,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 #	set(CPACK_DMG_BACKGROUND_IMAGE ${CMAKE_SOURCE_DIR}/background.png)
 
 	set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}.app)
-	set(MACOSX_BUNDLE_ICON_FILE xpeccy.icns)
+	set(MACOSX_BUNDLE_ICON_FILE ${PROJECT_NAME}.icns)
 	set(MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${XVER})
 
@@ -398,9 +398,13 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	# machine configuration: the emulator copies it into the user's config
 	# directory on the first run, so a package works right after installing
 	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION share/${PROJECT_NAME}/config)
-	install(FILES ${CMAKE_SOURCE_DIR}/images/${PROJECT_NAME}.png
-		DESTINATION share/icons/hicolor/128x128/apps
-	)
+	# the icon file name must match Icon= in the .desktop file
+	foreach(ICON_SIZE 16 24 32 48 64 128 256)
+		install(FILES ${CMAKE_SOURCE_DIR}/images/icons/${PROJECT_NAME}-${ICON_SIZE}.png
+			DESTINATION share/icons/hicolor/${ICON_SIZE}x${ICON_SIZE}/apps
+			RENAME ${PROJECT_NAME}.png
+		)
+	endforeach()
 	install(FILES ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.desktop DESTINATION share/applications)
 	install(FILES
 		${CMAKE_SOURCE_DIR}/LICENSE_eng

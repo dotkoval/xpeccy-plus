@@ -9,7 +9,7 @@
 	<key>CFBundleExecutable</key>
 	<string>xpeccy-plus</string>
 	<key>CFBundleIconFile</key>
-	<string>xpeccy.icns</string>
+	<string>xpeccy-plus.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>space.kovalchuk.xpeccy-plus</string>
 	<key>CFBundleInfoDictionaryVersion</key>
