@@ -109,7 +109,7 @@ int tslMRd(Computer* comp, int adr, int m1) {
 }
 
 void tslMWr(Computer* comp, int adr, int val) {
-	if ((comp->flgMEN & 0x10) && (((adr & 0xf000) >> 12) == comp->regMADR)) {
+	if (comp->flgMEN && (((adr & 0xf000) >> 12) == comp->regMADR)) {
 		if ((adr & 0xe00) == 0x000) {				// palete
 			comp->vid->tsconf.cram[adr & 0x1ff] = val & 0xff;
 			tslUpdatePal(comp);
@@ -294,7 +294,7 @@ int tsIn12AF(Computer* comp, int port) {return comp->mem->map[0x80].num >> 6;}
 int tsIn13AF(Computer* comp, int port) {return comp->mem->map[0xc0].num >> 6;}
 
 void tsOut15AF(Computer* comp, int port, int val) {
-	comp->flgMEN = val & 0x10;		// FM_EN
+	comp->flgMEN = (val & 0x10) ? 1 : 0;	// FM_EN
 	comp->regMADR = val & 0x0f;
 }
 
