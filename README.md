@@ -43,8 +43,9 @@ and keeps doing its job; the work here goes into everything around it.
 
 ## What is already different
 
-On top of upstream build `20260807`: lower input lag, a memory heat map in the debugger,
-tape loading fixes, and a fix for a crash on profile switching.
+On top of upstream build `20260807`: lower input lag, a memory heat map and AF/AF' in the
+debugger, a release bundled with rom sets and machine profiles, tape loading fixes, and a
+fix for a crash on profile switching.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list.
 
