@@ -2,6 +2,8 @@
 # Git's own binary detection misses some of them (no NUL byte early in the file).
 config/roms/*.rom binary
 config/roms/*.bin binary
+config/profiles/**/*.cmos binary
+config/profiles/**/*.nvram binary
 font.png binary
 *.png binary
 
