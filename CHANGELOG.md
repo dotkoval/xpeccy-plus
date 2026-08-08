@@ -67,12 +67,6 @@ before that point is upstream's history and is not repeated here.
   Nothing is migrated: the first run starts from the defaults, and the old directory is left
   alone - point `--confdir` at it to keep using the old settings. Windows is unaffected, its
   configuration has always lived next to the binary.
-- **TurboSound is set up as NedoPC**, not as the ZX Spectrum Next variant every profile
-  claimed. The two differ in how `#FFFD` picks a chip and in what the upper bits of the
-  written value mean. The third PSG, which only a Next has, is switched off.
-- **ZX Evo (TSConf) ships its NVRAM**, so a reset lands in the 128 menu. Where a reset goes
-  is the "Reset to" option in TS-BIOS Setup (Shift+F12), and with no NVRAM to read the BIOS
-  falls back to TR-DOS.
 - **"Preset" in the romset editor** now fills in the names of the bundled images instead of
   names from the author's own machine.
 - **The sources mirror the runtime layout**: `conf/` became `config/`, the same shape the
@@ -81,6 +75,12 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
+  by hand.
+- **Register fields in the debugger sized themselves wrong**: one fixed width for every
+  machine, too wide for a byte register and too narrow for a 32-bit one, and a 32-bit field
+  (`PSW` on BK0010) took only a single digit of input. They follow the value and the number
+  base now.
 - **ZX Evo (TSConf) drew nothing but black.** The window into the FPGA at the address in
   `#15AF` was still tested as `flag & 0x10` after that flag became a `bool`, so it never
   opened: nothing could reach the palette or the sprite file. Loading screens, sprites and
@@ -94,8 +94,6 @@ before that point is upstream's history and is not repeated here.
   pointing into rom.
 - **TurboSound had its two chips the wrong way round**: `#FFFD` `#FF` selects the first AY
   and `#FE` the second.
-- **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
-  by hand.
 - **The AY could not be detected through port `#FFFD` any more.** Upstream's TSFM work made
   "read the status register" the state every machine powers up in, so a program that probes
   the chip by writing a register and reading it back got a status byte instead: a plain 128K
@@ -112,10 +110,6 @@ before that point is upstream's history and is not repeated here.
   which Qt hands to every window that does not set one. The Linux desktop entry also points
   at a path the icon theme spec knows, `share/icons/hicolor/128x128/apps`, instead of a flat
   `share/icons`.
-- **Register fields in the debugger sized themselves wrong**: one fixed width for every
-  machine, too wide for a byte register and too narrow for a 32-bit one, and a 32-bit field
-  (`PSW` on BK0010) took only a single digit of input. They follow the value and the number
-  base now.
 - **The x86 trace log wrote one garbage character in place of the `CS` register**, since the
   value was appended as a character rather than as a hex word. It also broke the Qt 6 build.
 - **Link error in MinSizeRel and Debug builds** (`lr_swaph` declared C99 `inline` with no
