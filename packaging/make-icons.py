@@ -24,7 +24,8 @@ from PIL import Image
 
 NAME = "xpeccy-plus"
 SIZES = [16, 24, 32, 48, 64, 128, 256, 512]
-# sizes that go into the Qt resource; 512 is only useful for macOS
+# sizes that go into the Qt resource. 512 is left out: it would be dead
+# weight in the binary, Windows and macOS take it from .ico/.icns instead
 QRC_SIZES = [16, 24, 32, 48, 64, 128, 256]
 # sizes Windows looks for; 256 is stored as PNG, the rest as BMP
 ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
@@ -107,8 +108,10 @@ def main():
 				 % (name, im.size[0], im.size[1], size, size))
 		images[size] = im
 
+	# every size lands on disk: Linux installs them into hicolor, where the
+	# desktop resolves Icon= from the .desktop file
 	os.makedirs(os.path.join(dst, "icons"), exist_ok=True)
-	for size in QRC_SIZES:
+	for size in SIZES:
 		images[size].save(os.path.join(dst, "icons", "%s-%d.png" % (NAME, size)),
 				  "png", optimize=True)
 	images[128].save(os.path.join(dst, "%s.png" % NAME), "png", optimize=True)

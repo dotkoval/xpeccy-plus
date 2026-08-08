@@ -399,7 +399,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 	# directory on the first run, so a package works right after installing
 	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION share/${PROJECT_NAME}/config)
 	# the icon file name must match Icon= in the .desktop file
-	foreach(ICON_SIZE 16 24 32 48 64 128 256)
+	foreach(ICON_SIZE 16 24 32 48 64 128 256 512)
 		install(FILES ${CMAKE_SOURCE_DIR}/images/icons/${PROJECT_NAME}-${ICON_SIZE}.png
 			DESTINATION share/icons/hicolor/${ICON_SIZE}x${ICON_SIZE}/apps
 			RENAME ${PROJECT_NAME}.png
