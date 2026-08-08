@@ -4,6 +4,7 @@ config/roms/*.rom binary
 config/roms/*.bin binary
 config/profiles/**/*.cmos binary
 config/profiles/**/*.nvram binary
+config/boot.$B binary
 font.png binary
 *.png binary
 

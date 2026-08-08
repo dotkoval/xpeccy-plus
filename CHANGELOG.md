@@ -47,6 +47,10 @@ before that point is upstream's history and is not repeated here.
   its platform expects and neither had before: product name, version, description and
   copyright on the Windows binary, description, license and documentation in a Linux
   package.
+- **A boot loader for TR-DOS images.** "Add boot" is on by default and now has something to
+  add: a `.trd` or `.scl` with no `boot` file of its own gets `config/boot.$B` appended when
+  it is opened, so the disk can be started without typing a command. Dimon boot 2024 by
+  Dmitry Yurinov - see `config/roms/PROVENANCE.md`.
 - **Version scheme**: the tracked `VERSION` file is the only source, and the window title
   carries the whole thing - `Xpeccy+ (2026.0-dev+20260807)` for a development build,
   `Xpeccy+ (2026.0)` for a release.

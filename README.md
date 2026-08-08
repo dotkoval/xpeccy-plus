@@ -150,6 +150,10 @@ of this project - they stay under the terms of their own copyright holders. Deta
 where each image came from in [`config/roms/PROVENANCE.md`](config/roms/PROVENANCE.md).
 No image was modified; the copyright messages inside them are intact.
 
+`config/boot.$B` is bundled for the same reason: TR-DOS images that carry no boot file of
+their own get it appended when they are opened. It is Dimon boot 2024 by Dmitry Yurinov and
+keeps its own terms, like the rom images.
+
 ## Credits and license
 
 Xpeccy was written by **SAM style** (<https://github.com/samstyle/Xpeccy>) and is

@@ -90,3 +90,4 @@ bundled here are the original firmware releases.
 | `AMSTRAD.copyright` | canonical Amstrad notice, verbatim copy from the Fuse distribution |
 | `LICENSE` | distribution terms for this directory |
 | `PROVENANCE.md` | this file |
+| `../boot.$B` | Dimon boot 2024 by Dmitry Yurinov, appended to TR-DOS images that carry no boot file - <https://zxart.ee/prod/540777> |
