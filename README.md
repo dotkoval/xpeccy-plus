@@ -28,8 +28,8 @@ so patches, ideas and bug reports are welcome.
 - **ZX Spectrum first.** The other machines still work, but they are not the target, and
   support for them will likely be given up where it stands in the way of a better ZX
   experience.
-- **Works out of the box.** Releases are planned as a bundle with configuration and rom
-  sets, so the emulator is ready to use right after unpacking. This is the next step.
+- **Works out of the box.** Releases come as a bundle with configuration and rom sets, so
+  the emulator is ready to use right after unpacking.
 - **Comfortable to play with.** Better gamepad support, rewind, and a smoother way to work
   with tapes and disks.
 - **Fewer loading problems.** Fixes for RZX and for non-standard TZX loaders.
