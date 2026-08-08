@@ -63,6 +63,12 @@ before that point is upstream's history and is not repeated here.
   Nothing is migrated: the first run starts from the defaults, and the old directory is left
   alone - point `--confdir` at it to keep using the old settings. Windows is unaffected, its
   configuration has always lived next to the binary.
+- **TurboSound is set up as NedoPC**, not as the ZX Spectrum Next variant every profile
+  claimed. The two differ in how `#FFFD` picks a chip and in what the upper bits of the
+  written value mean. The third PSG, which only a Next has, is switched off.
+- **ZX Evo (TSConf) ships its NVRAM**, so a reset lands in the 128 menu. Where a reset goes
+  is the "Reset to" option in TS-BIOS Setup (Shift+F12), and with no NVRAM to read the BIOS
+  falls back to TR-DOS.
 - **"Preset" in the romset editor** now fills in the names of the bundled images instead of
   names from the author's own machine.
 - **The sources mirror the runtime layout**: `conf/` became `config/`, the same shape the
@@ -71,6 +77,19 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **ZX Evo (TSConf) drew nothing but black.** The window into the FPGA at the address in
+  `#15AF` was still tested as `flag & 0x10` after that flag became a `bool`, so it never
+  opened: nothing could reach the palette or the sprite file. Loading screens, sprites and
+  backgrounds were all missing. An upstream regression from build `20260418b`.
+- **TSConf stalled wherever software drove the line interrupt.** The CPU only accepted an
+  interrupt while a frame interrupt was being held, so the line and DMA sources were taken
+  roughly once a frame instead of once a scanline, and demos slowed to a stop.
+- **TSConf did not get through its boot rom.** `#21AF` bit 0 is the same rom select as
+  `#7FFD` bit 4, but only the latter was recorded, so the wrong rom was paged in and the
+  `#3Dxx` entry into TR-DOS never fired - the boot rom looped forever with the stack
+  pointing into rom.
+- **TurboSound had its two chips the wrong way round**: `#FFFD` `#FF` selects the first AY
+  and `#FE` the second.
 - **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
   by hand.
 - **The AY could not be detected through port `#FFFD` any more.** Upstream's TSFM work made
