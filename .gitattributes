@@ -4,3 +4,9 @@ config/roms/*.rom binary
 config/roms/*.bin binary
 font.png binary
 *.png binary
+
+# Linux files built from a Windows checkout, where autocrlf would otherwise give
+# them CRLF: bash chokes on the \r, and linuxdeploy reads "Icon=xpeccy-plus\r"
+# out of the desktop entry and then cannot find the icon by that name
+*.sh text eol=lf
+*.desktop text eol=lf

@@ -63,6 +63,16 @@ before that point is upstream's history and is not repeated here.
   `packaging\deps.json`. The layout itself is CMake's, so `cmake --install` gives the same
   folder. Qt plugins the emulator never loads are dropped, which nearly halves the result.
   Presets cover Qt 5 on x86 and x64 and Qt 6 on x64.
+- **A Linux build that produces an AppImage**, so one file covers Ubuntu, Debian, Fedora,
+  Arch and SteamOS instead of the `.deb` and `.rpm` alone. `packaging/linux-setup.sh`
+  installs the toolchain and fetches `linuxdeploy`, `packaging/make-appimage.sh` builds and
+  packs. As on Windows the layout is CMake's, so `cmake --install` gives the same tree, and
+  a package built with CPack carries it too.
+- **`config/` is installed on Linux as well**, into `share/xpeccy-plus/config`, and the
+  emulator copies it into the user's configuration directory on the first run - a package
+  and an AppImage now start with the same 34 rom images and 17 machine profiles a Windows
+  release has, instead of the single built-in 48K rom. Where nothing is installed, the
+  built-in defaults are used as before.
 
 ### Changed
 
@@ -90,6 +100,9 @@ before that point is upstream's history and is not repeated here.
   `res/fallback/`.
 - **"Preset" in the romset editor** now fills in the names of the bundled images instead of
   names from the author's own machine.
+- **The Linux desktop entry points at an icon that desktops actually find.** It used to be
+  installed flat into `share/icons`, which is not a path the icon theme spec knows; it is
+  `share/icons/hicolor/128x128/apps` now, and the icon is the Xpeccy+ one.
 
 ### Fixed
 

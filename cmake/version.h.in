@@ -5,6 +5,9 @@
 
 #define XPRODUCT	"Xpeccy+"
 
+// package name: the binary, the desktop entry and share/<name> (PROJECT_NAME)
+#define XPKGNAME	"xpeccy-plus"
+
 // base version, CalVer: YEAR.NUMBER[.PATCH]
 #define XVERSION_BASE	"@XVERSION_BASE@"
 
