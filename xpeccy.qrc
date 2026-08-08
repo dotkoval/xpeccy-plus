@@ -18,7 +18,13 @@
         <file>images/speaker.png</file>
         <file>images/tape.png</file>
         <file>images/floppy.png</file>
-        <file>images/xpeccy.png</file>
+        <file>images/icons/xpeccy-plus-16.png</file>
+        <file>images/icons/xpeccy-plus-24.png</file>
+        <file>images/icons/xpeccy-plus-32.png</file>
+        <file>images/icons/xpeccy-plus-48.png</file>
+        <file>images/icons/xpeccy-plus-64.png</file>
+        <file>images/icons/xpeccy-plus-128.png</file>
+        <file>images/icons/xpeccy-plus-256.png</file>
         <file>images/arrow-down.png</file>
         <file>images/arrow-up.png</file>
         <file>images/checkbox.png</file>

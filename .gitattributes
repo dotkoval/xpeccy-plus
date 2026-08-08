@@ -7,6 +7,8 @@ config/profiles/**/*.nvram binary
 config/boot.$B binary
 font.png binary
 *.png binary
+*.ico binary
+*.icns binary
 
 # Linux files built from a Windows checkout, where autocrlf would otherwise give
 # them CRLF: bash chokes on the \r, and linuxdeploy reads "Icon=xpeccy-plus\r"

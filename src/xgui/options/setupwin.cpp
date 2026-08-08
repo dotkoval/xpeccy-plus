@@ -7,6 +7,7 @@
 #include <QVector3D>
 #include <QLibrary>
 #include <QPainter>
+#include <QGuiApplication>
 #include <QDebug>
 #include <stdlib.h>
 
@@ -202,6 +203,13 @@ QList<HardWare*> getHardwareList() {
 SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	setModal(true);
 	ui.setupUi(this);
+	// a .ui iconset holds a single pixmap, which the title bar and the tab
+	// bar would have to downscale; the application icon carries every drawn
+	// size instead. It has to be set explicitly: an unset icon is inherited
+	// from the parent window, which wears the pause icon while this dialog
+	// is open.
+	setWindowIcon(QGuiApplication::windowIcon());
+	ui.tabz->setTabIcon(ui.tabz->indexOf(ui.tab_4), QGuiApplication::windowIcon());
 
 	umadial = new QDialog;
 	uia.setupUi(umadial);

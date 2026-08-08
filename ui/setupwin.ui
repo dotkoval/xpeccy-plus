@@ -31,10 +31,6 @@
   <property name="windowTitle">
    <string>Xpeccy+ setup</string>
   </property>
-  <property name="windowIcon">
-   <iconset resource="../xpeccy.qrc">
-    <normaloff>:/images/xpeccy.png</normaloff>:/images/xpeccy.png</iconset>
-  </property>
   <layout class="QVBoxLayout" name="verticalLayout_28">
    <item>
     <layout class="QVBoxLayout" name="verticalLayout">
@@ -3025,10 +3021,6 @@
         </layout>
        </widget>
        <widget class="QWidget" name="tab_4">
-        <attribute name="icon">
-         <iconset resource="../xpeccy.qrc">
-          <normaloff>:/images/xpeccy.png</normaloff>:/images/xpeccy.png</iconset>
-        </attribute>
         <attribute name="title">
          <string>Xpeccy+</string>
         </attribute>
