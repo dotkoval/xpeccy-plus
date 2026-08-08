@@ -98,12 +98,14 @@ void zx_irq(Computer* comp, int t) {
 		case IRQ_VID_LINE:			// line int (tsconf)
 			if (comp->vid->intFRAME) break;
 			comp->vid->intLINE = 0;
+			comp->vid->intFRAME = comp->vid->intsize;	// hold INT: flgACK follows it
 			comp->intVector = 0xfd;
 			comp->cpu->intrq |= Z80_INT;
 			break;
 		case IRQ_DMA:				// dma int (tsconf)
 			if (comp->vid->intFRAME) break;
 			comp->vid->intDMA = 0;
+			comp->vid->intFRAME = comp->vid->intsize;	// hold INT: flgACK follows it
 			comp->intVector = 0xfb;
 			comp->cpu->intrq |= Z80_INT;
 			break;
