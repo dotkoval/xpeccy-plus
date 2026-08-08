@@ -149,6 +149,13 @@ std::string sndGetName() {
 	return res;
 }
 
+// true when the current output really plays the ring buffer. the NULL device
+// doesn't: nothing moves the play position, so whoever waits for the buffer to
+// drain would wait forever (see pacing.cpp).
+int sndPlaybackActive() {
+	return (sndOutput != NULL) && (sndOutput->id != xOutputNone);
+}
+
 //------------------------
 // Sound output
 //------------------------

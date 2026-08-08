@@ -39,6 +39,7 @@ void setOutput(const char*);
 void sndClose();
 int sndSync(Computer*);
 int sndGetRingDistance();
+int sndPlaybackActive();
 
 int snd_wav_open(const char*);
 void snd_wav_close();
