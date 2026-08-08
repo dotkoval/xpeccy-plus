@@ -1,5 +1,6 @@
 // #include <QApplication>
 #include <QMessageBox>
+#include <QIcon>
 #include <QTimer>
 #include <QDebug>
 #include <QFontDatabase>
@@ -132,6 +133,11 @@ int main(int ac,char** av) {
 #endif
 
 	xApp app(ac,av,true);
+
+	// fallback icon for every window that doesn't set its own (options, tape,
+	// rzx, watcher). Windows takes it from the exe resource, X11 has nothing
+	// to take it from.
+	app.setWindowIcon(QIcon(":/images/xpeccy.png"));
 
 #ifdef _WIN32
 	app.addLibraryPath(".\\");

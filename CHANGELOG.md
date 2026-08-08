@@ -105,6 +105,9 @@ before that point is upstream's history and is not repeated here.
 - **Crash when switching profiles.** A profile's machine is created on first use, but the
   emulation thread could pick up the profile before that machine existed, and use it while
   it was still being built. Present upstream as well.
+- **Windows with no icon of their own** - options, tape, rzx, watcher - had none at all on
+  X11, where there is no exe resource to fall back to. The application now carries an icon,
+  which Qt hands to every window that does not set one.
 - **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
   by hand.
 - **Link error in MinSizeRel and Debug builds** (`lr_swaph` declared C99 `inline` with no
