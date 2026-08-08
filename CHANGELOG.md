@@ -67,8 +67,15 @@ before that point is upstream's history and is not repeated here.
 ### Changed
 
 - Renamed to **Xpeccy+**. The binary, the desktop entry and the package are `xpeccy-plus`;
-  window titles and the exported file headers carry the new name. Configuration files and
-  the configuration directory are deliberately untouched, so existing settings keep working.
+  window titles and the exported file headers carry the new name. The configuration files
+  themselves are deliberately untouched, so existing settings keep working.
+- **Own configuration directory on Linux and macOS**: `~/.config/xpeccy-plus` instead of
+  upstream's `~/.config/samstyle/xpeccy`, which the fork still used - installed side by side,
+  the two shared one `config.conf`, one set of profiles and one rom directory, and overwrote
+  each other's settings. `$XDG_CONFIG_HOME` is honoured now where it used to be ignored.
+  Nothing is migrated: the first run starts from the defaults, and the old directory is left
+  alone - point `--confdir` at it to keep using the old settings. Windows is unaffected, its
+  configuration has always lived next to the binary.
 - **Emulation is paced by a wall-clock timer** instead of the audio callback. It used to run
   in bursts the size of the audio buffer, which was not a whole number of frames, so a frame
   came out late every few seconds; a large buffer also meant a large input lag.

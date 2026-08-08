@@ -47,11 +47,16 @@ void conf_init(char* wpath, char* confdir) {
 	conf.port = 30000;
 #if defined(__linux) || defined(__APPLE__) || defined(__BSD)
 	if (confdir == NULL) {
-		conf.path.confDir = std::string(getenv(ENVHOME)) + "/.config";
+		// own directory, not the one upstream Xpeccy uses (~/.config/samstyle/xpeccy):
+		// both may be installed side by side, they must not share settings
+		const char* xdg = getenv("XDG_CONFIG_HOME");
+		if (xdg && *xdg) {
+			conf.path.confDir = std::string(xdg);
+		} else {
+			conf.path.confDir = std::string(getenv(ENVHOME)) + "/.config";
+		}
 		mkdir(conf.path.confDir.c_str(), 0777);
-		conf.path.confDir += "/samstyle";
-		mkdir(conf.path.confDir.c_str(), 0777);
-		conf.path.confDir += "/xpeccy";
+		conf.path.confDir += "/xpeccy-plus";
 	} else {
 		conf.path.confDir = std::string(confdir);
 	}
