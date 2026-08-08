@@ -323,6 +323,7 @@ void tsOut21AF(Computer* comp, int port, int val) {
 	comp->tsconf.p21af = val & 0xff;
 	comp->p7FFD &= ~0x10;
 	if (val & 1) comp->p7FFD |= 0x10;
+	comp->flgROM = (val & 1) ? 1 : 0;		// same ROM select as 7FFD[4]
 	tslMapMem(comp);
 }
 
