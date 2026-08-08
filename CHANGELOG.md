@@ -125,6 +125,10 @@ before that point is upstream's history and is not repeated here.
 - **Crash when switching profiles.** A profile's machine is created on first use, but the
   emulation thread could pick up the profile before that machine existed, and use it while
   it was still being built. Present upstream as well.
+- **The default CRT shader did not compile on Mesa**, so Linux came up with no shader at all
+  and the setting was cleared on exit. `tvline-nocurve-light` and `tvline-curve-light` named
+  a local variable `filter`, which GLSL reserves; Mesa rejects it, the NVIDIA compiler on
+  Windows lets it through. The other 18 shaders only have the word in comments.
 - **Tape did not start for loaders that bypass the ROM routine**, so they had to be started
   by hand.
 - **Link error in MinSizeRel and Debug builds** (`lr_swaph` declared C99 `inline` with no
