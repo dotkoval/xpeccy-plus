@@ -21,6 +21,11 @@ extern int sleepy;
 // samples this tick, so we do not run ahead of real playback
 #define RING_HIGH_WATER (0x3fff * 3 / 4)
 
+// biggest backlog we let build up, in ms of sound. after a long stall (window
+// drag, profile switch) the emulation should catch up a bit, not sprint
+// through everything it missed
+#define PACE_MAX_BACKLOG_MS 100
+
 static SDL_TimerID paceTimerId = 0;
 static QElapsedTimer paceClock;
 static qint64 paceLastNs = 0;
@@ -35,8 +40,15 @@ static Uint32 pace_tick(Uint32 interval, void*) {
 		// samples for the elapsed time; keep the remainder to avoid drift
 		qint64 samples = (dtNs * conf.snd.rate) / 1000000000LL;
 		paceRemainderNs = dtNs - (samples * 1000000000LL) / conf.snd.rate;
-		if ((samples > 0) && (sndGetRingDistance() < RING_HIGH_WATER)) {
+		// the ring buffer is only drained by a device that plays it. the NULL
+		// device never does, so waiting for it to drain would stop the
+		// emulation for good - skip the check when nothing is playing.
+		int wait = sndPlaybackActive() && (sndGetRingDistance() >= RING_HIGH_WATER);
+		if ((samples > 0) && !wait) {
+			int maxNeed = conf.snd.rate * PACE_MAX_BACKLOG_MS / 1000;
 			conf.snd.need += (int)samples;
+			if (conf.snd.need > maxNeed)
+				conf.snd.need = maxNeed;
 		}
 	} else {
 		conf.snd.need = 0;

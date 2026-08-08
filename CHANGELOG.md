@@ -74,6 +74,9 @@ before that point is upstream's history and is not repeated here.
   came out late every few seconds; a large buffer also meant a large input lag.
 - **The display shows the newest frame.** It used to take the oldest of up to three queued
   frames, which sat at three frames of display lag.
+- **Pacing no longer builds up more than 100 ms of backlog.** After a long stall - dragging
+  the window, switching a profile - the emulation catches up a little instead of sprinting
+  through everything it missed.
 - **The sources mirror the runtime layout**: `conf/` became `config/`, the same shape the
   emulator expects next to the binary (`config/roms`, `config/profiles`, `config/palettes`).
   The built-in emergency defaults, used when no configuration is found at all, moved to
@@ -83,10 +86,15 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **The `NULL` sound output stopped the emulation.** Pacing waits for the audio ring buffer
+  to drain before it lets the emulation run on, but only a device that plays the buffer
+  drains it - with `NULL` nothing does, so about 50 ms in the buffer looked full for good and
+  the machine stood still: a black window at 0 fps. The wait is now skipped when no device is
+  playing. Came in with the pacing rework, so it is ours, not upstream's.
 - **A first run with no configuration at all produced a dead machine.** The defaults built
-  into the binary selected the `NULL` sound output, and the emulation never stepped with it,
-  so the window came up black. They now select SDL, and carry the 48K geometry, so the very
-  first picture is a working Spectrum.
+  into the binary selected the `NULL` sound output, which at the time stopped the emulation
+  (above), so the window came up black. They now select SDL, and carry the 48K geometry, so
+  the very first picture is a working Spectrum.
 - **The AY could not be detected through port `#FFFD` any more.** Upstream's TSFM work made
   "read the status register" the state every machine powers up in, and only a NedoPC
   TurboSound command could switch it back - so a program that probes the chip by writing a
