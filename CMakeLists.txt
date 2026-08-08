@@ -86,12 +86,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 	endif()
 
-	install(FILES ${CMAKE_BINARY_DIR}/${PROJECT_NAME} DESTINATION bin
-		PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE WORLD_READ WORLD_EXECUTE GROUP_READ GROUP_EXECUTE
-	)
-	install(FILES images/xpeccy.png RENAME ${PROJECT_NAME}.png DESTINATION share/icons)
-	install(FILES ${PROJECT_NAME}.desktop DESTINATION share/applications)
-	install(FILES LICENSE_eng LICENSE_rus README.md CHANGELOG.md DESTINATION share/doc/${PROJECT_NAME})
+	# install rules are in the "install" section at the end of this file
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "/BSD$/")
 
@@ -393,8 +388,29 @@ add_dependencies(${PROJECT_NAME} version_header)
 # Windows: a self-contained, ready-to-run folder. Build it with
 #	cmake --install <build-dir> --prefix <dist-dir>
 # Note that --install never deletes anything, so wipe the target dir first.
+#
+# Linux: a normal prefix layout, used both by CPack and by the AppImage
+# (see packaging/make-appimage.sh).
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+
+	install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
+	# machine configuration: the emulator copies it into the user's config
+	# directory on the first run, so a package works right after installing
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION share/${PROJECT_NAME}/config)
+	install(FILES ${CMAKE_SOURCE_DIR}/images/${PROJECT_NAME}.png
+		DESTINATION share/icons/hicolor/128x128/apps
+	)
+	install(FILES ${CMAKE_SOURCE_DIR}/${PROJECT_NAME}.desktop DESTINATION share/applications)
+	install(FILES
+		${CMAKE_SOURCE_DIR}/LICENSE_eng
+		${CMAKE_SOURCE_DIR}/LICENSE_rus
+		${CMAKE_SOURCE_DIR}/README.md
+		${CMAKE_SOURCE_DIR}/CHANGELOG.md
+		DESTINATION share/doc/${PROJECT_NAME}
+	)
+
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 
 	install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION .)
 	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION config)

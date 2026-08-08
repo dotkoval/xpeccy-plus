@@ -72,6 +72,30 @@ Options:
 The result is the `xpeccy-plus` executable. On Linux you can also build a package with
 `make package`, or install with `make install`.
 
+### Linux
+
+On Debian and Ubuntu `packaging/linux-setup.sh` installs the toolchain (build tools, Qt 5,
+SDL2, zlib) and downloads the AppImage tools into `~/.cache/xpeccy-plus-tools`. After that:
+
+```
+packaging/linux-setup.sh
+packaging/make-appimage.sh
+```
+
+`make-appimage.sh` configures, builds, installs into an `AppDir` and runs `linuxdeploy`,
+leaving `xpeccy-plus-<version>-linux-x86_64.AppImage` in the build directory. `CLEAN=1`,
+`RELEASE=1`, `SRC_DIR`, `BUILD_DIR` and `JOBS` change what it does.
+
+The icon it deploys is `images/xpeccy-plus.png`, which has to keep one of the sizes the
+icon theme spec allows - `linuxdeploy` refuses anything else, and 128x128 is what it is.
+
+The build directory defaults to `~/build/xpeccy-plus` rather than to `build/` inside the
+sources, because `linuxdeploy` makes symlinks and sets permissions in the `AppDir`, which
+a Windows filesystem mounted into WSL cannot do. The sources themselves may live anywhere.
+
+An AppImage carries Qt and SDL but not the C library, so it needs a distribution at least
+as new as the one it was built on - built on Ubuntu 22.04 it wants glibc 2.35 or newer.
+
 ### Windows
 
 Windows is built and tested here daily, unlike in upstream. What has to be installed:
