@@ -17,13 +17,18 @@ NAME=xpeccy-plus
 BIN="$APP/Contents/MacOS/$NAME"
 LOG="${TMPDIR:-/tmp}/xpeccy-smoke.log"
 SHOT="${TMPDIR:-/tmp}/xpeccy-hang.png"
+RC="${TMPDIR:-/tmp}/xpeccy-smoke.rc"
 TIMEOUT="${TIMEOUT:-60}"
 
 [ -x "$BIN" ] || { echo "no binary at $BIN"; exit 1; }
 rm -rf "$CONF"
+rm -f "$RC"
 
-# a pty, so the app's own output arrives line by line and survives a kill
-script -q /dev/null "$BIN" --confdir "$CONF" --help > "$LOG" 2>&1 &
+# a pty, so the app's own output arrives line by line and survives a kill.
+# script does not report what the app returned, and a crash in a destructor
+# happens after main() has printed its last line - so write the status down.
+script -q /dev/null /bin/sh -c '"$1" --confdir "$2" --help; echo $? > "$3"' \
+	sh "$BIN" "$CONF" "$RC" > "$LOG" 2>&1 &
 runner=$!
 
 i=0
@@ -46,6 +51,8 @@ cat "$LOG"
 
 # what main() prints on its way out, so a crash cannot pass for success
 grep -q "^exit" "$LOG" || { echo "did not reach the end of main()"; exit 1; }
+rc=$(cat "$RC" 2>/dev/null || echo "?")
+[ "$rc" = 0 ] || { echo "exited with $rc - main() finished, so this is a destructor"; exit 1; }
 [ -s "$CONF/config.conf" ] || { echo "no config.conf: the bundled configuration was not found"; exit 1; }
 roms=$(ls -1 "$CONF/roms" | wc -l | tr -d ' ')
 echo "roms seeded: $roms"
