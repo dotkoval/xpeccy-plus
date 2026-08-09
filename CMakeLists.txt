@@ -419,18 +419,26 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 		DESTINATION ${BUNDLE_RES}/doc
 	)
 
-	# Qt runtime: frameworks and plugins into the bundle, install names rewritten.
-	# Runs on the installed bundle, after everything else is in place - macdeployqt
-	# signs what it finds, and anything added afterwards would break the signature.
+	# Everything the bundle needs but the build does not produce: Qt, SDL3 and a
+	# signature. Runs on the installed bundle, after the files above are in place
+	# (see cmake/macdeploy.cmake.in).
 	get_filename_component(QT_BIN_DIR "${QMAKE_EXE}" DIRECTORY)
 	find_program(MACDEPLOYQT macdeployqt HINTS ${QT_BIN_DIR})
+	# SDL2 from Homebrew is the sdl2-compat shim and loads this one at runtime
+	find_library(SDL3_LIBRARY NAMES SDL3
+		HINTS ${SDL2_INCLUDE_DIR}/../..
+		PATHS /opt/homebrew /usr/local
+		PATH_SUFFIXES lib
+	)
+	if(SDL3_LIBRARY)
+		get_filename_component(SDL3_LIBRARY "${SDL3_LIBRARY}" REALPATH)
+	endif()
 	if(MACDEPLOYQT)
-		install(CODE "set(BUNDLE \"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")")
-		install(CODE "message(STATUS \"macdeployqt: \${BUNDLE}\")")
-		install(CODE "execute_process(COMMAND \"${MACDEPLOYQT}\" \"\${BUNDLE}\" -always-overwrite COMMAND_ERROR_IS_FATAL ANY)")
-		# install_name_tool invalidates the ad-hoc signature the linker puts on an
-		# arm64 binary, and macOS refuses to start an arm64 binary without one
-		install(CODE "execute_process(COMMAND codesign --force --deep --sign - \"\${BUNDLE}\" COMMAND_ERROR_IS_FATAL ANY)")
+		configure_file(
+			${CMAKE_SOURCE_DIR}/cmake/macdeploy.cmake.in
+			${CMAKE_BINARY_DIR}/macdeploy.cmake @ONLY
+		)
+		install(SCRIPT ${CMAKE_BINARY_DIR}/macdeploy.cmake)
 	else()
 		message(WARNING "macdeployqt not found: the bundle won't run on another Mac")
 	endif()

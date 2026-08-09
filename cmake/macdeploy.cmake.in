@@ -1,0 +1,38 @@
+# Turns the installed .app into one that runs on a Mac that has neither Qt nor
+# SDL: Qt frameworks and plugins, the SDL3 library the SDL2 shim loads by hand,
+# and a signature over the result. Configured from CMakeLists.txt.
+#
+# install(SCRIPT) runs a script with no policy settings at all, so an if() on a
+# variable holding ON/OFF would be read as a variable name. Hence the line
+# below - it is not decoration.
+
+cmake_minimum_required(VERSION 3.21)
+
+set(BUNDLE "${CMAKE_INSTALL_PREFIX}/@PROJECT_NAME@.app")
+set(FRAMEWORKS "${BUNDLE}/Contents/Frameworks")
+
+message(STATUS "macdeployqt: ${BUNDLE}")
+execute_process(COMMAND "@MACDEPLOYQT@" "${BUNDLE}" -always-overwrite COMMAND_ERROR_IS_FATAL ANY)
+
+# What Homebrew calls "sdl2" is sdl2-compat: a shim that dlopens SDL3 while it
+# is being loaded itself. macdeployqt only follows what the linker recorded, so
+# SDL3 never makes it into the bundle and the app dies in a modal alert before
+# main() ever runs. Among the places the shim looks is @loader_path/libSDL3.dylib,
+# which is next to the shim itself.
+
+file(GLOB SDL2_DYLIB "${FRAMEWORKS}/libSDL2*.dylib")
+if(SDL2_DYLIB)
+	file(STRINGS "${SDL2_DYLIB}" SDL2_IS_SHIM REGEX "Failed loading SDL3 library" LIMIT_COUNT 1)
+endif()
+
+if(SDL2_IS_SHIM)
+	if(NOT EXISTS "@SDL3_LIBRARY@")
+		message(FATAL_ERROR "SDL2 is the sdl2-compat shim, but SDL3 was not found - the bundle would not start")
+	endif()
+	message(STATUS "sdl2-compat: adding @SDL3_LIBRARY@")
+	file(COPY_FILE "@SDL3_LIBRARY@" "${FRAMEWORKS}/libSDL3.dylib")
+endif()
+
+# install_name_tool invalidates the ad-hoc signature the linker puts on an
+# arm64 binary, and macOS refuses to start an arm64 binary without one
+execute_process(COMMAND codesign --force --deep --sign - "${BUNDLE}" COMMAND_ERROR_IS_FATAL ANY)
