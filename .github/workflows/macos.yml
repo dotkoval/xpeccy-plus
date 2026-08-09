@@ -1,0 +1,107 @@
+name: macOS
+
+# Answers one question: does Xpeccy+ still build and start on macOS. Nothing is
+# released from here - the dmg is a workflow artifact, kept for whoever owns a
+# Mac and is willing to test it (see docs/ROADMAP.md).
+
+on:
+  push:
+    branches: [main, 'ci-*']
+    paths-ignore: ['**.md', 'docs/**']
+  pull_request:
+    paths-ignore: ['**.md', 'docs/**']
+  workflow_dispatch:
+
+concurrency:
+  group: macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: arm64, Qt6
+    runs-on: macos-latest
+    timeout-minutes: 40
+
+    env:
+      BUILD_DIR: build
+      DIST_DIR: dist
+      APP: dist/xpeccy-plus.app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: brew install qt sdl2
+
+      - name: Configure
+        run: |
+          cmake -S . -B "$BUILD_DIR" \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
+            -DQTVERSION=6 \
+            -DUSEOPENGL=1 \
+            -DUSEQTNETWORK=1 \
+            -DSDL1BUILD=0
+
+      - name: Build
+        run: cmake --build "$BUILD_DIR" -j "$(sysctl -n hw.ncpu)"
+
+      - name: Install
+        run: cmake --install "$BUILD_DIR" --prefix "$DIST_DIR"
+
+      - name: Smoke test
+        timeout-minutes: 5
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: packaging/macos-smoke.sh "$APP" "$RUNNER_TEMP/xpeccy-conf"
+
+      - name: Check the bundle is self-contained
+        run: |
+          otool -L "$APP/Contents/MacOS/xpeccy-plus"
+          if otool -L "$APP/Contents/MacOS/xpeccy-plus" | grep -q "$(brew --prefix)/"; then
+            echo "the binary still links against Homebrew paths"
+            exit 1
+          fi
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Package
+        run: cpack --config "$BUILD_DIR/CPackConfig.cmake" -B "$BUILD_DIR"
+
+      # the dmg is what a tester gets, so test that and not only the staged copy
+      - name: Test the dmg
+        timeout-minutes: 5
+        env:
+          TMPDIR: ${{ runner.temp }}
+        run: |
+          MNT="$RUNNER_TEMP/dmg"
+          hdiutil attach "$(ls "$BUILD_DIR"/*.dmg)" -nobrowse -readonly -mountpoint "$MNT"
+          packaging/macos-smoke.sh "$MNT/xpeccy-plus.app" "$RUNNER_TEMP/dmg-conf"
+          # cleanup, not a check: the volume is sometimes still busy right after
+          hdiutil detach "$MNT" -force || echo "could not unmount, never mind"
+
+      - name: Upload what was on screen when it hung
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hang-screenshot
+          path: ${{ runner.temp }}/xpeccy-hang.png
+          if-no-files-found: ignore
+
+      - name: Summary
+        run: |
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| macOS | $(sw_vers -productVersion) ($(uname -m)) |"
+            echo "| Qt | $(brew list --versions qt | cut -d' ' -f2) |"
+            echo "| SDL | $(brew list --versions sdl2 | cut -d' ' -f2) (sdl2-compat) |"
+            echo "| dmg | $(cd "$BUILD_DIR" && ls -lh *.dmg | awk '{print $9, $5}') |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload the dmg
+        uses: actions/upload-artifact@v4
+        with:
+          name: xpeccy-plus-macos-arm64
+          path: ${{ env.BUILD_DIR }}/*.dmg
+          retention-days: 30
+          if-no-files-found: error
