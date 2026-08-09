@@ -79,7 +79,7 @@ int loadSCL(Computer* comp, const char* name, int drv) {
 int saveSCL(Computer* comp, const char* name, int drv) {
 	Floppy* flp = comp->dif->flp[drv & 3];
 	const char* sign = "SINCLAIR";
-	unsigned char img[0x100000];
+	unsigned char* img = malloc(0x100000);		// a megabyte, too big for the stack
 	unsigned char buf[256];
 	unsigned char* dptr;
 	unsigned char* bptr;
@@ -135,9 +135,13 @@ int saveSCL(Computer* comp, const char* name, int drv) {
 	dptr += 4;
 
 	FILE* file = fopen(name, "wb");
-	if (!file) return ERR_CANT_OPEN;
+	if (!file) {
+		free(img);
+		return ERR_CANT_OPEN;
+	}
 	fwrite((char*)img, dptr-img, 1, file);
 	fclose(file);
+	free(img);
 
 	flp_set_path(flp, name);
 	flp->changed = 0;

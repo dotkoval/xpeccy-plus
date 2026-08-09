@@ -38,14 +38,18 @@ int saveTRD(Computer* comp, const char* name, int drv) {
 		disksize = syssec[0xe1] + syssec[0xe2]*16 + syssec[0xe5] + syssec[0xe6]*256;
 	else
 		disksize = 0;
-	if (disksize < 2560) disksize = 2560; //80*2*16
+	if (disksize < 2560) disksize = 2560;		// 80*2*16
+	if (disksize > 0xfe000 / 0x100) disksize = 0xfe000 / 0x100;	// what loadTRD takes back
 	int tracks = (disksize + 15) / 16;
 
-	unsigned char img[disksize*0x100];
+	// whole tracks are read, so the buffer holds tracks, not disksize. too big
+	// for the stack: 127 tracks is a megabyte
+	unsigned char* img = malloc(tracks * 16 * 0x100);
 	unsigned char* dptr = img;
 	for (int i = 0; i < tracks; i++) {
 		for (int j = 1; j < 17; j++) {
 			if (!diskGetSectorData(flp, i, j, dptr, 256)) {
+				free(img);
 				return ERR_TRD_SNF;
 			}
 			dptr += 256;
@@ -53,9 +57,13 @@ int saveTRD(Computer* comp, const char* name, int drv) {
 	}
 
 	FILE* file = fopen(name, "wb");
-	if (!file) return ERR_CANT_OPEN;
+	if (!file) {
+		free(img);
+		return ERR_CANT_OPEN;
+	}
 	fwrite((char*)img, disksize*0x100, 1, file);
 	fclose(file);
+	free(img);
 
 	flp_set_path(flp, name);
 	flp->changed = 0;
