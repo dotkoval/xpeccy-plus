@@ -161,6 +161,10 @@ int main(int ac,char** av) {
 		}
 	}
 
+	// before loadConfig: the debugger takes conf.dbg.font while it is built,
+	// so the family has to be known by then
+	QFontDatabase::addApplicationFont(":/DejaVuSansMono.ttf");
+
 	conf_init(av[0], confdir);
 	shortcut_init();
 	loadConfig();
@@ -173,11 +177,6 @@ int main(int ac,char** av) {
 	RZXWin rzxw(&mwin);
 	xWatcher wutw(&mwin);
 	keyWindow keyw(&mwin);
-
-	int id = QFontDatabase::addApplicationFont(":/DejaVuSansMono.ttf");
-	if (id > -1) {
-		dbgw.setFont(QFont(QFontDatabase::applicationFontFamilies(id).first(), 10));
-	}
 
 	app.d_style();
 

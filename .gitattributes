@@ -9,6 +9,10 @@ font.png binary
 *.png binary
 *.ico binary
 *.icns binary
+*.ttf binary
+
+# third-party license, kept exactly as it ships with the font
+LICENSE_DEJAVU -text
 
 # Linux files built from a Windows checkout, where autocrlf would otherwise give
 # them CRLF: bash chokes on the \r, and linuxdeploy reads "Icon=xpeccy-plus\r"

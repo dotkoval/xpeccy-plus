@@ -154,6 +154,9 @@ No image was modified; the copyright messages inside them are intact.
 their own get it appended when they are opened. It is Dimon boot 2024 by Dmitry Yurinov and
 keeps its own terms, like the rom images.
 
+The debugger's default font, DejaVu Sans Mono 2.37, is built into the binary so it looks the
+same on every platform. It keeps its own terms too - see [`LICENSE_DEJAVU`](LICENSE_DEJAVU).
+
 ## Credits and license
 
 Xpeccy was written by **SAM style** (<https://github.com/samstyle/Xpeccy>) and is
