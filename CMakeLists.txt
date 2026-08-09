@@ -116,6 +116,9 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 
 	set(CPACK_GENERATOR "DragNDrop")
 	set(CPACK_DMG_FORMAT UDZO)
+	# no click-through license on the image: the license ships inside the bundle,
+	# and an agreement makes the dmg impossible to mount from a script
+	set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE OFF)
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macos-${XARCH}")
 	# the bundle sits at the root of the dmg, not in an /Applications subfolder
 	set(CPACK_PACKAGING_INSTALL_PREFIX "/")

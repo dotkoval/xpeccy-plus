@@ -11,6 +11,10 @@ cmake_minimum_required(VERSION 3.21)
 set(BUNDLE "${CMAKE_INSTALL_PREFIX}/@PROJECT_NAME@.app")
 set(FRAMEWORKS "${BUNDLE}/Contents/Frameworks")
 
+# Two kinds of noise from this are expected and harmless: "Cannot resolve rpath"
+# for the plugins dropped below, and a codesign complaint about the signature
+# macdeployqt itself invalidated by rewriting install names. The bundle is
+# signed again at the end.
 message(STATUS "macdeployqt: ${BUNDLE}")
 execute_process(COMMAND "@MACDEPLOYQT@" "${BUNDLE}" -always-overwrite COMMAND_ERROR_IS_FATAL ANY)
 
@@ -33,6 +37,28 @@ if(SDL2_IS_SHIM)
 	file(COPY_FILE "@SDL3_LIBRARY@" "${FRAMEWORKS}/libSDL3.dylib")
 endif()
 
-# install_name_tool invalidates the ad-hoc signature the linker puts on an
-# arm64 binary, and macOS refuses to start an arm64 binary without one
+# macdeployqt copies a fixed set of plugins regardless of what the binary uses,
+# and here it cannot even resolve their dependencies - QtSvg, QtPdf, QtWebP and
+# QtVirtualKeyboard are missing from Homebrew's Qt or live behind an @rpath it
+# does not know, so those plugins would sit in the bundle unable to load. The
+# reasoning per entry is the same as on Windows, see cmake/windeploy.cmake.in.
+
+if(@TRIMDEPLOY@)
+	set(PLUGINS "${BUNDLE}/Contents/PlugIns")
+	foreach(d iconengines networkinformation tls platforminputcontexts)
+		file(REMOVE_RECURSE "${PLUGINS}/${d}")
+	endforeach()
+	# jpg is one of the screenshot formats; png and bmp are built into QtGui
+	file(GLOB imgplugins "${PLUGINS}/imageformats/*.dylib")
+	foreach(f ${imgplugins})
+		get_filename_component(n "${f}" NAME)
+		if(NOT n STREQUAL "libqjpeg.dylib")
+			file(REMOVE "${f}")
+		endif()
+	endforeach()
+endif()
+
+# Signing comes last: install_name_tool invalidates the ad-hoc signature the
+# linker puts on an arm64 binary, macOS refuses to start one without it, and
+# removing a plugin after signing would invalidate it again.
 execute_process(COMMAND codesign --force --deep --sign - "${BUNDLE}" COMMAND_ERROR_IS_FATAL ANY)
