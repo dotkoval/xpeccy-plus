@@ -100,20 +100,34 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	set(INC_PATHS local/include include)
 	set(LIB_PATHS lib lib64 local/lib local/lib64)
 
+	# an app bundle belongs in /Applications, but only when no prefix was asked for
+	if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+		set(CMAKE_INSTALL_PREFIX "/Applications" CACHE PATH "install prefix" FORCE)
+	endif()
+
+	# OpenGL is deprecated on macOS since 10.14 and says so on every include
+	add_definitions(-DGL_SILENCE_DEPRECATION)
+
+	if(CMAKE_OSX_ARCHITECTURES)
+		string(REPLACE ";" "-" XARCH "${CMAKE_OSX_ARCHITECTURES}")
+	else()
+		set(XARCH ${CMAKE_SYSTEM_PROCESSOR})
+	endif()
+
 	set(CPACK_GENERATOR "DragNDrop")
-	set(CPACK_DMG_NAME ${PROJECT_NAME})
 	set(CPACK_DMG_FORMAT UDZO)
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macos-${XARCH}")
+	# the bundle sits at the root of the dmg, not in an /Applications subfolder
+	set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 #	set(CPACK_DMG_BACKGROUND_IMAGE ${CMAKE_SOURCE_DIR}/background.png)
 
-	set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME}.app)
+	set(MACOSX_BUNDLE_BUNDLE_NAME ${PROJECT_NAME})
 	set(MACOSX_BUNDLE_ICON_FILE ${PROJECT_NAME}.icns)
-	set(MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist)
 	set(MACOSX_BUNDLE_BUNDLE_VERSION ${XVER})
+	set(MACOSX_BUNDLE_SHORT_VERSION_STRING ${XVER})
 
 	set(BUNDLE_ICON_PATH ${CMAKE_SOURCE_DIR}/images/${MACOSX_BUNDLE_ICON_FILE})
-	set(BUNDLE_PATH ${CMAKE_BINARY_DIR}/${MACOSX_BUNDLE_BUNDLE_NAME})
 
-	set_source_files_properties(${CMAKE_BINARY_DIR}/${PROJECT_NAME} PROPERTIES MACOSX_PACKAGE_LOCATION MacOSX)
 	set_source_files_properties(${BUNDLE_ICON_PATH} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
@@ -364,15 +378,9 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "/BSD$/")
 	add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS} ${UIHEADERS} ${RESOURCES} ${MOCHEADERS})
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	add_executable(${PROJECT_NAME} MACOSX_BUNDLE ${SOURCES} ${HEADERS} ${UIHEADERS} ${RESOURCES} ${MOCHEADERS} ${BUNDLE_ICON_PATH})
-	find_program(MACDEPLOYQTEXE macdeployqt)
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${MACDEPLOYQTEXE} ARGS ${BUNDLE_PATH} -always-overwrite
-		COMMAND mkdir ARGS -p ${BUNDLE_PATH}/Contents/Frameworks
-                COMMAND cp ARGS -R -X /Library/Frameworks/${SDL_NAME}.framework ${BUNDLE_PATH}/Contents/Frameworks
-                COMMAND install_name_tool -change @rpath/${SDL_NAME}.framework/Versions/A/${SDL_NAME} @executable_path/../Frameworks/${SDL_NAME}.framework/Versions/A/${SDL_NAME} ${BUNDLE_PATH}/Contents/MacOS/${PROJECT_NAME}
+	set_target_properties(${PROJECT_NAME} PROPERTIES
+		MACOSX_BUNDLE_INFO_PLIST ${CMAKE_SOURCE_DIR}/Info.plist
 	)
-	set(CMAKE_INSTALL_PREFIX "/Applications")
-	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 	# icon + VERSIONINFO (product name and version in the exe properties)
 	configure_file(${CMAKE_SOURCE_DIR}/xpeccy.rc.in ${CMAKE_BINARY_DIR}/xpeccy.rc @ONLY)
@@ -391,8 +399,43 @@ add_dependencies(${PROJECT_NAME} version_header)
 #
 # Linux: a normal prefix layout, used both by CPack and by the AppImage
 # (see packaging/make-appimage.sh).
+#
+# macOS: a self-contained .app, the same way. CPack (DragNDrop) packs the very
+# same tree into a dmg.
 
-if(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+
+	set(BUNDLE_RES ${PROJECT_NAME}.app/Contents/Resources)
+
+	install(TARGETS ${PROJECT_NAME} BUNDLE DESTINATION .)
+	# machine configuration: the emulator copies it into the user's config
+	# directory on the first run (see sysConfigDir() in src/xcore/config.cpp)
+	install(DIRECTORY ${CMAKE_SOURCE_DIR}/config/ DESTINATION ${BUNDLE_RES}/config)
+	install(FILES
+		${CMAKE_SOURCE_DIR}/LICENSE_eng
+		${CMAKE_SOURCE_DIR}/LICENSE_rus
+		${CMAKE_SOURCE_DIR}/README.md
+		${CMAKE_SOURCE_DIR}/CHANGELOG.md
+		DESTINATION ${BUNDLE_RES}/doc
+	)
+
+	# Qt runtime: frameworks and plugins into the bundle, install names rewritten.
+	# Runs on the installed bundle, after everything else is in place - macdeployqt
+	# signs what it finds, and anything added afterwards would break the signature.
+	get_filename_component(QT_BIN_DIR "${QMAKE_EXE}" DIRECTORY)
+	find_program(MACDEPLOYQT macdeployqt HINTS ${QT_BIN_DIR})
+	if(MACDEPLOYQT)
+		install(CODE "set(BUNDLE \"\${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}.app\")")
+		install(CODE "message(STATUS \"macdeployqt: \${BUNDLE}\")")
+		install(CODE "execute_process(COMMAND \"${MACDEPLOYQT}\" \"\${BUNDLE}\" -always-overwrite COMMAND_ERROR_IS_FATAL ANY)")
+		# install_name_tool invalidates the ad-hoc signature the linker puts on an
+		# arm64 binary, and macOS refuses to start an arm64 binary without one
+		install(CODE "execute_process(COMMAND codesign --force --deep --sign - \"\${BUNDLE}\" COMMAND_ERROR_IS_FATAL ANY)")
+	else()
+		message(WARNING "macdeployqt not found: the bundle won't run on another Mac")
+	endif()
+
+elseif(${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 
 	install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin)
 	# machine configuration: the emulator copies it into the user's config

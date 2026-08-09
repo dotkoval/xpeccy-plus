@@ -270,7 +270,10 @@ void copyFile(const char* src, const char* dst) {
 // is the config directory itself, so there is nothing to copy there.
 
 static QString sysConfigDir() {
-#if defined(__linux) || defined(__APPLE__) || defined(__BSD)
+#if defined(__APPLE__)
+	// inside the bundle: Contents/MacOS/<binary> -> Contents/Resources/config
+	return QCoreApplication::applicationDirPath() + "/../Resources/config";
+#elif defined(__linux) || defined(__BSD)
 	// works for /usr/bin as well as for an AppImage, where the whole prefix
 	// sits under $APPDIR
 	return QCoreApplication::applicationDirPath() + "/../share/" XPKGNAME "/config";
