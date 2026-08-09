@@ -119,7 +119,7 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	# no click-through license on the image: the license ships inside the bundle,
 	# and an agreement makes the dmg impossible to mount from a script
 	set(CPACK_DMG_SLA_USE_RESOURCE_FILE_LICENSE OFF)
-	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${CPACK_PACKAGE_VERSION}-macos-${XARCH}")
+	# the file name is set further down - it needs the Qt version
 	# the bundle sits at the root of the dmg, not in an /Applications subfolder
 	set(CPACK_PACKAGING_INSTALL_PREFIX "/")
 #	set(CPACK_DMG_BACKGROUND_IMAGE ${CMAKE_SOURCE_DIR}/background.png)
@@ -506,6 +506,19 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Windows")
 		message(WARNING "windeployqt not found: the installed folder won't run")
 	endif()
 
+endif()
+
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	# Named the way packaging/make-dist.ps1 and make-appimage.sh name theirs:
+	# arch, Qt version, and a build that is not a release says so. Set here and
+	# not in the section above, which runs before the Qt version is known.
+	if(XRELEASE)
+		set(XPKGVER ${XVER})
+	else()
+		string(TIMESTAMP XBUILD_DATE "%Y%m%d")
+		set(XPKGVER "${XVER}-dev+${XBUILD_DATE}")
+	endif()
+	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${XPKGVER}-macos-${XARCH}-qt${QTVERSION}")
 endif()
 
 include(${CMAKE_ROOT}/Modules/CPack.cmake)

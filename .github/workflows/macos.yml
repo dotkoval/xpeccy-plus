@@ -65,7 +65,12 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP"
 
       - name: Package
-        run: cpack --config "$BUILD_DIR/CPackConfig.cmake" -B "$BUILD_DIR"
+        run: |
+          cpack --config "$BUILD_DIR/CPackConfig.cmake" -B "$BUILD_DIR"
+          dmg=$(ls "$BUILD_DIR"/*.dmg)
+          # the artifact is named after the image, so the two cannot drift apart
+          echo "DMG=$dmg" >> "$GITHUB_ENV"
+          echo "DMG_NAME=$(basename "$dmg" .dmg)" >> "$GITHUB_ENV"
 
       # the dmg is what a tester gets, so test that and not only the staged copy
       - name: Test the dmg
@@ -74,7 +79,7 @@ jobs:
           TMPDIR: ${{ runner.temp }}
         run: |
           MNT="$RUNNER_TEMP/dmg"
-          hdiutil attach "$(ls "$BUILD_DIR"/*.dmg)" -nobrowse -readonly -mountpoint "$MNT"
+          hdiutil attach "$DMG" -nobrowse -readonly -mountpoint "$MNT"
           packaging/macos-smoke.sh "$MNT/xpeccy-plus.app" "$RUNNER_TEMP/dmg-conf"
           # cleanup, not a check: the volume is sometimes still busy right after
           hdiutil detach "$MNT" -force || echo "could not unmount, never mind"
@@ -95,13 +100,13 @@ jobs:
             echo "| macOS | $(sw_vers -productVersion) ($(uname -m)) |"
             echo "| Qt | $(brew list --versions qt | cut -d' ' -f2) |"
             echo "| SDL | $(brew list --versions sdl2 | cut -d' ' -f2) (sdl2-compat) |"
-            echo "| dmg | $(cd "$BUILD_DIR" && ls -lh *.dmg | awk '{print $9, $5}') |"
+            echo "| dmg | $DMG_NAME.dmg, $(du -h "$DMG" | cut -f1) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload the dmg
         uses: actions/upload-artifact@v4
         with:
-          name: xpeccy-plus-macos-arm64
-          path: ${{ env.BUILD_DIR }}/*.dmg
+          name: ${{ env.DMG_NAME }}
+          path: ${{ env.DMG }}
           retention-days: 30
           if-no-files-found: error
