@@ -7,6 +7,50 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
+## Unreleased
+
+Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Volutar), taken from
+[his fork](https://github.com/Volutar/Xpeccy) with his authorship kept on every commit.
+
+### Added
+
+- **DejaVu Sans Mono travels with the emulator.** (Volutar) The debugger asked the system for
+  it and silently took whatever it got where the font is not installed - macOS has none of it
+  at all. It ships in the resources now, so the disassembler and the dumps line up the same
+  way everywhere. The font keeps its own license, see `LICENSE_DEJAVU`.
+- **Kempston joystick (port `#1F`) on ATM Turbo 2+, ZXM-Phoenix, ZX Spectrum +2 and +3.**
+  (Volutar)
+- **Disk images with more than 80 tracks**, in both `.trd` and `.scl`. (Volutar)
+- **The build works on macOS again, and stays that way.** Every change is built on an Apple
+  silicon runner, which puts the app bundle together, starts it and packs a dmg. Nothing is
+  published from it yet - a released binary needs somebody who can run it, see the roadmap.
+
+### Changed
+
+- **More fits on the debugger's screen**: tighter margins, spacing and row heights across 23
+  panels, and nine stack entries where there were six. No panel moved. (Volutar)
+- **The on-screen keyboard is drawn the classic skewed way**, with a key map to match.
+  (Volutar)
+- **Less separated AY stereo.** (Volutar) Three sixteenths of each side channel bleed into the
+  other, the way real channels are never fully apart. The weights still add up to 16, so the
+  volume is unchanged and mono sounds exactly as before.
+- **Windows: `Shift+Alt+Space` sets a read breakpoint** on the memory cell under the cursor.
+  (Volutar) Windows keeps plain `Alt+Space` for the window's system menu, so that breakpoint
+  could not be reached from the keyboard there at all. Other platforms are unchanged.
+
+### Fixed
+
+- **The emulator crashed on its way out when the window had never been shown** - `--help`
+  does exactly that. The shaders are created when the window first appears, but the
+  destructor deleted them either way, so it deleted a pointer that was never set: a
+  segmentation fault on Linux, a bus error on macOS. A normal run never reached it.
+- **ZXM-Phoenix paged the wrong memory.** (Volutar) Bits 4, 6 and 7 of port `#1FFD` were
+  masked and shifted as one, which put bits 6 and 7 in the wrong place in the bank number.
+- **Profi did not initialise port `#DFFD` on reset.** (Volutar)
+- **The debugger's disk dump stopped at 83 tracks**, a number hardcoded in two places and
+  derived from nothing. It reads the drive's own geometry now, which is what made the images
+  above usable in the dump.
+
 ## 2026.0 - 2026-08-08
 
 ### Added
