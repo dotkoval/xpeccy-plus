@@ -59,6 +59,18 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   derived from nothing. It reads the drive's own geometry now, which is what made the images
   above usable in the dump.
 
+### From upstream
+
+Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260809` and `20260810`, by
+SAM style. The base was build `20260807`.
+
+- ZX Evo (TSConf) reads the PC keyboard as well as the ZX matrix, the way PentEvo already did.
+- PentEvo: virtual DOS and NMI memory banks, and write protection per memory page.
+- YM2203: an envelope rate of 0 now holds forever instead of creeping, and the fastest attack
+  rates reach full volume at once. The rates are worked out when a register is written rather
+  than on every tick.
+- The build works again with `-DUSEOPENGL=0`.
+
 ## 2026.0 - 2026-08-08
 
 ### Added
