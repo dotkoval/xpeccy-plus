@@ -1,6 +1,15 @@
 #include "dbg_diskdump.h"
 #include "../../xcore/xcore.h"
 
+// dump index is a physical track: (cylinder << 1) | side, the same slot flpNext
+// addresses. how far the head steps is the drive's property, not the disk's -
+// same limit flpStep uses. note the number is a slot, not a count: a
+// single-sided drive tops out at 172, which is cylinder 86 with no side bit,
+// and it gets there in steps of two
+int flp_max_track(Floppy* flp) {
+	return ((flp->trk80 ? 86 : 43) << 1) | (flp->doubleSide ? 1 : 0);
+}
+
 xDiskDump::xDiskDump(QWidget*) {
 	mod = new xDiskDumpModel();
 	setModel(mod);
@@ -13,7 +22,9 @@ void xDiskDump::setDrive(int d) {
 }
 
 void xDiskDump::setTrack(int tr) {
-	if (tr < 172)
+	Floppy* flp = conf.prof.cur->zx->dif->flp[drv & 3];
+	if (!flp->doubleSide) tr &= ~1;
+	if (tr <= flp_max_track(flp))
 		mod->setTrack(tr);
 }
 
@@ -153,9 +164,19 @@ xDiskDumpWidget::xDiskDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i
 //	ui.tabDiskDump->setColumnWidth(0, 70);
 //	ui.tabDiskDump->horizontalHeader()->setStretchLastSection(true);
 	connect(ui.cbDrive, SIGNAL(currentIndexChanged(int)), ui.tabDiskDump, SLOT(setDrive(int)));
+	connect(ui.cbDrive, SIGNAL(currentIndexChanged(int)), this, SLOT(setDrive(int)));
 	connect(ui.sbTrack, SIGNAL(valueChanged(int)), ui.tabDiskDump, SLOT(setTrack(int)));
 	connect(ui.tbTarget, SIGNAL(released()),this,SLOT(toTarget()));
 	hwList << HWG_ZX << HWG_PC << HWG_BK << HWG_PC98XX;
+	setDrive(0);
+}
+
+// the spin box follows the selected drive: a 40 track one stops halfway, a
+// single-sided one steps by whole cylinders
+void xDiskDumpWidget::setDrive(int d) {
+	Floppy* flp = conf.prof.cur->zx->dif->flp[d & 3];
+	ui.sbTrack->setMaximum(flp_max_track(flp));
+	ui.sbTrack->setSingleStep(flp->doubleSide ? 1 : 2);
 }
 
 void xDiskDumpWidget::toTarget() {
@@ -167,5 +188,6 @@ void xDiskDumpWidget::toTarget() {
 }
 
 void xDiskDumpWidget::draw() {
+	setDrive(ui.cbDrive->currentIndex());	// geometry changes with the profile
 	ui.tabDiskDump->update();
 }

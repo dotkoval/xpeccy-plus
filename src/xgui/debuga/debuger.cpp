@@ -321,6 +321,8 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_cpu->installEventFilter(this);
 	QHBoxLayout* lay = new QHBoxLayout;
 	lay->addWidget(cpuSplitter);
+	lay->setSpacing(2);
+	lay->setContentsMargins(2, 2, 2, 2);	// setMargin is gone in Qt6
 	cw->setLayout(lay);
 	setCentralWidget(cw);
 
@@ -383,6 +385,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	rtbar->setAllowedAreas(Qt::LeftToolBarArea | Qt::RightToolBarArea);
 	addToolBar(Qt::RightToolBarArea, rtbar);
 	rtbar->setContextMenuPolicy(Qt::PreventContextMenu);
+	setContextMenuPolicy(Qt::PreventContextMenu);
 
 	dumpwin = new QDialog(this);
 	labswin = new xLabeList(this);
@@ -404,7 +407,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		xhs->setXFlag(XHS_BGR | XHS_DEC | XHS_FILL | XHS_AUTOW);
 		xhs->setVisible(false);
 		xhs->setFrame(false);
-		xhs->setMinimumHeight(25);
+		xhs->setMinimumHeight(21);
 		xhs->setAlignment(Qt::AlignCenter);
 		qcb = new QCheckBox(wid_cpu);
 		qcb->setVisible(false);
@@ -1569,7 +1572,7 @@ void DebugWin::fillStack() {
 	Computer* comp = conf.prof.cur->zx;
 	int adr = cpu_get_sp(comp->cpu) + comp->cpu->ss.base;
 	QString str;
-	for (int i = -2; i < 10; i+=2) {
+	for (int i = -2; i < 16; i+=2) {
 		str.append(gethexbyte(rdbyte(adr+i+1, comp)));
 		str.append(gethexbyte(rdbyte(adr+i, comp)));
 	}
@@ -1579,6 +1582,9 @@ void DebugWin::fillStack() {
 	ui_misc.labSP4->setText(str.mid(12,4));
 	ui_misc.labSP6->setText(str.mid(16,4));
 	ui_misc.labSP8->setText(str.mid(20,4));
+	ui_misc.labSP10->setText(str.mid(24,4));
+	ui_misc.labSP12->setText(str.mid(28,4));
+	ui_misc.labSP14->setText(str.mid(32,4));
 }
 
 // ports

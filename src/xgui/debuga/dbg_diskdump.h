@@ -40,6 +40,7 @@ class xDiskDumpWidget : public xDockWidget {
 		xDiskDumpWidget(QString, QString, QWidget* = nullptr);
 	public slots:
 		void draw();
+		void setDrive(int);
 	private:
 		Ui::FDDDump ui;
 	private slots:

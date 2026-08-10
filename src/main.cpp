@@ -161,6 +161,10 @@ int main(int ac,char** av) {
 		}
 	}
 
+	// before loadConfig: the debugger takes conf.dbg.font while it is built,
+	// so the family has to be known by then
+	QFontDatabase::addApplicationFont(":/DejaVuSansMono.ttf");
+
 	conf_init(av[0], confdir);
 	shortcut_init();
 	loadConfig();

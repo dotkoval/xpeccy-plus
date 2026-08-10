@@ -362,11 +362,7 @@ void loadConfig() {
 	conf.dbg.dmsize = 127;
 	conf.dbg.scrzoom = 1;
 	conf.dbg.cpuwidth = 0;
-#if defined(__WIN32)
-	conf.dbg.font = QFont("Consolas", 10);
-#else
-	conf.dbg.font = QFont("DejaVu Sans Mono", 10);		// default
-#endif
+	conf.dbg.font = QFont("DejaVu Sans Mono", 10);		// default, shipped in the resources
 // init volumes
 	conf.snd.vol.master = 100;
 	conf.snd.vol.beep = 100;

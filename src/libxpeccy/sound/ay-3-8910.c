@@ -225,8 +225,10 @@ sndPair ay_mix_stereo(int volA, int volB, int volC, int id) {
 			rig = lef;
 			break;
 	}
-	res.left = (11 * lef + 5 * cen) >> 4;
-	res.right = (11 * rig + 5 * cen) >> 4;
+	// 3/16 of a side channel bleeds into the other one, so the stereo is not
+	// fully separated. weights still add up to 16: the volume does not change
+	res.left = (8 * lef + 5 * cen + 3 * rig) >> 4;
+	res.right = (8 * rig + 5 * cen + 3 * lef) >> 4;
 	return res;
 }
 

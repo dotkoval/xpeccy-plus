@@ -5,7 +5,7 @@ void phxMapMem(Computer* comp) {
 	memSetBank(comp->mem, 0x80, MEM_RAM, 2, MEM_16K, NULL, NULL, NULL);
 	// bank = 1f.6,1f.7,7f.7,1f.4,7f.2,7f.1,7f.0 - real
 	// bank = 1f.7,1f.6,7f.7,1f.4,7f.2,7f.1,7f.0 - emul, little bit different from real
-	int bank = (comp->p7FFD & 7) | ((comp->p1FFD & 0xd0) >> 1) | ((comp->p7FFD & 0x80) >> 3);
+	int bank = (comp->p7FFD & 7) | ((comp->p1FFD & 0x10) >> 1) | ((comp->p7FFD & 0x80) >> 3) | ((comp->p1FFD & 0x80) >> 2) | (comp->p1FFD & 0x40);
 	memSetBank(comp->mem, 0xc0, MEM_RAM, bank, MEM_16K, NULL, NULL, NULL);
 	if (comp->p1FFD & 1) {
 		memSetBank(comp->mem, 0x00, MEM_RAM, 0, MEM_16K, NULL, NULL, NULL);
@@ -55,6 +55,7 @@ int phxInFF(Computer* comp, int port) {
 }
 
 static xPort phxPortMap[] = {
+	{0x00ff,0x001f,0,2,2,xIn1F,	NULL},		// joystick
 	{0x0007,0x00fe,2,2,2,xInFE,	xOutFE},	// FE
 	{0xc007,0x1ffd,2,2,2,NULL,	phxOut1FFD},	// mem control
 	{0xc007,0x7ffd,2,2,2,NULL,	phxOut7FFD},
