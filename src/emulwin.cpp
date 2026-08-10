@@ -211,6 +211,14 @@ MainWin::MainWin() {
 	connect(&srv, SIGNAL(newConnection()),this, SLOT(connected()));
 #endif
 
+#if defined(USEOPENGL) && !BLOCKGL
+	// initializeGL creates the shaders, and it only runs when the window is
+	// first shown. Exiting before that - "xpeccy-plus --help" does - would
+	// otherwise leave the destructor deleting an uninitialized pointer.
+	vtx_shd = NULL;
+	frg_shd = NULL;
+#endif
+
 // a legacygl code must be here, else the main process doesn't finish properly (???)
 #if USELEGACYGL
 	QGLFormat frmt;
