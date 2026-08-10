@@ -44,6 +44,14 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   does exactly that. The shaders are created when the window first appears, but the
   destructor deleted them either way, so it deleted a pointer that was never set: a
   segmentation fault on Linux, a bus error on macOS. A normal run never reached it.
+- **macOS drew a black screen.** The emulator asked for an OpenGL 2.1 compatibility context,
+  the way it does everywhere else, and macOS has no compatibility profile above 2.1 - its
+  GLSL stops at 1.20 there, so every shader failed to compile and nothing was ever drawn,
+  while the menus, the emulation and the debugger's own screen widget carried on working. It
+  asks for a 3.3 core profile on macOS now, which Apple answers with 4.1.
+- **The first frame bound a texture that had never been generated**, because the window is
+  painted before the emulation thread hands over anything to show. Undefined behaviour that
+  macOS reports and other drivers quietly swallow.
 - **ZXM-Phoenix paged the wrong memory.** (Volutar) Bits 4, 6 and 7 of port `#1FFD` were
   masked and shifted as one, which put bits 6 and 7 in the wrong place in the bank number.
 - **Profi did not initialise port `#DFFD` on reset.** (Volutar)
