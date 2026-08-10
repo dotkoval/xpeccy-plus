@@ -70,6 +70,7 @@ message("<FindSDL2.cmake>")
 SET(SDL2_SEARCH_PATHS
 	~/Library/Frameworks
 	/Library/Frameworks
+	/opt/homebrew # Homebrew on Apple silicon
 	/usr/local
 	/usr
 	/sw # Fink
