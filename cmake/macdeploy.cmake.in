@@ -61,4 +61,10 @@ endif()
 # Signing comes last: install_name_tool invalidates the ad-hoc signature the
 # linker puts on an arm64 binary, macOS refuses to start one without it, and
 # removing a plugin after signing would invalidate it again.
+#
+# Extended attributes first - quarantine flags and Finder information make
+# codesign fail with "resource fork, Finder information, or similar detritus
+# not allowed". Never in CI, where every file comes from a fresh checkout, but
+# easily in a local build whose sources arrived in a downloaded archive.
+execute_process(COMMAND xattr -cr "${BUNDLE}" COMMAND_ERROR_IS_FATAL ANY)
 execute_process(COMMAND codesign --force --deep --sign - "${BUNDLE}" COMMAND_ERROR_IS_FATAL ANY)

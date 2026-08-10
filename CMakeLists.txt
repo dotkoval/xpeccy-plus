@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.5...4.1)
 
 #compiler settings
 
@@ -524,7 +524,7 @@ if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	set(CPACK_PACKAGE_FILE_NAME "${CPACK_PACKAGE_NAME}-${XPKGVER}-macos-${XARCH}-qt${QTVERSION}")
 endif()
 
-include(${CMAKE_ROOT}/Modules/CPack.cmake)
+include(CPack)
 
 # print messages
 
