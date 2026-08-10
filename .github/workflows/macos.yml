@@ -12,6 +12,11 @@ name: macOS
 
 on:
   workflow_dispatch:
+  # Qt and SDL come from Homebrew, which rolls forward on its own, so this can
+  # break with nobody having touched the repository - that is how the whole
+  # sdl2-compat business started. Once a week is enough to notice.
+  schedule:
+    - cron: '0 6 * * 1'
 
 concurrency:
   group: macos-${{ github.ref }}
