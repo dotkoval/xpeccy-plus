@@ -191,6 +191,8 @@ void MainWin::initializeGL() {
 	}
 	conf.vid.shd_support = QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Vertex) && QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Fragment);
 	curtex = 0;
+	// nothing has been rendered yet, see paintEvent
+	curtxid = 0;
 	qDebug() << "vtx_shd";
 	vtx_shd = new QOpenGLShader(QOpenGLShader::Vertex);
 	qDebug() << "frg_shd";
