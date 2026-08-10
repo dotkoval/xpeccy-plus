@@ -716,7 +716,11 @@ void MainWin::paintEvent(QPaintEvent*) {
 		}
 	}
 
-	if (prg.isLinked()) {
+	// curtxid stays 0 until the emulation thread hands over its first frame,
+	// and the window is painted before that happens. Binding a texture name
+	// that was never generated is undefined - macOS says so out loud, other
+	// drivers quietly sample black.
+	if (prg.isLinked() && curtxid) {
 		const qreal r = widgetDpr(this);
 		Computer* comp = conf.prof.cur->zx;
 		const GLfloat tex_w = GLfloat(bytesPerLine / 4.0);

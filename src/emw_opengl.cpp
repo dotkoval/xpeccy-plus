@@ -176,8 +176,23 @@ void MainWin::initializeGL() {
 	qDebug() << __FUNCTION__;
 #if !ISLEGACYGL
 	initializeOpenGLFunctions();
+	// what the driver actually gave us, not what was asked for: the shaders are
+	// written against #version 330, and a context older than that explains a
+	// black window better than any guess
+	if (QOpenGLContext* ctx = QOpenGLContext::currentContext()) {
+		const QSurfaceFormat f = ctx->format();
+		const char* prof =
+			(f.profile() == QSurfaceFormat::CoreProfile) ? "core" :
+			(f.profile() == QSurfaceFormat::CompatibilityProfile) ? "compatibility" : "no";
+		qDebug() << "GL context:" << f.majorVersion() << "." << f.minorVersion() << prof << "profile,"
+			 << (ctx->isOpenGLES() ? "ES" : "desktop")
+			 << "| GL_VERSION" << (const char*)glGetString(GL_VERSION)
+			 << "| GLSL" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+	}
 	conf.vid.shd_support = QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Vertex) && QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Fragment);
 	curtex = 0;
+	// nothing has been rendered yet, see paintEvent
+	curtxid = 0;
 	qDebug() << "vtx_shd";
 	vtx_shd = new QOpenGLShader(QOpenGLShader::Vertex);
 	qDebug() << "frg_shd";

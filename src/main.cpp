@@ -123,8 +123,21 @@ int main(int ac,char** av) {
 	{
 		QSurfaceFormat fmt;
 		fmt.setRenderableType(QSurfaceFormat::OpenGL);
+#ifdef __APPLE__
+		// macOS gives either a legacy 2.1 context, whose GLSL stops at 1.20, or
+		// a core profile - there is no compatibility profile above 2.1. Asking
+		// for 2.1 like everywhere else means every shader fails to compile
+		// ("#version 330") and the window stays black. 3.3 core is what Apple
+		// answers with 4.1 core, and this renderer is core-clean anyway: a VAO,
+		// a VBO and shaders, no fixed-function calls left.
+		fmt.setVersion(3, 3);
+		fmt.setProfile(QSurfaceFormat::CoreProfile);
+#else
+		// elsewhere a driver answers a 2.1 compatibility request with the
+		// highest context it has, so #version 330 still compiles
 		fmt.setVersion(2, 1);
 		fmt.setProfile(QSurfaceFormat::CompatibilityProfile);
+#endif
 		fmt.setDepthBufferSize(24);
 		fmt.setStencilBufferSize(8);
 		fmt.setSwapInterval(0);
