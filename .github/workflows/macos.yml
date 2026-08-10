@@ -3,13 +3,14 @@ name: macOS
 # Answers one question: does Xpeccy+ still build and start on macOS. Nothing is
 # released from here - the dmg is a workflow artifact, kept for whoever owns a
 # Mac and is willing to test it (see docs/ROADMAP.md).
+#
+# Started by hand, from the Actions tab or "gh workflow run macos.yml --ref
+# <branch>". macOS is not a platform this project releases for yet, so building
+# every commit would cost six minutes to tell nobody anything. Worth a run
+# before merging something that touches the build, the sources or the bundled
+# config - and once Linux and Windows are here too, off a release tag.
 
 on:
-  push:
-    branches: [main, 'ci-*']
-    paths-ignore: ['**.md', 'docs/**']
-  pull_request:
-    paths-ignore: ['**.md', 'docs/**']
   workflow_dispatch:
 
 concurrency:
