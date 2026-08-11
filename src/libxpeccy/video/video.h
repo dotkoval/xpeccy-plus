@@ -120,6 +120,7 @@ struct Video {
 	unsigned nogfx:1;	// tsl : nogfx flag, pc98xx:disable display
 	unsigned newFrame:1;	// set @ start of VBlank
 	int intFRAME;		// aka INT
+	unsigned intDONE:1;	// frame int already taken on this pass of the int line
 	unsigned intLINE:1;	// for TSConf
 	unsigned intDMA:1;	// for TSConf
 //	unsigned noScreen:1;
