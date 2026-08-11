@@ -266,6 +266,9 @@ void conf_init(char*, char* confdir = NULL);
 QList<QColor> loadColors(std::string);
 int saveColors(std::string, QList<QColor>);
 void loadPalette(xProfile*);
+void dbgPaletteDefaults();			// debugger colours: back to the built-in ones
+const char* dbgPaletteDefault(const char*);
+bool loadStylePalette(const std::string&);	// debugger colours shipped with a style sheet
 void loadConfig();
 void saveConfig();
 

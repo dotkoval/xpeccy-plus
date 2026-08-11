@@ -28,6 +28,8 @@ class SetupWin : public QDialog {
 		void start();
 		void setPadName();
 	private:
+		void fillDbgPalette();
+
 		Ui::SetupWin ui;
 		Ui::UmaDial uia;
 		Ui::LayEditor layUi;

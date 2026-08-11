@@ -500,6 +500,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 		ui.tbDbgTableBG, ui.tbDbgTableFG,*/ ui.tbDbgPcBG, ui.tbDbgPcFG,
 		ui.tbDbgSelBG, ui.tbDbgSelFG,
 		ui.tbDbgBrkFG,
+		ui.tbDbgDskIdBG, ui.tbDbgDskIdFG,
+		ui.tbDbgDskDataBG, ui.tbDbgDskDataFG,
+		ui.tbDbgDskCrcBG, ui.tbDbgDskCrcFG,
 		NULL
 	};
 	i = 0;
@@ -529,6 +532,34 @@ void setToolButtonColor(QToolButton* tb, QString nm, QString dc) {
 	tb->setIcon(QIcon(pxm));
 	tb->setProperty("colorName", nm);
 	tb->setProperty("defaultColor", dc);
+}
+
+void SetupWin::fillDbgPalette() {
+	static const char* names[] = {
+		"dbg.header.bg", "dbg.header.txt",
+		"dbg.changed.bg", "dbg.changed.txt",
+		"dbg.pc.bg", "dbg.pc.txt",
+		"dbg.sel.bg", "dbg.sel.txt",
+		"dbg.brk.txt",
+		"dbg.disk.id.bg", "dbg.disk.id.txt",
+		"dbg.disk.data.bg", "dbg.disk.data.txt",
+		"dbg.disk.crc.bg", "dbg.disk.crc.txt",
+		NULL
+	};
+	QToolButton* tb[] = {
+		ui.tbDbgHeadBG, ui.tbDbgHeadFG,
+		ui.tbDbgChaBG, ui.tbDbgChaFG,
+		ui.tbDbgPcBG, ui.tbDbgPcFG,
+		ui.tbDbgSelBG, ui.tbDbgSelFG,
+		ui.tbDbgBrkFG,
+		ui.tbDbgDskIdBG, ui.tbDbgDskIdFG,
+		ui.tbDbgDskDataBG, ui.tbDbgDskDataFG,
+		ui.tbDbgDskCrcBG, ui.tbDbgDskCrcFG
+	};
+	// the default a right click puts back is the same one the emulator starts
+	// with, and the same one "System" restores
+	for (int i = 0; names[i]; i++)
+		setToolButtonColor(tb[i], names[i], dbgPaletteDefault(names[i]));
 }
 
 void SetupWin::setPadName() {
@@ -730,21 +761,7 @@ void SetupWin::start() {
 	ui.leDbgFont->setText(QString("%0, %1 pt").arg(dbgfnt.family()).arg(dbgfnt.pointSize()));
 	ui.leDbgFont->setFont(dbgfnt);
 // palette
-	//setToolButtonColor(ui.tbDbgWinCol, "dbg.window","");
-	//setToolButtonColor(ui.tbDbgTxtCol, "dbg.text","");
-	setToolButtonColor(ui.tbDbgChaBG, "dbg.changed.bg","#e0c0c0");
-	setToolButtonColor(ui.tbDbgChaFG, "dbg.changed.txt","#000000");
-	setToolButtonColor(ui.tbDbgHeadBG, "dbg.header.bg","#c0c0e0");
-	setToolButtonColor(ui.tbDbgHeadFG, "dbg.header.txt","#000000");
-	//setToolButtonColor(ui.tbDbgInputBG, "dbg.input.bg","");
-	//setToolButtonColor(ui.tbDbgInputFG, "dbg.input.txt","");
-	//setToolButtonColor(ui.tbDbgTableBG, "dbg.table.bg","");
-	//setToolButtonColor(ui.tbDbgTableFG, "dbg.table.txt","");
-	setToolButtonColor(ui.tbDbgPcBG, "dbg.pc.bg","#80e080");
-	setToolButtonColor(ui.tbDbgPcFG, "dbg.pc.txt","#000000");
-	setToolButtonColor(ui.tbDbgSelBG, "dbg.sel.bg","#c0e0c0");
-	setToolButtonColor(ui.tbDbgSelFG, "dbg.sel.txt","#000000");
-	setToolButtonColor(ui.tbDbgBrkFG, "dbg.brk.txt","#e08080");
+	fillDbgPalette();
 	fillComboBox(ui.cbStyleSheet, conf.path.qssDir.c_str(), QStringList() << "*.qss", "System", conf.style.c_str());
 // profiles
 	ui.defstart->setChecked(conf.defProfile);
@@ -959,10 +976,18 @@ void SetupWin::apply() {
 	conf.dbg.dmsize = ui.sbTextSize->value();
 	conf.dbg.font = dbgfnt;
 	name = getRFSData(ui.cbStyleSheet);
-	if (name.isEmpty()) {
-		conf.style.clear();
-	} else {
-		conf.style = name.toStdString();
+	std::string style = name.isEmpty() ? std::string() : name.toStdString();
+	if (style != conf.style) {
+		conf.style = style;
+		// the debugger colours follow the style: the built-in ones first, then
+		// whatever the new style ships next to it - "System" ends up with the
+		// defaults, and a .pal that names only a few colours leaves no leftovers
+		// from the style before. Only on a change: anything edited by hand
+		// afterwards is the user's and stays
+		dbgPaletteDefaults();
+		loadStylePalette(conf.style);
+		fillDbgPalette();
+		ui.leDbgFont->setFont(dbgfnt);		// the new style sheet resets it
 	}
 // profiles
 	conf.defProfile = ui.defstart->isChecked() ? 1 : 0;

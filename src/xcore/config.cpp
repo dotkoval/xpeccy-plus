@@ -253,6 +253,62 @@ void saveConfig() {
 	fclose(cfile);
 }
 
+// The debugger's own colours. One table, three users: the values set at
+// startup, the default a right click in the palette editor puts back, and
+// what a switch to "System" restores.
+
+static const struct { const char* name; const char* color; } dbgPalTab[] = {
+	{"dbg.header.bg", "#4f96ed"},	{"dbg.header.txt", "#ffffff"},	// as shipped in config.conf
+	{"dbg.pc.bg", "#2ccc00"},	{"dbg.pc.txt", "#000000"},
+	{"dbg.sel.bg", "#98ff98"},	{"dbg.sel.txt", "#000000"},
+	{"dbg.changed.bg", "#ffcece"},	{"dbg.changed.txt", "#000000"},
+	{"dbg.brk.txt", "#ef2929"},
+	{"dbg.disk.id.bg", "#dcdcff"},	{"dbg.disk.id.txt", "#000000"},	// track dump
+	{"dbg.disk.data.bg", "#dcffdc"},{"dbg.disk.data.txt", "#000000"},
+	{"dbg.disk.crc.bg", "#ffdcff"},	{"dbg.disk.crc.txt", "#000000"},
+	{NULL, NULL}
+};
+
+void dbgPaletteDefaults() {
+	for (int i = 0; dbgPalTab[i].name; i++)
+		conf.pal[dbgPalTab[i].name] = QColor(dbgPalTab[i].color);
+}
+
+const char* dbgPaletteDefault(const char* name) {
+	for (int i = 0; dbgPalTab[i].name; i++)
+		if (!strcmp(name, dbgPalTab[i].name))
+			return dbgPalTab[i].color;
+	return "";
+}
+
+// A style sheet may bring debugger colours along, in a .pal file next to it
+// (Dark.qss -> Dark.pal), same 'name = #rrggbb' lines as the [PALETTE] section.
+// Only the names the file mentions are touched, the rest is left as it is.
+// Called when the style changes, never on startup: whatever the user edited
+// afterwards is in config.conf and must win.
+
+bool loadStylePalette(const std::string& style) {
+	if (style.empty()) return false;
+	QString path = QString::fromLocal8Bit(conf.path.qssDir.c_str()) + SLASH
+		+ QFileInfo(QString::fromLocal8Bit(style.c_str())).completeBaseName() + ".pal";
+	QFile file(path);
+	if (!file.open(QFile::ReadOnly | QFile::Text)) return false;
+	QTextStream strm(&file);
+	while (!strm.atEnd()) {
+		QString line = strm.readLine();
+		int pos = line.indexOf(';');			// comment
+		if (pos >= 0) line = line.left(pos);
+		pos = line.indexOf('=');
+		if (pos < 0) continue;
+		QString nam = line.left(pos).trimmed();
+		QColor col(line.mid(pos + 1).trimmed());
+		if (!nam.isEmpty() && col.isValid())
+			conf.pal[nam] = col;
+	}
+	file.close();
+	return true;
+}
+
 void copyFile(const char* src, const char* dst) {
 	QFile fle(QString::fromLocal8Bit(src));
 	fle.open(QFile::ReadOnly);
@@ -372,15 +428,7 @@ void loadConfig() {
 	conf.snd.vol.sdrv = 100;
 	conf.snd.vol.saa = 100;
 // init palette
-	conf.pal["dbg.brk.txt"] = "#ef2929";
-	conf.pal["dbg.changed.bg"] = "#ffcece";
-	conf.pal["dbg.changed.txt"] = "#000000";
-	conf.pal["dbg.header.bg"] = "#4f96ed";
-	conf.pal["dbg.header.txt"] = "#000000";
-	conf.pal["dbg.pc.bg"] = "#2ccc00";
-	conf.pal["dbg.pc.txt"] = "#000000";
-	conf.pal["dbg.sel.bg"] = "#98ff98";
-	conf.pal["dbg.sel.txt"] = "#000000";
+	dbgPaletteDefaults();
 
 	xArg arg;
 

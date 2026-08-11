@@ -277,9 +277,21 @@ xResult xEval(const char* ptr, int f) {
 
 // wutcha
 
+extern QString getStyleString(QString, QString, int = 0, int = 100);
+
+// the two headers follow the debugger's own, so a style with a .pal of its own
+// reaches them too
+
+void xWatcher::updateStyle() {
+	QString str = getStyleString("dbg.header.bg", "dbg.header.txt");
+	ui.label_15->setStyleSheet(str);
+	ui.label_14->setStyleSheet(str);
+}
+
 xWatcher::xWatcher(QWidget* p):QDialog(p) {
 	int i;
 	ui.setupUi(this);
+	updateStyle();
 	model = new xWatchModel;
 	ui.wchMemTab->setModel(model);
 	ui.wchMemTab->addAction(ui.actAddWatcher);

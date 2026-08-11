@@ -51,6 +51,7 @@ class xWatcher : public QDialog {
 	public slots:
 		void fillFields(Computer*);
 		void show();
+		void updateStyle();
 	private:
 		int curwch;
 		Ui::Watcher ui;

@@ -91,24 +91,27 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 	char buf[256];
 	Floppy* flp = conf.prof.cur->zx->dif->flp[drv];
 	QFont fnt;
+	QString cnam;
+	QColor pcol;
 	switch (role) {
 		case X_BackgroundRole:
+		case Qt::ForegroundRole:
+			// the marked cells carry a text colour of their own: without it a
+			// dark style would put light text on a light marker
 			if (col == 0) break;
 			if (col > 8) break;
 			if (offset >= flp->trklen) break;
 			if (!flp->insert) break;
 			ch = flp->data[trk].field[offset];
 			switch(ch & 0x0f) {
-				case 1:			// id
-					res = QColor(220, 220, 255);
-					break;
-				case 2:			// data
-				case 3:
-					res = QColor(220, 255, 220);
-					break;
-				case 4:			// crc
-					res = QColor(255, 220, 255);
-					break;
+				case 1: cnam = "dbg.disk.id"; break;		// id
+				case 2:					// data
+				case 3: cnam = "dbg.disk.data"; break;
+				case 4: cnam = "dbg.disk.crc"; break;		// crc
+			}
+			if (!cnam.isEmpty()) {
+				pcol = conf.pal[cnam + ((role == X_BackgroundRole) ? ".bg" : ".txt")];
+				if (pcol.isValid()) res = pcol;
 			}
 //			if (ch & 0x80) {
 //				res = QColor(220,120,120);	// 'broken' A1

@@ -33,6 +33,16 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
   Schoonover) and `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
   license.
+- **A style brings the debugger's colours with it.** The PC row, the selected row, the panel
+  headers, the changed-value fields and the track dump's markers cannot live in a style sheet,
+  so each style ships a `.pal` file next to it. Picking a style puts the built-in colours back
+  and reads that file over them - once, at the moment the style changes, which leaves `System`
+  with the defaults and no leftovers from the style before. After that they are ordinary
+  settings: edit any of them in Setup - deBUGa - Palette and what you set survives a restart
+  and the same style being picked again.
+
+### Changed
+
 - **More fits on the debugger's screen**: tighter margins, spacing and row heights across 23
   panels, and nine stack entries where there were six. No panel moved. (Volutar)
 - **The on-screen keyboard is drawn the classic skewed way**, with a key map to match.
@@ -46,6 +56,11 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Fixed
 
+- **The track dump marked its fields in colours nothing could change.** The id, data and crc
+  markers were three pale pastels compiled into the panel, and only the background of them, so
+  a dark style put its light text on a light marker and the bytes disappeared. They are palette
+  entries now - background and text both - with the pastels as the built-in default, a set per
+  style, and three more rows in Setup - deBUGa - Palette.
 - **A style sheet took the debugger's font away.** Qt gives every widget a font of its own as
   soon as the application gets a style sheet, which cut the debugger's panels off from the
   font the window hands down: the disassembler and the dumps fell back to the interface font,
