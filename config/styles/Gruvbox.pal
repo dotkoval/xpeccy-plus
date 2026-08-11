@@ -1,0 +1,18 @@
+; debugger colours of the Gruvbox style - warm greys, dark green for the program counter
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #504945
+dbg.header.txt = #ebdbb2
+dbg.pc.bg = #79740e
+dbg.pc.txt = #fbf1c7
+dbg.sel.bg = #665c54
+dbg.sel.txt = #fbf1c7
+dbg.changed.bg = #af3a03
+dbg.changed.txt = #fbf1c7
+dbg.brk.txt = #fb4934
+dbg.disk.id.bg = #24363a
+dbg.disk.id.txt = #83a598
+dbg.disk.data.bg = #313a1c
+dbg.disk.data.txt = #b8bb26
+dbg.disk.crc.bg = #3d2733
+dbg.disk.crc.txt = #d3869b

@@ -1,0 +1,569 @@
+/* Dracula -- interface style for Xpeccy+
+ *
+ * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ *
+ * Dracula by Zeno Rocha and contributors (MIT): a violet-tinted dark
+ * grey with purple and pink on top.
+ *
+ * Palette:
+ *   window #282a36   panel #343746   base #21222c   text #f8f8f2
+ *   selection #44475a   accent #bd93f9   border #44475a
+ *
+ * No font is set here on purpose: the debugger measures its columns with the
+ * font from Setup and this file must not get in the way.
+ */
+
+/* ---- base ---------------------------------------------------------- */
+
+QWidget {
+	background-color: #282a36;
+	color: #f8f8f2;
+	selection-background-color: #44475a;
+	selection-color: #f8f8f2;
+}
+
+QWidget:disabled {
+	color: #6272a4;
+}
+
+/* the emulator screen draws itself, keep the style sheet off it */
+MainWin {
+	background: transparent;
+}
+
+QLabel, QCheckBox, QRadioButton, QGroupBox, QToolBar, QDockWidget {
+	background: transparent;
+}
+
+QToolTip {
+	background-color: #44475a;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	padding: 2px;
+}
+
+QFrame[frameShape="4"], QFrame[frameShape="5"] {	/* HLine / VLine */
+	color: #44475a;
+}
+
+/* ---- text entry ---------------------------------------------------- */
+
+QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
+	background-color: #21222c;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	border-radius: 2px;
+	padding: 1px 2px;
+}
+
+QLineEdit:hover, QAbstractSpinBox:hover {
+	border-color: #6272a4;
+}
+
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus {
+	border-color: #bd93f9;
+}
+
+QLineEdit:disabled, QPlainTextEdit:disabled, QTextEdit:disabled, QAbstractSpinBox:disabled {
+	background-color: #282a36;
+	color: #6272a4;
+}
+
+QLineEdit:read-only {
+	background-color: #343746;
+}
+
+/* ---- buttons ------------------------------------------------------- */
+
+/* min-width and min-height keep the dialog buttons the size the platform
+ * style gives them, so a style sheet does not reflow the button rows */
+
+QPushButton {
+	background-color: #343746;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	border-radius: 4px;
+	padding: 3px 9px;
+	min-width: 53px;
+	min-height: 14px;
+}
+
+QPushButton:hover {
+	background-color: #44475a;
+	border-color: #6272a4;
+}
+
+QPushButton:pressed, QPushButton:checked {
+	background-color: #21222c;
+	border-color: #6272a4;
+}
+
+QPushButton:default {
+	border-color: #bd93f9;
+}
+
+QPushButton:disabled {
+	background-color: #343746;
+	color: #6272a4;
+	border-color: #44475a;
+}
+
+QToolButton {
+	background: transparent;
+	color: #f8f8f2;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	padding: 2px;
+}
+
+QToolButton:hover {
+	background-color: #44475a;
+	border-color: #44475a;
+}
+
+QToolButton:pressed, QToolButton:checked {
+	background-color: #21222c;
+	border-color: #6272a4;
+}
+
+QToolButton::menu-indicator {
+	image: none;
+}
+
+/* ---- combo box ----------------------------------------------------- */
+
+/* The arrows come from the application resources. A style sheet cannot draw
+ * one: the CSS border triangle ends up as a filled rectangle in Qt, and
+ * leaving the subcontrol alone means the platform draws a bevelled 90s box on
+ * a light background. Resource paths are absolute, unlike a relative url()
+ * which would be resolved against the working directory.
+ * See packaging/make-style-icons.py. */
+
+QComboBox {
+	background-color: #343746;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	border-radius: 2px;
+	padding: 1px 2px;
+}
+
+QComboBox:hover {
+	border-color: #6272a4;
+}
+
+QComboBox:focus, QComboBox:on {
+	border-color: #bd93f9;
+}
+
+QComboBox:disabled {
+	background-color: #282a36;
+	color: #6272a4;
+}
+
+QComboBox::drop-down {
+	subcontrol-origin: padding;
+	subcontrol-position: center right;
+	width: 17px;
+	border: none;
+	background: transparent;
+}
+
+QComboBox::down-arrow {
+	image: url(:/images/styles/arrow-down-light.png);
+	width: 16px;
+	height: 16px;
+}
+
+QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
+	subcontrol-origin: border;
+	width: 15px;
+	border: none;
+	background: transparent;
+}
+
+QAbstractSpinBox::up-button {
+	subcontrol-position: top right;
+}
+
+QAbstractSpinBox::down-button {
+	subcontrol-position: bottom right;
+}
+
+QAbstractSpinBox::up-arrow {
+	image: url(:/images/styles/arrow-up-light.png);
+	width: 12px;
+	height: 12px;
+}
+
+QAbstractSpinBox::down-arrow {
+	image: url(:/images/styles/arrow-down-light.png);
+	width: 12px;
+	height: 12px;
+}
+
+QComboBox QAbstractItemView {
+	background-color: #21222c;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	selection-background-color: #44475a;
+	selection-color: #f8f8f2;
+	outline: none;
+}
+
+/* ---- check / radio ------------------------------------------------- */
+
+QCheckBox::indicator, QGroupBox::indicator, QMenu::indicator {
+	width: 12px;
+	height: 12px;
+	border: 1px solid #6272a4;
+	border-radius: 2px;
+	background-color: #21222c;
+}
+
+QRadioButton::indicator {
+	width: 12px;
+	height: 12px;
+	border: 1px solid #6272a4;
+	border-radius: 7px;
+	background-color: #21222c;
+}
+
+QCheckBox::indicator:hover, QRadioButton::indicator:hover, QGroupBox::indicator:hover {
+	border-color: #bd93f9;
+}
+
+QCheckBox::indicator:checked, QGroupBox::indicator:checked, QMenu::indicator:checked {
+	background-color: #bd93f9;
+	border-color: #bd93f9;
+	image: url(:/images/styles/check-dark.png);
+}
+
+QRadioButton::indicator:checked {
+	background-color: #bd93f9;
+	border: 3px solid #21222c;
+}
+
+QCheckBox::indicator:indeterminate {
+	background-color: #6272a4;
+}
+
+QCheckBox::indicator:disabled, QRadioButton::indicator:disabled {
+	background-color: #343746;
+	border-color: #44475a;
+}
+
+/* ---- group box ----------------------------------------------------- */
+
+/* A style sheet frame brings its own box model: the top margin that makes
+ * room for the title pushes every row inside down, which on a group box
+ * without a title is a few pixels of drift for nothing. Hence the second
+ * rule - untitled boxes keep the geometry they have without a style sheet. */
+
+QGroupBox {
+	border: 1px solid #44475a;
+	border-radius: 4px;
+	margin-top: 8px;
+	padding-top: 6px;
+}
+
+QGroupBox[title=""] {
+	margin-top: 0px;
+	padding-top: 0px;
+}
+
+QGroupBox::title {
+	subcontrol-origin: margin;
+	subcontrol-position: top left;
+	left: 8px;
+	padding: 0px 4px;
+	color: #f8f8f2;
+	background-color: #282a36;
+}
+
+/* ---- tabs ---------------------------------------------------------- */
+
+QTabWidget::pane {
+	border: 1px solid #44475a;
+	top: -1px;
+}
+
+QTabBar::tab {
+	background-color: #282a36;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	padding: 3px 8px;
+}
+
+QTabBar::tab:top {
+	border-bottom: none;
+}
+
+QTabBar::tab:bottom {
+	border-top: none;
+}
+
+QTabBar::tab:!selected:hover {
+	background-color: #44475a;
+	color: #f8f8f2;
+}
+
+QTabBar::tab:selected {
+	background-color: #343746;
+	color: #f8f8f2;
+}
+
+QTabBar::tab:disabled {
+	color: #6272a4;
+}
+
+/* ---- item views ---------------------------------------------------- */
+
+QAbstractItemView {
+	background-color: #21222c;
+	alternate-background-color: #262735;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	selection-background-color: #44475a;
+	selection-color: #f8f8f2;
+	outline: none;
+}
+
+QTableView {
+	gridline-color: #383a4a;
+}
+
+/* :!selected - a hover on the selected row would otherwise put the pale hover
+ * colour under the selected text */
+
+QTableView::item:hover:!selected, QTreeView::item:hover:!selected, QListView::item:hover:!selected {
+	background-color: #343746;
+}
+
+QTreeView::branch {
+	background: transparent;
+}
+
+QHeaderView {
+	background-color: #343746;
+	border: none;
+}
+
+QHeaderView::section {
+	background-color: #343746;
+	color: #f8f8f2;
+	border: none;
+	border-right: 1px solid #383a4a;
+	border-bottom: 1px solid #44475a;
+	padding: 2px 4px;
+}
+
+QHeaderView::section:hover {
+	background-color: #44475a;
+}
+
+QTableCornerButton::section {
+	background-color: #343746;
+	border: none;
+	border-right: 1px solid #44475a;
+	border-bottom: 1px solid #44475a;
+}
+
+/* ---- scroll bars --------------------------------------------------- */
+
+QScrollBar:vertical {
+	background-color: #282a36;
+	width: 13px;
+	margin: 0px;
+	border: none;
+}
+
+QScrollBar:horizontal {
+	background-color: #282a36;
+	height: 13px;
+	margin: 0px;
+	border: none;
+}
+
+QScrollBar::handle:vertical {
+	background-color: #44475a;
+	border-radius: 3px;
+	min-height: 20px;
+	margin: 1px;
+}
+
+QScrollBar::handle:horizontal {
+	background-color: #44475a;
+	border-radius: 3px;
+	min-width: 20px;
+	margin: 1px;
+}
+
+QScrollBar::handle:hover {
+	background-color: #6272a4;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+	background: none;
+	border: none;
+	width: 0px;
+	height: 0px;
+}
+
+QScrollBar::add-page, QScrollBar::sub-page {
+	background: none;
+}
+
+/* ---- sliders / progress -------------------------------------------- */
+
+QSlider::groove:horizontal {
+	background-color: #343746;
+	border: 1px solid #44475a;
+	border-radius: 2px;
+	height: 4px;
+}
+
+QSlider::groove:vertical {
+	background-color: #343746;
+	border: 1px solid #44475a;
+	border-radius: 2px;
+	width: 4px;
+}
+
+QSlider::sub-page:horizontal, QSlider::add-page:vertical {
+	background-color: #bd93f9;
+	border-radius: 2px;
+}
+
+QSlider::handle:horizontal {
+	background-color: #343746;
+	border: 1px solid #6272a4;
+	border-radius: 3px;
+	width: 9px;
+	margin: -5px 0px;
+}
+
+QSlider::handle:vertical {
+	background-color: #343746;
+	border: 1px solid #6272a4;
+	border-radius: 3px;
+	height: 9px;
+	margin: 0px -5px;
+}
+
+QSlider::handle:hover {
+	background-color: #44475a;
+	border-color: #bd93f9;
+}
+
+QProgressBar {
+	background-color: #21222c;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	border-radius: 2px;
+	text-align: center;
+}
+
+QProgressBar::chunk {
+	background-color: #bd93f9;
+}
+
+/* ---- menus --------------------------------------------------------- */
+
+QMenuBar {
+	background-color: #343746;
+	color: #f8f8f2;
+	border-bottom: 1px solid #44475a;
+}
+
+QMenuBar::item {
+	background: transparent;
+	padding: 3px 8px;
+}
+
+QMenuBar::item:selected {
+	background-color: #343746;
+}
+
+QMenuBar::item:pressed {
+	background-color: #44475a;
+	color: #f8f8f2;
+}
+
+QMenu {
+	background-color: #343746;
+	color: #f8f8f2;
+	border: 1px solid #44475a;
+	padding: 2px;
+}
+
+QMenu::item {
+	padding: 3px 22px 3px 22px;
+	border: 1px solid transparent;
+}
+
+QMenu::item:selected {
+	background-color: #44475a;
+	color: #f8f8f2;
+}
+
+QMenu::item:disabled {
+	color: #6272a4;
+}
+
+QMenu::separator {
+	height: 1px;
+	background-color: #44475a;
+	margin: 3px 6px;
+}
+
+QMenu::indicator {
+	margin-left: 4px;
+}
+
+/* ---- tool bars, docks, status bar ---------------------------------- */
+
+QToolBar {
+	border: none;
+	spacing: 2px;
+	padding: 1px;
+}
+
+QToolBar::separator {
+	background-color: #44475a;
+	width: 1px;
+	height: 1px;
+	margin: 3px;
+}
+
+QStatusBar {
+	background-color: #343746;
+	color: #f8f8f2;
+}
+
+QStatusBar::item {
+	border: none;
+}
+
+QDockWidget {
+	color: #f8f8f2;
+	titlebar-close-icon: none;
+	titlebar-normal-icon: none;
+}
+
+QDockWidget::title {
+	background-color: #343746;
+	padding: 3px;
+}
+
+QSplitter::handle {
+	background-color: #282a36;
+}
+
+QSplitter::handle:hover {
+	background-color: #bd93f9;
+}
+
+QSizeGrip {
+	background: transparent;
+	image: none;
+}

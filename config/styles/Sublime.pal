@@ -1,0 +1,18 @@
+; debugger colours of the Sublime style - Monokai: the bright colours stay on one row at a time
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #3e3d32
+dbg.header.txt = #f8f8f2
+dbg.pc.bg = #a6e22e
+dbg.pc.txt = #272822
+dbg.sel.bg = #49483e
+dbg.sel.txt = #f8f8f2
+dbg.changed.bg = #fd971f
+dbg.changed.txt = #272822
+dbg.brk.txt = #f92672
+dbg.disk.id.bg = #21323a
+dbg.disk.id.txt = #8bd6ea
+dbg.disk.data.bg = #2c3a1e
+dbg.disk.data.txt = #b6dd6e
+dbg.disk.crc.bg = #3a2130
+dbg.disk.crc.txt = #f28ab0

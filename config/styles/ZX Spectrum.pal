@@ -1,0 +1,18 @@
+; debugger colours of the ZX Spectrum style - nine colours out of the machine's fifteen
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #0000bb
+dbg.header.txt = #ffffff
+dbg.pc.bg = #00bb00
+dbg.pc.txt = #000000
+dbg.sel.bg = #bb00bb
+dbg.sel.txt = #ffffff
+dbg.changed.bg = #bbbb00
+dbg.changed.txt = #000000
+dbg.brk.txt = #ff0000
+dbg.disk.id.bg = #000060
+dbg.disk.id.txt = #ffffff
+dbg.disk.data.bg = #005000
+dbg.disk.data.txt = #ffffff
+dbg.disk.crc.bg = #600060
+dbg.disk.crc.txt = #ffffff

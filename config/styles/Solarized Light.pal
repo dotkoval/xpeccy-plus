@@ -1,0 +1,18 @@
+; debugger colours of the Solarized Light style - the same accents, the header turned around
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #93a1a1
+dbg.header.txt = #002b36
+dbg.pc.bg = #859900
+dbg.pc.txt = #fdf6e3
+dbg.sel.bg = #268bd2
+dbg.sel.txt = #fdf6e3
+dbg.changed.bg = #cb4b16
+dbg.changed.txt = #fdf6e3
+dbg.brk.txt = #dc322f
+dbg.disk.id.bg = #dbe9f2
+dbg.disk.id.txt = #002b36
+dbg.disk.data.bg = #e4ecc9
+dbg.disk.data.txt = #002b36
+dbg.disk.crc.bg = #f2dbe4
+dbg.disk.crc.txt = #002b36

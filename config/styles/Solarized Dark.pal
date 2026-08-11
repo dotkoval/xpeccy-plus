@@ -1,0 +1,18 @@
+; debugger colours of the Solarized Dark style - base01 headers, the accent colours on top
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #586e75
+dbg.header.txt = #fdf6e3
+dbg.pc.bg = #859900
+dbg.pc.txt = #002b36
+dbg.sel.bg = #268bd2
+dbg.sel.txt = #fdf6e3
+dbg.changed.bg = #cb4b16
+dbg.changed.txt = #fdf6e3
+dbg.brk.txt = #dc322f
+dbg.disk.id.bg = #0d3b4a
+dbg.disk.id.txt = #6ab0e0
+dbg.disk.data.bg = #143f24
+dbg.disk.data.txt = #9fbf3f
+dbg.disk.crc.bg = #3a1c2c
+dbg.disk.crc.txt = #e07aa8

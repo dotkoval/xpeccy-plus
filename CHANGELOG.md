@@ -24,9 +24,15 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 - **The build works on macOS again, and stays that way.** Every change is built on an Apple
   silicon runner, which puts the app bundle together, starts it and packs a dmg. Nothing is
   published from it yet - a released binary needs somebody who can run it, see the roadmap.
-
-### Changed
-
+- **Eight interface styles travel with the emulator**, in `config/styles`. Pick one in Setup -
+  deBUGa - Style Sheet; `System` still means whatever the desktop says, light on Windows and
+  usually dark on Linux. `Light` keeps to the greys, the button size and the pale selection
+  Windows itself draws, so it is the same picture as `System` there and a light interface on a
+  dark desktop. `Dark` is its neutral counterpart, `ZX Spectrum` a near-black one with the
+  machine's own magenta on top, and five come from the editors people already use: `Sublime`
+  (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
+  Schoonover) and `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
+  license.
 - **More fits on the debugger's screen**: tighter margins, spacing and row heights across 23
   panels, and nine stack entries where there were six. No panel moved. (Volutar)
 - **The on-screen keyboard is drawn the classic skewed way**, with a key map to match.

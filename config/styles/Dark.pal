@@ -1,0 +1,18 @@
+; debugger colours of the Dark style - muted headers, the accents keep their meaning
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #3a4150
+dbg.header.txt = #cdd3de
+dbg.pc.bg = #2c6b2c
+dbg.pc.txt = #eaffea
+dbg.sel.bg = #3d5a7a
+dbg.sel.txt = #eaf2ff
+dbg.changed.bg = #6e2b2b
+dbg.changed.txt = #ffdede
+dbg.brk.txt = #ff6b6b
+dbg.disk.id.bg = #2f3a55
+dbg.disk.id.txt = #c8d4f0
+dbg.disk.data.bg = #2c4a2c
+dbg.disk.data.txt = #cdf0cd
+dbg.disk.crc.bg = #4a2f4a
+dbg.disk.crc.txt = #f0cdf0

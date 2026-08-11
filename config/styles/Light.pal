@@ -1,0 +1,18 @@
+; debugger colours of the Light style - the shipped default, drawn for a light background
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #4f96ed
+dbg.header.txt = #ffffff
+dbg.pc.bg = #2ccc00
+dbg.pc.txt = #000000
+dbg.sel.bg = #98ff98
+dbg.sel.txt = #000000
+dbg.changed.bg = #ffcece
+dbg.changed.txt = #000000
+dbg.brk.txt = #ef2929
+dbg.disk.id.bg = #dcdcff
+dbg.disk.id.txt = #000000
+dbg.disk.data.bg = #dcffdc
+dbg.disk.data.txt = #000000
+dbg.disk.crc.bg = #ffdcff
+dbg.disk.crc.txt = #000000

@@ -1,0 +1,18 @@
+; debugger colours of the Dracula style - comment blue for the headers, green and orange on top
+; loaded when the style is picked, see README.md
+
+dbg.header.bg = #44475a
+dbg.header.txt = #f8f8f2
+dbg.pc.bg = #50fa7b
+dbg.pc.txt = #282a36
+dbg.sel.bg = #6272a4
+dbg.sel.txt = #f8f8f2
+dbg.changed.bg = #ffb86c
+dbg.changed.txt = #282a36
+dbg.brk.txt = #ff5555
+dbg.disk.id.bg = #2e3550
+dbg.disk.id.txt = #8be9fd
+dbg.disk.data.bg = #2b3d33
+dbg.disk.data.txt = #50fa7b
+dbg.disk.crc.bg = #3d2b3a
+dbg.disk.crc.txt = #ff79c6
