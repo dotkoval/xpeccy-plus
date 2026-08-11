@@ -64,9 +64,12 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### From upstream
 
-Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260809` and `20260810`, by
+Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260809` to `20260811`, by
 SAM style. The base was build `20260807`.
 
+- ZX Evo (TSConf) has its own interrupt handler, so the line interrupt keeps its place in the
+  queue instead of being dropped while the frame interrupt is on. It supersedes the fix we
+  made in 2026.0.
 - ZX Evo (TSConf) reads the PC keyboard as well as the ZX matrix, the way PentEvo already did.
 - PentEvo: virtual DOS and NMI memory banks, and write protection per memory page.
 - YM2203: an envelope rate of 0 now holds forever instead of creeping, and the fastest attack
