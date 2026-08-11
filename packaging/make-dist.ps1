@@ -17,14 +17,18 @@ param(
 	[switch]$Zip,
 	[switch]$Release,
 	[switch]$Full,		# keep everything windeployqt copied, skip the trim step
-	[int]$Jobs = 16
+	[int]$Jobs = 16,
+	# a build agent installs Qt and MinGW wherever it likes, and has cmake in
+	# PATH already; locally the table below is right and none of this is needed
+	[string]$QtDir,
+	[string]$MinGW
 )
 
 $ErrorActionPreference = 'Stop'
 
 $srcRoot = Split-Path $PSScriptRoot -Parent
 $buildRoot = Join-Path $srcRoot 'build'
-$cmakeBin = 'C:\Qt\Tools\CMake_64\bin'
+$cmakeBin = 'C:\Qt\Tools\CMake_64\bin'	# the Qt installer's; ignored where there is none
 
 # same manifest fetch-deps.ps1 works from, so the two can't drift apart
 $sdlVer = (Get-Content (Join-Path $PSScriptRoot 'deps.json') -Raw | ConvertFrom-Json).sdl2.version
@@ -59,12 +63,14 @@ $toolchains = @{
 }
 
 $tc = $toolchains[$Preset]
+if ($QtDir) { $tc.QtDir = $QtDir }
+if ($MinGW) { $tc.MinGW = $MinGW }
 $sdlPrefix = Join-Path $depsSDL $tc.Triple
 
 if (-not (Test-Path $sdlPrefix)) {
 	throw "SDL2 $sdlVer is missing, run packaging\fetch-deps.ps1 first"
 }
-foreach ($p in @($tc.QtDir, $tc.MinGW, $cmakeBin)) {
+foreach ($p in @($tc.QtDir, $tc.MinGW)) {
 	if (-not (Test-Path $p)) { throw "Not found: $p" }
 }
 
@@ -76,7 +82,8 @@ $buildDir = Join-Path $buildRoot "out\$Preset"
 $distName = "xpeccy-plus-$version-win-$($tc.Arch)$($tc.Tag)"
 $distDir = Join-Path $buildRoot "dist\$distName"
 
-$env:PATH = "$($tc.MinGW)\bin;$cmakeBin;$($tc.QtDir)\bin;$env:PATH"
+$env:PATH = "$($tc.MinGW)\bin;$($tc.QtDir)\bin;$env:PATH"
+if (Test-Path $cmakeBin) { $env:PATH = "$cmakeBin;$env:PATH" }
 $env:SDL2DIR = $sdlPrefix
 
 Write-Host "=== $Preset -> $distName ===" -ForegroundColor Cyan
