@@ -19,3 +19,8 @@ LICENSE_DEJAVU -text
 # out of the desktop entry and then cannot find the icon by that name
 *.sh text eol=lf
 *.desktop text eol=lf
+
+# keyboard layouts: the parser splits a line on tabs and keeps everything up to
+# the newline, so a CRLF checkout appends a stray \r to the last key of every
+# line (harmless only because findKey() does not know that code)
+config/keymaps/*.map text eol=lf

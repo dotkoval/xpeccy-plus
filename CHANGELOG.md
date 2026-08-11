@@ -43,6 +43,10 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Changed
 
+- **Small changes to the defaults**, mostly to get around conflicts found on macOS:
+    - profiles no longer pick a keyboard layout. The one they carried was laid out for 48K
+      machines only, so a 128K one was added next to it. Details in `config/keymaps/README.md`
+    - border size is now 100% at scale 2 - not every configuration was shown correctly
 - **More fits on the debugger's screen**: tighter margins, spacing and row heights across 23
   panels, and nine stack entries where there were six. No panel moved. (Volutar)
 - **The on-screen keyboard is drawn the classic skewed way**, with a key map to match.
