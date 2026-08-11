@@ -1,14 +1,14 @@
 name: macOS
 
-# Answers one question: does Xpeccy+ still build and start on macOS. Nothing is
-# released from here - the dmg is a workflow artifact, kept for whoever owns a
-# Mac and is willing to test it (see docs/ROADMAP.md).
+# Builds the arm64 bundle and the dmg that nightly.yml and release.yml publish.
+# The signature on it is ad-hoc, which is all arm64 needs to run a binary but
+# not what Gatekeeper wants to see on a downloaded image.
 #
 # Started by hand, from the Actions tab or "gh workflow run macos.yml --ref
-# <branch>". macOS is not a platform this project releases for yet, so building
-# every commit would cost six minutes to tell nobody anything. Worth a run
-# before merging something that touches the build, the sources or the bundled
-# config - and once Linux and Windows are here too, off a release tag.
+# <branch>"; tick "release" for a clean version string instead of the dated dev
+# one. Nothing here triggers on a push: six minutes per commit to tell nobody
+# anything. Worth a run before merging something that touches the build, the
+# sources or the bundled config.
 
 on:
   workflow_dispatch:
