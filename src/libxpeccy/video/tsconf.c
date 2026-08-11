@@ -174,6 +174,25 @@ int vidTSLRender256c(Video* vid) {
 	return vid->scrsize.x >> 1;		// 1/2
 }
 
+// text mode line pre-render: one cell is 4 dots = 8 pixels. Reading the whole line here
+// keeps a write that lands mid-line out of the line already being drawn, the same way the
+// bitmap modes work.
+int vidTSLRenderText(Video* vid) {
+	int cells = (vid->scrsize.x + 3) >> 2;
+	if (cells > 128) cells = 128;
+	int ya = vid->tsconf.txtYOff & 0x1ff;
+	for (int i = 0; i < cells; i++) {
+		int xa = ((i << 2) + vid->tsconf.txtXOff) & 0x1ff;
+		int a = (vid->tsconf.txtPage << 14) + ((ya & 0x1f8) << 5) + (xa >> 2);	// 256 bytes in row
+		int chr = vid->mrd(a, vid->xptr);
+		int atr = vid->mrd(a | 0x80, vid->xptr);
+		vid->tsconf.txtChr[i] = vid->mrd(MADR(vid->tsconf.txtPage ^ 1, (chr << 3) | (ya & 7)), vid->xptr);
+		vid->tsconf.txtInk[i] = (atr & 0x0f) | vid->tsconf.txtPal;
+		vid->tsconf.txtPap[i] = ((atr & 0xf0) >> 4) | vid->tsconf.txtPal;
+	}
+	return 0;	// no extra cost: the flat 32 dots for non-normal modes already covered this,
+}		// and moving it would shift the int position along with it
+
 // return ticks @ 7MHz (aka dots) eaten for line rendering
 int vidTSRender(Video* vid) {
 	int res = 0;
@@ -210,7 +229,7 @@ int vidTSRender(Video* vid) {
 			res += vidTSLRender256c(vid);
 			break;
 		case VID_TSL_TEXT:
-			// TODO : text line pre-render
+			res += vidTSLRenderText(vid);
 			break;
 	}
 	if (vid->vmode != VID_TSL_NORMAL) res += 32;		// shit
@@ -258,6 +277,12 @@ void vts_hblk(Video* vid) {
 // Line start
 void vts_line(Video* vid) {
 	tslUpdatePorts(vid);
+	// text mode draws from video memory dot by dot, so the screen offsets have to be
+	// latched here - a write in the middle of a line belongs to the next one
+	vid->tsconf.txtXOff = vid->tsconf.xOffset;
+	vid->tsconf.txtYOff = vid->tsconf.scrLine + vid->tsconf.yOffset;
+	vid->tsconf.txtPage = vid->tsconf.vidPage;
+	vid->tsconf.txtPal = vid->tsconf.scrPal;
 	int res = vidTSRender(vid);		// dots eaten by rendering
 	vid->intp.x = vid->tsconf.hsint + res + vid->blank.x;
 	vid->intp.x %= vid->full.x;
@@ -335,17 +360,10 @@ void vidDrawTSLText(Video* vid) {
 		//vidPutDot(&vid->ray, vid->pal, vid->brdcol);
 	} else {
 		if ((xscr & 3) == 0) {
-			xscr += vid->tsconf.xOffset;
-			yscr += vid->tsconf.yOffset;
-			xscr &= 0x1ff;
-			yscr &= 0x1ff;
-			adr = (vid->tsconf.vidPage << 14) + ((yscr & 0x1f8) << 5) + (xscr >> 2);	// 256 bytes in row
-			scrbyte = vid->mrd(adr, vid->xptr);
-			col = vid->mrd(adr | 0x80, vid->xptr);
-			ink = (col & 0x0f) | (vid->tsconf.scrPal);
-			pap = ((col & 0xf0) >> 4)  | (vid->tsconf.scrPal);
-			scrbyte = vid->mrd(MADR(vid->tsconf.vidPage ^ 1, (scrbyte << 3) | (yscr & 7)), vid->xptr);
-//			vidDrawByteDD(vid);
+			int cell = xscr >> 2;			// pre-rendered in vidTSLRenderText
+			scrbyte = vid->tsconf.txtChr[cell];
+			ink = vid->tsconf.txtInk[cell];
+			pap = vid->tsconf.txtPap[cell];
 		}
 		if (vid->line[xscr] & 0x0f) {							// put not-transparent tiles/sprites pixel
 			vid_dot_full(vid, vid->line[xscr]);

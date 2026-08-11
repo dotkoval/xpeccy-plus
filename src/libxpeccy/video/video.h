@@ -303,6 +303,13 @@ struct Video {
 		ePair(T1YOffset,t1yh,t1yl);
 		ePair(scrLine, loffh, loffl);
 		ePair(intLine, ilinh, ilinl);	// INT line
+		int txtXOff;			// text mode: what the line is drawn from, read at
+		int txtYOff;			// line start like the other modes pre-render
+		unsigned char txtPage;
+		unsigned char txtPal;
+		unsigned char txtChr[128];	// pre-rendered line: font row, ink and paper per cell
+		unsigned char txtInk[128];
+		unsigned char txtPap[128];
 		unsigned char cram[0x200];	// pal = colram?
 		unsigned char sfile[0x200];	// sprites = ram?
 		int dmabytes;
