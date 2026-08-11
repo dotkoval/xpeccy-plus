@@ -34,7 +34,7 @@ jobs:
       APP: dist/xpeccy-plus.app
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Install dependencies
         run: brew install qt sdl2
@@ -92,7 +92,7 @@ jobs:
 
       - name: Upload what was on screen when it hung
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: hang-screenshot
           path: ${{ runner.temp }}/xpeccy-hang.png
@@ -109,10 +109,12 @@ jobs:
             echo "| dmg | $DMG_NAME.dmg, $(du -h "$DMG" | cut -f1) |"
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # archive: false - the download is the dmg itself, not a zip holding one.
+      # It also means the artifact is named after the file, so no name here
       - name: Upload the dmg
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ env.DMG_NAME }}
           path: ${{ env.DMG }}
+          archive: false
           retention-days: 30
           if-no-files-found: error
