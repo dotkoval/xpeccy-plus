@@ -1,0 +1,74 @@
+name: Release
+
+# Builds every platform from a version tag and leaves a draft release with the
+# five archives attached, so the notes can be written after seeing what was
+# actually built. Publishing stays a manual click.
+#
+#   git tag v2026.1 && git push origin v2026.1
+#
+# The tag must match the VERSION file: a version in an artifact's name comes
+# from that file, not from the tag, and the two disagreeing is worse than a
+# failed build.
+
+on:
+  push:
+    tags: ['v*']
+
+concurrency:
+  group: release-${{ github.ref }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: tag matches VERSION
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - run: |
+          want=$(head -n 1 VERSION | tr -d ' \r\n')
+          got=${GITHUB_REF_NAME#v}
+          echo "VERSION: $want, tag: $got"
+          [ "$want" = "$got" ] || { echo "the tag and VERSION disagree"; exit 1; }
+
+  linux:
+    needs: check
+    uses: ./.github/workflows/linux.yml
+    with:
+      release: true
+
+  macos:
+    needs: check
+    uses: ./.github/workflows/macos.yml
+    with:
+      release: true
+
+  windows:
+    needs: check
+    uses: ./.github/workflows/windows.yml
+    with:
+      release: true
+
+  publish:
+    name: draft the release
+    needs: [linux, macos, windows]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          path: dist
+          merge-multiple: true
+
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ls -lh dist
+          gh release create "$GITHUB_REF_NAME" dist/* \
+            --draft \
+            --verify-tag \
+            --title "Xpeccy+ ${GITHUB_REF_NAME#v}" \
+            --generate-notes
+          echo "draft release $GITHUB_REF_NAME is ready to edit and publish" >> "$GITHUB_STEP_SUMMARY"
