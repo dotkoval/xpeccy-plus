@@ -68,10 +68,14 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/download-artifact@v7
+      # skip-decompress: every artifact here was uploaded with archive: false,
+      # so what is stored is the finished file - unpacking it would give the
+      # contents of a zip that is itself the thing being released
+      - uses: actions/download-artifact@v8
         with:
           path: dist
           merge-multiple: true
+          skip-decompress: true
 
       - name: Replace the nightly pre-release
         env:
