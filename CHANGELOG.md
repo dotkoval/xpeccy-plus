@@ -46,6 +46,12 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Fixed
 
+- **A style sheet took the debugger's font away.** Qt gives every widget a font of its own as
+  soon as the application gets a style sheet, which cut the debugger's panels off from the
+  font the window hands down: the disassembler and the dumps fell back to the interface font,
+  proportional and a size smaller, and the columns shrank with it. The font from Setup now
+  reaches every panel by name, and the style sheet is applied before the debugger re-reads
+  it, not after.
 - **The emulator crashed on its way out when the window had never been shown** - `--help`
   does exactly that. The shaders are created when the window first appears, but the
   destructor deleted them either way, so it deleted a pointer that was never set: a

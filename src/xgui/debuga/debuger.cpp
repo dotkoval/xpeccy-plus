@@ -120,6 +120,12 @@ void DebugWin::updateStyle() {
 	}
 
 	setFont(conf.dbg.font);
+	// A style sheet gives every widget a font of its own, which stops the
+	// propagation from this window: the panels would fall back to the
+	// interface font. Hand the font over one by one.
+	foreach(QWidget* wid, findChildren<QWidget*>()) {
+		wid->setFont(conf.dbg.font);
+	}
 	foreach(xHexSpin* xhs, dbgRegEdit) {
 		xhs->updatePal();	// takes the new font from the parent
 		xhs->refitWidth();

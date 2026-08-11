@@ -223,8 +223,8 @@ int main(int ac,char** av) {
 	app.connect(&mwin, SIGNAL(s_options()), &optw, SLOT(start()));
 	app.connect(&mwin, SIGNAL(s_gamepad_plug()), &optw, SLOT(setPadName()));
 	app.connect(&optw, SIGNAL(closed()), &mwin, SLOT(optApply()));
-	app.connect(&optw, SIGNAL(s_apply()), &dbgw, SLOT(updateStyle()));
 	app.connect(&optw, SIGNAL(s_apply()), &app, SLOT(d_style()));
+	app.connect(&optw, SIGNAL(s_apply()), &dbgw, SLOT(updateStyle()));	// after d_style: the style sheet resets fonts
 	app.connect(&optw, SIGNAL(s_prf_changed()), &mwin, SLOT(onPrfChange()));
 	app.connect(&optw, SIGNAL(s_prf_changed()), &dbgw, SLOT(onPrfChange()));
 
