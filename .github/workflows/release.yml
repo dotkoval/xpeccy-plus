@@ -22,15 +22,16 @@ permissions:
 
 jobs:
   check:
-    name: tag matches VERSION
+    name: check the tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - run: |
           want=$(head -n 1 VERSION | tr -d ' \r\n')
           got=${GITHUB_REF_NAME#v}
-          echo "VERSION: $want, tag: $got"
-          [ "$want" = "$got" ] || { echo "the tag and VERSION disagree"; exit 1; }
+          echo "tag:     $got"
+          echo "VERSION: $want"
+          [ "$want" = "$got" ] || { echo "The tag and the VERSION file disagree."; exit 1; }
 
   linux:
     needs: check
@@ -66,7 +67,8 @@ jobs:
           merge-multiple: true
           skip-decompress: true
 
-      - env:
+      - name: Create the draft release
+        env:
           GH_TOKEN: ${{ github.token }}
           # nothing is checked out here, and gh reads the repository off a git
           # remote unless it is told which one
@@ -78,4 +80,4 @@ jobs:
             --verify-tag \
             --title "Xpeccy+ ${GITHUB_REF_NAME#v}" \
             --generate-notes
-          echo "draft release $GITHUB_REF_NAME is ready to edit and publish" >> "$GITHUB_STEP_SUMMARY"
+          echo "Draft release $GITHUB_REF_NAME is ready to review and publish." >> "$GITHUB_STEP_SUMMARY"
