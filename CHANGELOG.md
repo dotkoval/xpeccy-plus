@@ -14,32 +14,19 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Added
 
-- **DejaVu Sans Mono travels with the emulator.** (Volutar) The debugger asked the system for
-  it and silently took whatever it got where the font is not installed - macOS has none of it
-  at all. It ships in the resources now, so the disassembler and the dumps line up the same
-  way everywhere. The font keeps its own license, see `LICENSE_DEJAVU`.
+- **Eight interface styles**, in `config/styles` - pick one in Setup - deBUGa - Style Sheet.
+  `Light`, `Dark`, `ZX Spectrum`, and five from the editors people already use: `Sublime`
+  (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
+  Schoonover), `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
+  license. Each style also brings the debugger colours a style sheet cannot reach, in a `.pal`
+  file next to it; they stay editable in Setup - deBUGa - Palette.
+- **DejaVu Sans Mono ships with the emulator** (Volutar), so the debugger lines up the same way
+  everywhere - macOS has no copy of it at all. It keeps its own license, see `LICENSE_DEJAVU`.
 - **Kempston joystick (port `#1F`) on ATM Turbo 2+, ZXM-Phoenix, ZX Spectrum +2 and +3.**
   (Volutar)
 - **Disk images with more than 80 tracks**, in both `.trd` and `.scl`. (Volutar)
-- **The build works on macOS again, and stays that way.** Every change is built on an Apple
-  silicon runner, which puts the app bundle together, starts it and packs a dmg. Nothing is
-  published from it yet - a released binary needs somebody who can run it, see the roadmap.
-- **Eight interface styles travel with the emulator**, in `config/styles`. Pick one in Setup -
-  deBUGa - Style Sheet; `System` still means whatever the desktop says, light on Windows and
-  usually dark on Linux. `Light` keeps to the greys, the button size and the pale selection
-  Windows itself draws, so it is the same picture as `System` there and a light interface on a
-  dark desktop. `Dark` is its neutral counterpart, `ZX Spectrum` a near-black one with the
-  machine's own magenta on top, and five come from the editors people already use: `Sublime`
-  (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
-  Schoonover) and `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
-  license.
-- **A style brings the debugger's colours with it.** The PC row, the selected row, the panel
-  headers, the changed-value fields and the track dump's markers cannot live in a style sheet,
-  so each style ships a `.pal` file next to it. Picking a style puts the built-in colours back
-  and reads that file over them - once, at the moment the style changes, which leaves `System`
-  with the defaults and no leftovers from the style before. After that they are ordinary
-  settings: edit any of them in Setup - deBUGa - Palette and what you set survives a restart
-  and the same style being picked again.
+- **macOS builds again, and stays that way** - every change is built, started and packed into a
+  dmg on an Apple silicon runner.
 
 ### Changed
 
@@ -47,48 +34,33 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
     - profiles no longer pick a keyboard layout. The one they carried was laid out for 48K
       machines only, so a 128K one was added next to it. Details in `config/keymaps/README.md`
     - border size is now 100% at scale 2 - not every configuration was shown correctly
-- **More fits on the debugger's screen**: tighter margins, spacing and row heights across 23
-  panels, and nine stack entries where there were six. No panel moved. (Volutar)
+- **More fits on the debugger's screen** (Volutar): tighter margins, spacing and row heights
+  across 23 panels, nine stack entries where there were six. No panel moved.
 - **The on-screen keyboard is drawn the classic skewed way**, with a key map to match.
   (Volutar)
-- **Less separated AY stereo.** (Volutar) Three sixteenths of each side channel bleed into the
-  other, the way real channels are never fully apart. The weights still add up to 16, so the
-  volume is unchanged and mono sounds exactly as before.
-- **Windows: `Shift+Alt+Space` sets a read breakpoint** on the memory cell under the cursor.
-  (Volutar) Windows keeps plain `Alt+Space` for the window's system menu, so that breakpoint
-  could not be reached from the keyboard there at all. Other platforms are unchanged.
+- **Less separated AY stereo** (Volutar) - three sixteenths of each side channel bleed into the
+  other. Volume unchanged, mono sounds exactly as before.
+- **Windows: `Shift+Alt+Space` sets a read breakpoint** on the cell under the cursor (Volutar).
+  Plain `Alt+Space` belongs to the system menu there, so that breakpoint had no key at all.
+  Other platforms are unchanged.
 
 ### Fixed
 
-- **The track dump marked its fields in colours nothing could change.** The id, data and crc
-  markers were three pale pastels compiled into the panel, and only the background of them, so
-  a dark style put its light text on a light marker and the bytes disappeared. They are palette
-  entries now - background and text both - with the pastels as the built-in default, a set per
-  style, and three more rows in Setup - deBUGa - Palette.
-- **A style sheet took the debugger's font away.** Qt gives every widget a font of its own as
-  soon as the application gets a style sheet, which cut the debugger's panels off from the
-  font the window hands down: the disassembler and the dumps fell back to the interface font,
-  proportional and a size smaller, and the columns shrank with it. The font from Setup now
-  reaches every panel by name, and the style sheet is applied before the debugger re-reads
-  it, not after.
-- **The emulator crashed on its way out when the window had never been shown** - `--help`
-  does exactly that. The shaders are created when the window first appears, but the
-  destructor deleted them either way, so it deleted a pointer that was never set: a
-  segmentation fault on Linux, a bus error on macOS. A normal run never reached it.
-- **macOS drew a black screen.** The emulator asked for an OpenGL 2.1 compatibility context,
-  the way it does everywhere else, and macOS has no compatibility profile above 2.1 - its
-  GLSL stops at 1.20 there, so every shader failed to compile and nothing was ever drawn,
-  while the menus, the emulation and the debugger's own screen widget carried on working. It
-  asks for a 3.3 core profile on macOS now, which Apple answers with 4.1.
-- **The first frame bound a texture that had never been generated**, because the window is
-  painted before the emulation thread hands over anything to show. Undefined behaviour that
-  macOS reports and other drivers quietly swallow.
-- **ZXM-Phoenix paged the wrong memory.** (Volutar) Bits 4, 6 and 7 of port `#1FFD` were
-  masked and shifted as one, which put bits 6 and 7 in the wrong place in the bank number.
+- **macOS drew a black screen** - it has no OpenGL compatibility profile above 2.1, so every
+  shader failed to compile while everything else carried on working. It asks for a 3.3 core
+  profile there now.
+- **A style sheet took the debugger's font away**, dropping the disassembler and the dumps to
+  the interface font, proportional and a size smaller.
+- **The track dump's field markers ignored the palette** - three pastels compiled into the
+  panel, so a dark style hid the bytes. They are palette entries now, background and text.
+- **The emulator crashed on its way out when the window had never been shown**, which is
+  exactly what `--help` does.
+- **The first frame bound a texture that had never been generated.**
+- **ZXM-Phoenix paged the wrong memory** (Volutar): bits 4, 6 and 7 of port `#1FFD` were masked
+  and shifted as one.
 - **Profi did not initialise port `#DFFD` on reset.** (Volutar)
-- **The debugger's disk dump stopped at 83 tracks**, a number hardcoded in two places and
-  derived from nothing. It reads the drive's own geometry now, which is what made the images
-  above usable in the dump.
+- **The debugger's disk dump stopped at 83 tracks**, a hardcoded number derived from nothing.
+  It reads the drive's own geometry now.
 
 ### From upstream
 
