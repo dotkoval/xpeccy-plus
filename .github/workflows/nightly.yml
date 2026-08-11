@@ -5,8 +5,8 @@ name: Nightly
 # the way workflow artifacts do, and a pre-release never takes the "Latest"
 # badge away from a real release.
 #
-# Runs every night and stops right away when main has not moved - the nightly
-# tag sits on the commit the current build was made from.
+# Runs every night and stops right away when there are no new commits - the
+# nightly tag sits on the commit the current build was made from.
 
 on:
   schedule:
@@ -14,7 +14,7 @@ on:
   workflow_dispatch:
     inputs:
       force:
-        description: 'Build even when main has not moved'
+        description: 'Build even if there are no new commits'
         type: boolean
         default: false
 
@@ -26,7 +26,7 @@ permissions:
 
 jobs:
   check:
-    name: has main moved
+    name: check for new commits
     runs-on: ubuntu-latest
     outputs:
       build: ${{ steps.ask.outputs.build }}
@@ -36,12 +36,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           built=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/tags/nightly" --jq .object.sha 2>/dev/null || echo none)
-          echo "built last time: $built"
-          echo "main is now:     $GITHUB_SHA"
+          echo "last nightly: $built"
+          echo "main:         $GITHUB_SHA"
           if [ "${{ inputs.force }}" = "true" ] || [ "$built" != "$GITHUB_SHA" ]; then
             echo "build=true" >> "$GITHUB_OUTPUT"
           else
-            echo "main has not moved since the last nightly" >> "$GITHUB_STEP_SUMMARY"
+            echo "No new commits since the last nightly build." >> "$GITHUB_STEP_SUMMARY"
           fi
 
   linux:
@@ -77,7 +77,7 @@ jobs:
           merge-multiple: true
           skip-decompress: true
 
-      - name: Replace the nightly pre-release
+      - name: Publish the nightly pre-release
         env:
           GH_TOKEN: ${{ github.token }}
           # nothing is checked out here, and gh reads the repository off a git
@@ -92,4 +92,4 @@ jobs:
             --prerelease \
             --target "$GITHUB_SHA" \
             --title "Nightly build" \
-            --notes "Automatic build of \`main\` at ${GITHUB_SHA:0:7} ($(date -u +%Y-%m-%d)). Not a release: this is whatever main happened to be that night."
+            --notes "Automated build from the latest commit on \`main\` (${GITHUB_SHA:0:7}, $(date -u +%Y-%m-%d)). May be unstable - see Releases for the latest stable version."
