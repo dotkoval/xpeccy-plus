@@ -1,0 +1,86 @@
+name: Linux
+
+# Builds the AppImage through the same packaging/ scripts as a local build, so
+# a green run leaves an artifact that is ready to attach to a release.
+#
+# Started by hand, from the Actions tab or "gh workflow run linux.yml --ref
+# <branch>"; tick "release" for a clean version string instead of the dated dev
+# one. The weekly run is there to notice a runner-image or apt change that
+# nobody in this repository caused.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release version string, no -dev+DATE suffix'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: linux-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: x86_64, Qt5
+    # not ubuntu-latest: an AppImage runs on nothing older than the glibc it was
+    # built against, and 22.04 keeps that floor at 2.35 - old enough for the
+    # distributions this is released for. It is what the local build uses too.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 40
+
+    env:
+      RELEASE: ${{ inputs.release && '1' || '' }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install dependencies
+        run: |
+          packaging/linux-setup.sh
+          # CI only: there is no display here, and Qt builds the windows even
+          # for --help
+          sudo apt-get install -y --no-install-recommends xvfb
+
+      - name: Build and pack
+        # runner.temp is out of reach in the job's env, hence the step's own
+        env:
+          BUILD_DIR: ${{ runner.temp }}/build
+        run: |
+          packaging/make-appimage.sh
+          img=$(ls "$BUILD_DIR"/*.AppImage)
+          # the artifact is named after the image, so the two cannot drift apart
+          echo "APPIMAGE=$img" >> "$GITHUB_ENV"
+          echo "APPIMAGE_NAME=$(basename "$img" .AppImage)" >> "$GITHUB_ENV"
+          echo "APPDIR=$BUILD_DIR/AppDir" >> "$GITHUB_ENV"
+
+      # the AppImage is what a user gets, so test that and not the staged copy
+      - name: Smoke test
+        timeout-minutes: 5
+        run: packaging/linux-smoke.sh "$APPIMAGE" "$RUNNER_TEMP/xpeccy-conf"
+
+      - name: Summary
+        run: |
+          glibc=$(objdump -T "$APPDIR/usr/bin/xpeccy-plus" \
+            | sed -n 's/.*GLIBC_\([0-9.]*\).*/\1/p' | sort -V | tail -n 1)
+          {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| built on | $(lsb_release -ds) |"
+            echo "| Qt | $(dpkg-query -f '${Version}' -W qtbase5-dev) |"
+            echo "| SDL | $(dpkg-query -f '${Version}' -W libsdl2-dev) |"
+            echo "| needs glibc | $glibc or newer |"
+            echo "| AppImage | $APPIMAGE_NAME.AppImage, $(du -h "$APPIMAGE" | cut -f1) |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # archive: false - the download is the AppImage itself, not a zip holding
+      # one. It also means the artifact is named after the file, so no name here
+      - name: Upload the AppImage
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ env.APPIMAGE }}
+          archive: false
+          retention-days: 30
+          if-no-files-found: error
