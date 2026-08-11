@@ -57,14 +57,18 @@ jobs:
             mingw_tool: tools_mingw
             mingw_variant: qt.tools.win64_mingw810
             mingw_dir: mingw810_64
+          # 6.6.2 on purpose, and the same MinGW that comes with it: Qt 6.7
+          # replaced qwindowsvistastyle with qmodernwindowsstyle, whose windows11
+          # style is the default on Windows 11 - and the bundled qss themes are
+          # drawn against the older one. Move this only together with the themes.
           - preset: qt6-x64
-            qt: '6.8.3'
+            qt: '6.6.2'
             qt_arch: win64_mingw
             qt_dir: mingw_64
             qt_modules: qt5compat
-            mingw_tool: tools_mingw1310
-            mingw_variant: qt.tools.win64_mingw1310
-            mingw_dir: mingw1310_64
+            mingw_tool: tools_mingw90
+            mingw_variant: qt.tools.win64_mingw900
+            mingw_dir: mingw1120_64
 
     defaults:
       run:
