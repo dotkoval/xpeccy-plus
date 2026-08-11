@@ -68,6 +68,9 @@ jobs:
 
       - env:
           GH_TOKEN: ${{ github.token }}
+          # nothing is checked out here, and gh reads the repository off a git
+          # remote unless it is told which one
+          GH_REPO: ${{ github.repository }}
         run: |
           ls -lh dist
           gh release create "$GITHUB_REF_NAME" dist/* \

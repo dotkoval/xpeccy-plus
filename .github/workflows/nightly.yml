@@ -80,6 +80,9 @@ jobs:
       - name: Replace the nightly pre-release
         env:
           GH_TOKEN: ${{ github.token }}
+          # nothing is checked out here, and gh reads the repository off a git
+          # remote unless it is told which one
+          GH_REPO: ${{ github.repository }}
         run: |
           ls -lh dist
           # deleted and recreated rather than edited: the tag has to move to the
