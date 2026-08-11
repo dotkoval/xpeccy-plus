@@ -12,6 +12,17 @@ name: macOS
 
 on:
   workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release version string, no -dev+DATE suffix'
+        type: boolean
+        default: false
+  # nightly.yml and release.yml build through this one
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
   # Qt and SDL come from Homebrew, which rolls forward on its own, so this can
   # break with nobody having touched the repository - that is how the whole
   # sdl2-compat business started. Once a week is enough to notice.
@@ -19,7 +30,9 @@ on:
     - cron: '0 6 * * 1'
 
 concurrency:
-  group: macos-${{ github.ref }}
+  # github.workflow is the caller's name when this workflow is called, so a
+  # nightly and a release build cannot cancel each other
+  group: macos-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -43,6 +56,7 @@ jobs:
         run: |
           cmake -S . -B "$BUILD_DIR" \
             -DCMAKE_BUILD_TYPE=Release \
+            -DXRELEASE=${{ inputs.release && 'ON' || 'OFF' }} \
             -DCMAKE_PREFIX_PATH="$(brew --prefix qt)" \
             -DQTVERSION=6 \
             -DUSEOPENGL=1 \

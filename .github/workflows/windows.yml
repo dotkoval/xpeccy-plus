@@ -16,11 +16,19 @@ on:
         description: 'Release version string, no -dev+DATE suffix'
         type: boolean
         default: false
+  # nightly.yml and release.yml build through this one
+  workflow_call:
+    inputs:
+      release:
+        type: boolean
+        default: false
   schedule:
     - cron: '0 6 * * 1'
 
 concurrency:
-  group: windows-${{ github.ref }}
+  # github.workflow is the caller's name when this workflow is called, so a
+  # nightly and a release build cannot cancel each other
+  group: windows-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
