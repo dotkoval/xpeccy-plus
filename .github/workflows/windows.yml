@@ -1,0 +1,132 @@
+name: Windows
+
+# Builds the three archives that ship, through the same packaging/ scripts as a
+# local build. Qt and MinGW come from aqtinstall rather than from the runner
+# image, so the compiler this is built with is the one named here.
+#
+# Started by hand, from the Actions tab or "gh workflow run windows.yml --ref
+# <branch>"; tick "release" for a clean version string instead of the dated dev
+# one. The weekly run is there to notice a runner-image change that nobody in
+# this repository caused.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release:
+        description: 'Release version string, no -dev+DATE suffix'
+        type: boolean
+        default: false
+  schedule:
+    - cron: '0 6 * * 1'
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ${{ matrix.preset }}
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Qt 5.15.2 is the last release with official MinGW binaries, and the
+          # 32-bit build is the one upstream users are used to
+          - preset: qt5-x86
+            qt: '5.15.2'
+            qt_arch: win32_mingw81
+            qt_dir: mingw81_32
+            mingw_tool: tools_mingw
+            mingw_variant: qt.tools.win32_mingw810
+            mingw_dir: mingw810_32
+          - preset: qt5-x64
+            qt: '5.15.2'
+            qt_arch: win64_mingw81
+            qt_dir: mingw81_64
+            mingw_tool: tools_mingw
+            mingw_variant: qt.tools.win64_mingw810
+            mingw_dir: mingw810_64
+          - preset: qt6-x64
+            qt: '6.8.3'
+            qt_arch: win64_mingw
+            qt_dir: mingw_64
+            qt_modules: qt5compat
+            mingw_tool: tools_mingw1310
+            mingw_variant: qt.tools.win64_mingw1310
+            mingw_dir: mingw1310_64
+
+    defaults:
+      run:
+        shell: pwsh
+
+    env:
+      RELEASE: ${{ inputs.release && '1' || '' }}
+      QT_DIR: C:\Qt\${{ matrix.qt }}\${{ matrix.qt_dir }}
+      MINGW_DIR: C:\Qt\Tools\${{ matrix.mingw_dir }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      # into C:\Qt, the same layout a local Qt installation has, so the
+      # toolchain table in make-dist.ps1 needs overriding only where it differs
+      - name: Install Qt and MinGW
+        run: |
+          pip install --disable-pip-version-check aqtinstall
+          aqt install-qt windows desktop ${{ matrix.qt }} ${{ matrix.qt_arch }} `
+            ${{ matrix.qt_modules && format('-m {0}', matrix.qt_modules) || '' }} -O C:\Qt
+          aqt install-tool windows desktop ${{ matrix.mingw_tool }} ${{ matrix.mingw_variant }} -O C:\Qt
+
+      - name: Fetch SDL2
+        run: packaging\fetch-deps.ps1
+
+      - name: Build and stage
+        run: |
+          # a hashtable, not an array: splatting an array passes the elements
+          # positionally and the parameter names end up as values
+          $opts = @{
+            Preset = '${{ matrix.preset }}'
+            Zip = $true
+            Jobs = $env:NUMBER_OF_PROCESSORS
+            QtDir = $env:QT_DIR
+            MinGW = $env:MINGW_DIR
+          }
+          if ($env:RELEASE) { $opts.Release = $true }
+          packaging\make-dist.ps1 @opts
+          # the artifact is named after the archive, so the two cannot drift apart
+          $zip = Get-ChildItem build\dist\*.zip | Select-Object -First 1
+          "ZIP=$($zip.FullName)" >> $env:GITHUB_ENV
+          "ZIP_NAME=$($zip.BaseName)" >> $env:GITHUB_ENV
+
+      # the archive is what a user gets, so test that and not the staged folder
+      - name: Smoke test
+        timeout-minutes: 5
+        run: |
+          $stage = Join-Path $env:RUNNER_TEMP 'zip'
+          Expand-Archive $env:ZIP -DestinationPath $stage
+          packaging\win-smoke.ps1 -Dist (Join-Path $stage $env:ZIP_NAME)
+
+      - name: Summary
+        run: |
+          $size = '{0:N0} MB' -f ((Get-Item $env:ZIP).Length / 1MB)
+          $gcc = (& "$env:MINGW_DIR\bin\gcc.exe" -dumpversion)
+          @(
+            "| | |"
+            "|---|---|"
+            "| Qt | ${{ matrix.qt }} ${{ matrix.qt_arch }} |"
+            "| MinGW | $gcc |"
+            "| SDL | $((Get-Content packaging\deps.json -Raw | ConvertFrom-Json).sdl2.version) |"
+            "| archive | $env:ZIP_NAME.zip, $size |"
+          ) >> $env:GITHUB_STEP_SUMMARY
+
+      # archive: false - the download is the zip itself, not a zip holding one.
+      # It also means the artifact is named after the file, so no name here
+      - name: Upload the archive
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ env.ZIP }}
+          archive: false
+          retention-days: 30
+          if-no-files-found: error
