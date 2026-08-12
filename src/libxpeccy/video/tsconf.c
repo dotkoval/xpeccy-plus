@@ -274,8 +274,16 @@ void tslUpdatePorts(Video* vid) {
 void vts_hblk(Video* vid) {
 }
 
+void tslUpdatePalX(void*);
+
 // Line start
 void vts_line(Video* vid) {
+	// the video controller reads a line ahead, palette included, so a cram write lands
+	// on the next line rather than repainting the one already on screen
+	if (vid->tsconf.palUpd) {
+		vid->tsconf.palUpd = 0;
+		tslUpdatePalX(vid->xptr);
+	}
 	tslUpdatePorts(vid);
 	// text mode draws from video memory dot by dot, so the screen offsets have to be
 	// latched here - a write in the middle of a line belongs to the next one
@@ -283,9 +291,11 @@ void vts_line(Video* vid) {
 	vid->tsconf.txtYOff = vid->tsconf.scrLine + vid->tsconf.yOffset;
 	vid->tsconf.txtPage = vid->tsconf.vidPage;
 	vid->tsconf.txtPal = vid->tsconf.scrPal;
-	int res = vidTSRender(vid);		// dots eaten by rendering
-	vid->intp.x = vid->tsconf.hsint + res + vid->blank.x;
-	vid->intp.x %= vid->full.x;
+	vidTSRender(vid);
+	// the int fires where the raster counters match HSINT/VSINT. ray.xb counts from the
+	// leading edge of the blanking, which is where the hardware counter starts too, so
+	// hsint goes in as it is - no blanking offset, and no shift by the rendering cost
+	vid->intp.x = vid->tsconf.hsint % vid->full.x;
 	if (vid->inten & 2) {
 		vid->intLINE = 1;
 		vid->xirq(IRQ_VID_LINE, vid->xptr);

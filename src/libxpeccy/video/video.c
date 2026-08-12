@@ -1084,12 +1084,7 @@ void vid_tick(Video* vid) {
 		vid->intFRAME--;
 		if (!vid->intFRAME)
 			vid->xirq(IRQ_VID_IEND, vid->xptr);
-	} else if (vid->ray.yb != vid->intp.y) {
-		vid->intDONE = 0;			// ray is off the int line: arm the frame int again
-	} else if (!vid->intDONE && (vid->ray.xb >= vid->intp.x) && (vid->inten & 1)) {
-		// >= not == : tsconf recomputes the int position on every line, so it can move
-		// to a dot the ray has already passed - taking the int late beats losing it
-		vid->intDONE = 1;
+	} else if ((vid->ray.yb == vid->intp.y) && (vid->ray.xb == vid->intp.x) && (vid->inten & 1)) {		// added: ...and frame int enabled
 		vid->intTime = vid->time;
 		vid->xirq(IRQ_VID_INT, vid->xptr);
 	}

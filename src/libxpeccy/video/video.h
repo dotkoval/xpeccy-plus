@@ -120,7 +120,6 @@ struct Video {
 	unsigned nogfx:1;	// tsl : nogfx flag, pc98xx:disable display
 	unsigned newFrame:1;	// set @ start of VBlank
 	int intFRAME;		// aka INT
-	unsigned intDONE:1;	// frame int already taken on this pass of the int line
 	unsigned intLINE:1;	// for TSConf
 	unsigned intDMA:1;	// for TSConf
 //	unsigned noScreen:1;
@@ -303,6 +302,7 @@ struct Video {
 		ePair(T1YOffset,t1yh,t1yl);
 		ePair(scrLine, loffh, loffl);
 		ePair(intLine, ilinh, ilinl);	// INT line
+		unsigned palUpd:1;		// cram was written: apply it at the next line start
 		int txtXOff;			// text mode: what the line is drawn from, read at
 		int txtYOff;			// line start like the other modes pre-render
 		unsigned char txtPage;
