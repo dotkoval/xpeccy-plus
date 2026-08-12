@@ -49,16 +49,10 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Fixed
 
-- **ZX Evo (TSConf) text mode drew from the wrong place.** It added the raster line to the
-  screen offset, but the offset already carries it - every other mode counts from the screen
-  line counter, which the machine resets whenever the offset is written. A program that moves
-  the offset every line got a picture that drifted a line further out on every line, out of
-  step with the sprites over it. The offsets are also read once per line now instead of in the
-  middle of drawing one, and sprite pixels are no longer sampled from the shifted position.
-  Seen in the demo *Synchronization*, where the swirl broke into displaced bands.
-- **The frame interrupt could still go missing on TSConf** when the position it is generated
-  at moved onto a dot the ray had already passed. It is taken late in that case instead of
-  being dropped for the whole frame.
+- **ZX Evo (TSConf): a number of problems with keeping up with the ray**, in every screen mode.
+  Programs that drive the picture from the raster - most demos - lost or shifted lines, showed
+  strips of rubbish next to moving objects, and rippled over screens that should have been
+  still.
 - **macOS drew a black screen** - it has no OpenGL compatibility profile above 2.1, so every
   shader failed to compile while everything else carried on working. It asks for a 3.3 core
   profile there now.
@@ -80,14 +74,9 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260809` to `20260811b`, by
 SAM style. The base was build `20260807`.
 
-- ZX Evo (TSConf) has its own interrupt handler, so the line interrupt keeps its place in the
-  queue instead of being dropped while the frame interrupt is on. It supersedes the fix we
-  made in 2026.0.
-- TSConf froze wherever a line cost the video controller more dots than a line holds: the
-  frame interrupt was placed past the end of that line and never fired, leaving the program
-  waiting on `HALT`. *Synchronization* stopped about three and a half minutes in. The
-  interrupt position is also measured from the right place now, and the DMA interrupt, which
-  nothing ever raised, works.
+- ZX Evo (TSConf) interrupts: its own handler for them, the line and DMA sources work, and a
+  heavy screen no longer freezes the machine. *Synchronization* used to stop three and a half
+  minutes in. It supersedes the fix we made in 2026.0.
 - ZX Evo (TSConf) reads the PC keyboard as well as the ZX matrix, the way PentEvo already did.
 - PentEvo: virtual DOS and NMI memory banks, and write protection per memory page.
 - YM2203: an envelope rate of 0 now holds forever instead of creeping, and the fastest attack
