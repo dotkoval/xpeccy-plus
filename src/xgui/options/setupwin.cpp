@@ -1381,15 +1381,20 @@ void SetupWin::buildmenulist() {
 void SetupWin::buildproflist() {
 	ui.twProfileList->setRowCount(conf.prof.list.size());
 	QTableWidgetItem* itm;
+	// every row gets an icon slot, so the name doesn't shift on the current one
+	QSize isz(16, 16);
+	ui.twProfileList->setIconSize(isz);
+	QPixmap blank(isz);
+	blank.fill(Qt::transparent);
+	QIcon mark(":/images/checkbox.png");
 	for (int i = 0; i < conf.prof.list.size(); i++) {
 		itm = new QTableWidgetItem(QString::fromLocal8Bit(conf.prof.list[i]->name.c_str()));
-		if (conf.prof.list[i] == conf.prof.cur) {
-			itm->setIcon(QIcon(":/images/checkbox.png"));
-		}
+		itm->setIcon((conf.prof.list[i] == conf.prof.cur) ? mark : QIcon(blank));
 		ui.twProfileList->setItem(i,0,itm);
 		itm = new QTableWidgetItem(QString::fromLocal8Bit(conf.prof.list[i]->file.c_str()));
 		ui.twProfileList->setItem(i,1,itm);
 	}
+	ui.twProfileList->resizeColumnToContents(0);
 }
 
 void SetupWin::copyToTape() {
