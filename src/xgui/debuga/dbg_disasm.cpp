@@ -60,7 +60,9 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 			break;
 		case Qt::FontRole:
 			if ((col == 0) && dasm[row].islab && !dasm[row].iscom) {
-				font = QFont();
+				// start from the debugger font: a default QFont would drop the
+				// monospace family, which reads as "not bold" rather than bold
+				font = conf.dbg.font;
 				font.setBold(true);
 				res = font;
 			}
@@ -76,6 +78,8 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 				clr = conf.pal["dbg.pc.txt"];
 			} else if (dasm[row].issel) {
 				clr = conf.pal["dbg.sel.txt"];
+			} else if ((col == 0) && dasm[row].islab) {
+				clr = conf.pal["dbg.disk.id.txt"];
 			//} else {
 			//	clr = conf.pal["dbg.table.txt"];
 			}
@@ -87,6 +91,12 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 				clr = conf.pal["dbg.pc.bg"];
 			} else if (dasm[row].issel) {
 				clr = conf.pal["dbg.sel.bg"];
+			} else if ((col == 0) && dasm[row].islab && !dasm[row].iscom) {
+				// Shares the disk id colours: that pair is drawn for a tinted
+				// run of text on the listing background, it is only ever seen
+				// in the track dump, and the user can retune it in the palette
+				// editor. Comments keep the plain background.
+				clr = conf.pal["dbg.disk.id.bg"];
 			//} else {
 			//	clr = conf.pal["dbg.table.bg"];
 			}
