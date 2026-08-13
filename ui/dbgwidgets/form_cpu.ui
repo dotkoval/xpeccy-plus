@@ -30,21 +30,6 @@
     <number>2</number>
    </property>
    <item>
-    <widget class="QLabel" name="labHeadCpu">
-     <property name="font">
-      <font>
-       <pointsize>9</pointsize>
-      </font>
-     </property>
-     <property name="text">
-      <string>CPU</string>
-     </property>
-     <property name="alignment">
-      <set>Qt::AlignCenter</set>
-     </property>
-    </widget>
-   </item>
-   <item>
     <layout class="QGridLayout" name="formRegs">
      <property name="horizontalSpacing">
       <number>0</number>
