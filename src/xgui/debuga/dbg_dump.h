@@ -12,6 +12,19 @@
 #include "../../xcore/xcore.h"
 #include "../../xgui/xgui.h"
 
+// Dump layout, shared with the disk dump so both read the same way: cells of a
+// fixed width, lined up from the left, with a gap every DUMP_GROUP bytes.
+#define DUMP_GROUP	4
+#define DUMP_GAP	10
+#define DUMP_MAXBYTES	16
+#define DUMP_TEXTCOL	(DUMP_MAXBYTES + 1)	// column 0 is the address
+#define DUMP_COLS	(DUMP_MAXBYTES + 2)
+
+// One byte cell, the same in every dump so they read alike. Cells are aligned
+// right: a wider cell then puts its extra space on the left, which is what
+// makes the gap between groups land exactly on the boundary.
+int dump_cell_width(const QFontMetrics&);
+
 enum {
 	XCP_1251 = 1,
 	XCP_866,
@@ -70,6 +83,7 @@ class xDumpTable:public QTableView {
 		void update();
 //		int getAdr();
 		unsigned int limit();
+		void setRowBytes(int);		// 0 = as many groups as fit, else a fixed count
 		int mode;
 	public slots:
 		void setAdr(int);
@@ -86,6 +100,8 @@ class xDumpTable:public QTableView {
 		int view;
 		int pagesize;
 		int pagenum;
+		int rowBytes;			// what setRowBytes was given
+		void layoutColumns();
 		xDumpModel* model;
 		int markAdr;
 		int row_count;
@@ -127,6 +143,7 @@ class xDumpWidget : public xDockWidget {
 		void adr_changed(int);
 		void modeChanged();
 		void cp_changed();
+		void bytes_changed();
 		void refill();
 		void customMenu();
 		void customMenuAction(QAction*);

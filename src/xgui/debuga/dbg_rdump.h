@@ -16,6 +16,7 @@ class xRDumpModel : public xTableModel {
 //		int columnCount(const QModelIndex& = QModelIndex()) const;
 		QVariant data(const QModelIndex&, int) const;
 		QList<xRegister> regs;
+		int nameWidth;			// longest register name, so the brackets line up
 };
 
 class xRDumpTable : public QTableView {

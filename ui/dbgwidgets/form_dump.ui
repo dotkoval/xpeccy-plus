@@ -99,6 +99,19 @@
       </spacer>
      </item>
      <item>
+      <widget class="QComboBox" name="cbDumpBytes">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Bytes per row</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QComboBox" name="cbCodePage">
        <property name="maximumSize">
         <size>

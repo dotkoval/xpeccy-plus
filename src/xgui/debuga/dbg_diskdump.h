@@ -3,6 +3,7 @@
 #include <QTableView>
 #include <QDockWidget>
 #include <QResizeEvent>
+#include <QHeaderView>
 
 #include "../classes.h"
 
@@ -12,6 +13,8 @@ class xDiskDumpModel : public xTableModel {
 		QVariant data(const QModelIndex&, int) const;
 		void setDrive(int);
 		void setTrack(int);
+		void recount();			// rows from the track length and rowBytes
+		int rowBytes;			// bytes on one line, a multiple of DUMP_GROUP
 	private:
 		int drv;
 		int trk;
@@ -22,12 +25,15 @@ class xDiskDump : public QTableView {
 	public:
 		xDiskDump(QWidget* = NULL);
 		void update();
+		void setRowBytes(int);		// 0 = fit as many groups as there is room for
 	public slots:
 		void setTrack(int);
 		void setDrive(int);
 		void toTarget();
 	private:
 		int drv;
+		int rowBytes;			// what setRowBytes was given
+		void layoutColumns();
 		xDiskDumpModel* mod;
 		void resizeEvent(QResizeEvent*);
 };
@@ -45,4 +51,5 @@ class xDiskDumpWidget : public xDockWidget {
 		Ui::FDDDump ui;
 	private slots:
 		void toTarget();
+		void bytes_changed();
 };
