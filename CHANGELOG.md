@@ -27,12 +27,21 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 - **Disk images with more than 80 tracks**, in both `.trd` and `.scl`. (Volutar)
 - **macOS builds again, and stays that way** - every change is built, started and packed into a
   dmg on an Apple silicon runner.
+- **The debugger's panels can be arranged freely** (experimental). Registers, disassembler,
+  memory map and stack are dock panels now, so any of them can be dragged, split, tabbed or
+  put side by side, and the arrangement is remembered. Registers switch to two columns when
+  the panel has room for them. `Reset panel layout` in the disassembler options puts
+  everything back.
 
 ### Changed
 
 - **ZX Evo (TSConf) has a screen geometry of its own** instead of borrowing Pentagon's. Its
   border and blanking are where the real machine has them, which is what raster effects and
   the line interrupt are timed against.
+- **The debugger opens at 960x720**, and its font and screen zoom start smaller, so the window
+  fits a 1280x800 display.
+- **Labels stand out in the disassembler.** They share the disk ID colours, so a style sets
+  them and Setup - deBUGa - Palette retunes them.
 - **Small changes to the defaults**, mostly to get around conflicts found on macOS:
     - profiles no longer pick a keyboard layout. The one they carried was laid out for 48K
       machines only, so a 128K one was added next to it. Details in `config/keymaps/README.md`
@@ -58,6 +67,7 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   profile there now.
 - **A style sheet took the debugger's font away**, dropping the disassembler and the dumps to
   the interface font, proportional and a size smaller.
+- **Labels in the disassembler were drawn in the interface font** as well, for the same reason.
 - **The track dump's field markers ignored the palette** - three pastels compiled into the
   panel, so a dark style hid the bytes. They are palette entries now, background and text.
 - **The emulator crashed on its way out when the window had never been shown**, which is

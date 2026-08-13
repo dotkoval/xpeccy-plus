@@ -5,7 +5,6 @@
 #include <QLineEdit>
 #include <QGridLayout>
 #include <QGroupBox>
-#include <QSplitter>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QTimer>
@@ -29,6 +28,7 @@
 #include "ui_form_cpu.h"
 #include "ui_form_disasm.h"
 #include "ui_form_misc.h"
+#include "ui_form_stack.h"
 
 enum {
 	DMP_MEM = 1,
@@ -70,12 +70,12 @@ class DebugWin : public QMainWindow {
 		int tabMode;
 		cpuCore* curCpuCore;
 		QWidget* wid_cpu;
-		QSplitter* cpuSplitter;
+		xDockWidget* wid_cpu_dock;
 		int regCols;		// register columns that fit now (1 or 2)
 		int regPairW;		// width one 'name + value' pair needs
 		int regWideW;		// panel width that fits two columns: max and switch point
-		int cpuWantW;		// width to restore after the window is laid out, 0 = done
-		unsigned cpuRestored:1;	// saved width applied, sizes may be tracked now
+		unsigned cpuWideDock:1;	// two panels sit side by side under the cpu dock
+		unsigned reformPending:1;	// a reflow is already queued
 		// tracer
 		unsigned trace:1;
 		int traceType;
@@ -85,12 +85,17 @@ class DebugWin : public QMainWindow {
 		QImage scrImg;
 		QMap<int, QList<tabDSC> > tablist;
 
-		QWidget* cw;
+		xDockWidget* wid_dasm_dock;
 		QString xmap_path;
 		// widgets
 		Ui::CPUWidget ui_cpu;
 		Ui::DisasmWidget ui_asm;
 		Ui::FormDbgMisc ui_misc;
+		Ui::FormDbgStack ui_stack;
+		xDockWidget* wid_misc;		// memmap + ports + signals + ray
+		xDockWidget* wid_stack;
+		QDockWidget* wid_anchor_l;	// empty strips at the window edges: something
+		QDockWidget* wid_anchor_r;	// to drop a panel next to, see make_edge_anchor
 		xDumpWidget* wid_dump;
 		xRDumpWidget* wid_rdump;
 		xDiskDumpWidget* wid_disk_dump;
@@ -113,7 +118,7 @@ class DebugWin : public QMainWindow {
 		xCiaWidget* wid_cia;
 		xVicWidget* wid_vic;
 		xMMapWidget* wid_mmap;
-		QList<void*> dockWidgets;
+		QList<xDockWidget*> dockWidgets;
 
 		QList<xLabel*> dbgRegLabs;
 		QList<xHexSpin*> dbgRegEdit;
@@ -163,7 +168,10 @@ class DebugWin : public QMainWindow {
 		void chLayout();
 
 	private slots:
-		void applyCpuWidth();
+		void reformCpuLater();
+		void resetLayout();
+		void setDefaultLayout();
+		void updateCpuDockWidth();
 		void setShowLabels(bool);
 		void setShowSegment(bool);
 		void setRomWriteable(bool);
@@ -233,7 +241,6 @@ class DebugWin : public QMainWindow {
 		void resizeEvent(QResizeEvent*);
 		void moveEvent(QMoveEvent*);
 		void closeEvent(QCloseEvent*);
-		void showEvent(QShowEvent*);
 		void customEvent(QEvent*);
 };
 

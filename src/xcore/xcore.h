@@ -513,7 +513,6 @@ struct xConfig {
 		int dwsize;
 		int dmsize;
 		int scrzoom;
-		int cpuwidth;		// width of the registers panel, 0 = not saved yet
 		QPoint pos;
 		QSize siz;
 	} dbg;

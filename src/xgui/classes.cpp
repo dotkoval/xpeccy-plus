@@ -3,6 +3,8 @@
 
 #include <QPalette>
 #include <QPainter>
+#include <QSet>
+#include <QTabBar>
 #include <QFontMetrics>
 #include <QDebug>
 
@@ -418,17 +420,23 @@ xDockWidget::xDockWidget(QString icopath, QString txt, QWidget* p):QDockWidget(p
 
 // redraw all tabs icon/title
 void xDockWidget::moved() {
-	QList<QTabBar*> tabbars = parentWidget()->findChildren<QTabBar*>();
-	QList<QTabBar*>::iterator it;
-	xDockWidget* dw;
-	int i;
-	for(it = tabbars.begin(); it != tabbars.end(); it++) {
-		for(i = 0; i < (*it)->count(); i++) {
-			dw = reinterpret_cast<xDockWidget*>(qvariant_cast<quintptr>((*it)->tabData(i)));
-			if (dw) {
-				(*it)->setTabIcon(i, dw->icon);
-				dw->setWindowTitle(dw->title);
-			}
+	QWidget* par = parentWidget();
+	if (!par) return;
+	// tabData carries a raw pointer Qt put there, and a non-null one proves
+	// nothing: it may name a plain QDockWidget (the edge anchors are not
+	// xDockWidget) or one that has already gone. Reading icon/title off such a
+	// pointer walks past the end of the object. Only touch the ones still
+	// alive under this window.
+	QSet<quintptr> live;
+	foreach (xDockWidget* d, par->findChildren<xDockWidget*>())
+		live.insert(reinterpret_cast<quintptr>(d));
+	foreach (QTabBar* tb, par->findChildren<QTabBar*>()) {
+		for (int i = 0; i < tb->count(); i++) {
+			quintptr ptr = qvariant_cast<quintptr>(tb->tabData(i));
+			if (!live.contains(ptr)) continue;
+			xDockWidget* dw = reinterpret_cast<xDockWidget*>(ptr);
+			tb->setTabIcon(i, dw->icon);
+			dw->setWindowTitle(dw->title);
 		}
 	}
 }

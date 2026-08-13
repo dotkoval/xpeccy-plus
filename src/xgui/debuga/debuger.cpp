@@ -6,7 +6,6 @@
 #include <QDebug>
 #include <QBuffer>
 #include <QPainter>
-#include <QToolBar>
 #include <QVector>
 #include <QFileDialog>
 #include <QTemporaryFile>
@@ -16,6 +15,14 @@
 #include "dbg_sprscan.h"
 #include "filer.h"
 #include "../xgui.h"
+
+// debuga.layout format: bump whenever the set of docks changes, so an older
+// file is refused instead of scattering panels it knows nothing about.
+// 1 = cpu, disasm, misc and stack became docks (the MISCTOOLBAR is gone)
+// 2 = empty anchor strips at the left and right edges
+#define DBG_LAYOUT_VERSION	2
+
+static QDockWidget* make_edge_anchor(const char*);
 
 int blockStart = -1;
 int blockEnd = -1;
@@ -104,18 +111,11 @@ void DebugWin::updateStyle() {
 #endif
 // headers
 	str = getStyleString("dbg.header.bg", "dbg.header.txt");
-	ui_cpu.labHeadCpu->setStyleSheet(str);
 	ui_cpu.labHeadFlags->setStyleSheet(str);
-	ui_asm.labHeadDisasm->setStyleSheet(str);
-	ui_misc.labHeadMem->setStyleSheet(str);
 	ui_misc.labHeadRay->setStyleSheet(str);
-	ui_misc.labHeadStack->setStyleSheet(str);
 	ui_misc.labHeadSignal->setStyleSheet(str);
 	ui_misc.labPorts->setStyleSheet(str);
-	xDockWidget* dw;
-	void* ptr;
-	foreach(ptr, dockWidgets) {
-		dw = static_cast<xDockWidget*>(ptr);
+	foreach(xDockWidget* dw, dockWidgets) {
 		dw->titleBarWidget()->setStyleSheet(str);
 	}
 
@@ -213,10 +213,7 @@ void DebugWin::stop() {
 	memViewer->vis = memViewer->isVisible() ? 1 : 0;
 	memViewer->winPos = memViewer->pos();
 
-	void* ptr;
-	xDockWidget* dw;
-	foreach(ptr, dockWidgets) {
-		dw = (xDockWidget*)ptr;
+	foreach(xDockWidget* dw, dockWidgets) {
 		dw->setFloating(false);
 	}
 
@@ -240,10 +237,8 @@ void DebugWin::onPrfChange() {
 	save_mem_map();
 
 	tabMode = comp->hw->grp;
-	xDockWidget* ptr;
-	foreach (void* dw, dockWidgets) {
-		ptr = (xDockWidget*)dw;
-		ptr->setHidden(!(ptr->hwList.isEmpty() || ptr->hwList.contains(tabMode)));
+	foreach (xDockWidget* dw, dockWidgets) {
+		dw->setHidden(!(dw->hwList.isEmpty() || dw->hwList.contains(tabMode)));
 	}
 
 	// set input line base
@@ -271,33 +266,6 @@ void DebugWin::onPrfChange() {
 // void DebugWin::reject() {stop();}
 void DebugWin::closeEvent(QCloseEvent*) {stop();}
 
-// saveState covers docks only, cpu panel is a part of the central widget.
-// showEvent comes before the childs are laid out, so the splitter has no real
-// width yet: remember what we want and set it when the layout is done
-void DebugWin::showEvent(QShowEvent* ev) {
-	QMainWindow::showEvent(ev);
-	if (cpuRestored) return;			// only once per run
-	cpuWantW = conf.dbg.cpuwidth;
-	if (cpuWantW > 0) {
-		QTimer::singleShot(0, this, SLOT(applyCpuWidth()));
-	} else {
-		cpuRestored = 1;			// nothing saved, just follow the user
-	}
-}
-
-void DebugWin::applyCpuWidth() {
-	int w = cpuWantW;
-	cpuWantW = 0;
-	if (w > 0) {
-		// window may still be growing to its saved size. stretch factor keeps
-		// the extra width on the disasm side, so the panel stays where we put it
-		QList<int> siz;
-		siz << w << ((cpuSplitter->width() > w) ? (cpuSplitter->width() - w) : w);
-		cpuSplitter->setSizes(siz);
-	}
-	cpuRestored = 1;
-}
-
 DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	int i;
 
@@ -305,32 +273,33 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	regCols = 0;
 	regPairW = 0;
 	regWideW = 0;
-	cpuWantW = 0;
-	cpuRestored = 0;
+	cpuWideDock = 0;
+	reformPending = 0;
 
+	// AllowNestedDocks is off by default, and without it a left/right area can
+	// only stack docks vertically: nothing can be dropped beside anything.
+	// AnimatedDocks is on by default and makes dragging panels feel sluggish
+	setDockOptions(QMainWindow::AllowTabbedDocks | QMainWindow::AllowNestedDocks);
 	setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
 	setWindowTitle("Xpeccy+ deBUGa");
 	setWindowIcon(QIcon(":/images/bug.png"));
 
-	cw = new QWidget;
 	wid_cpu = new QWidget;
 	QWidget* wid_dasm = new QWidget;
 	ui_cpu.setupUi(wid_cpu);
-
 	ui_asm.setupUi(wid_dasm);
-	// splitter: cpu panel is resizeable, it reflows to 1 or 2 columns (see reFormCPU)
-	cpuSplitter = new QSplitter(Qt::Horizontal);
-	cpuSplitter->addWidget(wid_cpu);
-	cpuSplitter->addWidget(wid_dasm);
-	cpuSplitter->setStretchFactor(1, 10);
-	cpuSplitter->setChildrenCollapsible(false);
-	wid_cpu->installEventFilter(this);
-	QHBoxLayout* lay = new QHBoxLayout;
-	lay->addWidget(cpuSplitter);
-	lay->setSpacing(2);
-	lay->setContentsMargins(2, 2, 2, 2);	// setMargin is gone in Qt6
-	cw->setLayout(lay);
-	setCentralWidget(cw);
+
+	// No central widget: with one, nothing can ever be docked above or below the
+	// disassembler, and the boundaries around it carry no splitter handle. As a
+	// dock among docks it can be arranged - and resized - like everything else
+	wid_cpu->installEventFilter(this);	// reflows to 1 or 2 columns, see reFormCPU
+	wid_cpu_dock = new xDockWidget("", "CPU");
+	wid_cpu_dock->setObjectName("CPU");
+	wid_cpu_dock->setWidget(wid_cpu);
+
+	wid_dasm_dock = new xDockWidget("", "Disasm");
+	wid_dasm_dock->setObjectName("DISASM");
+	wid_dasm_dock->setWidget(wid_dasm);
 
 	wid_dump = new xDumpWidget("","DUMP");
 	wid_rdump = new xRDumpWidget("","REG-DUMP");
@@ -359,38 +328,29 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	dockWidgets << wid_fdd << wid_mmap << wid_gb << wid_gbv << wid_ppu;
 	dockWidgets << wid_cia << wid_dma << wid_pic << wid_pit << wid_vga << wid_ps2;
 
-	addDockWidget(Qt::RightDockWidgetArea, wid_dump);
-	tabifyDockWidget(wid_dump, wid_rdump);
-	tabifyDockWidget(wid_dump, wid_disk_dump);
-	tabifyDockWidget(wid_dump, wid_vmem_dump);
-	tabifyDockWidget(wid_dump, wid_cmos_dump);
-	addDockWidget(Qt::RightDockWidgetArea, wid_brk);
-	tabifyDockWidget(wid_brk, wid_zxscr);
-	tabifyDockWidget(wid_brk, wid_ay);
-	tabifyDockWidget(wid_brk, wid_tape);
-	tabifyDockWidget(wid_brk, wid_fdd);
-	tabifyDockWidget(wid_brk, wid_mmap);
-	tabifyDockWidget(wid_brk, wid_gb);
-	tabifyDockWidget(wid_brk, wid_gbv);
-	tabifyDockWidget(wid_brk, wid_ppu);
-	tabifyDockWidget(wid_brk, wid_cia);
-	tabifyDockWidget(wid_brk, wid_dma);
-	tabifyDockWidget(wid_brk, wid_pic);
-	tabifyDockWidget(wid_brk, wid_pit);
-	tabifyDockWidget(wid_brk, wid_vga);
-	tabifyDockWidget(wid_brk, wid_ps2);
-	wid_dump->raise();
-	wid_brk->raise();
+	// misc used to be one monolithic MISCTOOLBAR pinned to the window edge.
+	// two docks instead, so they can be dragged and split like the rest
+	QWidget* wmisc = new QWidget;
+	ui_misc.setupUi(wmisc);
+	wid_misc = new xDockWidget("", "MEMMAP");
+	wid_misc->setObjectName("MISC");
+	wid_misc->setWidget(wmisc);
 
-	QToolBar* rtbar = new QToolBar;
-	QWidget* rtbw = new QWidget;
-	rtbar->setObjectName("MISCTOOLBAR");
-	ui_misc.setupUi(rtbw);
-	rtbar->addWidget(rtbw);
-	rtbar->setFloatable(false);
-	rtbar->setAllowedAreas(Qt::LeftToolBarArea | Qt::RightToolBarArea);
-	addToolBar(Qt::RightToolBarArea, rtbar);
-	rtbar->setContextMenuPolicy(Qt::PreventContextMenu);
+	QWidget* wstack = new QWidget;
+	ui_stack.setupUi(wstack);
+	wid_stack = new xDockWidget("", "STACK");
+	wid_stack->setObjectName("STACK");
+	wid_stack->setWidget(wstack);
+
+	wid_anchor_l = make_edge_anchor("ANCHOR_L");
+	wid_anchor_r = make_edge_anchor("ANCHOR_R");
+
+	// deliberately not in dockWidgets: they carry no content, so nothing should
+	// style them, hide them per hardware, or redraw them
+	dockWidgets << wid_misc << wid_stack << wid_cpu_dock << wid_dasm_dock;
+
+	setDefaultLayout();
+
 	setContextMenuPolicy(Qt::PreventContextMenu);
 
 	dumpwin = new QDialog(this);
@@ -519,6 +479,9 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatEnable);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatReset);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatExport);
+	QAction* actResetLayout = new QAction("Reset panel layout", this);
+	ui_asm.tbDbgOpt->addAction(actResetLayout);
+	connect(actResetLayout, &QAction::triggered, this, &DebugWin::resetLayout);
 
 // connections
 	connect(this, &DebugWin::needStep, this, &DebugWin::doStep);
@@ -646,18 +609,32 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 
 	resize(minimumSize());
 
+	// A dock moving can change what sits under the cpu panel. Queued: the
+	// geometry is not settled yet while the drop is being handled
+	foreach (xDockWidget* dw, dockWidgets) {
+		connect(dw, &QDockWidget::dockLocationChanged,
+			this, &DebugWin::updateCpuDockWidth, Qt::QueuedConnection);
+	}
+
+	// A saved layout only makes sense for the set of panels it was written for.
+	// restoreState refuses a state whose version differs, and leaves docks it
+	// finds no entry for wherever they happen to be - which is how an old file
+	// scatters the new panels. Refused or damaged: fall back to the default.
 	QString path = conf.path.confDir.c_str();
 	path.append("/debuga.layout");
 	QFile file(path);
 	if (file.open(QFile::ReadOnly)) {
 		QByteArray state = file.readAll();
 		file.close();
-		restoreState(state);
+		// resetLayout, not setDefaultLayout: a refused restore can leave the
+		// window stretched, and only the former puts the size back too
+		if (!restoreState(state, DBG_LAYOUT_VERSION))
+			resetLayout();
 	}
 }
 
 DebugWin::~DebugWin() {
-	QByteArray state = saveState();
+	QByteArray state = saveState(DBG_LAYOUT_VERSION);
 	QString path = conf.path.confDir.c_str();
 	path.append("/debuga.layout");
 	QFile file(path);
@@ -984,9 +961,7 @@ void DebugWin::fillNotCPU() {
 	ui_asm.labTcount->setText(QString("%0 / %1").arg(comp->tickCount - tCount).arg(comp->frmtCount));
 
 	fillMem();
-	xDockWidget* dw;
-	foreach(void* ptr, dockWidgets) {
-		dw = static_cast<xDockWidget*>(ptr);
+	foreach(xDockWidget* dw, dockWidgets) {
 		if (dw->isVisible())
 			dw->draw();
 	}
@@ -1116,9 +1091,10 @@ void DebugWin::fillFlags(const char* fnam) {
 #define RCOL_RIGHT	3
 #define RCOL_GAP	10
 // items of ui_cpu.verticalLayout, see form_cpu.ui:
-// cpu header, registers, gap, flags header, flags, spacer
-#define VLI_REGS	1
-#define VLI_FLAGS	4
+// registers, gap, flags header, flags, spacer.
+// the cpu header is gone: the dock's title bar carries the name now
+#define VLI_REGS	0
+#define VLI_FLAGS	3
 
 // flags follow the registers: 8 in a row when there is room for 2 columns, 4 otherwise
 void DebugWin::reFormFlags(int per) {
@@ -1194,10 +1170,11 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 	regWideW = regPairW * 2 + RCOL_GAP;
 	int flgw = dbgFlagBox[0]->sizeHint().width() * 8 + 7 * 2;
 	if (flgw > regWideW) regWideW = flgw;
-	// never demand more than one column, so the splitter can be dragged narrow,
-	// and never allow more than two: dragging further would only add empty space
-	wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+	// never allow more than two columns: dragging further would only add empty space
 	wid_cpu->setMaximumWidth(regWideW);
+	// only apply the mode here. Recomputing it would change the minimum, which
+	// resizes the panel, which lands back in this function through eventFilter
+	wid_cpu->setMinimumWidth(cpuWideDock ? regWideW : (regPairW + RCOL_GAP));
 	// same value is the switch point: sizes are only exact once the widgets are
 	// styled, two thresholds could drift apart and lock the second column out
 	// start narrow: the width is not settled yet on the very first layout
@@ -1234,24 +1211,162 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 	reFormFlags((regCols > 1) ? 8 : 4);
 }
 
+// Reset from the menu: put the panels back and take the window back to the size
+// that arrangement asks for. Without the resize the window keeps whatever the
+// dragged-apart layout had stretched it to.
+void DebugWin::resetLayout() {
+	setDefaultLayout();
+	QTimer::singleShot(0, this, [this]() {
+		// same size the config hands out on a first run, never below what fits
+		resize(QSize(960, 720).expandedTo(minimumSizeHint()));
+	});
+}
+
+// A narrow strip of nothing, pinned to a window edge. QMainWindow works out
+// drop zones from the docks already there, so once panels cover the whole
+// window there is nowhere to aim for "outside everything" - a new outermost
+// column. An anchor is that target: drop beside it and the column appears.
+// Fixed, featureless and title-less, so it cannot be dragged or resized away.
+static QDockWidget* make_edge_anchor(const char* name) {
+	QDockWidget* dock = new QDockWidget;
+	dock->setObjectName(name);
+	dock->setTitleBarWidget(new QWidget);		// empty: no title bar at all
+	dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
+	QWidget* pad = new QWidget;
+	pad->setFixedWidth(4);
+	dock->setWidget(pad);
+	return dock;
+}
+
+// The shipped arrangement: cpu on the left, [ dump / brk ] [ misc / stack ] on
+// the right. Also the way back when the docks have been dragged into a corner
+// an empty area gives no drop zone to return to.
+void DebugWin::setDefaultLayout() {
+	foreach (xDockWidget* dw, dockWidgets) {
+		// a dock reports itself floating until it is added to a main window, and
+		// un-floating one that has no main window yet crashes. parentWidget()
+		// tells the two apart: null before the first addDockWidget
+		if (dw->parentWidget() && dw->isFloating()) dw->setFloating(false);
+	}
+	// anchors first and outermost, then everything else splits in between them
+	addDockWidget(Qt::LeftDockWidgetArea, wid_anchor_l);
+	splitDockWidget(wid_anchor_l, wid_anchor_r, Qt::Horizontal);
+	splitDockWidget(wid_anchor_l, wid_cpu_dock, Qt::Horizontal);
+	splitDockWidget(wid_cpu_dock, wid_dasm_dock, Qt::Horizontal);
+	splitDockWidget(wid_dasm_dock, wid_dump, Qt::Horizontal);
+	splitDockWidget(wid_dump, wid_misc, Qt::Horizontal);
+	splitDockWidget(wid_dump, wid_brk, Qt::Vertical);
+	splitDockWidget(wid_misc, wid_stack, Qt::Vertical);
+
+	tabifyDockWidget(wid_dump, wid_rdump);
+	tabifyDockWidget(wid_dump, wid_disk_dump);
+	tabifyDockWidget(wid_dump, wid_vmem_dump);
+	tabifyDockWidget(wid_dump, wid_cmos_dump);
+	tabifyDockWidget(wid_brk, wid_zxscr);
+	tabifyDockWidget(wid_brk, wid_ay);
+	tabifyDockWidget(wid_brk, wid_tape);
+	tabifyDockWidget(wid_brk, wid_fdd);
+	tabifyDockWidget(wid_brk, wid_mmap);
+	tabifyDockWidget(wid_brk, wid_gb);
+	tabifyDockWidget(wid_brk, wid_gbv);
+	tabifyDockWidget(wid_brk, wid_ppu);
+	tabifyDockWidget(wid_brk, wid_cia);
+	tabifyDockWidget(wid_brk, wid_dma);
+	tabifyDockWidget(wid_brk, wid_pic);
+	tabifyDockWidget(wid_brk, wid_pit);
+	tabifyDockWidget(wid_brk, wid_vga);
+	tabifyDockWidget(wid_brk, wid_ps2);
+	wid_dump->raise();
+	wid_brk->raise();
+
+	// Qt hands every dock in a column an equal share, which parks a short panel
+	// like STACK in the middle of empty space. Ask for the heights the contents
+	// actually want and let the taller neighbour keep the slack.
+	QList<QDockWidget*> col;
+	QList<int> hgt;
+	col << wid_misc << wid_stack;
+	// the top one gets exactly its content, the bottom one swallows the rest,
+	// so the two sit against each other instead of being spread apart
+	hgt << wid_misc->widget()->sizeHint().height() << 10000;
+	resizeDocks(col, hgt, Qt::Vertical);
+
+	QList<QDockWidget*> row;
+	QList<int> wdt;
+	row << wid_cpu_dock << wid_dasm_dock << wid_dump << wid_misc;
+	wdt << 1 << 5 << 5 << 1;		// relative, resizeDocks normalises them
+	resizeDocks(row, wdt, Qt::Horizontal);
+
+	// Nothing sits under the cpu panel in this arrangement, so the narrow mode
+	// is known: set it outright. Measuring instead would race the layout - the
+	// geometry still describes the old arrangement for another cycle or two,
+	// and this runs on paths where no dock changes area, so nothing would come
+	// along later to correct the guess.
+	// Nothing sits under the cpu panel in this arrangement, so the narrow mode
+	// is known: set it here, while still inside the call that rearranges the
+	// docks. Deferring it to the event loop lowers the minimum only after the
+	// layout pass has already handed the panel a two column width, and a
+	// smaller minimum does not shrink a widget that is already wider.
+	cpuWideDock = 0;
+	if (regPairW) wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+}
+
+// Two panels sitting side by side under the cpu dock is the cue for the wide
+// (two column) register layout: demand the width that needs, so the row below
+// can split in half. A single panel under it keeps the column narrow.
+void DebugWin::updateCpuDockWidth() {
+	if (!regPairW || !regWideW) return;
+	QRect cr = wid_cpu_dock->geometry();
+	// only what sits under the cpu panel counts: a dock merely standing beside it
+	// (the disassembler, say) says nothing about how wide the column should be
+	QList<QRect> below;
+	foreach (xDockWidget* dw, dockWidgets) {
+		if ((dw == wid_cpu_dock) || dw->isHidden() || dw->isFloating()) continue;
+		QRect r = dw->geometry();
+		if (r.top() < cr.bottom()) continue;			// not below
+		if ((r.left() >= cr.right()) || (cr.left() >= r.right())) continue;	// not in this column
+		below << r;
+	}
+	bool wide = false;
+	for (int i = 0; !wide && (i < below.size()); i++) {
+		for (int j = i + 1; j < below.size(); j++) {
+			QRect a = below.at(i);
+			QRect b = below.at(j);
+			// overlapping vertical bands = the two are next to each other
+			if ((a.top() < b.bottom()) && (b.top() < a.bottom())) {
+				wide = true;
+				break;
+			}
+		}
+	}
+	if (wide == !!cpuWideDock) return;
+	cpuWideDock = wide ? 1 : 0;
+	wid_cpu->setMinimumWidth(wide ? regWideW : (regPairW + RCOL_GAP));
+}
+
 // cpu panel resized: reflow if another number of columns fits now
 bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
-	// isVisible: while the window is hidden the panel is squeezed to its minimum,
-	// such a width must not be saved (same guard as in resizeEvent)
+	// isVisible: while the window is hidden the panel is squeezed to its minimum
 	if ((obj == wid_cpu) && (ev->type() == QEvent::Resize) && isVisible()
 			&& regPairW && conf.prof.cur && conf.prof.cur->zx) {
-		// keep it here: ~DebugWin runs after the config is written.
-		// before the saved width is applied these are default sizes: saving them
-		// would wipe the value loaded from the config (reFormCPU resizes us early)
-		if (cpuRestored)
-			conf.dbg.cpuwidth = wid_cpu->width();
 		int cols = (wid_cpu->width() >= regWideW) ? 2 : 1;
-		if (cols != regCols) {
-			xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
-			reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color
+		// Never rebuild from inside the resize event. reFormCPU() deletes and
+		// re-adds layout items, and a separator drag delivers a stream of
+		// resizes while Qt is walking the dock layout - mutating it underneath
+		// leaves that walk holding freed items
+		if ((cols != regCols) && !reformPending) {
+			reformPending = 1;
+			QTimer::singleShot(0, this, &DebugWin::reformCpuLater);
 		}
 	}
 	return QMainWindow::eventFilter(obj, ev);
+}
+
+void DebugWin::reformCpuLater() {
+	reformPending = 0;
+	if (!conf.prof.cur || !conf.prof.cur->zx) return;
+	if (((wid_cpu->width() >= regWideW) ? 2 : 1) == regCols) return;	// settled meanwhile
+	xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
+	reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color
 }
 
 void DebugWin::fillCPU() {
@@ -1582,15 +1697,15 @@ void DebugWin::fillStack() {
 		str.append(gethexbyte(rdbyte(adr+i+1, comp)));
 		str.append(gethexbyte(rdbyte(adr+i, comp)));
 	}
-	ui_misc.labSPm2->setText(str.left(4));
-	ui_misc.labSP->setText(str.mid(4,4));
-	ui_misc.labSP2->setText(str.mid(8,4));
-	ui_misc.labSP4->setText(str.mid(12,4));
-	ui_misc.labSP6->setText(str.mid(16,4));
-	ui_misc.labSP8->setText(str.mid(20,4));
-	ui_misc.labSP10->setText(str.mid(24,4));
-	ui_misc.labSP12->setText(str.mid(28,4));
-	ui_misc.labSP14->setText(str.mid(32,4));
+	ui_stack.labSPm2->setText(str.left(4));
+	ui_stack.labSP->setText(str.mid(4,4));
+	ui_stack.labSP2->setText(str.mid(8,4));
+	ui_stack.labSP4->setText(str.mid(12,4));
+	ui_stack.labSP6->setText(str.mid(16,4));
+	ui_stack.labSP8->setText(str.mid(20,4));
+	ui_stack.labSP10->setText(str.mid(24,4));
+	ui_stack.labSP12->setText(str.mid(28,4));
+	ui_stack.labSP14->setText(str.mid(32,4));
 }
 
 // ports

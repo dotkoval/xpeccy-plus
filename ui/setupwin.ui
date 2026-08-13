@@ -3571,7 +3571,10 @@
                   <item row="9" column="0">
                    <widget class="QLabel" name="label_dskid">
                     <property name="text">
-                     <string>ID</string>
+                     <string>ID / Label</string>
+                    </property>
+                    <property name="toolTip">
+                     <string>Disk track ID field, and labels in the disassembler</string>
                     </property>
                    </widget>
                   </item>
