@@ -103,6 +103,19 @@
       </spacer>
      </item>
      <item>
+      <widget class="QComboBox" name="cbDiskBytes">
+       <property name="maximumSize">
+        <size>
+         <width>16777215</width>
+         <height>16</height>
+        </size>
+       </property>
+       <property name="toolTip">
+        <string>Bytes per row</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QToolButton" name="tbTarget">
        <property name="text">
         <string>...</string>

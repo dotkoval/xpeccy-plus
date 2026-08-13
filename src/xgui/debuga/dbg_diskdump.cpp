@@ -1,4 +1,5 @@
 #include "dbg_diskdump.h"
+#include "dbg_dump.h"		// dump layout constants: both dumps line up alike
 #include "../../xcore/xcore.h"
 
 // dump index is a physical track: (cylinder << 1) | side, the same slot flpNext
@@ -11,6 +12,7 @@ int flp_max_track(Floppy* flp) {
 }
 
 xDiskDump::xDiskDump(QWidget*) {
+	rowBytes = 0;			// auto
 	mod = new xDiskDumpModel();
 	setModel(mod);
 	setDrive(0);
@@ -33,16 +35,75 @@ void xDiskDump::update() {
 }
 
 void xDiskDump::toTarget() {
-	scrollTo(mod->index(conf.prof.cur->zx->dif->fdc->flp->pos >> 3, 0));
+	scrollTo(mod->index(conf.prof.cur->zx->dif->fdc->flp->pos / mod->rowBytes, 0));
+}
+
+// Columns are laid out like the memory dump's: fixed cells from the left, a gap
+// after every group, the text column taking the rest. 0 address, then bytes,
+// then DUMP_TEXTCOL.
+void xDiskDump::layoutColumns() {
+	// measure the debugger font, not font(): a style sheet can leave the widget
+	// carrying the interface font while it draws in the monospace one
+	QFontMetrics fm(conf.dbg.font);
+	int w0;
+	int cw = dump_cell_width(fm);
+	int tw;
+// horizontalAdvance() since 5.11, before - width()
+#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
+	w0 = fm.horizontalAdvance("00:0000") + 12;	// see the DisplayRole format
+	tw = fm.horizontalAdvance("0");
+#else
+	w0 = fm.width("00:0000") + 12;
+	tw = fm.width("0");
+#endif
+	// the form asks for a wide minimum section, which would override the cell
+	// width the dumps agree on. setupUi applies it after the constructor, so
+	// it has to be lowered here
+	horizontalHeader()->setMinimumSectionSize(4);
+	int n = rowBytes;
+	if (n <= 0) {				// auto: fit whole groups
+		int avail = viewport()->width() - w0;
+		n = 0;
+		while (n + DUMP_GROUP <= DUMP_MAXBYTES) {
+			int want = (n + DUMP_GROUP) * (cw + tw)
+				+ (n / DUMP_GROUP) * DUMP_GAP;
+			if (want > avail) break;
+			n += DUMP_GROUP;
+		}
+		if (n < DUMP_GROUP) n = DUMP_GROUP;
+	}
+	if (mod->rowBytes != n) {
+		mod->rowBytes = n;
+		mod->recount();
+	}
+
+	horizontalHeader()->setStretchLastSection(false);
+	setColumnWidth(0, w0);
+	for (int c = 1; c <= DUMP_MAXBYTES; c++) {
+		if (c > n) {
+			hideColumn(c);
+			continue;
+		}
+		showColumn(c);
+		int extra = ((c > 1) && (((c - 1) % DUMP_GROUP) == 0)) ? DUMP_GAP : 0;
+		setColumnWidth(c, cw + extra);
+	}
+	// the leftover goes to the text column, so it ends up at the widget edge,
+	// and a gap is kept when there is no leftover
+	int used = w0 + n * cw + ((n / DUMP_GROUP) - 1) * DUMP_GAP;
+	int need = n * tw + DUMP_GAP;
+	int rest = viewport()->width() - used;
+	setColumnWidth(DUMP_TEXTCOL, (rest > need) ? rest : need);
+}
+
+void xDiskDump::setRowBytes(int n) {
+	rowBytes = n;
+	layoutColumns();
 }
 
 void xDiskDump::resizeEvent(QResizeEvent* ev) {
-	int w = ev->size().width();
-	int h = ev->size().height();
-	if (h < 1) return;
-	horizontalHeader()->setDefaultSectionSize((w - 150) / 8);;
-	horizontalHeader()->setStretchLastSection(true);
-	setColumnWidth(0, 70);
+	if (ev->size().height() < 1) return;
+	layoutColumns();
 }
 
 // model
@@ -50,13 +111,23 @@ void xDiskDump::resizeEvent(QResizeEvent* ev) {
 xDiskDumpModel::xDiskDumpModel(QObject* p):xTableModel(p) {
 	drv = 0;
 	trk = 0;
-	setCols(10);
+	rowBytes = 8;
+	setCols(DUMP_COLS);
 }
 
 void xDiskDumpModel::setDrive(int dr) {
 	drv = dr & 3;
+	recount();
+}
+
+// Row count follows the track length and the line width. Guarded: this is
+// reached from resizeEvent now, which also fires while docks are dragged
+// around and for machines that have no disk interface at all.
+void xDiskDumpModel::recount() {
+	if (!conf.prof.cur || !conf.prof.cur->zx || !conf.prof.cur->zx->dif) return;
 	Floppy* flp = conf.prof.cur->zx->dif->flp[drv];
-	int new_rcnt = (flp->trklen / 8) + ((flp->trklen & 7) ? 1 : 0);
+	if (!flp) return;
+	int new_rcnt = (flp->trklen + rowBytes - 1) / rowBytes;
 #if 1
 	setRows(new_rcnt);
 #else
@@ -84,8 +155,8 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 	int col = idx.column();
 	if (row >= rowCount() || (row < 0)) return res;
 	if (col >= columnCount() || (col < 0)) return res;
-	int offset = (row << 3) | ((col - 1) & 7);
-	int adr = offset & ~7;
+	int adr = row * rowBytes;		// first byte of the line
+	int offset = adr + (col - 1);		// the cell's own byte
 	unsigned char ch;
 	int pos;
 	char buf[256];
@@ -99,7 +170,7 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 			// the marked cells carry a text colour of their own: without it a
 			// dark style would put light text on a light marker
 			if (col == 0) break;
-			if (col > 8) break;
+			if (col > rowBytes) break;
 			if (offset >= flp->trklen) break;
 			if (!flp->insert) break;
 			ch = flp->data[trk].field[offset];
@@ -119,18 +190,28 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 			break;
 		case Qt::FontRole:
 			if (col == 0) break;
-			if (col > 8) break;
+			if (col > rowBytes) break;
 			if (trk != ((flp->trk << 1) | (conf.prof.cur->zx->dif->fdc->side ? 1 : 0))) break;
 			if (offset != flp->pos) break;
+			// from the debugger font, not a default one: that would drop the
+			// monospace family and read as a different face, not as bold
+			fnt = conf.dbg.font;
 			fnt.setBold(true);
 			res = fnt;
 			break;
+		case Qt::TextAlignmentRole:
+			// same rule as the memory dump: everything right, so a wider cell
+			// shows its extra space in front of the value
+			if (col > 0) {
+				res = (int)(Qt::AlignRight | Qt::AlignVCenter);
+			}
+			break;
 		case Qt::DisplayRole:
 			if (col == 0) {
-				sprintf(buf, "%.2X:%.4X", trk, offset & ~7);
-			} else if (col == 9) {
+				sprintf(buf, "%.2X:%.4X", trk, adr);
+			} else if (col == DUMP_TEXTCOL) {
 				pos = 0;
-				while (pos < 8) {
+				while (pos < rowBytes) {
 					if (adr < flp->trklen) {
 						ch = flp->data[trk].byte[adr];
 						if ((ch < 32) || (ch > 127))
@@ -170,6 +251,13 @@ xDiskDumpWidget::xDiskDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i
 	connect(ui.cbDrive, SIGNAL(currentIndexChanged(int)), this, SLOT(setDrive(int)));
 	connect(ui.sbTrack, SIGNAL(valueChanged(int)), ui.tabDiskDump, SLOT(setTrack(int)));
 	connect(ui.tbTarget, SIGNAL(released()),this,SLOT(toTarget()));
+
+	ui.cbDiskBytes->addItem("Auto", 0);		// same wording as the memory dump
+	ui.cbDiskBytes->addItem("8/row", 8);
+	ui.cbDiskBytes->addItem("12/row", 12);
+	ui.cbDiskBytes->addItem("16/row", 16);
+	connect(ui.cbDiskBytes, SIGNAL(currentIndexChanged(int)), this, SLOT(bytes_changed()));
+
 	hwList << HWG_ZX << HWG_PC << HWG_BK << HWG_PC98XX;
 	setDrive(0);
 }
@@ -180,6 +268,11 @@ void xDiskDumpWidget::setDrive(int d) {
 	Floppy* flp = conf.prof.cur->zx->dif->flp[d & 3];
 	ui.sbTrack->setMaximum(flp_max_track(flp));
 	ui.sbTrack->setSingleStep(flp->doubleSide ? 1 : 2);
+}
+
+void xDiskDumpWidget::bytes_changed() {
+	ui.tabDiskDump->setRowBytes(getRFIData(ui.cbDiskBytes));
+	ui.tabDiskDump->update();
 }
 
 void xDiskDumpWidget::toTarget() {

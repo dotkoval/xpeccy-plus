@@ -201,9 +201,13 @@ QVariant xDumpModel::data(const QModelIndex& idx, int role) const {
 			break;
 		case Qt::TextAlignmentRole:
 			if (col == 17) {
-				res = Qt::AlignRight;
+				// right: the column runs to the edge of the widget, so the
+				// text block ends up there too - see layoutColumns
+				res = (int)(Qt::AlignRight | Qt::AlignVCenter);
 			} else if (col != 0) {
-				res = Qt::AlignCenter;
+				// right, so the extra width of a group's first cell shows up
+				// as a gap in front of it - see layoutColumns
+				res = (int)(Qt::AlignRight | Qt::AlignVCenter);
 			} else {
 				// column 0
 			}
@@ -341,9 +345,12 @@ bool xDumpModel::setData(const QModelIndex& idx, const QVariant& val, int role) 
 xDumpTable::xDumpTable(QWidget* p):QTableView(p) {
 	markAdr = -1;
 	mode = XVIEW_CPU;
+	view = XVIEW_DEF;
+	rowBytes = 0;			// auto
 	model = new xDumpModel();
 	setModel(model);
-	horizontalHeader()->setStretchLastSection(true);
+	// no stretching: the columns are sized in layoutColumns and stay put
+	horizontalHeader()->setStretchLastSection(false);
 
 	connect(selectionModel(), SIGNAL(currentChanged(QModelIndex,QModelIndex)), this, SLOT(curAdrChanged()));
 
@@ -374,6 +381,7 @@ void xDumpTable::setView(int t) {
 			break;
 	}
 	model->setView(t);
+	layoutColumns();		// an octal word needs a wider cell than a byte
 }
 
 int xDumpTable::rows() {
@@ -429,47 +437,83 @@ int xDumpTable::getCurrentAdr() {
 	return adr;
 }
 
+int dump_cell_width(const QFontMetrics& fm) {
+// horizontalAdvance() since 5.11, before - width()
+#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
+	return fm.horizontalAdvance("00") + 8;
+#else
+	return fm.width("00") + 8;
+#endif
+}
+
+// Auto adds bytes a whole group at a time - 4, 8, 12, 16 - never a half group.
+// The constants live in dbg_dump.h, the disk dump lines up by the same numbers.
+void xDumpTable::layoutColumns() {
+	// measure the debugger font, not font(): a style sheet can leave the widget
+	// carrying the interface font while it draws in the monospace one
+	QFontMetrics fm(conf.dbg.font);
+	int w0;			// address column
+	int cw = dump_cell_width(fm);
+	int tw;			// one character of the text column
+#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
+	w0 = fm.horizontalAdvance("0000:0000") + 10;
+	if (view == XVIEW_OCTWRD) cw = fm.horizontalAdvance("000000") + 8;
+	tw = fm.horizontalAdvance("0");
+#else
+	w0 = fm.width("0000:0000") + 10;
+	if (view == XVIEW_OCTWRD) cw = fm.width("000000") + 8;
+	tw = fm.width("0");
+#endif
+	// same reason as the disk dump: the form's minimum would override our width
+	horizontalHeader()->setMinimumSectionSize(4);
+
+	int n = rowBytes;
+	if (n <= 0) {				// auto: fit whole groups
+		int avail = viewport()->width() - w0;
+		n = 0;
+		while (n + DUMP_GROUP <= DUMP_MAXBYTES) {
+			int want = (n + DUMP_GROUP) * (cw + tw)		// cells + their text
+				+ (n / DUMP_GROUP) * DUMP_GAP;		// gaps already placed
+			if (want > avail) break;
+			n += DUMP_GROUP;
+		}
+		if (n < DUMP_GROUP) n = DUMP_GROUP;	// one group always, even if it clips
+	}
+	model->dmpsize = n;
+
+	setColumnWidth(0, w0);
+	for (int c = 1; c <= DUMP_MAXBYTES; c++) {
+		if (c > n) {
+			hideColumn(c);
+			continue;
+		}
+		showColumn(c);
+		// widen the first cell of every group but the first: that is the gap
+		int extra = ((c > 1) && (((c - 1) % DUMP_GROUP) == 0)) ? DUMP_GAP : 0;
+		setColumnWidth(c, cw + extra);
+	}
+	// The text column takes everything left over, so the text - aligned right -
+	// sits at the edge of the widget. When there is nothing left over it still
+	// keeps a gap, so the two blocks never touch.
+	int used = w0 + n * cw + ((n / DUMP_GROUP) - 1) * DUMP_GAP;
+	int need = n * tw + DUMP_GAP;
+	int rest = viewport()->width() - used;
+	setColumnWidth(DUMP_TEXTCOL, (rest > need) ? rest : need);
+	update();
+}
+
+void xDumpTable::setRowBytes(int n) {
+	rowBytes = n;
+	layoutColumns();
+}
+
 void xDumpTable::resizeEvent(QResizeEvent* ev) {
 	int h = ev->size().height();
 	if (h < 1) return;
 	int rh = verticalHeader()->defaultSectionSize();
 	int rc = h / rh;
 	model->setRows(rc);
-
-	QFontMetrics fm(font());
-	int w = ev->size().width();
-	int wd = horizontalHeader()->minimumSectionSize();
-	int w0;
-	int wl;
-	int i;
-// horizontalAdvance() since 5.11, before - width()
-#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
-	w0 = fm.horizontalAdvance("0000:0000");
-	wl = fm.horizontalAdvance("00000000");
-#else
-	w0 = fm.width("0000:0000");
-	wl = fm.width("00000000");
-#endif
-	int sz = (w - w0 - wl * 2 - 10) / 16;	// check size if 16 bytes/row
-	if (sz <= wd) {		// 8		// not enough, 8 bytes
-		sz = (w - w0 - wl - 10) / 8;
-		model->dmpsize = 8;
-		for (i = 9; i < 17; i++) {
-			hideColumn(i);
-		}
-		horizontalHeader()->setDefaultSectionSize(sz);
-		setColumnWidth(17, wl);
-	} else {			// 16
-		//sz = (w - w0 - wl*2 - 10) / 16;
-		model->dmpsize = 16;
-		for (i = 9; i < 17; i++) {
-			showColumn(i);
-		}
-		horizontalHeader()->setDefaultSectionSize(sz);
-		setColumnWidth(17, wl*2);
-	}
-	setColumnWidth(0, w0 + 5);
-	update();
+	layoutColumns();
 }
 
 void xDumpTable::keyPressEvent(QKeyEvent* ev) {
@@ -611,6 +655,13 @@ xDumpWidget::xDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	ramBase = 0xc000;
 	romBase = 0x0000;
 
+	// the units are in the items: everything else on this row says what it is
+	// without a caption, and a bare "16" would read like the page size next to it
+	ui.cbDumpBytes->addItem("Auto", 0);
+	ui.cbDumpBytes->addItem("8/row", 8);
+	ui.cbDumpBytes->addItem("12/row", 12);
+	ui.cbDumpBytes->addItem("16/row", 16);
+
 	ui.cbCodePage->addItem("WIN1251", XCP_1251);
 	ui.cbCodePage->addItem("CP866", XCP_866);
 	ui.cbCodePage->addItem("KOI8R", XCP_KOI8R);
@@ -636,13 +687,6 @@ xDumpWidget::xDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	cellMenu->addAction(ui.actRead);
 	cellMenu->addAction(ui.actWrite);
 
-	QFontMetrics fm(font());
-// horizontalAdvance() since 5.11, before - width()
-#if (QT_VERSION >= QT_VERSION_CHECK(5,11,0))
-	ui.dumpTable->setColumnWidth(0,fm.horizontalAdvance("0000:0000"));
-#else
-	ui.dumpTable->setColumnWidth(0,fm.width("0000:0000"));
-#endif
 	xid_addr = new xItemDelegate(XTYPE_LABEL);
 	xid_byte = new xItemDelegate(XTYPE_BYTE);
 	xid_octw = new xItemDelegate(XTYPE_OCTWRD);
@@ -664,6 +708,7 @@ xDumpWidget::xDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	connect(ui.dumpTable, &xDumpTable::s_adrch, this, &xDumpWidget::s_adrch);
 	connect(ui.dumpTable, &xDumpTable::s_curadrch, this, &xDumpWidget::adr_changed);
 
+	connect(ui.cbDumpBytes, SIGNAL(currentIndexChanged(int)), this, SLOT(bytes_changed()));
 	connect(ui.cbCodePage, SIGNAL(currentIndexChanged(int)), this, SLOT(cp_changed()));
 	connect(ui.cbDumpView, SIGNAL(currentIndexChanged(int)), this, SLOT(modeChanged()));
 	connect(ui.sbDumpPage, SIGNAL(valueChanged(int)), this, SLOT(refill()));
@@ -759,6 +804,10 @@ void xDumpWidget::cp_changed() {
 	int cp = getRFIData(ui.cbCodePage);
 	ui.dumpTable->setCodePage(cp);
 	ui.dumpTable->update();
+}
+
+void xDumpWidget::bytes_changed() {
+	ui.dumpTable->setRowBytes(getRFIData(ui.cbDumpBytes));
 }
 
 void xDumpWidget::modeChanged() {
