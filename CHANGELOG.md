@@ -32,6 +32,9 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   put side by side, and the arrangement is remembered. Registers switch to two columns when
   the panel has room for them. `Reset panel layout` in the disassembler options puts
   everything back.
+- **Bytes per row in the dumps** - `Auto`, `8`, `12` or `16`, next to the code page. `Auto`
+  fills the width a group at a time. The track dump has it too, where a line was always
+  eight bytes long.
 
 ### Changed
 
@@ -42,6 +45,10 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
   fits a 1280x800 display.
 - **Labels stand out in the disassembler.** They share the disk ID colours, so a style sets
   them and Setup - deBUGa - Palette retunes them.
+- **The dumps read in groups of four.** Cells no longer stretch with the panel: they keep a
+  fixed width, line up from the left and leave a gap every four bytes, the same in the
+  memory, track and register dumps. A register dump row now says which pointer it follows,
+  `HL (1234):`.
 - **Small changes to the defaults**, mostly to get around conflicts found on macOS:
     - profiles no longer pick a keyboard layout. The one they carried was laid out for 48K
       machines only, so a 128K one was added next to it. Details in `config/keymaps/README.md`
