@@ -65,6 +65,11 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Fixed
 
+- **An update brought no new files to an existing installation** on macOS and Linux. The
+  shipped configuration was copied only into an empty config directory, so styles, roms or
+  palettes added by a later version showed up only after deleting the old one. Whatever is
+  missing is filled in on every start now; files already there, edited or not, are left alone.
+  Windows runs from that directory and was never affected.
 - **ZX Evo (TSConf): a number of problems with keeping up with the ray**, in every screen mode.
   Programs that drive the picture from the raster - most demos - lost or shifted lines, showed
   strips of rubbish next to moving objects, and rippled over screens that should have been
