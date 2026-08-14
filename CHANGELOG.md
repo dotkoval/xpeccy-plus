@@ -7,19 +7,20 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
-## Unreleased
+## 2026.1 - 2026-08-14
 
 Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Volutar), taken from
 [his fork](https://github.com/Volutar/Xpeccy) with his authorship kept on every commit.
 
 ### Added
 
-- **Eight interface styles**, in `config/styles` - pick one in Setup - deBUGa - Style Sheet.
+- **Eight interface styles**, in `config/styles` - pick one in Setup - Xpeccy+ - deBUGa -
+  Style Sheet.
   `Light`, `Dark`, `ZX Spectrum`, and five from the editors people already use: `Sublime`
   (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
   Schoonover), `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
   license. Each style also brings the debugger colours a style sheet cannot reach, in a `.pal`
-  file next to it; they stay editable in Setup - deBUGa - Palette.
+  file next to it; they stay editable in Setup - Xpeccy+ - deBUGa - Palette.
 - **DejaVu Sans Mono ships with the emulator** (Volutar), so the debugger lines up the same way
   everywhere - macOS has no copy of it at all. It keeps its own license, see `LICENSE_DEJAVU`.
 - **Kempston joystick (port `#1F`) on ATM Turbo 2+, ZXM-Phoenix, ZX Spectrum +2 and +3.**
@@ -44,7 +45,7 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 - **The debugger opens at 960x720**, and its font and screen zoom start smaller, so the window
   fits a 1280x800 display.
 - **Labels stand out in the disassembler.** They share the disk ID colours, so a style sets
-  them and Setup - deBUGa - Palette retunes them.
+  them and Setup - Xpeccy+ - deBUGa - Palette retunes them.
 - **The dumps read in groups of four.** Cells no longer stretch with the panel: they keep a
   fixed width, line up from the left and leave a gap every four bytes, the same in the
   memory, track and register dumps. A register dump row now says which pointer it follows,
@@ -90,6 +91,8 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 - **Profi did not initialise port `#DFFD` on reset.** (Volutar)
 - **The debugger's disk dump stopped at 83 tracks**, a hardcoded number derived from nothing.
   It reads the drive's own geometry now.
+- **Long profile names were cut off** in Setup - Xpeccy+ - Profiles, and the mark on the
+  current profile pushed its name sideways.
 
 ### From upstream
 
