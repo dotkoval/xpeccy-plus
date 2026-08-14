@@ -41,4 +41,12 @@ roms=$(ls -1 "$CONF/roms" | wc -l)
 echo "roms seeded: $roms"
 [ "$roms" -ge 20 ] || { echo "the rom images did not make it into the package"; exit 1; }
 
+# a missing file comes back on the next start, so an update brings its new files
+# to a config directory that is already there
+rm -f "$CONF/styles/Dark.qss"
+# shellcheck disable=SC2086
+$RUN timeout "$TIMEOUT" "$BIN" --confdir "$CONF" --help > /dev/null 2>&1 \
+	|| { echo "the second start failed"; exit 1; }
+[ -f "$CONF/styles/Dark.qss" ] ||{ echo "the config directory was not topped up on start"; exit 1; }
+
 echo "ok: $BIN"

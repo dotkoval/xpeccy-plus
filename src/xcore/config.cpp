@@ -337,8 +337,10 @@ static QString sysConfigDir() {
 #endif
 }
 
-// copy the installed configuration into an empty config directory. Returns
-// false if there is nothing to copy from, so the built-in defaults are used.
+// add to the config directory whatever the installed configuration has and it
+// lacks, so files an update brings along show up. Files already there are left
+// alone, edits included. Returns false if there is nothing to copy from, so the
+// built-in defaults are used.
 
 static bool seedConfigDir(const QString& src) {
 	QDir sdir(src);
@@ -351,14 +353,14 @@ static bool seedConfigDir(const QString& src) {
 		QString rel = sdir.relativeFilePath(path);
 		if (it.fileInfo().isDir()) {
 			QDir().mkpath(dst + "/" + rel);
-		} else {
+		} else if (!QFile::exists(dst + "/" + rel)) {
 			QDir().mkpath(QFileInfo(dst + "/" + rel).path());
 			copyFile(path.toLocal8Bit().data(), (dst + "/" + rel).toLocal8Bit().data());
 			cnt++;
 		}
 	}
-	printf("%i files copied from %s\n", cnt, src.toLocal8Bit().data());
-	return cnt > 0;
+	if (cnt) printf("%i files copied from %s\n", cnt, src.toLocal8Bit().data());
+	return true;
 }
 
 // emulator config
@@ -366,11 +368,14 @@ static bool seedConfigDir(const QString& src) {
 void loadConfig() {
 	std::string soutnam = "NULL";
 	//printf("%s\n",conf.path.confFile);
+	// on every start, not only on the first one: this is how a new file added
+	// by an update reaches a config directory that already exists
+	bool installed = seedConfigDir(sysConfigDir());
 	std::ifstream file(conf.path.confFile);
 	char fname[FILENAME_MAX];
 	if (!file.good()) {
 		printf("Main config is missing. Default files will be copied\n");
-		if (!seedConfigDir(sysConfigDir())) {
+		if (!installed) {
 			copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
 			strcpy(fname, conf.path.confDir.c_str());
 			strcat(fname, SLASH);
