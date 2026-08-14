@@ -302,11 +302,6 @@ struct Video {
 		ePair(T1YOffset,t1yh,t1yl);
 		ePair(scrLine, loffh, loffl);
 		ePair(intLine, ilinh, ilinl);	// INT line
-		unsigned palUpd:1;		// cram was written: apply it at the next line start
-		int txtXOff;			// text mode: what the line is drawn from, read at
-		int txtYOff;			// line start like the other modes pre-render
-		unsigned char txtPage;
-		unsigned char txtPal;
 		unsigned char txtChr[128];	// pre-rendered line: font row, ink and paper per cell
 		unsigned char txtInk[128];
 		unsigned char txtPap[128];

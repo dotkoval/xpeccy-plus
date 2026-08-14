@@ -180,15 +180,17 @@ int vidTSLRender256c(Video* vid) {
 int vidTSLRenderText(Video* vid) {
 	int cells = (vid->scrsize.x + 3) >> 2;
 	if (cells > 128) cells = 128;
-	int ya = vid->tsconf.txtYOff & 0x1ff;
+	int page = vid->tsconf.vidPage;
+	// the line counter, not the raster line: writing yOffset resets it, so the line is in it
+	int ya = (vid->tsconf.scrLine + vid->tsconf.yOffset) & 0x1ff;
 	for (int i = 0; i < cells; i++) {
-		int xa = ((i << 2) + vid->tsconf.txtXOff) & 0x1ff;
-		int a = (vid->tsconf.txtPage << 14) + ((ya & 0x1f8) << 5) + (xa >> 2);	// 256 bytes in row
+		int xa = ((i << 2) + vid->tsconf.xOffset) & 0x1ff;
+		int a = (page << 14) + ((ya & 0x1f8) << 5) + (xa >> 2);		// 256 bytes in row
 		int chr = vid->mrd(a, vid->xptr);
 		int atr = vid->mrd(a | 0x80, vid->xptr);
-		vid->tsconf.txtChr[i] = vid->mrd(MADR(vid->tsconf.txtPage ^ 1, (chr << 3) | (ya & 7)), vid->xptr);
-		vid->tsconf.txtInk[i] = (atr & 0x0f) | vid->tsconf.txtPal;
-		vid->tsconf.txtPap[i] = ((atr & 0xf0) >> 4) | vid->tsconf.txtPal;
+		vid->tsconf.txtChr[i] = vid->mrd(MADR(page ^ 1, (chr << 3) | (ya & 7)), vid->xptr);
+		vid->tsconf.txtInk[i] = (atr & 0x0f) | vid->tsconf.scrPal;
+		vid->tsconf.txtPap[i] = ((atr & 0xf0) >> 4) | vid->tsconf.scrPal;
 	}
 	return 0;	// no extra cost: the flat 32 dots for non-normal modes already covered this,
 }		// and moving it would shift the int position along with it
@@ -274,23 +276,9 @@ void tslUpdatePorts(Video* vid) {
 void vts_hblk(Video* vid) {
 }
 
-void tslUpdatePalX(void*);
-
 // Line start
 void vts_line(Video* vid) {
-	// the video controller reads a line ahead, palette included, so a cram write lands
-	// on the next line rather than repainting the one already on screen
-	if (vid->tsconf.palUpd) {
-		vid->tsconf.palUpd = 0;
-		tslUpdatePalX(vid->xptr);
-	}
 	tslUpdatePorts(vid);
-	// text mode draws from video memory dot by dot, so the screen offsets have to be
-	// latched here - a write in the middle of a line belongs to the next one
-	vid->tsconf.txtXOff = vid->tsconf.xOffset;
-	vid->tsconf.txtYOff = vid->tsconf.scrLine + vid->tsconf.yOffset;
-	vid->tsconf.txtPage = vid->tsconf.vidPage;
-	vid->tsconf.txtPal = vid->tsconf.scrPal;
 	vidTSRender(vid);
 	// the int fires where the raster counters match HSINT/VSINT. ray.xb counts from the
 	// leading edge of the blanking, which is where the hardware counter starts too, so

@@ -83,8 +83,6 @@ static const unsigned char tsl5bLevs[32] = {
 	197,205,213,222,230,238,246,255
 };
 
-void tslUpdatePalX(void* ptr);		// called from the video side at line start
-
 void tslUpdatePal(Computer* comp) {
 	int col;
 	xColor xcol;
@@ -96,10 +94,6 @@ void tslUpdatePal(Computer* comp) {
 		xcol.b = tab[col  & 0x1f];
 		vid_set_col(comp->vid, i, xcol);
 	}
-}
-
-void tslUpdatePalX(void* ptr) {
-	tslUpdatePal((Computer*)ptr);
 }
 
 int tslMRd(Computer* comp, int adr, int m1) {
@@ -120,7 +114,7 @@ void tslMWr(Computer* comp, int adr, int val) {
 	if (comp->flgMEN && (((adr & 0xf000) >> 12) == comp->regMADR)) {
 		if ((adr & 0xe00) == 0x000) {				// palete
 			comp->vid->tsconf.cram[adr & 0x1ff] = val & 0xff;
-			comp->vid->tsconf.palUpd = 1;
+			tslUpdatePal(comp);
 		} else if ((adr & 0xe00) == 0x200) {			// sprites
 			comp->vid->tsconf.sfile[adr & 0x1ff] = val & 0xff;
 		}
@@ -444,7 +438,7 @@ void tsOut27AF(Computer* comp, int port, int val) {
 			for (cnt2 = 0; cnt2 < lcnt; cnt2++) {
 				*(ptr + ((dadr + cnt2) & 0x1ff)) = comp->mem->ramData[sadr + cnt2];
 			}
-			if (~val & 1) comp->vid->tsconf.palUpd = 1;
+			if (~val & 1) tslUpdatePal(comp);
 			break;
 		default:
 			printf("0x27AF: unsupported src-dst: %.2X\n",val & 0x87);
