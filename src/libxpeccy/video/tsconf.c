@@ -276,10 +276,11 @@ void vts_hblk(Video* vid) {
 void vts_line(Video* vid) {
 	tslUpdatePorts(vid);
 	vidTSRender(vid);
-	// the int fires where the raster counters match HSINT/VSINT. ray.xb counts from the
-	// leading edge of the blanking, which is where the hardware counter starts too, so
-	// hsint goes in as it is - no blanking offset, and no shift by the rendering cost
-	vid->intp.x = vid->tsconf.hsint % vid->full.x;
+	// the int fires where the raster counters match HSINT/VSINT. hsint counts from the
+	// first visible dot, ray.xb from the leading edge of the blanking - hence blank.x.
+	// the dots the controller ate rendering the line are not part of the position: they
+	// moved the int about with the scene and lost it outright on a heavy line
+	vid->intp.x = (vid->tsconf.hsint + vid->blank.x) % vid->full.x;
 	if (vid->inten & 2) {
 		vid->intLINE = 1;
 		vid->xirq(IRQ_VID_LINE, vid->xptr);
