@@ -272,8 +272,17 @@ void tslUpdatePorts(Video* vid) {
 void vts_hblk(Video* vid) {
 }
 
+void tslUpdatePalX(void*);
+
 // Line start
 void vts_line(Video* vid) {
+	// cram writes are taken at the line start, not in the middle of the line being
+	// drawn. unreal applies them at once, but doing that here leaves stray dots of
+	// the wrong colour - our write lands a dot or two off the hardware position
+	if (vid->tsconf.palUpd) {
+		vid->tsconf.palUpd = 0;
+		tslUpdatePalX(vid->xptr);
+	}
 	tslUpdatePorts(vid);
 	vidTSRender(vid);
 	// the int fires where the raster counters match HSINT/VSINT. hsint counts from the

@@ -301,6 +301,7 @@ struct Video {
 		ePair(T1YOffset,t1yh,t1yl);
 		ePair(scrLine, loffh, loffl);
 		ePair(intLine, ilinh, ilinl);	// INT line
+		unsigned palUpd:1;		// cram was written: apply it at the next line start
 		unsigned char cram[0x200];	// pal = colram?
 		unsigned char sfile[0x200];	// sprites = ram?
 //		int dmabytes;
