@@ -350,34 +350,14 @@ void vidDrawTSLText(Video* vid) {
 	yscr = vid->ray.y - vid->tsconf.yPos;
 	if ((xscr < 0) || (xscr >= vid->scrsize.x) || (yscr < 0) || (yscr >= vid->scrsize.y)) {
 		vid_dot_full(vid, vid->brdcol);
-		//vidPutDot(&vid->ray, vid->pal, vid->brdcol);
+	} else if (vid->line[xscr] & 0x0f) {			// put not-transparent tiles/sprites pixel
+		vid_dot_full(vid, vid->line[xscr]);
 	} else {
-#if 1
-		if (vid->line[xscr] & 0x0f) {
-			vid_dot_full(vid, vid->line[xscr]);
-		} else {
-			xscr <<= 1;
-			vid_dot_half(vid, vid->linb[xscr] ? vid->linb[xscr] : vid->brdcol);
-			xscr++;
-			vid_dot_half(vid, vid->linb[xscr] ? vid->linb[xscr] : vid->brdcol);
-		}
-#else
-		if ((xscr & 3) == 0) {
-			int cell = xscr >> 2;			// pre-rendered in vidTSLRenderText
-			scrbyte = vid->tsconf.txtChr[cell];
-			ink = vid->tsconf.txtInk[cell];
-			pap = vid->tsconf.txtPap[cell];
-		}
-		if (vid->line[xscr] & 0x0f) {							// put not-transparent tiles/sprites pixel
-			vid_dot_full(vid, vid->line[xscr]);
-			//vidPutDot(&vid->ray, vid->pal, vid->line[xscr]);
-		} else {
-			//vidSingleDot(&vid->ray, vid->pal, (scrbyte & 0x80) ? ink : pap);
-			//vidSingleDot(&vid->ray, vid->pal, (scrbyte & 0x40) ? ink : pap);
-			vid_dot_half(vid, (scrbyte & 0x80) ? ink : pap);
-			vid_dot_half(vid, (scrbyte & 0x40) ? ink : pap);
-		}
-		scrbyte <<= 2;
-#endif
+		// colour 0 is a colour here, not a hole: only the tile/sprite layer is
+		// transparent, the text one is not (draw_tstx in unreal does the same)
+		xscr <<= 1;
+		vid_dot_half(vid, vid->linb[xscr]);
+		xscr++;
+		vid_dot_half(vid, vid->linb[xscr]);
 	}
 }
