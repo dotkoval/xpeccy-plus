@@ -23,6 +23,20 @@ before that point is upstream's history and is not repeated here.
   one has a single chip instead of TurboSound - an AY at 1.773447 MHz on 128/+2/+3, at 1.75 MHz
   on the clones. SounDrive is off, plain Covox stays on the clones.
 
+### Fixed
+
+- **Two more visual artefacts in ZX Evo (TSConf) demos**: a seam running along the horizon,
+  and single dots of a wrong colour drifting about the picture. Both show in the greetings
+  part of *Synchronization*.
+
+### From upstream
+
+Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260814` to `20260816`, by
+SAM style.
+
+- A palette panel in the debugger: all 256 colours at once, with the index and the RGB of the
+  one you click.
+
 ## 2026.1 - 2026-08-14
 
 Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Volutar), taken from
