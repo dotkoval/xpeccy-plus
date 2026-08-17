@@ -150,7 +150,7 @@ struct Video {
 	int dotPerFrame;
 
 	int flash;
-	int curscr;
+	int vidPage;
 
 	int brdstep;
 	double brdsize;
@@ -275,7 +275,7 @@ struct Video {
 	unsigned char bgline[0x200];		// bg (full 2 screens)
 	unsigned char spline[0x108];		// sprites (8 max)
 	unsigned char prline[0x108];		// sprites priority
-	unsigned char sprImg[256 * 256];
+//	unsigned char sprImg[256 * 256];
 	void(*pset)(Video*,int,int,unsigned char);
 	unsigned char(*col)(Video*,int,int);
 
@@ -290,7 +290,6 @@ struct Video {
 		unsigned char T0Pal76;		// b7.6 of tiles palete (07AF)
 		unsigned char T1Pal76;
 		unsigned char scrPal;		// b7..4: bitmap palete
-		unsigned char vidPage;		// 1st video page
 		int hsint;			// tsconf INT x pos = p22AF << 1
 		unsigned char p00af;
 		unsigned char p07af;
@@ -307,7 +306,7 @@ struct Video {
 		unsigned char txtPap[128];
 		unsigned char cram[0x200];	// pal = colram?
 		unsigned char sfile[0x200];	// sprites = ram?
-		int dmabytes;
+//		int dmabytes;
 	} tsconf;
 	struct {
 		unsigned atrig:1;		// 3c0 flip-flop
