@@ -7,6 +7,22 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
+## Unreleased
+
+### Changed
+
+- **One set of AY/TurboSound settings instead of three.** Sound now asks how many chips there
+  are - none, one, TurboSound (NedoPC) or TurboSound (ZX Next) - and the type, clock and stereo
+  mode apply to all of them. No machine ever mixed different chips, clocks or stereo layouts in
+  one TurboSound, so there is nothing left to set per chip. In the profile they are five
+  `psg.*` keys instead of ten; a profile written by an older build is read as before and
+  converted the first time it is saved.
+- **The stereo mixing is adjustable** (mixing itself by Volutar): a `Mix` slider runs from full
+  panorama to mono, and profiles ship at 25%.
+- **Profiles ship closer to the real machines**: the 48K has no sound chip at all, every other
+  one has a single chip instead of TurboSound - an AY at 1.773447 MHz on 128/+2/+3, at 1.75 MHz
+  on the clones. SounDrive is off, plain Covox stays on the clones.
+
 ## 2026.1 - 2026-08-14
 
 Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Volutar), taken from
