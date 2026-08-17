@@ -185,7 +185,7 @@ void ay_sync(aymChip* ay, int ns) {
 	}
 }
 
-sndPair ay_mix_stereo(int volA, int volB, int volC, int id) {
+sndPair ay_mix_stereo(int volA, int volB, int volC, int id, int mix) {
 	int lef,cen,rig;
 	sndPair res;
 	switch (id) {
@@ -225,10 +225,16 @@ sndPair ay_mix_stereo(int volA, int volB, int volC, int id) {
 			rig = lef;
 			break;
 	}
-	// 3/16 of a side channel bleeds into the other one, so the stereo is not
-	// fully separated. weights still add up to 16: the volume does not change
-	res.left = (8 * lef + 5 * cen + 3 * rig) >> 4;
-	res.right = (8 * rig + 5 * cen + 3 * lef) >> 4;
+	// mix is how much a side channel bleeds into the other one: 0 = full
+	// panorama, 100 = mono. the center channel is always split evenly.
+	// weights add up to 1024, so the volume does not change with mix
+	if (mix < 0) mix = 0;
+	if (mix > 100) mix = 100;
+	int cenw = 1024 / 3;			// center channel weight
+	int bleed = cenw * mix / 100;
+	int own = 2 * cenw - bleed;
+	res.left = (own * lef + cenw * cen + bleed * rig) >> 10;
+	res.right = (own * rig + cenw * cen + bleed * lef) >> 10;
 	return res;
 }
 
@@ -270,5 +276,5 @@ sndPair ay_vol(aymChip* chip) {
 	int volA = ay_chan_vol(chip, &chip->chanA);
 	int volB = ay_chan_vol(chip, &chip->chanB);
 	int volC = ay_chan_vol(chip, &chip->chanC);
-	return ay_mix_stereo(volA, volB, volC, chip->stereo);
+	return ay_mix_stereo(volA, volB, volC, chip->stereo, chip->mix);
 }

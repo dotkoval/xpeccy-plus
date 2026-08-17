@@ -124,12 +124,21 @@ void fillComboBox(QComboBox* box, QString path, QStringList filt, QString def = 
 
 // OBJECT
 
-void dbg_fill_chip_boxes(QComboBox* cbtype, QComboBox* cbstereo) {
+void opt_fill_psg_boxes(QComboBox* cbcount, QComboBox* cbtype, QComboBox* cbfrq, QComboBox* cbstereo) {
+	cbcount->clear();
+	cbcount->addItem(QIcon(":/images/cancel.png"),"None",0);
+	cbcount->addItem("×1 (AY/YM)",1);
+	cbcount->addItem("×2 (TurboSound NedoPC)",2);
+	cbcount->addItem("×3 (TurboSound ZX Next)",3);
 	cbtype->clear();
-	cbtype->addItem(QIcon(":/images/cancel.png"),"none",SND_NONE);
 	cbtype->addItem(QIcon(":/images/MicrochipLogo.png"),"AY-3-8910",SND_AY);
 	cbtype->addItem(QIcon(":/images/YamahaLogo.png"),"Yamaha 2149",SND_YM);
 	cbtype->addItem(QIcon(":/images/YamahaLogo.png"),"Yamaha 2203",SND_YM2203);
+	cbfrq->clear();
+	cbfrq->addItem("1.773447 (ZX 128/+2/+3)");
+	cbfrq->addItem("1.75 (ZX 48/ZX-clones)");
+	cbfrq->addItem("1.789773 (MSX)");
+	cbfrq->addItem("3.5 (YM2203)");
 	cbstereo->clear();
 	cbstereo->addItem("Mono",AY_MONO);
 	cbstereo->addItem("ABC",AY_ABC);
@@ -138,6 +147,24 @@ void dbg_fill_chip_boxes(QComboBox* cbtype, QComboBox* cbstereo) {
 	cbstereo->addItem("BCA",AY_BCA);
 	cbstereo->addItem("CAB",AY_CAB);
 	cbstereo->addItem("CBA",AY_CBA);
+}
+
+// frequency items are "<mhz> (machines)", so cut the comment off
+
+double opt_get_psg_frq(QComboBox* box) {
+	double frq = box->currentText().section(' ', 0, 0).toDouble();
+	if ((frq < 0.1) || (frq > 10.0)) frq = 0.0;	// 0 : chip default
+	return frq;
+}
+
+void opt_set_psg_frq(QComboBox* box, double frq) {
+	for (int i = 0; i < box->count(); i++) {
+		if (box->itemText(i).section(' ', 0, 0).toDouble() == frq) {
+			box->setCurrentIndex(i);
+			return;
+		}
+	}
+	box->setCurrentText(QString::number(frq, 'g', 7));
 }
 
 enum {
@@ -287,24 +314,11 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.ratbox->addItem("44100",44100);
 	ui.ratbox->addItem("22050",22050);
 	ui.ratbox->addItem("11025",11025);
-	dbg_fill_chip_boxes(ui.schip1box, ui.stereo1box);
-	dbg_fill_chip_boxes(ui.schip2box, ui.stereo2box);
-	dbg_fill_chip_boxes(ui.schip3box, ui.stereo3box);
-	ui.tsbox->addItem("None",TS_NONE);
-	ui.tsbox->addItem("NedoPC",TS_NEDOPC);
-	ui.tsbox->addItem("ZXNext", TS_ZXNEXT);
+	opt_fill_psg_boxes(ui.cbPsgCount, ui.cbPsgType, ui.cbPsgFrq, ui.cbPsgStereo);
 	ui.sdrvBox->addItem("None",SDRV_NONE);
 	ui.sdrvBox->addItem("Covox only",SDRV_COVOX);
 	ui.sdrvBox->addItem("Soundrive 1.05 mode 1",SDRV_105_1);
 	ui.sdrvBox->addItem("Soundrive 1.05 mode 2",SDRV_105_2);
-#if QT_VERSION < QT_VERSION_CHECK(6,0,0)
-	QRegExpValidator* vld = new QRegExpValidator(QRegExp("^[0-9]\\.\\d{0,6}$"));
-#else
-	QRegularExpressionValidator* vld = new QRegularExpressionValidator(QRegularExpression("^[0-9]\\.\\d{0,6}$"));
-#endif
-	ui.psg1frq->setValidator(vld);
-	ui.psg2frq->setValidator(vld);
-	ui.psg3frq->setValidator(vld);
 // flp
 	ui.disklist->horizontalHeader()->setVisible(true);
 	ui.diskTypeBox->addItem("None",DIF_NONE);
@@ -382,6 +396,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
 	connect(ui.sldNoflic,SIGNAL(valueChanged(int)),this,SLOT(chaflc()));
+	connect(ui.sldPsgMix,SIGNAL(valueChanged(int)),this,SLOT(chapsg()));
+	connect(ui.cbPsgCount,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
+	connect(ui.cbPsgStereo,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 
 	connect(ui.layEdit,SIGNAL(released()),this,SLOT(edLayout()));
 	connect(ui.layAdd,SIGNAL(released()),this,SLOT(addNewLayout()));
@@ -648,16 +665,14 @@ void SetupWin::start() {
 	ui.sbSdrvVol->setValue(conf.snd.vol.sdrv);
 	ui.sbSAAVol->setValue(conf.snd.vol.saa);
 
-	ui.schip1box->setCurrentIndex(ui.schip1box->findData(QVariant(comp->ts->chipA->type)));
-	ui.schip2box->setCurrentIndex(ui.schip2box->findData(QVariant(comp->ts->chipB->type)));
-	ui.schip3box->setCurrentIndex(ui.schip3box->findData(QVariant(comp->ts->chipC->type)));
-	ui.stereo1box->setCurrentIndex(ui.stereo1box->findData(QVariant(comp->ts->chipA->stereo)));
-	ui.stereo2box->setCurrentIndex(ui.stereo2box->findData(QVariant(comp->ts->chipB->stereo)));
-	ui.stereo3box->setCurrentIndex(ui.stereo3box->findData(QVariant(comp->ts->chipC->stereo)));
-	ui.psg1frq->setCurrentText(QString::number(comp->ts->chipA->frq));
-	ui.psg2frq->setCurrentText(QString::number(comp->ts->chipB->frq));
-	ui.psg3frq->setCurrentText(QString::number(comp->ts->chipC->frq));
-	ui.tsbox->setCurrentIndex(ui.tsbox->findData(QVariant(comp->ts->type)));
+	int chips = (comp->ts->type == TS_ZXNEXT) ? 3 : (comp->ts->type == TS_NEDOPC) ? 2 : 1;
+	if (comp->ts->chipA->type == SND_NONE) chips = 0;
+	setRFIndex(ui.cbPsgCount, chips);
+	setRFIndex(ui.cbPsgType, (comp->ts->chipA->type == SND_NONE) ? SND_AY : comp->ts->chipA->type);
+	setRFIndex(ui.cbPsgStereo, comp->ts->chipA->stereo);
+	opt_set_psg_frq(ui.cbPsgFrq, comp->ts->chipA->frq);
+	ui.sldPsgMix->setValue(comp->ts->chipA->mix);
+	chapsg();
 // input
 	buildkeylist();
 	setRFIndex(ui.cbScanTab, comp->keyb->pcmode);
@@ -868,16 +883,19 @@ void SetupWin::apply() {
 		setOutput(nname.c_str());
 	}
 
-	comp->ts->chipA->frq = ui.psg1frq->currentText().toDouble();
-	comp->ts->chipB->frq = ui.psg2frq->currentText().toDouble();
-	comp->ts->chipC->frq = ui.psg3frq->currentText().toDouble();
-	chip_set_type(comp->ts->chipA, getRFIData(ui.schip1box));
-	chip_set_type(comp->ts->chipB, getRFIData(ui.schip2box));
-	chip_set_type(comp->ts->chipC, getRFIData(ui.schip3box));
-	comp->ts->chipA->stereo = getRFIData(ui.stereo1box);
-	comp->ts->chipB->stereo = getRFIData(ui.stereo2box);
-	comp->ts->chipC->stereo = getRFIData(ui.stereo3box);
-	comp->ts->type = getRFIData(ui.tsbox);
+	int chips = getRFIData(ui.cbPsgCount);
+	int chtype = getRFIData(ui.cbPsgType);
+	double chfrq = opt_get_psg_frq(ui.cbPsgFrq);
+	int chstereo = getRFIData(ui.cbPsgStereo);
+	int chmix = ui.sldPsgMix->value();
+	aymChip* chip[3] = {comp->ts->chipA, comp->ts->chipB, comp->ts->chipC};
+	for (int i = 0; i < 3; i++) {			// one setting for all the chips
+		chip[i]->frq = chfrq;
+		chip_set_type(chip[i], (i < chips) ? chtype : SND_NONE);
+		chip[i]->stereo = chstereo;
+		chip[i]->mix = chmix;
+	}
+	comp->ts->type = (chips > 2) ? TS_ZXNEXT : (chips > 1) ? TS_NEDOPC : TS_NONE;
 
 	comp->gs->enable = ui.cbGS->isChecked() ? 1 : 0;
 	comp->gs->reset = ui.gsrbox->isChecked() ? 1 : 0;
@@ -1622,6 +1640,17 @@ void SetupWin::chabsz() {ui.bszlab->setText(QString("%0%").arg(ui.bszsld->value(
 void SetupWin::chaflc() {
 	int val = ui.sldNoflic->value() * 2;
 	ui.labNoflic->setText(val == 0 ? "0% (off)" : QString("%0%").arg(val));
+}
+
+void SetupWin::chapsg() {
+	int chips = getRFIData(ui.cbPsgCount);
+	int mixed = (chips > 0) && (getRFIData(ui.cbPsgStereo) != AY_MONO);
+	ui.labPsgMix->setText(QString("%0%").arg(ui.sldPsgMix->value()));
+	ui.cbPsgType->setEnabled(chips > 0);
+	ui.cbPsgFrq->setEnabled(chips > 0);
+	ui.cbPsgStereo->setEnabled(chips > 0);
+	ui.sldPsgMix->setEnabled(mixed);
+	ui.labPsgMix->setEnabled(mixed);
 }
 
 void SetupWin::selsspath() {

@@ -77,6 +77,7 @@ class SetupWin : public QDialog {
 		void selsspath();
 		void chabsz();
 		void chaflc();
+		void chapsg();
 		void updatedisknams();
 		void loada(); void loadb(); void loadc(); void loadd();
 		void savea(); void saveb(); void savec(); void saved();

@@ -348,9 +348,11 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 	char buf[0x4000];
 	int tmask = -1;
 	int tmp2;
-	int chatype = SND_NONE;
+	int chatype = SND_NONE;		// old per-chip keys, see PS_SOUND below
 	int chbtype = SND_NONE;
 	int chctype = SND_NONE;
+	int psgcount = -1;		// -1 : no psg.count in this profile, 0 : no chips
+	int psgtype = SND_AY;
 	double tmpd;
 	int section = PS_NONE;
 	if (!file.good() && flag) {
@@ -418,6 +420,26 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 					if (pnam == "palette") prf->palette = pval;
 					break;
 				case PS_SOUND:
+					if (pnam == "psg.count") psgcount = arg.i;
+					if (pnam == "psg.type") psgtype = arg.i;
+					if (pnam == "psg.frq") {		// one value for all the chips
+						comp->ts->chipA->frq = arg.d;
+						comp->ts->chipB->frq = arg.d;
+						comp->ts->chipC->frq = arg.d;
+					}
+					if (pnam == "psg.stereo") {
+						comp->ts->chipA->stereo = arg.i;
+						comp->ts->chipB->stereo = arg.i;
+						comp->ts->chipC->stereo = arg.i;
+					}
+					if (pnam == "psg.mix") {
+						comp->ts->chipA->mix = arg.i;
+						comp->ts->chipB->mix = arg.i;
+						comp->ts->chipC->mix = arg.i;
+					}
+
+					// chip1..chip3 and ts.type: profiles written before psg.*
+					// exist in the wild, so they are still read - never written
 					if (pnam == "chip1") chatype = arg.i;
 					if (pnam == "chip1.stereo") comp->ts->chipA->stereo = arg.i;
 					if (pnam == "chip1.frq") comp->ts->chipA->frq = arg.d;
@@ -533,9 +555,17 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 		}
 	}
 
-	chip_set_type(comp->ts->chipA, chatype);
-	chip_set_type(comp->ts->chipB, chbtype);
-	chip_set_type(comp->ts->chipC, chctype);
+	if (psgcount < 0) {			// old profile: every chip on its own
+		chip_set_type(comp->ts->chipA, chatype);
+		chip_set_type(comp->ts->chipB, chbtype);
+		chip_set_type(comp->ts->chipC, chctype);
+	} else {
+		aymChip* psg[3] = {comp->ts->chipA, comp->ts->chipB, comp->ts->chipC};
+		for (int i = 0; i < 3; i++) {
+			chip_set_type(psg[i], (i < psgcount) ? psgtype : SND_NONE);
+		}
+		comp->ts->type = (psgcount > 2) ? TS_ZXNEXT : (psgcount > 1) ? TS_NEDOPC : TS_NONE;
+	}
 
 	tmp2 = PLOAD_OK;
 
@@ -690,16 +720,13 @@ int prfSave(std::string nm) {
 	fprintf(file, "palette = %s\n", prf->palette.c_str());
 
 	fprintf(file, "\n[SOUND]\n\n");
-	fprintf(file, "chip1 = %i\n", comp->ts->chipA->type);
-	fprintf(file, "chip1.stereo = %i\n", comp->ts->chipA->stereo);
-	fprintf(file, "chip1.frq = %f\n", comp->ts->chipA->frq);
-	fprintf(file, "chip2 = %i\n", comp->ts->chipB->type);
-	fprintf(file, "chip2.stereo = %i\n", comp->ts->chipB->stereo);
-	fprintf(file, "chip2.frq = %f\n", comp->ts->chipB->frq);
-	fprintf(file, "chip3 = %i\n", comp->ts->chipC->type);
-	fprintf(file, "chip3.stereo = %i\n", comp->ts->chipC->stereo);
-	fprintf(file, "chip3.frq = %f\n", comp->ts->chipC->frq);
-	fprintf(file, "ts.type = %i\n", comp->ts->type);
+	int psgcount = (comp->ts->type == TS_ZXNEXT) ? 3 : (comp->ts->type == TS_NEDOPC) ? 2 : 1;
+	if (comp->ts->chipA->type == SND_NONE) psgcount = 0;
+	fprintf(file, "psg.count = %i\n", psgcount);
+	fprintf(file, "psg.type = %i\n", comp->ts->chipA->type);
+	fprintf(file, "psg.frq = %f\n", comp->ts->chipA->frq);
+	fprintf(file, "psg.stereo = %i\n", comp->ts->chipA->stereo);
+	fprintf(file, "psg.mix = %i\n", comp->ts->chipA->mix);
 
 	fprintf(file, "gs = %s\n", YESNO(comp->gs->enable));
 	fprintf(file, "gs.reset = %s\n", YESNO(comp->gs->stereo));

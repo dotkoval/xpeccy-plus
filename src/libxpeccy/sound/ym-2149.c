@@ -51,7 +51,7 @@ void ym_wr(aymChip* chip, int adr, int val) {
 
 // ym_sync = ay_sync (with 5-bit volumes)
 
-extern sndPair ay_mix_stereo(int, int, int, int);
+extern sndPair ay_mix_stereo(int, int, int, int, int);
 
 int ym_chan_vol(aymChip* ay, aymChan* ch) {
 	int vol = 0;
@@ -91,5 +91,5 @@ sndPair ym_vol(aymChip* chip) {
 	int volA = ym_chan_vol(chip, &chip->chanA);
 	int volB = ym_chan_vol(chip, &chip->chanB);
 	int volC = ym_chan_vol(chip, &chip->chanC);
-	return ay_mix_stereo(volA, volB, volC, chip->stereo);
+	return ay_mix_stereo(volA, volB, volC, chip->stereo, chip->mix);
 }

@@ -150,6 +150,7 @@ struct aymChip {
 	unsigned coarse:1;	// 4-bit DAC volume
 	unsigned blk_fm:1;	// 1:block fm output
 	int stereo;
+	int mix;		// stereo mixing: 0 = full panorama, 100 = mono
 	int wait;		// waiting. chip is busy when >0
 
 	int type;
