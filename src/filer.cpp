@@ -1,5 +1,6 @@
 #include "filer.h"
 #include "xcore/xcore.h"
+#include "xcore/autostart.h"
 #include "xgui/xgui.h"
 
 #include <QDebug>
@@ -355,6 +356,32 @@ void file_errors(int err) {
 static int disk_id[] = {FG_DISK_A, FG_DISK_B, FG_DISK_C, FG_DISK_D};
 static int boot_ft[] = {FL_SCL, FL_TRD, FL_TD0, FL_FDI, FL_UDI, FL_HOBETA, 0};
 
+// what the last loaded file would need to start on its own. The caller decides
+// whether to act on it: media opened from the gui is just mounted.
+static int last_as_kind = AS_NONE;
+
+int file_autostart_kind() {
+	return last_as_kind;
+}
+
+static int as_kind_of(int ftype) {
+	switch (ftype) {
+		case FL_TAP:
+		case FL_TZX:
+		case FL_WAV:
+			return AS_TAPE;
+		case FL_SCL:
+		case FL_TRD:
+		case FL_TD0:
+		case FL_FDI:
+		case FL_UDI:
+			return AS_DISK;
+		case FL_DSK:
+			return AS_DISK3;
+	}
+	return AS_NONE;
+}
+
 void disk_boot(Computer* comp, int drv, int id) {
 	if (!conf.boot) return;
 	int idx = 0;
@@ -365,6 +392,7 @@ void disk_boot(Computer* comp, int drv, int id) {
 }
 
 int load_file(Computer* comp, const char* name, int id, int drv) {
+	last_as_kind = AS_NONE;
 	QString path = QString::fromLocal8Bit(name);
 	path = QFileInfo(path).canonicalFilePath();
 	if (path.isEmpty() && name) return ERR_CANT_OPEN;
@@ -413,12 +441,14 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 				if (saveChangedDisk(comp, drv) == ERR_OK) {
 					err = inf->load(comp, path.toLocal8Bit().data(), drv);
 					disk_boot(comp, drv, inf->id);
+					if (err == ERR_OK) last_as_kind = as_kind_of(inf->id);
 				} else {
 					err = ERR_OK;
 				}
 			} else {
 				err = inf->load(comp, path.toLocal8Bit().data(), drv);
 				disk_boot(comp, drv, inf->id);
+				if (err == ERR_OK) last_as_kind = as_kind_of(inf->id);
 			}
 		}
 	}

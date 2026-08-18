@@ -96,6 +96,8 @@ enum {
 
 void initFileDialog(QWidget*);
 int load_file(Computer* comp, const char* name, int id, int drv);
+// AS_* the last loaded file would need to start, see xcore/autostart.h
+int file_autostart_kind();
 int save_file(Computer* comp, const char* name, int id, int drv);
 
 int saveChangedDisk(Computer*,int);

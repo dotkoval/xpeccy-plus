@@ -123,6 +123,7 @@ struct Video {
 	unsigned intLINE:1;	// for TSConf
 	unsigned intDMA:1;	// for TSConf
 //	unsigned noScreen:1;
+	unsigned nodraw:1;	// emulate the raster but put no pixels out
 	unsigned debug:1;
 	unsigned upd:1;
 	unsigned tail:1;
