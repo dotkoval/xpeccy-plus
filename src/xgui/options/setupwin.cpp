@@ -194,6 +194,15 @@ class xTwoPartPainter : public QObject {
 		xTwoPartPainter(QComboBox* box) : QObject(box), cbox(box) {
 			QWidget* wid = box->isEditable() ? (QWidget*)box->lineEdit() : (QWidget*)box;
 			if (wid) wid->installEventFilter(this);
+			if (!box->isEditable()) return;
+			// an editable box shows the plain text while it has the focus, so
+			// let it go as soon as the value is picked or typed in
+			connect(box, QOverload<int>::of(&QComboBox::activated), this, [this](int){
+				cbox->lineEdit()->clearFocus();
+			});
+			connect(box->lineEdit(), &QLineEdit::returnPressed, this, [this](){
+				cbox->lineEdit()->clearFocus();
+			});
 		}
 	protected:
 		bool eventFilter(QObject* obj, QEvent* ev) {
