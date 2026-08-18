@@ -7,6 +7,10 @@
 #include <QVector3D>
 #include <QLibrary>
 #include <QPainter>
+#include <QStyledItemDelegate>
+#include <QStylePainter>
+#include <QStyleOptionComboBox>
+#include <QLineEdit>
 #include <QGuiApplication>
 #include <QDebug>
 #include <stdlib.h>
@@ -124,21 +128,140 @@ void fillComboBox(QComboBox* box, QString path, QStringList filt, QString def = 
 
 // OBJECT
 
+
+// Two-part list items: "value - detail". The value is drawn bold and the
+// detail at reduced alpha, so no colour is hardcoded and every style sheet
+// keeps working. Experimental, wired to the PSG boxes only. Items carrying an
+// icon fall back to the plain painting - none of them has a detail part.
+
+static const QString detail_sep = " - ";
+
+static void draw_two_part(QPainter* pnt, QRect rc, const QFont& fnt, QColor col, const QString& txt, int cut) {
+	QFont bld = fnt;
+	bld.setBold(true);
+	QString head = txt.left(cut);
+	pnt->setFont(bld);
+	pnt->setPen(col);
+	pnt->drawText(rc, Qt::AlignVCenter | Qt::AlignLeft, head);
+	QFontMetrics fmb(bld);
+	rc.setLeft(rc.left() + fmb.horizontalAdvance(head) + fmb.horizontalAdvance(" "));
+	col.setAlphaF(0.55);
+	pnt->setFont(fnt);
+	pnt->setPen(col);
+	pnt->drawText(rc, Qt::AlignVCenter | Qt::AlignLeft, txt.mid(cut + detail_sep.size()));
+}
+
+// the popup
+
+class xTwoPartDelegate : public QStyledItemDelegate {
+	public:
+		xTwoPartDelegate(QObject* par = NULL) : QStyledItemDelegate(par) {}
+
+		void paint(QPainter* pnt, const QStyleOptionViewItem& op, const QModelIndex& idx) const {
+			QStyleOptionViewItem opt = op;
+			initStyleOption(&opt, idx);
+			int cut = opt.text.indexOf(detail_sep);
+			if ((cut < 0) || !opt.icon.isNull()) {
+				QStyledItemDelegate::paint(pnt, op, idx);
+				return;
+			}
+			QString txt = opt.text;
+			const QWidget* wid = opt.widget;
+			QStyle* sty = wid ? wid->style() : QApplication::style();
+			opt.text.clear();
+			sty->drawControl(QStyle::CE_ItemViewItem, &opt, pnt, wid);
+			// the native style paints a light selection and keeps the normal
+			// text colour on it, a style sheet sets its own pair
+			int sel = (opt.state & QStyle::State_Selected) && !qApp->styleSheet().isEmpty();
+			draw_two_part(pnt, opt.rect.adjusted(4, 0, -4, 0), opt.font,
+				opt.palette.color(sel ? QPalette::HighlightedText : QPalette::Text), txt, cut);
+		}
+
+		QSize sizeHint(const QStyleOptionViewItem& op, const QModelIndex& idx) const {
+			QSize sz = QStyledItemDelegate::sizeHint(op, idx);
+			sz.rwidth() += 8;			// the bold half is a bit wider
+			return sz;
+		}
+};
+
+// The closed box is painted by the style, not by the delegate, so it needs a
+// pass of its own. An editable combo keeps its text in a child QLineEdit and
+// that one paints itself - hence the two cases. A filter does it without
+// having to promote the widget in the .ui files.
+
+class xTwoPartPainter : public QObject {
+	public:
+		xTwoPartPainter(QComboBox* box) : QObject(box), cbox(box) {
+			QWidget* wid = box->isEditable() ? (QWidget*)box->lineEdit() : (QWidget*)box;
+			if (wid) wid->installEventFilter(this);
+		}
+	protected:
+		bool eventFilter(QObject* obj, QEvent* ev) {
+			if (ev->type() != QEvent::Paint) return false;
+			QLineEdit* led = cbox->lineEdit();
+			if (led && (obj == led)) return paintEdit(led);
+			if (obj == cbox) return paintBox();
+			return false;
+		}
+	private:
+		QComboBox* cbox;
+
+		int textCut(const QString& txt) {
+			int cut = txt.indexOf(detail_sep);
+			if (!cbox->itemIcon(cbox->currentIndex()).isNull()) cut = -1;
+			return cut;
+		}
+
+		bool paintBox() {
+			QString txt = cbox->currentText();
+			int cut = textCut(txt);
+			if (cut < 0) return false;
+			QStylePainter pnt(cbox);
+			QStyleOptionComboBox opt;
+			opt.initFrom(cbox);
+			opt.rect = cbox->rect();
+			opt.subControls = QStyle::SC_All;
+			opt.frame = cbox->hasFrame();
+			if (cbox->view() && cbox->view()->isVisible())
+				opt.state |= QStyle::State_On;
+			pnt.drawComplexControl(QStyle::CC_ComboBox, opt);
+			QRect rc = cbox->style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxEditField, cbox);
+			draw_two_part(&pnt, rc.adjusted(2, 0, -2, 0), cbox->font(), textColor(cbox), txt, cut);
+			return true;
+		}
+
+		bool paintEdit(QLineEdit* led) {
+			if (led->hasFocus()) return false;	// typing: a plain edit again
+			QString txt = led->text();
+			int cut = textCut(txt);
+			if (cut < 0) return false;
+			QPainter pnt(led);
+			pnt.fillRect(led->rect(), led->palette().brush(led->backgroundRole()));
+			draw_two_part(&pnt, led->rect().adjusted(2, 0, -2, 0), led->font(), textColor(led), txt, cut);
+			return true;
+		}
+
+		QColor textColor(QWidget* wid) {
+			return wid->palette().color(wid->isEnabled() ? QPalette::Active : QPalette::Disabled, QPalette::Text);
+		}
+};
+
+
 void opt_fill_psg_boxes(QComboBox* cbcount, QComboBox* cbtype, QComboBox* cbfrq, QComboBox* cbstereo) {
 	cbcount->clear();
 	cbcount->addItem(QIcon(":/images/cancel.png"),"None",0);
-	cbcount->addItem("×1 (AY/YM)",1);
-	cbcount->addItem("×2 (TurboSound NedoPC)",2);
-	cbcount->addItem("×3 (TurboSound ZX Next)",3);
+	cbcount->addItem(QString::fromUtf8("×1 - AY/YM"),1);
+	cbcount->addItem(QString::fromUtf8("×2 - TurboSound NedoPC"),2);
+	cbcount->addItem(QString::fromUtf8("×3 - TurboSound ZX Next"),3);
 	cbtype->clear();
 	cbtype->addItem(QIcon(":/images/MicrochipLogo.png"),"AY-3-8910",SND_AY);
 	cbtype->addItem(QIcon(":/images/YamahaLogo.png"),"Yamaha 2149",SND_YM);
 	cbtype->addItem(QIcon(":/images/YamahaLogo.png"),"Yamaha 2203",SND_YM2203);
 	cbfrq->clear();
-	cbfrq->addItem("1.773447 (ZX 128/+2/+3)");
-	cbfrq->addItem("1.75 (ZX 48/ZX-clones)");
-	cbfrq->addItem("1.789773 (MSX)");
-	cbfrq->addItem("3.5 (YM2203)");
+	cbfrq->addItem(QString::fromUtf8("1.773447 - ZX 128/+2/+3"));
+	cbfrq->addItem(QString::fromUtf8("1.75 - ZX 48/ZX-clones"));
+	cbfrq->addItem(QString::fromUtf8("1.789773 - MSX"));
+	cbfrq->addItem(QString::fromUtf8("3.5 - YM2203"));
 	cbstereo->clear();
 	cbstereo->addItem("Mono",AY_MONO);
 	cbstereo->addItem("ABC",AY_ABC);
@@ -315,6 +438,10 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.ratbox->addItem("22050",22050);
 	ui.ratbox->addItem("11025",11025);
 	opt_fill_psg_boxes(ui.cbPsgCount, ui.cbPsgType, ui.cbPsgFrq, ui.cbPsgStereo);
+	ui.cbPsgCount->setItemDelegate(new xTwoPartDelegate(ui.cbPsgCount));
+	ui.cbPsgFrq->setItemDelegate(new xTwoPartDelegate(ui.cbPsgFrq));
+	new xTwoPartPainter(ui.cbPsgCount);
+	new xTwoPartPainter(ui.cbPsgFrq);
 	ui.sdrvBox->addItem("None",SDRV_NONE);
 	ui.sdrvBox->addItem("Covox only",SDRV_COVOX);
 	ui.sdrvBox->addItem("Soundrive 1.05 mode 1",SDRV_105_1);
