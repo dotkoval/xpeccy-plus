@@ -22,6 +22,8 @@ before that point is upstream's history and is not repeated here.
 - **Profiles ship closer to the real machines**: the 48K has no sound chip at all, every other
   one has a single chip instead of TurboSound - an AY at 1.773447 MHz on 128/+2/+3, at 1.75 MHz
   on the clones. SounDrive is off, plain Covox stays on the clones.
+- **`I` and `R` are one `IR` field in the debugger**, and share a line with `IM` when the
+  register panel is wide enough for two columns.
 
 ### Fixed
 
