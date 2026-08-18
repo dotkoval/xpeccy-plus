@@ -212,6 +212,7 @@ struct Keyboard {
 	unsigned drq:1;			// keyboard buffer have data
 
 	unsigned char port;		// high byte of xxFE port
+	unsigned char scanmask;	// zx: half-rows the rom has read one by one. 0xff = a full KEY-SCAN
 	int mode;
 	int flag;
 

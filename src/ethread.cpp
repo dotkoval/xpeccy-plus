@@ -7,6 +7,7 @@
 #include "xcore/xcore.h"
 #include "xgui/xgui.h"
 #include "xcore/sound.h"
+#include "xcore/autostart.h"
 #include "xcore/vfilters.h"
 #include "libxpeccy/cpu/Z80/z80.h"
 
@@ -189,6 +190,7 @@ void xThread::emuCycle(Computer* comp) {
 		if (comp->flgFRM) {
 			comp->flgFRM = 0;
 			conf.vid.fcount++;
+			autostart_frame(comp);
 // process noflic/scanlines (if !fast ???)
 // buffers is already switches, bufimg - just painted (greyscale, if flag is set), scrimg - new
 			if (!conf.emu.fast && (noflic > 0))

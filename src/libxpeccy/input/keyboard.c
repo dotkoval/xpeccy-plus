@@ -101,8 +101,19 @@ void kbd_zx_release(Keyboard* kbd, keyEntry* ent) {
 	key_release_seq(kbd, keyTab, kbd->map, ent->zxKey);
 }
 
+// Note which half-row the rom asked for. Only a single-row read counts: the rom
+// scans them one by one, everything else is a game polling one row or the whole
+// matrix at once. All 8 seen means the interrupt-driven KEY-SCAN is running, which
+// is how the autostart knows the machine is ready for keys.
+static void kbd_note_scan(Keyboard* kbd, int port) {
+	unsigned char row = ~(port >> 8);
+	if (row && !(row & (row - 1)))		// one bit = one half-row
+		kbd->scanmask |= row;
+}
+
 int kbdScanZX(Keyboard* kbd, int port) {
 	int res = 0x3f;
+	kbd_note_scan(kbd, port);
 	for (int i = 0; i < 8; i++) {
 		if (!(port & 0x8000))
 			res &= kbd->map[i];
@@ -125,6 +136,7 @@ void kbd_prf_release(Keyboard* kbd, keyEntry* ent) {
 
 int kbdScanProfi(Keyboard* kbd, int port) {
 	int res = 0x3f;
+	kbd_note_scan(kbd, port);
 	for (int i = 0; i < 8; i++) {
 		if (!(port & 0x8000)) {
 			res &= kbd->extMap[i];

@@ -9,6 +9,12 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Added
+
+- **Autoload for tapes and disks given on the command line** (the way a snapshot always
+  did). The loading method is the standard one for the machine and is picked automatically.
+  To only mount the file, use `--no-autostart`.
+
 ### Changed
 
 - **One set of AY/TurboSound settings instead of three.** Sound now asks how many chips there

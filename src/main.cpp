@@ -13,6 +13,7 @@
 #include "xcore/xcore.h"
 #include "xcore/sound.h"
 #include "xcore/pacing.h"
+#include "xcore/autostart.h"
 #include "xgui/xgui.h"
 #include "libxpeccy/spectrum.h"
 #include "libxpeccy/cpu/Z80/z80.h"
@@ -54,6 +55,7 @@ void help() {
 	printf("--style\t\t\tMacOSX only: use native qt style, else 'fusion' will be forced\n");
 	printf("--xmap FILE\t\tLoad *.xmap file\n");
 	printf("--confdir DIR\t\tChange config directory\n");
+	printf("--no-autostart\t\tjust mount the media given here, don't start it\n");
 }
 
 void xApp::d_frame() {
@@ -258,6 +260,8 @@ int main(int ac,char** av) {
 	int hlp = 0;
 	int drv = 0;
 	int lab = 1;
+	int astart = 1;
+	int askind = AS_NONE;
 	xAdr xadr;
 	int tmpi;
 #ifdef __APPLE__
@@ -272,6 +276,8 @@ int main(int ac,char** av) {
 			hlp = 1;
 		} else if (!strcmp(parg,"--panic")) {
 			compflags |= CFLG_PANIC;
+		} else if (!strcmp(parg,"--no-autostart")) {
+			astart = 0;
 #ifdef __WIN32
 		} else if (!strcmp(parg,"-c") || !strcmp(parg,"--console")) {
 			AllocConsole();
@@ -354,11 +360,18 @@ int main(int ac,char** av) {
 				i++;		// handled before conf_init above
 			} else if (strlen(parg) > 0) {
 				load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
+				askind = file_autostart_kind();
 			}
 		} else if (strlen(parg) > 0) {
 			load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
+			askind = file_autostart_kind();
 		}
 	}
+	// tape or disk from the command line: mounting is not enough, so press
+	// what the user would press by hand. Here, after every option is known
+	if (astart)
+		autostart_arm(conf.prof.cur->zx, askind);
+
 	dbgw.move(conf.dbg.pos);
 	dbgw.resize(conf.dbg.siz);
 #ifdef __APPLE__

@@ -24,6 +24,7 @@
 
 #include "xcore/xcore.h"
 #include "xcore/sound.h"
+#include "xcore/autostart.h"
 #include "emulwin.h"
 #include "filer.h"
 #include "watcher.h"
@@ -643,6 +644,9 @@ void MainWin::presentFrame() {
 }
 
 void MainWin::frame_timer() {
+	// autostart draws nothing, but vid_frame() still swaps scrimg/bufimg every
+	// frame: painting here would alternate between two stale buffers and flicker
+	if (autostart_busy()) return;
 	Computer* comp = conf.prof.cur->zx;
 	if (comp) {
 		frm_ns += comp->vid->nsPerFrame;
