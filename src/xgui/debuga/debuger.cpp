@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QBuffer>
 #include <QPainter>
+#include <QShowEvent>
 #include <QVector>
 #include <QFileDialog>
 #include <QTemporaryFile>
@@ -275,6 +276,8 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	regWideW = 0;
 	cpuWideDock = 0;
 	reformPending = 0;
+	winShown = 0;
+	reformWait = 0;
 
 	// AllowNestedDocks is off by default, and without it a left/right area can
 	// only stack docks vertically: nothing can be dropped beside anything.
@@ -1141,6 +1144,13 @@ static int find_bunch_reg(xRegBunch* b, int cnt, int id) {
 }
 
 void DebugWin::reFormCPU(xRegBunch* b) {
+	// Dock sizes from a restored layout only arrive on the first show, and the
+	// column count follows the panel width. Building earlier builds one column,
+	// which is tall enough to push the docks below it out of place for good.
+	if (!winShown) {
+		reformWait = 1;
+		return;
+	}
 	int i;
 	int cnt = 0;			// visible registers (bunch holds no REG_EMPTY ones)
 	int labw = 0;
@@ -1178,8 +1188,7 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 	wid_cpu->setMinimumWidth(cpuWideDock ? regWideW : (regPairW + RCOL_GAP));
 	// same value is the switch point: sizes are only exact once the widgets are
 	// styled, two thresholds could drift apart and lock the second column out
-	// start narrow: the width is not settled yet on the very first layout
-	regCols = (regCols && (wid_cpu->width() >= regWideW)) ? 2 : 1;
+	regCols = (wid_cpu->width() >= regWideW) ? 2 : 1;
 
 	// 2nd pass: (re)build the layout
 	delete ui_cpu.verticalLayout->takeAt(VLI_REGS);	// registers stay alive, wid_cpu owns them
@@ -1343,6 +1352,18 @@ void DebugWin::updateCpuDockWidth() {
 	if (wide == !!cpuWideDock) return;
 	cpuWideDock = wide ? 1 : 0;
 	wid_cpu->setMinimumWidth(wide ? regWideW : (regPairW + RCOL_GAP));
+}
+
+// the dock sizes are in place now, so the cpu panel can be built at the
+// width it is really going to have
+void DebugWin::showEvent(QShowEvent* ev) {
+	QMainWindow::showEvent(ev);
+	winShown = 1;
+	if (reformWait && conf.prof.cur && conf.prof.cur->zx) {
+		reformWait = 0;
+		xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
+		reFormCPU(&bunch);
+	}
 }
 
 // cpu panel resized: reflow if another number of columns fits now

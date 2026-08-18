@@ -27,6 +27,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **The register panel comes back the way it was left.** It was rebuilt in one column on
+  every start, whatever the saved layout said, and pushed the panels under it down.
 - **Two more visual artefacts in ZX Evo (TSConf) demos**: a seam running along the horizon,
   and single dots of a wrong colour drifting about the picture. Both show in the greetings
   part of *Synchronization*.
