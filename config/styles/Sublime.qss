@@ -3,11 +3,13 @@
  * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
  *
  * Monokai, the default colour scheme of Sublime Text: warm dark grey
- * chrome, cyan accent, the same olive selection the editor uses.
+ * chrome and the same olive selection the editor uses.
  *
  * Palette:
  *   window #272822   panel #1e1f1c   base #1e1f1c   text #f8f8f2
- *   selection #49483e   accent #66d9ef   border #414339
+ *   selection #49483e   border #414339
+ *   bars #75715e   focus #99947c - Monokai Classic keeps the bright
+ *   syntax colours out of the chrome
  *
  * No font is set here on purpose: the debugger measures its columns with the
  * font from Setup and this file must not get in the way.
@@ -61,7 +63,7 @@ QLineEdit:hover, QAbstractSpinBox:hover {
 }
 
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus {
-	border-color: #66d9ef;
+	border-color: #99947c;
 }
 
 QLineEdit:disabled, QPlainTextEdit:disabled, QTextEdit:disabled, QAbstractSpinBox:disabled {
@@ -99,7 +101,7 @@ QPushButton:pressed, QPushButton:checked {
 }
 
 QPushButton:default {
-	border-color: #66d9ef;
+	border-color: #99947c;
 }
 
 QPushButton:disabled {
@@ -152,7 +154,7 @@ QComboBox:hover {
 }
 
 QComboBox:focus, QComboBox:on {
-	border-color: #66d9ef;
+	border-color: #99947c;
 }
 
 QComboBox:disabled {
@@ -229,7 +231,7 @@ QRadioButton::indicator {
 }
 
 QCheckBox::indicator:hover, QRadioButton::indicator:hover, QGroupBox::indicator:hover {
-	border-color: #66d9ef;
+	border-color: #99947c;
 }
 
 QCheckBox::indicator:checked, QGroupBox::indicator:checked, QMenu::indicator:checked {
@@ -430,7 +432,7 @@ QSlider::groove:vertical {
 }
 
 QSlider::sub-page:horizontal, QSlider::add-page:vertical {
-	background-color: #66d9ef;
+	background-color: #75715e;
 	border-radius: 2px;
 }
 
@@ -452,7 +454,7 @@ QSlider::handle:vertical {
 
 QSlider::handle:hover {
 	background-color: #49483e;
-	border-color: #66d9ef;
+	border-color: #99947c;
 }
 
 QProgressBar {
@@ -464,7 +466,7 @@ QProgressBar {
 }
 
 QProgressBar::chunk {
-	background-color: #66d9ef;
+	background-color: #75715e;
 }
 
 /* ---- menus --------------------------------------------------------- */
@@ -560,7 +562,7 @@ QSplitter::handle {
 }
 
 QSplitter::handle:hover {
-	background-color: #66d9ef;
+	background-color: #75715e;
 }
 
 QSizeGrip {
