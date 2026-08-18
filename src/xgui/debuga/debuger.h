@@ -75,6 +75,8 @@ class DebugWin : public QMainWindow {
 		int regPairW;		// width one 'name + value' pair needs
 		int regWideW;		// panel width that fits two columns: max and switch point
 		unsigned cpuWideDock:1;	// two panels sit side by side under the cpu dock
+		unsigned winShown:1;	// window has been shown: the dock sizes are real
+		unsigned reformWait:1;	// a build was asked for before the first show
 		unsigned reformPending:1;	// a reflow is already queued
 		// tracer
 		unsigned trace:1;
@@ -239,6 +241,7 @@ class DebugWin : public QMainWindow {
 	protected:
 		void keyPressEvent(QKeyEvent*);
 		void keyReleaseEvent(QKeyEvent*);
+		void showEvent(QShowEvent*);
 		void resizeEvent(QResizeEvent*);
 		void moveEvent(QMoveEvent*);
 		void closeEvent(QCloseEvent*);

@@ -22,9 +22,13 @@ before that point is upstream's history and is not repeated here.
 - **Profiles ship closer to the real machines**: the 48K has no sound chip at all, every other
   one has a single chip instead of TurboSound - an AY at 1.773447 MHz on 128/+2/+3, at 1.75 MHz
   on the clones. SounDrive is off, plain Covox stays on the clones.
+- **`I` and `R` are one `IR` field in the debugger**, and share a line with `IM` when the
+  register panel is wide enough for two columns.
 
 ### Fixed
 
+- **The register panel comes back the way it was left.** It was rebuilt in one column on
+  every start, whatever the saved layout said, and pushed the panels under it down.
 - **Two more visual artefacts in ZX Evo (TSConf) demos**: a seam running along the horizon,
   and single dots of a wrong colour drifting about the picture. Both show in the greetings
   part of *Synchronization*.

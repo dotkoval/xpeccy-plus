@@ -335,6 +335,7 @@ void z80_set_ix(CPU* cpu, int v) {cpu->regIX = v;}
 void z80_set_iy(CPU* cpu, int v) {cpu->regIY = v;}
 void z80_set_i(CPU* cpu, int v) {cpu->regI = v;}
 void z80_set_r(CPU* cpu, int v) {cpu->regR = v; cpu->regR7 = v & 0x80;}
+void z80_set_ir(CPU* cpu, int v) {cpu->regI = (v >> 8) & 0xff; z80_set_r(cpu, v & 0xff);}
 void z80_set_wz(CPU* cpu, int v) {cpu->regWZ = v;}
 void z80_set_im(CPU* cpu, int v) {cpu->regIM = (v & 2) ? 2 : v & 1;}
 void z80_set_iff1(CPU* cpu, int v) {cpu->flgIFF1 = !!v;}
@@ -357,6 +358,9 @@ int z80_get_ix(CPU* cpu) {return cpu->regIX;}
 int z80_get_iy(CPU* cpu) {return cpu->regIY;}
 int z80_get_i(CPU* cpu) {return cpu->regI;}
 int z80_get_r(CPU* cpu) {return (cpu->regR & 0x7f) | (cpu->regR7);}
+// deBUGa shows I and R as one field, the way the chip puts them on the bus
+// during a refresh: I is the high byte, R the low one
+int z80_get_ir(CPU* cpu) {return (cpu->regI << 8) | ((cpu->regR & 0x7f) | cpu->regR7);}
 int z80_get_wz(CPU* cpu) {return cpu->regWZ;}
 int z80_get_im(CPU* cpu) {return cpu->regIM;}
 int z80_get_iff1(CPU* cpu) {return cpu->flgIFF1;}
@@ -384,14 +388,15 @@ xRegDsc z80RegTab[] = {
 
 	{Z80_REG_IX, "IX", REG_WORD, REG_RDMP, z80_get_ix, z80_set_ix, Z80_REG_IY},
 	{Z80_REG_IY, "IY", REG_WORD, REG_RDMP, z80_get_iy, z80_set_iy},
-	{Z80_REG_I, "I", REG_BYTE, 0, z80_get_i, z80_set_i, Z80_REG_R},
-	{Z80_REG_R, "R", REG_BYTE, 0, z80_get_r, z80_set_r},
+	{Z80_REG_IR, "IR", REG_WORD, 0, z80_get_ir, z80_set_ir, Z80_REG_IM},
+	{REG_EMPTY, "I", REG_BYTE, 0, z80_get_i, z80_set_i},
+	{REG_EMPTY, "R", REG_BYTE, 0, z80_get_r, z80_set_r},
 	{REG_EMPTY, "A", REG_BYTE, 0, z80_get_a, z80_set_a},
 	{REG_EMPTY, "A'", REG_BYTE, 0, z80_get_aa, z80_set_aa},
 	{REG_EMPTY, "F", REG_32, REG_FLG, z80_get_flag, z80_set_flag},
 	{REG_EMPTY, "F'", REG_32, 0, z80_get_fa, z80_set_fa},
 #ifdef ISDEBUG
-	{Z80_REG_WZ, "WZ", REG_WORD, REG_RDMP, z80_get_wz, z80_set_wz, Z80_REG_IM},
+	{Z80_REG_WZ, "WZ", REG_WORD, REG_RDMP, z80_get_wz, z80_set_wz},
 #endif
 	{Z80_REG_IM, "IM", REG_2, 0, z80_get_im, z80_set_im},
 	{Z80_FLG_IFF1, "IFF1", REG_BIT, 0, z80_get_iff1, z80_set_iff1, Z80_FLG_IFF2},
