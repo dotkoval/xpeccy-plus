@@ -91,5 +91,5 @@ sndPair ym_vol(aymChip* chip) {
 	int volA = ym_chan_vol(chip, &chip->chanA);
 	int volB = ym_chan_vol(chip, &chip->chanB);
 	int volC = ym_chan_vol(chip, &chip->chanC);
-	return ay_mix_stereo(volA, volB, volC, chip->stereo, chip->mix);
+	return ay_mix_stereo(volA, volB, volC, chip->stereo, chip->sep);
 }

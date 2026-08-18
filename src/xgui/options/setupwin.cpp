@@ -396,7 +396,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
 	connect(ui.sldNoflic,SIGNAL(valueChanged(int)),this,SLOT(chaflc()));
-	connect(ui.sldPsgMix,SIGNAL(valueChanged(int)),this,SLOT(chapsg()));
+	connect(ui.sldPsgSep,SIGNAL(valueChanged(int)),this,SLOT(chapsg()));
 	connect(ui.cbPsgCount,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 	connect(ui.cbPsgStereo,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 
@@ -671,7 +671,7 @@ void SetupWin::start() {
 	setRFIndex(ui.cbPsgType, (comp->ts->chipA->type == SND_NONE) ? SND_AY : comp->ts->chipA->type);
 	setRFIndex(ui.cbPsgStereo, comp->ts->chipA->stereo);
 	opt_set_psg_frq(ui.cbPsgFrq, comp->ts->chipA->frq);
-	ui.sldPsgMix->setValue(comp->ts->chipA->mix);
+	ui.sldPsgSep->setValue(comp->ts->chipA->sep);
 	chapsg();
 // input
 	buildkeylist();
@@ -887,13 +887,13 @@ void SetupWin::apply() {
 	int chtype = getRFIData(ui.cbPsgType);
 	double chfrq = opt_get_psg_frq(ui.cbPsgFrq);
 	int chstereo = getRFIData(ui.cbPsgStereo);
-	int chmix = ui.sldPsgMix->value();
+	int chsep = ui.sldPsgSep->value();
 	aymChip* chip[3] = {comp->ts->chipA, comp->ts->chipB, comp->ts->chipC};
 	for (int i = 0; i < 3; i++) {			// one setting for all the chips
 		chip[i]->frq = chfrq;
 		chip_set_type(chip[i], (i < chips) ? chtype : SND_NONE);
 		chip[i]->stereo = chstereo;
-		chip[i]->mix = chmix;
+		chip[i]->sep = chsep;
 	}
 	comp->ts->type = (chips > 2) ? TS_ZXNEXT : (chips > 1) ? TS_NEDOPC : TS_NONE;
 
@@ -1644,13 +1644,13 @@ void SetupWin::chaflc() {
 
 void SetupWin::chapsg() {
 	int chips = getRFIData(ui.cbPsgCount);
-	int mixed = (chips > 0) && (getRFIData(ui.cbPsgStereo) != AY_MONO);
-	ui.labPsgMix->setText(QString("%0%").arg(ui.sldPsgMix->value()));
+	int split = (chips > 0) && (getRFIData(ui.cbPsgStereo) != AY_MONO);
+	ui.labPsgSep->setText(QString("%0%").arg(ui.sldPsgSep->value()));
 	ui.cbPsgType->setEnabled(chips > 0);
 	ui.cbPsgFrq->setEnabled(chips > 0);
 	ui.cbPsgStereo->setEnabled(chips > 0);
-	ui.sldPsgMix->setEnabled(mixed);
-	ui.labPsgMix->setEnabled(mixed);
+	ui.sldPsgSep->setEnabled(split);
+	ui.labPsgSep->setEnabled(split);
 }
 
 void SetupWin::selsspath() {

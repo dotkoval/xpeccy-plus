@@ -1326,6 +1326,9 @@
                 </item>
                 <item row="3" column="1">
                  <layout class="QHBoxLayout" name="horizontalLayout_33" stretch="0,0,10,0">
+                  <property name="spacing">
+                   <number>4</number>
+                  </property>
                   <item>
                    <widget class="QComboBox" name="cbPsgStereo">
                     <property name="sizeAdjustPolicy">
@@ -1334,23 +1337,20 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QLabel" name="labPsgMixName">
+                   <widget class="QLabel" name="labPsgSepName">
                     <property name="text">
-                     <string>Mix</string>
-                    </property>
-                    <property name="indent">
-                     <number>8</number>
+                     <string>Separation</string>
                     </property>
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSlider" name="sldPsgMix">
+                   <widget class="QSlider" name="sldPsgSep">
                     <property name="toolTip">
-                     <string>Channel mixing: 0% = full stereo panorama, 100% = mono</string>
+                     <string>Stereo separation: 100% = channels kept apart, 0% = mono</string>
                     </property>
                     <property name="minimumSize">
                      <size>
-                      <width>60</width>
+                      <width>45</width>
                       <height>0</height>
                      </size>
                     </property>
@@ -1372,7 +1372,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QLabel" name="labPsgMix">
+                   <widget class="QLabel" name="labPsgSep">
                     <property name="minimumSize">
                      <size>
                       <width>32</width>
@@ -1380,7 +1380,7 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>25%</string>
+                     <string>75%</string>
                     </property>
                     <property name="alignment">
                      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>

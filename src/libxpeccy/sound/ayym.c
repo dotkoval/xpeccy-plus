@@ -71,7 +71,7 @@ aymChip* aymCreate(int tp) {
 	memset(chip, 0x00, sizeof(aymChip));
 	chip_set_type(chip, tp); // aymSetType(ay,tp);
 	chip->stereo = AY_MONO;
-	chip->mix = 25;		// see ay_mix_stereo()
+	chip->sep = 75;		// see ay_mix_stereo()
 	chip->xrd = NULL;
 	chip->xwr = NULL;
 	return chip;

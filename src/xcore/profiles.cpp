@@ -432,10 +432,10 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 						comp->ts->chipB->stereo = arg.i;
 						comp->ts->chipC->stereo = arg.i;
 					}
-					if (pnam == "psg.mix") {
-						comp->ts->chipA->mix = arg.i;
-						comp->ts->chipB->mix = arg.i;
-						comp->ts->chipC->mix = arg.i;
+					if (pnam == "psg.separation") {
+						comp->ts->chipA->sep = arg.i;
+						comp->ts->chipB->sep = arg.i;
+						comp->ts->chipC->sep = arg.i;
 					}
 
 					// chip1..chip3 and ts.type: profiles written before psg.*
@@ -726,7 +726,7 @@ int prfSave(std::string nm) {
 	fprintf(file, "psg.type = %i\n", comp->ts->chipA->type);
 	fprintf(file, "psg.frq = %f\n", comp->ts->chipA->frq);
 	fprintf(file, "psg.stereo = %i\n", comp->ts->chipA->stereo);
-	fprintf(file, "psg.mix = %i\n", comp->ts->chipA->mix);
+	fprintf(file, "psg.separation = %i\n", comp->ts->chipA->sep);
 
 	fprintf(file, "gs = %s\n", YESNO(comp->gs->enable));
 	fprintf(file, "gs.reset = %s\n", YESNO(comp->gs->stereo));
