@@ -17,8 +17,8 @@ before that point is upstream's history and is not repeated here.
   one TurboSound, so there is nothing left to set per chip. In the profile they are five
   `psg.*` keys instead of ten; a profile written by an older build is read as before and
   converted the first time it is saved.
-- **The stereo mixing is adjustable** (mixing itself by Volutar): a `Mix` slider runs from full
-  panorama to mono, and profiles ship at 25%.
+- **The stereo separation is adjustable** (the mixing itself is Volutar's): a `Separation`
+  slider runs from mono to full panorama, and profiles ship at 75%.
 - **Profiles ship closer to the real machines**: the 48K has no sound chip at all, every other
   one has a single chip instead of TurboSound - an AY at 1.773447 MHz on 128/+2/+3, at 1.75 MHz
   on the clones. SounDrive is off, plain Covox stays on the clones.
