@@ -464,6 +464,13 @@ static xShortcut short_tab[] = {
 	{SCG_DISASM, XCUT_GOTOADR, "key.disasm.goto", "Disasm: Go to address", QKeySequence(), QKeySequence(Qt::Key_G)},
 
 	{SCG_DUMP, XCUT_DUMP_GOTOADR, "key.dump.goto", "Dump: Go to address", QKeySequence(), QKeySequence(Qt::Key_G)},
+	{SCG_DUMP, XCUT_DUMP_REG_PC, "key.dump.goto.pc", "Dump: Go to (PC)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_P)},
+	{SCG_DUMP, XCUT_DUMP_REG_SP, "key.dump.goto.sp", "Dump: Go to (SP)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_S)},
+	{SCG_DUMP, XCUT_DUMP_REG_BC, "key.dump.goto.bc", "Dump: Go to (BC)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_B)},
+	{SCG_DUMP, XCUT_DUMP_REG_DE, "key.dump.goto.de", "Dump: Go to (DE)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_D)},
+	{SCG_DUMP, XCUT_DUMP_REG_HL, "key.dump.goto.hl", "Dump: Go to (HL)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_H)},
+	{SCG_DUMP, XCUT_DUMP_REG_IX, "key.dump.goto.ix", "Dump: Go to (IX)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_X)},
+	{SCG_DUMP, XCUT_DUMP_REG_IY, "key.dump.goto.iy", "Dump: Go to (IY)", QKeySequence(), QKeySequence(Qt::CTRL | Qt::Key_Y)},
 
 	{0, -1, NULL, NULL, QKeySequence(), QKeySequence()}
 };
