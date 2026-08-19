@@ -3451,7 +3451,7 @@
                   <string>Palette</string>
                  </property>
                  <layout class="QGridLayout" name="gridLayout_15">
-                  <item row="9" column="0">
+                  <item row="10" column="0">
                    <widget class="QLabel" name="label_dskid">
                     <property name="text">
                      <string>ID / Label</string>
@@ -3461,7 +3461,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="9" column="1">
+                  <item row="10" column="1">
                    <widget class="QToolButton" name="tbDbgDskIdBG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3471,7 +3471,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="9" column="2">
+                  <item row="10" column="2">
                    <widget class="QToolButton" name="tbDbgDskIdFG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3481,14 +3481,14 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="0">
+                  <item row="11" column="0">
                    <widget class="QLabel" name="label_dskdata">
                     <property name="text">
                      <string>Data</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="1">
+                  <item row="11" column="1">
                    <widget class="QToolButton" name="tbDbgDskDataBG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3498,7 +3498,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="10" column="2">
+                  <item row="11" column="2">
                    <widget class="QToolButton" name="tbDbgDskDataFG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3508,14 +3508,14 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="11" column="0">
+                  <item row="12" column="0">
                    <widget class="QLabel" name="label_dskcrc">
                     <property name="text">
                      <string>CRC</string>
                     </property>
                    </widget>
                   </item>
-                  <item row="11" column="1">
+                  <item row="12" column="1">
                    <widget class="QToolButton" name="tbDbgDskCrcBG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3525,7 +3525,7 @@
                     </property>
                    </widget>
                   </item>
-                  <item row="11" column="2">
+                  <item row="12" column="2">
                    <widget class="QToolButton" name="tbDbgDskCrcFG">
                     <property name="contextMenuPolicy">
                      <enum>Qt::CustomContextMenu</enum>
@@ -3674,7 +3674,27 @@
                     </property>
                    </widget>
                   </item>
-                 </layout>
+                  <item row="9" column="0">
+                   <widget class="QLabel" name="label_asmconst">
+                    <property name="text">
+                     <string>Const</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="9" column="2">
+                   <widget class="QToolButton" name="tbDbgAsmConstFG">
+                    <property name="contextMenuPolicy">
+                     <enum>Qt::CustomContextMenu</enum>
+                    </property>
+                    <property name="toolTip">
+                     <string>Constants in the listing. Right click: back to the style colour</string>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  </layout>
                 </widget>
                </item>
                <item>

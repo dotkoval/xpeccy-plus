@@ -16,3 +16,4 @@ dbg.disk.data.bg = #005000
 dbg.disk.data.txt = #ffffff
 dbg.disk.crc.bg = #600060
 dbg.disk.crc.txt = #ffffff
+dbg.asm.const.txt = #ff00ff

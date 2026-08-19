@@ -9,6 +9,7 @@
 #include <QClipboard>
 #include <QHeaderView>
 #include <QApplication>
+#include <QFontMetrics>
 
 extern int blockStart;
 extern int blockEnd;
@@ -17,6 +18,46 @@ static int mode = XVIEW_CPU;
 static int page = 0;
 
 extern int adr_of_reg(CPU* cpu, bool* flag, QString nam);
+
+static int text_width(const QFontMetrics& fm, const QString& str) {
+#if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
+	return fm.horizontalAdvance(str);
+#else
+	return fm.width(str);
+#endif
+}
+
+// a return or a jump ends a logical block, conditional ones too. The list
+// covers every cpu core here: z80/i8080/gb, 6502, x86 and 1801vm1
+
+static bool is_block_end(const dasmData& drow) {
+	static const char* ends[] = {
+		"RET","RETI","RETN","RETF","RTS","RTI","IRET","RETURN",
+		"JP","JR","JMP","DJNZ","BR","BRA",
+		"BCC","BCS","BEQ","BNE","BMI","BPL","BVC","BVS",
+		"BGE","BLT","BGT","BLE","BHI","BLS",
+		NULL
+	};
+	if (drow.islab) return false;
+	switch (drow.flag & 0xf0) {
+		case DBG_VIEW_CODE:
+		case DBG_VIEW_EXEC: break;
+		default: return false;
+	}
+	int pos = drow.command.indexOf(QChar(0x20));
+	QString mnem = (pos < 0) ? drow.command : drow.command.left(pos);
+	for (int i = 0; ends[i]; i++)
+		if (mnem == ends[i]) return true;
+	return false;
+}
+
+static dasmData make_separator(int adr) {
+	dasmData drow = {};
+	drow.issep = 1;
+	drow.adr = adr;			// the row below it: page down still lands right
+	drow.oadr = -1;
+	return drow;
+}
 
 // MODEL
 
@@ -32,6 +73,21 @@ int xDisasmModel::columnCount(const QModelIndex&) const {
 
 int xDisasmModel::rowCount(const QModelIndex&) const {
 	return row_count;
+}
+
+// secondary text: halfway between the row colour and the row background,
+// so it follows the current style instead of a hardcoded gray, and stays
+// readable on the pc/selection rows
+
+QColor xDisasmModel::dim_color(const QColor& fgr, const QColor& rbg) const {
+	QWidget* wid = qobject_cast<QWidget*>(parent());
+	QColor bgr = rbg;
+	if (!bgr.isValid())
+		bgr = wid ? wid->palette().color(QPalette::Base) : QColor(Qt::white);
+	QColor txt = fgr;
+	if (!txt.isValid())
+		txt = wid ? wid->palette().color(QPalette::Text) : QColor(Qt::black);
+	return QColor((txt.red() + bgr.red()) / 2, (txt.green() + bgr.green()) / 2, (txt.blue() + bgr.blue()) / 2);
 }
 
 QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
@@ -70,8 +126,6 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 		case Qt::ForegroundRole:
 			if (dasm[row].isbrk) {
 				clr = conf.pal["dbg.brk.txt"];
-			} else if ((col == 0) && !dasm[row].islab && conf.dbg.hideadr) {
-				clr = QColor(Qt::gray);
 			} else if ((col == 0) && dasm[row].islab && dasm[row].iscom) {
 				clr = QColor(Qt::gray);
 			} else if (dasm[row].ispc && !dasm[row].islab) {
@@ -82,6 +136,17 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 				clr = conf.pal["dbg.disk.id.txt"];
 			//} else {
 			//	clr = conf.pal["dbg.table.txt"];
+			}
+			// address and opcodes are secondary, breakpoints stay loud
+			if (!dasm[row].isbrk &&
+				(((col == 0) && !dasm[row].islab && conf.dbg.dimadr) || ((col == 1) && conf.dbg.dimops))) {
+				QColor bgr;
+				if (dasm[row].ispc && !dasm[row].islab) {
+					bgr = conf.pal["dbg.pc.bg"];
+				} else if (dasm[row].issel) {
+					bgr = conf.pal["dbg.sel.bg"];
+				}
+				clr = dim_color(clr, bgr);
 			}
 			if (clr.isValid())
 				res = clr;
@@ -124,6 +189,9 @@ QVariant xDisasmModel::data(const QModelIndex& idx, int role) const {
 				case 2: res = dasm[row].command; break;
 				case 3: res = dasm[row].info; break;
 			}
+			break;
+		case X_LabelRole:
+			if (col == 2) res = dasm[row].label;
 			break;
 		case Qt::UserRole:
 			switch (col) {
@@ -230,6 +298,7 @@ void placeLabel(Computer* comp, dasmData& drow) {
 				} else {
 					drow.command.replace(num, QString("%0 + %1").arg(lab).arg(shift));
 				}
+				drow.label = lab;		// the delegate colours it as one word
 			}
 			work = 0;
 		}
@@ -335,6 +404,7 @@ int dasmCode(Computer* comp, int adr, dasmData& drow) {
 // adr is bus value
 int dasmSome(Computer* comp, int adr, dasmData& drow) {
 	int clen = 0;
+	drow.label.clear();
 	drow.adr = adr;
 	drow.flag = getBrk(comp, adr);
 	drow.oflag = 0;
@@ -363,6 +433,7 @@ QList<dasmData> getDisasm(Computer* comp, int& adr) {
 	drow.islab = 0;
 	drow.iscom = 0;
 	drow.isequ = 0;
+	drow.issep = 0;
 	drow.info.clear();
 	drow.icon.clear();
 	int clen = 0;
@@ -485,15 +556,20 @@ int xDisasmModel::fill() {
 	dasm.clear();
 	for(row = 0; row < rowCount(); row++) {
 		adr &= conf.prof.cur->zx->mem->busmask;
+		int blkend = 0;
 		list = getDisasm(conf.prof.cur->zx, adr);
 		foreach (drow, list) {
 			if (dasm.size() < rowCount()) {
 				dasm.append(drow);
 				res |= drow.ispc;
+				if (is_block_end(drow))
+					blkend = 1;
 			} else {
 				row = rowCount();		// it will prevent next iteration
 			}
 		}
+		if (blkend && conf.dbg.blocksep && (dasm.size() < rowCount()))
+			dasm.append(make_separator(adr));
 	}
 	return res;
 }
@@ -518,6 +594,8 @@ int xDisasmModel::update_lst() {
 Qt::ItemFlags xDisasmModel::flags(const QModelIndex& idx) const {
 	Qt::ItemFlags res = QAbstractItemModel::flags(idx);
 	if (idx.isValid() && (idx.row() < dasm.size())) {
+		if (dasm[idx.row()].issep)
+			return Qt::NoItemFlags;
 		if ((idx.column() < 3) && !((idx.column() == 2) && dasm[idx.row()].isequ)) {
 			res |= Qt::ItemIsEditable;
 		}
@@ -770,13 +848,76 @@ bool xDisasmModel::setData(const QModelIndex& cidx, const QVariant& val, int rol
 	return true;
 }
 
+// SYNTAX COLOURS
+
+static bool is_word_char(QChar chr) {
+	return chr.isLetterOrNumber() || (chr == QChar(0x5f)) || (chr == QChar(0x23)) || (chr == QChar(0x24));
+}
+
+xDasmSyntax::xDasmSyntax(QObject* p):QStyledItemDelegate(p) {
+}
+
+void xDasmSyntax::paint(QPainter* pnt, const QStyleOptionViewItem& option, const QModelIndex& idx) const {
+	QStyleOptionViewItem opt = option;
+	initStyleOption(&opt, idx);
+	QString text = opt.text;
+	// a db "string" is text, not operands
+	if (!conf.dbg.synhl || text.isEmpty() || text.startsWith("DB \"")) {
+		QStyledItemDelegate::paint(pnt, option, idx);
+		return;
+	}
+	QStyle* stl = opt.widget ? opt.widget->style() : QApplication::style();
+	opt.text.clear();
+	stl->drawControl(QStyle::CE_ItemViewItem, &opt, pnt, opt.widget);
+	QRect rect = stl->subElementRect(QStyle::SE_ItemViewItemText, &opt, opt.widget);
+	QColor base = (opt.state & QStyle::State_Selected)
+		? opt.palette.color(QPalette::HighlightedText)
+		: opt.palette.color(QPalette::Text);
+	// the label is taken as it stands: it may hold dots, digits, anything
+	// but a space, so picking it out of the text by hand would miss half
+	QString lab = idx.data(X_LabelRole).toString();
+	int lpos = lab.isEmpty() ? -1 : text.indexOf(lab);
+	QFont bfnt = opt.font;
+	bfnt.setBold(true);
+	QFontMetrics fm(opt.font);
+	QFontMetrics bfm(bfnt);
+	QColor cst = conf.pal.value(DBG_PAL_CONST);
+	int x = rect.left();
+	int y = rect.top() + (rect.height() + fm.ascent() - fm.descent()) / 2;
+	int pos = 0;
+	pnt->save();
+	while (pos < text.size()) {
+		int end = pos;
+		bool bold = false;
+		QColor clr;
+		if (pos == lpos) {			// a label stands out by weight, not by colour
+			end = pos + lab.size();
+			bold = true;
+		} else {
+			bool word = is_word_char(text.at(pos));
+			while ((end < text.size()) && (end != lpos) && (is_word_char(text.at(end)) == word))
+				end++;
+			QChar chr = text.at(pos);
+			if (word && ((chr == QChar(0x23)) || (chr == QChar(0x24)) || chr.isDigit()))
+				clr = cst;
+		}
+		QString tok = text.mid(pos, end - pos);
+		pnt->setFont(bold ? bfnt : opt.font);
+		pnt->setPen(clr.isValid() ? clr : base);
+		pnt->drawText(x, y, tok);
+		x += text_width(bold ? bfm : fm, tok);
+		pos = end;
+	}
+	pnt->restore();
+}
+
 // TABLE
 
 xDisasmTable::xDisasmTable(QWidget* p):QTableView(p) {
 	for (int i = 0; i < 5; i++) {
 		storedAddress[i] = -1;
 	}
-	model = new xDisasmModel();
+	model = new xDisasmModel(this);
 	setModel(model);
 	connect(model, SIGNAL(s_comenter()), this, SLOT(rowDown()));
 	connect(model, SIGNAL(s_adrch(int, int)), this, SLOT(t_update(int, int)));
@@ -788,13 +929,8 @@ xDisasmTable::xDisasmTable(QWidget* p):QTableView(p) {
 void xDisasmTable::resizeEvent(QResizeEvent* ev) {
 	int wid = ev->size().width();
 	QFontMetrics qfm(font());
-#if QT_VERSION >= QT_VERSION_CHECK(5,11,0)
-	int adw = qfm.horizontalAdvance("000:00:0000") + 10;
-	int btw = qfm.horizontalAdvance("0000000000") + 10;
-#else
-	int adw = qfm.width("000:00:0000") + 10;
-	int btw = qfm.width("0000000000") + 10;
-#endif
+	int adw = text_width(qfm, "000:00:0000") + 10;
+	int btw = text_width(qfm, "0000000000") + 10;
 	setColumnWidth(0, adw);
 	setColumnWidth(1, btw);
 	setColumnWidth(2, wid - adw - btw - 50);
@@ -853,7 +989,9 @@ int xDisasmTable::updContent() {
 	int res = model->update_lst();
 	clearSpans();
 	for (int i = 0; i < model->dasm.size(); i++) {
-		if (model->dasm[i].isequ) {
+		if (model->dasm[i].issep) {
+			setSpan(i, 0, 1, model->columnCount());
+		} else if (model->dasm[i].isequ) {
 			setSpan(i, 0, 1, 2);
 			setSpan(i, 2, 1, 2);
 		} else if (model->dasm[i].islab) {

@@ -48,8 +48,8 @@ values match what the platform style gives those buttons.
 
 ## deBUGa highlight colours
 
-The disassembler's PC row, the selected row, the panel headers, the changed-value fields and the
-id / data / crc markers in the track dump are not part of a style sheet - Qt has nowhere to put
+The disassembler's PC row, the selected row, the constants in the listing, the panel headers, the
+changed-value fields and the id / data / crc markers in the track dump are not part of a style sheet - Qt has nowhere to put
 them. They live in the `[PALETTE]` section of `config/config.conf`, and each style brings a set
 of its own in the `.pal` file next to it: `Dracula.qss` and `Dracula.pal`, same
 `name = #rrggbb` lines, `;` starts a comment.

@@ -1,6 +1,8 @@
 #pragma once
 
+#include <QColor>
 #include <QTableView>
+#include <QStyledItemDelegate>
 #include <QAbstractTableModel>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -8,6 +10,10 @@
 #include "../../libxpeccy/spectrum.h"
 #include "../../xcore/xcore.h"
 #include "../classes.h"
+
+// the command column carries the label name for the syntax delegate
+
+#define X_LabelRole	(Qt::UserRole + 1)
 
 // memory cell type (bits 4..7)
 
@@ -18,6 +24,7 @@ typedef struct {
 	unsigned islab:1;		// address have label
 	unsigned iscom:1;		// address have comment
 	unsigned isequ:1;		// this is equ
+	unsigned issep:1;		// row is the empty block separator
 	int adr;			// command addr (bus/cpu)
 	int oadr;			// word operand like nn : jp nn; ld hl,(nn)
 	int flag;			// address cell flags
@@ -25,6 +32,7 @@ typedef struct {
 	QString aname;			// label/segment/address
 	QString bytes;			// all bytes inside command
 	QString command;		// command with replaced addr->label
+	QString label;			// label put into the command, if any
 	QString info;			// memory argument if any
 	QString icon;			// icon path if any
 } dasmData;
@@ -49,6 +57,7 @@ class xDisasmModel : public xTableModel {
 		int update_lst();
 	private:
 		int fill();
+		QColor dim_color(const QColor&, const QColor&) const;
 };
 
 class xDisasmTable : public QTableView {
@@ -98,6 +107,16 @@ class xDisasmTable : public QTableView {
 		void mouseMoveEvent(QMouseEvent*);
 		void wheelEvent(QWheelEvent*);
 		void resizeEvent(QResizeEvent*);
+};
+
+// paints the command column token by token: constants take their own
+// colour, a label goes bold, everything else keeps the row colour
+
+class xDasmSyntax : public QStyledItemDelegate {
+	public:
+		xDasmSyntax(QObject* = NULL);
+	protected:
+		void paint(QPainter*, const QStyleOptionViewItem&, const QModelIndex&) const;
 };
 
 QList<dasmData> getDisasm(Computer*, int&);
