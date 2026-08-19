@@ -123,6 +123,9 @@ void xHexSpin::updatePal() {
 	QWidget* p = parentWidget();
 	if (changed) {
 		str = getStyleString("dbg.changed.bg", "dbg.changed.txt");
+		// scope the rule to the field: a bare property list would leak
+		// into child widgets, e.g. the standard context menu
+		if (!str.isEmpty()) str = QString("xHexSpin{%0}").arg(str);
 	} else {
 		str = p ? p->styleSheet() : ""; // getStyleString("dbg.input.bg", "dbg.input.txt");
 	}

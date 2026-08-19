@@ -39,6 +39,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **The context menu of a changed register is readable again.** It took the pink
+  highlight of the field as its own background.
 - **The register panel comes back the way it was left.** It was rebuilt in one column on
   every start, whatever the saved layout said, and pushed the panels under it down.
 - **Two more visual artefacts in ZX Evo (TSConf) demos**: a seam running along the horizon,
