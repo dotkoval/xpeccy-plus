@@ -331,13 +331,17 @@ enum {
 	XCUT_SETBRK,
 	XCUT_JUMPTO,
 	XCUT_RETFROM,
+	XCUT_GOTOADR,
+
+	XCUT_DUMP_GOTOADR,
 };
 
 enum {
 	SCG_ALL = -1,
 	SCG_MAIN = (1 << 0),
 	SCG_DEBUGA = (1 << 1),
-	SCG_DISASM = (1 << 2)
+	SCG_DISASM = (1 << 2),
+	SCG_DUMP = (1 << 3)
 };
 
 void loadKeys();

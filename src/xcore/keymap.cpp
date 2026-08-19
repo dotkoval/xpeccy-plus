@@ -461,6 +461,9 @@ static xShortcut short_tab[] = {
 	{SCG_DISASM, XCUT_SETBRK, "key.disasm.setbrk", "Disasm: Breakpoint", QKeySequence(), QKeySequence(Qt::Key_Space)},
 	{SCG_DISASM, XCUT_JUMPTO, "key.disasm.jump", "Disasm: Jump to operand", QKeySequence(), QKeySequence(Qt::Key_F4)},
 	{SCG_DISASM, XCUT_RETFROM, "key.disasm.ret", "Disasm: Return", QKeySequence(), QKeySequence(Qt::Key_F5)},
+	{SCG_DISASM, XCUT_GOTOADR, "key.disasm.goto", "Disasm: Go to address", QKeySequence(), QKeySequence(Qt::Key_G)},
+
+	{SCG_DUMP, XCUT_DUMP_GOTOADR, "key.dump.goto", "Dump: Go to address", QKeySequence(), QKeySequence(Qt::Key_G)},
 
 	{0, -1, NULL, NULL, QKeySequence(), QKeySequence()}
 };

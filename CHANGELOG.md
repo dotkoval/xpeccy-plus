@@ -17,6 +17,10 @@ before that point is upstream's history and is not repeated here.
   Options menu, kept between runs; the constant colour is `Const` in the palette editor and
   every bundled style brings its own.
 
+- **Go to an address in the debugger from the keyboard** (the way Unreal's debugger does it):
+  `G` puts the cursor on the address of the first row - in the disassembler and in the memory
+  dump - ready for a new address. Both keys are rebindable.
+
 - **Autoload for tapes and disks given on the command line** (the way a snapshot always
   did). The loading method is the standard one for the machine and is picked automatically.
   To only mount the file, use `--no-autostart`.

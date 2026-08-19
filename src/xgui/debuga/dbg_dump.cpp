@@ -518,7 +518,13 @@ void xDumpTable::resizeEvent(QResizeEvent* ev) {
 
 void xDumpTable::keyPressEvent(QKeyEvent* ev) {
 	QModelIndex idx = currentIndex();
-	switch(ev->key()) {
+	Qt::KeyboardModifiers mod = ev->modifiers();
+	int key = shortcut_check(SCG_DUMP, QKeySequence(ev->key() | mod));
+	if (key < 0)
+		key = shortcut_check(SCG_DUMP, QKeySequence(ev->key()));
+	if (key < 0)
+		key = ev->key();
+	switch(key) {
 		case Qt::Key_Up:
 			if (idx.row() > 0) {
 				QTableView::keyPressEvent(ev);
@@ -545,6 +551,13 @@ void xDumpTable::keyPressEvent(QKeyEvent* ev) {
 			break;
 		case Qt::Key_PageDown:
 			setAdr(model->dmpadr + (rows() * model->dmpsize));
+			break;
+		case XCUT_DUMP_GOTOADR:
+			// put the cursor on the address of the first row, so the address can be typed at once
+			if (model->rowCount() < 1) break;
+			idx = model->index(0, 0);
+			setCurrentIndex(idx);
+			edit(idx);
 			break;
 		case Qt::Key_Return:
 			if (state() == QAbstractItemView::EditingState) break;
