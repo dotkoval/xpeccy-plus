@@ -456,11 +456,11 @@ static xShortcut short_tab[] = {
 	{SCG_DEBUGA, XCUT_LABLIST, "key.dbg.lablist", "DeBUGa: Show labels list", QKeySequence(), QKeySequence()},
 	{SCG_DEBUGA, XCUT_DBG_RELOAD, "key.dbg.reload", "DeBUGa: Reload snapshot and labels", QKeySequence(), QKeySequence()},
 
-	{SCG_DISASM, XCUT_TOPC, "key.disasm.topc", "Diasm: Jump to PC", QKeySequence(), QKeySequence(Qt::Key_Home)},
-	{SCG_DISASM, XCUT_SETPC, "key.disasm.setpc", "Diasm: Set PC", QKeySequence(), QKeySequence(Qt::Key_End)},
-	{SCG_DISASM, XCUT_SETBRK, "key.disasm.setbrk", "Diasm: Breakpoint", QKeySequence(), QKeySequence(Qt::Key_Space)},
-	{SCG_DISASM, XCUT_JUMPTO, "key.disasm.jump", "Diasm: Jump to operand", QKeySequence(), QKeySequence(Qt::Key_F4)},
-	{SCG_DISASM, XCUT_RETFROM, "key.disasm.ret", "Diasm: Return", QKeySequence(), QKeySequence(Qt::Key_F5)},
+	{SCG_DISASM, XCUT_TOPC, "key.disasm.topc", "Disasm: Jump to PC", QKeySequence(), QKeySequence(Qt::Key_Home)},
+	{SCG_DISASM, XCUT_SETPC, "key.disasm.setpc", "Disasm: Set PC", QKeySequence(), QKeySequence(Qt::Key_End)},
+	{SCG_DISASM, XCUT_SETBRK, "key.disasm.setbrk", "Disasm: Breakpoint", QKeySequence(), QKeySequence(Qt::Key_Space)},
+	{SCG_DISASM, XCUT_JUMPTO, "key.disasm.jump", "Disasm: Jump to operand", QKeySequence(), QKeySequence(Qt::Key_F4)},
+	{SCG_DISASM, XCUT_RETFROM, "key.disasm.ret", "Disasm: Return", QKeySequence(), QKeySequence(Qt::Key_F5)},
 
 	{0, -1, NULL, NULL, QKeySequence(), QKeySequence()}
 };
