@@ -11,6 +11,12 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **The disassembly listing reads more like a listing** (ideas borrowed from Spectaculator):
+  the address and the opcode columns can be dimmed, constants are coloured and labels go
+  bold, and an empty line follows every `RET`/`JP`/`JR`. Four switches in the debugger
+  Options menu, kept between runs; the constant colour is `Const` in the palette editor and
+  every bundled style brings its own.
+
 - **Autoload for tapes and disks given on the command line** (the way a snapshot always
   did). The loading method is the standard one for the machine and is picked automatically.
   To only mount the file, use `--no-autostart`.

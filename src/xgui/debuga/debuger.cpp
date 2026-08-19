@@ -408,6 +408,10 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	conf.dbg.segment = 0;
 	ui_asm.actShowLabels->setChecked(conf.dbg.labels);
 	ui_asm.actShowSeg->setChecked(conf.dbg.segment);
+	ui_asm.actDimAddr->setChecked(conf.dbg.dimadr);
+	ui_asm.actDimOps->setChecked(conf.dbg.dimops);
+	ui_asm.actSyntax->setChecked(conf.dbg.synhl);
+	ui_asm.actBlockSep->setChecked(conf.dbg.blocksep);
 
 	xid_none = new xItemDelegate(XTYPE_NONE);
 	xid_byte = new xItemDelegate(XTYPE_BYTE);
@@ -436,6 +440,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 // disasm table
 	ui_asm.dasmTable->setItemDelegateForColumn(0, xid_labl);
 	ui_asm.dasmTable->setItemDelegateForColumn(1, xid_dump);
+	ui_asm.dasmTable->setItemDelegateForColumn(2, new xDasmSyntax(ui_asm.dasmTable));
 
 // actions
 	ui_asm.tbBreak->addAction(ui_asm.actFetch);
@@ -475,7 +480,10 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 //	ui_asm.tbTool->addAction(ui_asm.actLabelsList);
 
 //	ui_asm.tbDbgOpt->addAction(ui_asm.actShowLabels);
-	ui_asm.tbDbgOpt->addAction(ui_asm.actHideAddr);
+	ui_asm.tbDbgOpt->addAction(ui_asm.actDimAddr);
+	ui_asm.tbDbgOpt->addAction(ui_asm.actDimOps);
+	ui_asm.tbDbgOpt->addAction(ui_asm.actSyntax);
+	ui_asm.tbDbgOpt->addAction(ui_asm.actBlockSep);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actShowSeg);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actRomWr);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actMaping);
@@ -522,7 +530,10 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	connect(labswin, &xLabeList::labSetChanged, this, &DebugWin::fillDisasm);
 
 	connect(ui_asm.actShowLabels, &QAction::toggled, this, &DebugWin::setShowLabels);
-	connect(ui_asm.actHideAddr, &QAction::toggled, this, &DebugWin::fillDisasm);
+	connect(ui_asm.actDimAddr, &QAction::toggled, this, &DebugWin::fillDisasm);
+	connect(ui_asm.actDimOps, &QAction::toggled, this, &DebugWin::fillDisasm);
+	connect(ui_asm.actSyntax, &QAction::toggled, this, &DebugWin::fillDisasm);
+	connect(ui_asm.actBlockSep, &QAction::toggled, this, &DebugWin::fillDisasm);
 	connect(ui_asm.actShowSeg, &QAction::toggled, this, &DebugWin::setShowSegment);
 	connect(ui_asm.actRomWr, &QAction::toggled, this, &DebugWin::setRomWriteable);
 
@@ -1596,7 +1607,10 @@ int rdbyte(int adr, void* ptr) {
 }
 
 int DebugWin::fillDisasm() {
-	conf.dbg.hideadr = ui_asm.actHideAddr->isChecked() ? 1 : 0;
+	conf.dbg.dimadr = ui_asm.actDimAddr->isChecked() ? 1 : 0;
+	conf.dbg.dimops = ui_asm.actDimOps->isChecked() ? 1 : 0;
+	conf.dbg.synhl = ui_asm.actSyntax->isChecked() ? 1 : 0;
+	conf.dbg.blocksep = ui_asm.actBlockSep->isChecked() ? 1 : 0;
 	conf.dbg.labels = ui_asm.actShowLabels->isChecked() ? 1 : 0;
 	return ui_asm.dasmTable->updContent();
 }

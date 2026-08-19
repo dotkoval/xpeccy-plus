@@ -16,3 +16,4 @@ dbg.disk.data.bg = #e4ecc9
 dbg.disk.data.txt = #002b36
 dbg.disk.crc.bg = #f2dbe4
 dbg.disk.crc.txt = #002b36
+dbg.asm.const.txt = #d33682

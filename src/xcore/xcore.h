@@ -506,7 +506,10 @@ struct xConfig {
 	struct {
 		unsigned labels:1;
 		unsigned segment:1;
-		unsigned hideadr:1;
+		unsigned dimadr:1;	// address column drawn dimmed
+		unsigned dimops:1;	// opcode bytes column drawn dimmed
+		unsigned synhl:1;	// syntax colors in the command column
+		unsigned blocksep:1;	// empty line after RET/JP/JR
 		unsigned romwr:1;
 		QFont font;
 		int dbsize;
@@ -517,5 +520,9 @@ struct xConfig {
 		QSize siz;
 	} dbg;
 };
+
+// constants in the disasm listing (labels go bold instead of coloured)
+
+#define DBG_PAL_CONST	"dbg.asm.const.txt"
 
 extern xConfig conf;

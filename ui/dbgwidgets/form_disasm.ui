@@ -471,20 +471,36 @@
     <string>Save dump</string>
    </property>
   </action>
-  <action name="actHideAddr">
+  <action name="actDimAddr">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hide address</string>
+    <string>Dim address</string>
    </property>
   </action>
-  <action name="actHideAddr_2">
+  <action name="actDimOps">
    <property name="checkable">
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hide address</string>
+    <string>Dim opcodes</string>
+   </property>
+  </action>
+  <action name="actSyntax">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Syntax colors</string>
+   </property>
+  </action>
+  <action name="actBlockSep">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Block separator</string>
    </property>
   </action>
   <action name="actTraceLog">

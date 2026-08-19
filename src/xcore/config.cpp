@@ -229,6 +229,10 @@ void saveConfig() {
 	fprintf(cfile, "dwsize = %i\n", conf.dbg.dwsize);
 	fprintf(cfile, "dmsize = %i\n", conf.dbg.dmsize);
 	fprintf(cfile, "scr.zoom = %i\n", conf.dbg.scrzoom);
+	fprintf(cfile, "dim.address = %s\n", YESNO(conf.dbg.dimadr));
+	fprintf(cfile, "dim.opcodes = %s\n", YESNO(conf.dbg.dimops));
+	fprintf(cfile, "syntax.colors = %s\n", YESNO(conf.dbg.synhl));
+	fprintf(cfile, "block.separator = %s\n", YESNO(conf.dbg.blocksep));
 	fprintf(cfile, "font = %s\n", conf.dbg.font.toString().toUtf8().data());
 	fprintf(cfile, "window = %i:%i:%i:%i\n",conf.dbg.pos.x(),conf.dbg.pos.y(),conf.dbg.siz.width(),conf.dbg.siz.height());
 
@@ -265,6 +269,7 @@ static const struct { const char* name; const char* color; } dbgPalTab[] = {
 	{"dbg.disk.id.bg", "#dcdcff"},	{"dbg.disk.id.txt", "#000000"},	// track dump
 	{"dbg.disk.data.bg", "#dcffdc"},{"dbg.disk.data.txt", "#000000"},
 	{"dbg.disk.crc.bg", "#ffdcff"},	{"dbg.disk.crc.txt", "#000000"},
+	{"dbg.asm.const.txt", "#762d9b"},				// constants in the listing
 	{NULL, NULL}
 };
 
@@ -421,6 +426,10 @@ void loadConfig() {
 	conf.dbg.dwsize = 4;
 	conf.dbg.dmsize = 127;
 	conf.dbg.scrzoom = 1;
+	conf.dbg.dimadr = 0;
+	conf.dbg.dimops = 1;
+	conf.dbg.synhl = 1;
+	conf.dbg.blocksep = 1;
 	conf.dbg.siz = QSize(960, 720);		// deBUGa default, until the user resizes it
 	conf.dbg.font = QFont("DejaVu Sans Mono", 9);		// default, shipped in the resources
 // init volumes
@@ -490,6 +499,10 @@ void loadConfig() {
 					}
 					if ((pnam == "scr.zoom") && (arg.i > 0) && (arg.i < 4))
 						conf.dbg.scrzoom = arg.i;
+					if (pnam == "dim.address") conf.dbg.dimadr = arg.b;
+					if (pnam == "dim.opcodes") conf.dbg.dimops = arg.b;
+					if (pnam == "syntax.colors") conf.dbg.synhl = arg.b;
+					if (pnam == "block.separator") conf.dbg.blocksep = arg.b;
 					break;
 				case SECT_BOOKMARK:
 					addBookmark(pnam, pval);
