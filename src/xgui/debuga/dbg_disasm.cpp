@@ -1197,6 +1197,16 @@ void xDisasmTable::keyPressEvent(QKeyEvent* ev) {
 			updContent();
 			emit s_adrch(model->asmadr);
 			break;
+		case XCUT_GOTOADR:
+			// put the cursor on the address of the first row, so the address can be typed at once
+			i = 0;
+			while ((i < model->dasm.size()) && model->dasm[i].issep)
+				i++;
+			if (i >= model->dasm.size()) break;
+			idx = model->index(i, 0);
+			setCurrentIndex(idx);
+			edit(idx);
+			break;
 		case Qt::Key_Return:
 			if (state() == QAbstractItemView::EditingState) break;
 			edit(currentIndex());

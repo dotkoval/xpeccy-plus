@@ -102,6 +102,7 @@ class xDumpTable:public QTableView {
 		int pagenum;
 		int rowBytes;			// what setRowBytes was given
 		void layoutColumns();
+		void gotoReg(const char*);
 		xDumpModel* model;
 		int markAdr;
 		int row_count;

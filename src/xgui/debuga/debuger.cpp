@@ -1026,6 +1026,18 @@ int dbg_get_reg_adr(CPU* cpu, xRegister* reg) {
 	return a;
 }
 
+// the same address by register name, for the dump hotkeys. -1 = this cpu
+// has no such register
+
+int dbg_get_reg_adr_name(CPU* cpu, const char* name) {
+	xRegBunch bunch = cpuGetRegs(cpu);
+	for (int i = 0; (i < 32) && (bunch.regs[i].id != REG_EOT); i++) {
+		if (!strcmp(bunch.regs[i].name, name))
+			return dbg_get_reg_adr(cpu, &bunch.regs[i]);
+	}
+	return -1;
+}
+
 void DebugWin::regClick(QMouseEvent* ev) {
 	xLabel* lab = qobject_cast<xLabel*>(sender());
 	int id = lab->id;

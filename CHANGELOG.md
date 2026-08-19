@@ -17,6 +17,13 @@ before that point is upstream's history and is not repeated here.
   Options menu, kept between runs; the constant colour is `Const` in the palette editor and
   every bundled style brings its own.
 
+- **Address jumps in the debugger from the keyboard** (the way Unreal's debugger does it): `G`
+  puts the cursor on the address of the first row - in the disassembler and in the memory dump -
+  ready for a new address. In the dump `Ctrl+P`, `Ctrl+S`, `Ctrl+B`, `Ctrl+D`, `Ctrl+H`, `Ctrl+X`
+  and `Ctrl+Y` jump to what `PC`, `SP`, `BC`, `DE`, `HL`, `IX` and `IY` point at, the same as a
+  right click on the register name. All of them are rebindable; `Ctrl+S` in the dump no longer
+  opens "Save dump".
+
 - **Autoload for tapes and disks given on the command line** (the way a snapshot always
   did). The loading method is the standard one for the machine and is picked automatically.
   To only mount the file, use `--no-autostart`.

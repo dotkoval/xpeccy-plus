@@ -516,9 +516,27 @@ void xDumpTable::resizeEvent(QResizeEvent* ev) {
 	layoutColumns();
 }
 
+extern int dbg_get_reg_adr_name(CPU*, const char*);
+
+// go to the address a register pair holds, the way a right click on its name does
+
+void xDumpTable::gotoReg(const char* name) {
+	Computer* comp = conf.prof.cur->zx;
+	if (!comp) return;
+	int adr = dbg_get_reg_adr_name(comp->cpu, name);
+	if (adr < 0) return;
+	setAdr(adr);
+}
+
 void xDumpTable::keyPressEvent(QKeyEvent* ev) {
 	QModelIndex idx = currentIndex();
-	switch(ev->key()) {
+	Qt::KeyboardModifiers mod = ev->modifiers();
+	int key = shortcut_check(SCG_DUMP, QKeySequence(ev->key() | mod));
+	if (key < 0)
+		key = shortcut_check(SCG_DUMP, QKeySequence(ev->key()));
+	if (key < 0)
+		key = ev->key();
+	switch(key) {
 		case Qt::Key_Up:
 			if (idx.row() > 0) {
 				QTableView::keyPressEvent(ev);
@@ -545,6 +563,20 @@ void xDumpTable::keyPressEvent(QKeyEvent* ev) {
 			break;
 		case Qt::Key_PageDown:
 			setAdr(model->dmpadr + (rows() * model->dmpsize));
+			break;
+		case XCUT_DUMP_REG_PC: gotoReg("PC"); break;
+		case XCUT_DUMP_REG_SP: gotoReg("SP"); break;
+		case XCUT_DUMP_REG_BC: gotoReg("BC"); break;
+		case XCUT_DUMP_REG_DE: gotoReg("DE"); break;
+		case XCUT_DUMP_REG_HL: gotoReg("HL"); break;
+		case XCUT_DUMP_REG_IX: gotoReg("IX"); break;
+		case XCUT_DUMP_REG_IY: gotoReg("IY"); break;
+		case XCUT_DUMP_GOTOADR:
+			// put the cursor on the address of the first row, so the address can be typed at once
+			if (model->rowCount() < 1) break;
+			idx = model->index(0, 0);
+			setCurrentIndex(idx);
+			edit(idx);
 			break;
 		case Qt::Key_Return:
 			if (state() == QAbstractItemView::EditingState) break;
