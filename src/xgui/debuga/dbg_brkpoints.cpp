@@ -269,7 +269,7 @@ xBrkManager::xBrkManager(QWidget* p):QDialog(p) {
 	ui.leValMask->setMax(0xff);
 	ui.leValMask->setValue(0xff);
 
-	ui.brkAction->addItem("Debuger", BRK_ACT_DBG);
+	ui.brkAction->addItem("Debugger", BRK_ACT_DBG);
 	ui.brkAction->addItem("Counter", BRK_ACT_COUNT);
 	ui.brkAction->addItem("Screen dump (ZX only)", BRK_ACT_SCR);
 
@@ -645,7 +645,7 @@ void xBreakWidget::resetBrk() {
 }
 
 void xBreakWidget::openBrk() {
-	QString path = QFileDialog::getOpenFileName(this, "Open breakpoints list", "", "deBUGa breakpoints (*.xbrk)",nullptr,QFileDialog::DontUseNativeDialog);
+	QString path = QFileDialog::getOpenFileName(this, "Open breakpoints list", "", "Debugger breakpoints (*.xbrk)",nullptr,QFileDialog::DontUseNativeDialog);
 	if (path.isEmpty()) return;
 	if (brk_load_list(path.toLocal8Bit().data())) {
 		ui.bpList->update();
@@ -656,7 +656,7 @@ void xBreakWidget::openBrk() {
 }
 
 void xBreakWidget::saveBrk() {
-	QString path = QFileDialog::getSaveFileName(this, "Save breakpoints", "", "deBUGa breakpoints (*.xbrk)",nullptr,QFileDialog::DontUseNativeDialog);
+	QString path = QFileDialog::getSaveFileName(this, "Save breakpoints", "", "Debugger breakpoints (*.xbrk)",nullptr,QFileDialog::DontUseNativeDialog);
 	if (path.isEmpty())
 		return;
 	if (!path.endsWith(".xbrk", Qt::CaseInsensitive))

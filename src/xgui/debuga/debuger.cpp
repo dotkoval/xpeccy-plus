@@ -287,7 +287,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	// AnimatedDocks is on by default and makes dragging panels feel sluggish
 	setDockOptions(QMainWindow::AllowTabbedDocks | QMainWindow::AllowNestedDocks);
 	setTabPosition(Qt::AllDockWidgetAreas, QTabWidget::North);
-	setWindowTitle("Xpeccy+ deBUGa");
+	setWindowTitle("Xpeccy+ Debugger");
 	setWindowIcon(QIcon(":/images/bug.png"));
 
 	wid_cpu = new QWidget;
@@ -1660,7 +1660,7 @@ void DebugWin::saveDasm() {
 		int adr = (blockStart < 0) ? 0 : (blockStart & comp->mem->busmask);
 		int end = (blockEnd < 0) ? comp->mem->busmask : (blockEnd & comp->mem->busmask);
 		int work = 1;
-		strm << "; Created by Xpeccy+ deBUGa\n\n";
+		strm << "; Created by Xpeccy+ Debugger\n\n";
 		strm << "\tORG 0x" << gethexword(adr) << "\n\n";
 		while ((adr <= end) && work) {
 			list = getDisasm(comp, adr);

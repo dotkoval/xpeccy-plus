@@ -178,7 +178,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="label_90">
          <property name="text">
-          <string>LenghtCnt</string>
+          <string>LengthCnt</string>
          </property>
         </widget>
        </item>
@@ -311,7 +311,7 @@
        <item row="5" column="0">
         <widget class="QLabel" name="label_109">
          <property name="text">
-          <string>LenghtCnt</string>
+          <string>LengthCnt</string>
          </property>
         </widget>
        </item>

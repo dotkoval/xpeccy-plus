@@ -1052,7 +1052,7 @@ void MainWin::initUserMenu() {
 	pckAct->setCheckable(true);
 	userMenu->addAction(QIcon(":/images/keyboardzx.png"),"ZX Keyboard",this,SIGNAL(s_keywin_shide()));
 	userMenu->addAction(QIcon(":/images/objective.png"),"Watcher", this, SIGNAL(s_watch_show()));
-	userMenu->addAction(QIcon(":/images/bug.png"), "deBUGa", this, SLOT(doDebug()));
+	userMenu->addAction(QIcon(":/images/bug.png"), "Debugger", this, SLOT(doDebug()));
 	userMenu->addAction(QIcon(":/images/other.png"),"Options",this,SLOT(doOptions()));
 
 	connect(bookmarkMenu,SIGNAL(triggered(QAction*)),this,SLOT(bookmarkSelected(QAction*)));

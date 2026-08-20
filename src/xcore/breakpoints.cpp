@@ -580,7 +580,7 @@ int brk_save_list(const char* fpath) {
 	QFile file(fnam);
 	QString nm,ar1,ar2,flag,act;
 	if (!file.open(QFile::WriteOnly)) return 0;
-	file.write("; Xpeccy+ deBUGa breakpoints list\n");
+	file.write("; Xpeccy+ Debugger breakpoints list\n");
 	foreach(brk, conf.prof.cur->brk.list) {
 		switch(brk.type) {
 			case BRK_IOPORT:

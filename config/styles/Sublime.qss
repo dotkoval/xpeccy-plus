@@ -1,6 +1,6 @@
 /* Sublime -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Monokai, the default colour scheme of Sublime Text: warm dark grey
  * chrome and the same olive selection the editor uses.

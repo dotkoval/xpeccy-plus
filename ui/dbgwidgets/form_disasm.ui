@@ -526,15 +526,15 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Runtime maping</string>
+    <string>Runtime mapping</string>
    </property>
    <property name="toolTip">
-    <string>Runtime maping</string>
+    <string>Runtime mapping</string>
    </property>
   </action>
   <action name="actMapingClear">
    <property name="text">
-    <string>Clear maping</string>
+    <string>Clear mapping</string>
    </property>
   </action>
   <action name="actHeatEnable">

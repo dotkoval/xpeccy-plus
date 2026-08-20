@@ -1,6 +1,6 @@
 /* Dark -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Neutral dark theme, close to the usual editor greys. Keeps the same
  * layout metrics as Light.qss, only the colours differ.

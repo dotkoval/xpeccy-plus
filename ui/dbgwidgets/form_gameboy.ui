@@ -67,7 +67,7 @@
      <item>
       <widget class="QRadioButton" name="rbPaleteView">
        <property name="text">
-        <string>&amp;Palete</string>
+        <string>&amp;Palette</string>
        </property>
        <attribute name="buttonGroup">
         <string notr="true">gbModeGroup</string>

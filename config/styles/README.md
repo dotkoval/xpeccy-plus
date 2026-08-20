@@ -1,7 +1,7 @@
 # Bundled interface styles
 
 Qt style sheets for the emulator's own windows - menus, dialogs and the debugger. Pick one in
-Setup - Xpeccy+ - deBUGa - Style Sheet, or set `style = <file>` in `config/config.conf`. `System` there,
+Setup - Xpeccy+ - Debugger - Style Sheet, or set `style = <file>` in `config/config.conf`. `System` there,
 an empty `style =`, means no style sheet at all: every window looks the way the desktop tells
 it to, which on Windows is light and on most Linux desktops follows the system theme.
 
@@ -46,7 +46,7 @@ nothing on a box that has no title. The second rule takes the margin back off th
 label, and a dialog's OK / Apply / Cancel row visibly reflows the moment a style is picked. The
 values match what the platform style gives those buttons.
 
-## deBUGa highlight colours
+## Debugger highlight colours
 
 The disassembler's PC row, the selected row, the constants in the listing, the panel headers, the
 changed-value fields and the id / data / crc markers in the track dump are not part of a style sheet - Qt has nowhere to put
@@ -60,6 +60,6 @@ place - `System` ends up with the defaults, and a `.pal` naming only a few colou
 leftovers from the style before.
 
 From there the colours belong to the configuration like any other: change any of them in Setup -
-Xpeccy+ - deBUGa - Palette (right click on a swatch puts the built-in default back) and what you set
+Xpeccy+ - Debugger - Palette (right click on a swatch puts the built-in default back) and what you set
 stays, both when the emulator is restarted and when the same style is picked again later. Only
 switching to a *different* style starts the two steps over.
