@@ -123,6 +123,61 @@ static int xe_peek_op(xeParser* prs, int* len) {
 
 static void xe_binary(xeParser*, int);
 
+// true when everything the argument added is one number: only then is its
+// value known before the expression runs
+
+static bool xe_one_number(xeParser* prs, size_t mark) {
+	if (prs->code->size() != mark + 1) return false;
+	return (prs->code->back().op == XE_NUM);
+}
+
+// a plain number that no frame can reach is a typo, say so while it is typed.
+// an expression is only known when it runs, so it is left alone
+
+static bool xe_ray_range(xeParser* prs, bool known, unsigned val, int max, const char* nam) {
+	char msg[80];
+	if (!known || (max < 1) || ((int)val < max)) return true;
+	snprintf(msg, sizeof(msg), "%s is past the frame, 0..%d here", nam, max - 1);
+	xe_fail(prs, msg);
+	return false;
+}
+
+// RAY(x, y) : did the beam cross that dot during this instruction. the only
+// place a comma means anything, so it is parsed here and not as an operator
+
+static void xe_ray_call(xeParser* prs) {
+	size_t mark;
+	bool xk, yk;
+	unsigned xv = 0;
+	unsigned yv = 0;
+	prs->ptr++;					// the '('
+	mark = prs->code->size();
+	xe_binary(prs, 1);
+	xk = xe_one_number(prs, mark);
+	if (xk) xv = prs->code->back().val;
+	xe_skip(prs);
+	if (*prs->ptr != ',') {
+		xe_fail(prs, "RAY needs two arguments: RAY(x, y)");
+		return;
+	}
+	prs->ptr++;
+	mark = prs->code->size();
+	xe_binary(prs, 1);
+	yk = xe_one_number(prs, mark);
+	if (yk) yv = prs->code->back().val;
+	xe_skip(prs);
+	if (*prs->ptr != ')') {
+		xe_fail(prs, "')' expected");
+		return;
+	}
+	prs->ptr++;
+	if (prs->comp && prs->comp->vid) {
+		if (!xe_ray_range(prs, xk, xv, prs->comp->vid->full.x, "x")) return;
+		if (!xe_ray_range(prs, yk, yv, prs->comp->vid->full.y, "y")) return;
+	}
+	xe_emit(prs, XE_RAYHIT, 0, NULL);
+}
+
 // number, name, char, bracketed sub-expression
 
 static void xe_primary(xeParser* prs) {
@@ -238,6 +293,13 @@ static void xe_primary(xeParser* prs) {
 				}
 				prs->ptr++;
 				xe_emit(prs, XE_MRDB, 0, NULL);
+				return;
+			}
+		}
+		if (!isreg && (uname == "RAY")) {
+			xe_skip(prs);
+			if (*prs->ptr == '(') {
+				xe_ray_call(prs);
 				return;
 			}
 		}
@@ -436,6 +498,10 @@ std::string xexpr_text(const xExpr& exp) {
 		stk.pop_back();
 		a = stk.back();
 		stk.pop_back();
+		if (it->op == XE_RAYHIT) {
+			stk.push_back("RAY(" + a + ", " + b + ")");
+			continue;
+		}
 		stk.push_back("(" + a + " " + xe_op_text(it->op) + " " + b + ")");
 	}
 	if (stk.size() != 1) return "";
@@ -534,6 +600,27 @@ unsigned xexpr_eval(const xExpr& exp, Computer* comp, bool* errp, int hits) {
 			break;
 		}
 		sp--;
+		if (it->op == XE_RAYHIT) {
+			// the frame is one ring of dots and the instruction covered the
+			// arc [was, now). a dot outside the frame is simply one the beam
+			// never reaches, whatever the expression computed it from
+			unsigned fx = comp->vid->full.x;
+			unsigned fy = comp->vid->full.y;
+			unsigned total = fx * fy;
+			if ((total < 1) || (stk[sp-1] >= fx) || (stk[sp] >= fy)) {
+				stk[sp-1] = 0;
+				continue;
+			}
+			unsigned tgt = stk[sp] * fx + stk[sp-1];
+			unsigned was = comp->brkray % total;
+			unsigned now = (comp->vid->ray.y * fx + comp->vid->ray.x) % total;
+			// walked round by hand: the unsigned difference wraps at 2^32,
+			// which is no multiple of the frame, so a plain % lies at the wrap
+			unsigned dtgt = (tgt >= was) ? (tgt - was) : (tgt + total - was);
+			unsigned dnow = (now >= was) ? (now - was) : (now + total - was);
+			stk[sp-1] = (dtgt < dnow) ? 1 : 0;
+			continue;
+		}
 		switch (it->op) {
 			case XE_MUL: stk[sp-1] *= stk[sp]; break;
 			case XE_DIV: stk[sp-1] = stk[sp] ? (stk[sp-1] / stk[sp]) : 0; break;

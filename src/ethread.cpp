@@ -273,7 +273,7 @@ void xThread::emuCycle(Computer* comp) {
 			comp->flgBRK = stop;
 		}
 		if (comp->flgCOND)
-			comp_brkev_reset(comp);
+			comp_brk_newstep(comp);
 	}
 	comp->flgBRK = 0;
 	comp->flgNMIRQ = 0;

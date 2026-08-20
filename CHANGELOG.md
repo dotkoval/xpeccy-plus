@@ -17,8 +17,9 @@ before that point is upstream's history and is not repeated here.
   instruction and stops while it is true, or only when it becomes true if "On change" is
   ticked. Expressions take CPU registers, labels,
   memory (`M(x)`, `[x]`), the last memory/IO access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`),
-  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`, the beam position `RAYX`/`RAYY`) and
-  the breakpoint's own hit counter
+  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`, the beam position `RAYX`/`RAYY`,
+  `RAY(x, y)` for the instruction the beam passed a given dot in) and the breakpoint's own
+  hit counter
   (`HITS`), so an address breakpoint with `HITS > 30` lets the first 30 hits pass and stops on
   the 31st, and `FRAME == 300` stops on the first instruction of frame 300. Numbers follow the same rules as the assembler in the disassembler window -
   decimal, `0x`/`#` for hex, a leading zero for octal - and while a condition is typed, the

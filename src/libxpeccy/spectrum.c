@@ -394,7 +394,7 @@ Computer* compCreate() {
 	comp->resbank = RES_48;
 	comp->flgFRN = 1;
 	comp->flgDBG = 0;
-	comp_brkev_reset(comp);
+	comp_brk_newstep(comp);		// vid is still NULL here, the call copes
 
 	comp->cpu = cpuCreate(CPU_Z80,memrd,memwr,iord,iowr,intrq,comp_irq,comp);
 	comp->mem = memCreate();
@@ -685,14 +685,17 @@ void cmsWr(Computer* comp, int val) {
 
 // breaks
 
-// forget the last mem/io event, called after each condition check
-void comp_brkev_reset(Computer* comp) {
+// end of an instruction as breakpoint conditions see it: the mem/io events it
+// caused are spent, and where the beam stands now is where the next one starts
+
+void comp_brk_newstep(Computer* comp) {
 	comp->brkev.rd = -1;
 	comp->brkev.wr = -1;
 	comp->brkev.mdt = -1;
 	comp->brkev.in = -1;
 	comp->brkev.out = -1;
 	comp->brkev.val = -1;
+	comp->brkray = comp->vid ? (comp->vid->ray.y * comp->vid->full.x + comp->vid->ray.x) : 0;
 }
 
 // activate breakpoint w/o type (exit to debuga)

@@ -354,7 +354,7 @@ void brkInstallAll() {
 		if ((it->type == BRK_COND) && !it->off) cond_count++;
 	}
 	comp->flgCOND = conds ? 1 : 0;
-	if (!conds) comp_brkev_reset(comp);
+	comp_brk_newstep(comp);		// conditions start from a known beam position
 	memset(comp->brkAdrMap, 0x00, MEM_64K);
 	memset(comp->brkIOMap, 0x00, MEM_64K);
 	clearMap(comp->brkRamMap, MEM_4M);

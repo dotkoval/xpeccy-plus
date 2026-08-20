@@ -25,7 +25,8 @@ enum {
 	XE_LT, XE_GT, XE_LE, XE_GE,
 	XE_EQ, XE_NE,
 	XE_AND, XE_XOR, XE_OR,
-	XE_LAND, XE_LOR
+	XE_LAND, XE_LOR,
+	XE_RAYHIT	// RAY(x,y): the beam crossed that dot inside this instruction
 };
 
 // pseudo-variables: last memory/io event and machine state

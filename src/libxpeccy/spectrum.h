@@ -102,6 +102,7 @@ typedef struct Computer {
 		int rd, wr, mdt;
 		int in, out, val;
 	} brkev;
+	int brkray;		// beam position (dots from frame start) before this instruction
 
 	char* msg;		// message ptr for displaying outside
 	int resbank;		// rompart active after reset
@@ -232,7 +233,7 @@ void cmsWr(Computer*, int);
 void rzxStop(Computer*);
 
 void comp_brk(Computer*, int);
-void comp_brkev_reset(Computer*);
+void comp_brk_newstep(Computer*);
 unsigned char* getBrkPtr(Computer*, int);
 unsigned char getBrk(Computer*, int);
 void setBrk(Computer*, int, unsigned char);
