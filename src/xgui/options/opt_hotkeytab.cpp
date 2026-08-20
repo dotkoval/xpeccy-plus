@@ -2,6 +2,7 @@
 #include "../../xcore/xcore.h"
 
 #include <QVBoxLayout>
+#include <QHeaderView>
 
 // model
 
@@ -52,6 +53,8 @@ xHotkeyTable::xHotkeyTable(QWidget* p):QTableView(p) {
 	model = new xHotkeyModel();
 	edt = new xKeyEditor();
 	setModel(model);
+	// name column fits the longest name, keys take the rest
+	horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
 
 	connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(dbl_click(QModelIndex)));
 	connect(edt, SIGNAL(s_done(int, QKeySequence)), this, SLOT(set_seq(int, QKeySequence)));
