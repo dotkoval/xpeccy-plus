@@ -99,7 +99,13 @@ int memrd(int adr, int m1, void* ptr) {
 		comp->brkt = ch.t;
 		comp->brka = ch.a;
 	}
-	return comp->hw->mrd(comp,adr,m1);
+	int res = comp->hw->mrd(comp,adr,m1);
+	// instruction bytes are not a data read, don't latch them as RD
+	if (comp->flgCOND && !isExecByte) {
+		comp->brkev.rd = adr;
+		comp->brkev.mdt = res & 0xff;
+	}
+	return res;
 }
 
 void memwr(int adr, int val, void* ptr) {
@@ -124,6 +130,10 @@ void memwr(int adr, int val, void* ptr) {
 			comp->brkt = ch.t;
 			comp->brka = ch.a;
 		}
+	}
+	if (comp->flgCOND) {
+		comp->brkev.wr = adr;
+		comp->brkev.mdt = val & 0xff;
 	}
 	comp->hw->mwr(comp,adr,val);
 }
@@ -234,7 +244,12 @@ int iord(int port, void* ptr) {
 		comp->brka = port;
 	}
 
-	return comp->hw->in ? comp->hw->in(comp, port) : 0xff;
+	res = comp->hw->in ? comp->hw->in(comp, port) : 0xff;
+	if (comp->flgCOND) {
+		comp->brkev.in = port;
+		comp->brkev.val = res & 0xff;
+	}
+	return res;
 }
 
 void iowr(int port, int val, void* ptr) {
@@ -266,6 +281,10 @@ void iowr(int port, int val, void* ptr) {
 		comp->flgBRK = 1;
 		comp->brkt = BRK_IOPORT;
 		comp->brka = port;
+	}
+	if (comp->flgCOND) {
+		comp->brkev.out = port;
+		comp->brkev.val = val & 0xff;
 	}
 }
 
@@ -375,6 +394,7 @@ Computer* compCreate() {
 	comp->resbank = RES_48;
 	comp->flgFRN = 1;
 	comp->flgDBG = 0;
+	comp_brkev_reset(comp);
 
 	comp->cpu = cpuCreate(CPU_Z80,memrd,memwr,iord,iowr,intrq,comp_irq,comp);
 	comp->mem = memCreate();
@@ -470,6 +490,7 @@ void compDestroy(Computer* comp) {
 }
 
 void compReset(Computer* comp,int res) {
+	comp->frmCount = 0;
 #ifdef HAVEZLIB
 	if (comp->rzx.play)
 		rzxStop(comp);
@@ -663,6 +684,16 @@ void cmsWr(Computer* comp, int val) {
 }
 
 // breaks
+
+// forget the last mem/io event, called after each condition check
+void comp_brkev_reset(Computer* comp) {
+	comp->brkev.rd = -1;
+	comp->brkev.wr = -1;
+	comp->brkev.mdt = -1;
+	comp->brkev.in = -1;
+	comp->brkev.out = -1;
+	comp->brkev.val = -1;
+}
 
 // activate breakpoint w/o type (exit to debuga)
 void comp_brk(Computer* comp, int t) {

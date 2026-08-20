@@ -83,7 +83,8 @@ enum {
 	BRK_MEMSLT,
 	BRK_MEMEXT,
 	BRK_IRQ,
-	BRK_HBLANK
+	BRK_HBLANK,
+	BRK_COND		// global condition, not bound to an address
 };
 
 // 16/32-bits reg
