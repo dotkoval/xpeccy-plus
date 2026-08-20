@@ -21,6 +21,7 @@
 #include "../libxpeccy/spectrum.h"
 #include "../libxpeccy/filetypes/filetypes.h"
 #include "gamepad.h"
+#include "xexpr.h"
 
 #ifndef USEMUTEX
 #define USEMUTEX 0
@@ -173,12 +174,16 @@ typedef struct {
 	unsigned read:1;
 	unsigned write:1;
 	unsigned temp:1;
+	unsigned last:1;	// BRK_COND: condition was true on previous check
 	int type;
 	int adr;	// start adr (mem), port(io)
 	int eadr;	// end adr
 	int mask;	// io: if (port & mask == adr & mask)
-	int count;
+	int hits;	// times the breakpoint was triggered (condition not asked yet)
+	int count;	// times it actually fired (condition passed)
 	int action;	// what to do
+	std::string cond;	// condition text, empty = unconditional
+	xExpr script;		// compiled condition
 } xBrkPoint;
 
 void brkSet(int, int, int, int);
@@ -189,6 +194,12 @@ void brkDelete(xBrkPoint);
 void brkInstallAll();
 void brk_clear_tmp(Computer*);
 xBrkPoint* brk_find(int, int);
+void brk_set_cond(xBrkPoint*, const char*);
+int brk_cond_true(xBrkPoint*, Computer*);
+xBrkPoint* brk_check_cond(Computer*);
+int brk_cond_count();
+int brk_load_list(const char*);
+int brk_save_list(const char*);
 
 // hold the emulation thread while the machine is rebuilt (defined in ethread.cpp)
 void emu_lock();
