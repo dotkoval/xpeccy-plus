@@ -147,8 +147,6 @@ void xThread::brkAction(Computer* comp, xBrkPoint* ptr, int* brkskip) {
 	// TODO: fetch break continues to repeat, comp->brk=0 is not enough?
 	switch (ptr->action) {
 		case BRK_ACT_COUNT:			// counted by the caller, just go on
-			comp->flgBRK = 0;
-			if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
 			break;
 		case BRK_ACT_SCR:
 			fnams = QString(conf.scrShot.dir.c_str()).append(SLASH);
@@ -161,14 +159,16 @@ void xThread::brkAction(Computer* comp, xBrkPoint* ptr, int* brkskip) {
 			file.open(QFile::WriteOnly);
 			file.write((char*)(comp->mem->ramData + (5 << 14)), 0x1b00);
 			file.close();
-			comp->flgBRK = 0;
-			if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
 			break;
 		default:					// BRK_ACT_DBG
 			conf.emu.pause |= PR_DEBUG;
 			emit dbgRequest();
-			break;
+			return;
 	}
+	// everything but the debugger goes on; a fetch break has to re-run the
+	// instruction it stopped in front of
+	comp->flgBRK = 0;
+	if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
 }
 
 void xThread::emuCycle(Computer* comp) {
@@ -258,15 +258,19 @@ void xThread::emuCycle(Computer* comp) {
 					}
 				}
 			}
-		} else if (brk_cond_count()) {		// conditions not bound to an address
-			xBrkPoint* ptr = brk_check_cond(comp);
-			if (ptr) {
+		} else if (brk_cond_count() && brk_check_cond(comp)) {	// conditions not bound to an address
+			int stop = 0;
+			comp->brkt = BRK_COND;
+			comp->brka = 0;
+			// each one gets its own action, and one asking to stop is enough
+			for (auto it = conf.prof.cur->brk.list.begin(); it != conf.prof.cur->brk.list.end(); it++) {
+				if (!it->fired) continue;
+				it->count++;
 				comp->flgBRK = 1;
-				comp->brkt = BRK_COND;
-				comp->brka = 0;
-				ptr->count++;
-				brkAction(comp, ptr, &brkskip);
+				brkAction(comp, &(*it), &brkskip);
+				if (comp->flgBRK) stop = 1;
 			}
+			comp->flgBRK = stop;
 		}
 		if (comp->flgCOND)
 			comp_brkev_reset(comp);

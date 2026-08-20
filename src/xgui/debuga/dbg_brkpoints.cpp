@@ -56,7 +56,7 @@ QString brkGetString(xBrkPoint brk) {
 			res = QString("IRQ");
 			break;
 		case BRK_COND:
-			res = QString("COND");
+			res = brk.onchg ? QString("COND, on change") : QString("COND");
 			break;
 	}
 	return res;
@@ -330,6 +330,7 @@ void xBrkManager::endAbsChanged(int v) {
 //	ui.leEndOffset->blockSignals(true);
 }
 
+#define EL_CHG 2048
 #define EL_CND 1024
 #define EL_VAL 512
 #define EL_FE 256
@@ -346,7 +347,8 @@ void xBrkManager::setElements(int mask) {
 	ui.brkFetch->setVisible(mask & EL_FE);
 	ui.brkRead->setVisible(mask & EL_RD);
 	ui.brkWrite->setVisible(mask & EL_WR);
-	ui.labFlags->setVisible(mask & (EL_FE | EL_RD | EL_WR));
+	ui.brkOnChange->setVisible(mask & EL_CHG);
+	ui.labFlags->setVisible(mask & (EL_FE | EL_RD | EL_WR | EL_CHG));
 	ui.brkBank->setVisible(mask & EL_BNK);
 	ui.labBank->setVisible(mask & EL_BNK);
 	ui.leStartOffset->setVisible(mask & EL_SOF);
@@ -399,8 +401,8 @@ void xBrkManager::chaType(int i) {
 		case BRK_IRQ:
 			setElements(EL_CND);
 			break;
-		case BRK_COND:				// nothing but the condition itself
-			setElements(EL_CND);
+		case BRK_COND:				// the condition and how it fires
+			setElements(EL_CND | EL_CHG);
 			break;
 		case BRK_IOPORT:
 			setElements(EL_CND | EL_RD | EL_WR | EL_SAD | EL_MSK);
@@ -481,6 +483,8 @@ void xBrkManager::edit(xBrkPoint* sbrk) {
 		obrk.off = 0;
 		obrk.temp = 0;
 		obrk.last = 0;
+		obrk.fired = 0;
+		obrk.onchg = 0;
 		obrk.hits = 0;
 		obrk.count = 0;
 		obrk.action = BRK_ACT_DBG;
@@ -491,6 +495,7 @@ void xBrkManager::edit(xBrkPoint* sbrk) {
 	ui.brkAction->setCurrentIndex(ui.brkAction->findData(obrk.action));
 	ui.brkType->setCurrentIndex(ui.brkType->findData(obrk.type));
 	ui.brkFetch->setChecked(obrk.fetch);
+	ui.brkOnChange->setChecked(obrk.onchg);
 	ui.brkRead->setChecked(obrk.read);
 	ui.brkWrite->setChecked(obrk.write);
 	setLimits(obrk.type);
@@ -527,6 +532,8 @@ void xBrkManager::confirm() {
 	brk.off = 0;
 	brk.temp = 0;
 	brk.last = 0;
+	brk.fired = 0;
+	brk.onchg = ui.brkOnChange->isChecked() ? 1 : 0;
 	brk_set_cond(&brk, cond.toLocal8Bit().data());
 	brk.type = ui.brkType->itemData(ui.brkType->currentIndex()).toInt();
 	brk.fetch = ui.brkFetch->isChecked() ? 1 : 0;

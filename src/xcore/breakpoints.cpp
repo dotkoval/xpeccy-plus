@@ -131,6 +131,8 @@ xBrkPoint brkCreate(int type, int flag, int adr, int mask, int act = BRK_ACT_DBG
 	brk.count = 0;
 	brk.action = act;
 	brk.last = 0;
+	brk.fired = 0;
+	brk.onchg = 0;
 	return brk;
 }
 
@@ -164,19 +166,26 @@ int brk_cond_count() {
 	return cond_count;
 }
 
-xBrkPoint* brk_check_cond(Computer* comp) {
-	xBrkPoint* res = NULL;
+// marks every condition that fired and returns how many there are: two of them
+// can come true on the same instruction, and both are entitled to their action.
+// a condition fires while it is true, the way it reads and the way an address
+// breakpoint treats its own condition; 'on change' asks for the edge instead
+
+int brk_check_cond(Computer* comp) {
+	int res = 0;
 	int trg;
 	for (auto it = conf.prof.cur->brk.list.begin(); it != conf.prof.cur->brk.list.end(); it++) {
+		it->fired = 0;
 		if (it->type != BRK_COND) continue;
 		if (it->off) {
 			it->last = 0;
 			continue;
 		}
 		trg = brk_cond_true(&(*it), comp);
-		if (trg && !it->last) {
+		if (trg && !(it->onchg && it->last)) {
 			it->hits++;
-			if (!res) res = &(*it);
+			it->fired = 1;
+			res++;
 		}
 		it->last = trg ? 1 : 0;
 	}
@@ -484,6 +493,7 @@ int brk_load_list(const char* fpath) {
 			brk.read = list.at(3).contains("R") ? 1 : 0;
 			brk.write = list.at(3).contains("W") ? 1 : 0;
 			brk.off = list.at(3).contains("0") ? 1 : 0;
+			brk.onchg = list.at(3).contains("E") ? 1 : 0;
 			if (list.at(0) == "IO") {
 				brk.type = BRK_IOPORT;
 				brk.adr = list.at(1).toInt(&b0, 16) & 0xffff;
@@ -640,6 +650,7 @@ int brk_save_list(const char* fpath) {
 			if (brk.read) flag.append("R");
 			if (brk.write) flag.append("W");
 			if (brk.off) flag.append("0");
+			if (brk.onchg) flag.append("E");
 			file.write(QString("%0:%1:%2:%3:%4:%5\n").arg(nm).arg(ar1).arg(ar2).arg(flag).arg(act).arg(brk.cond.c_str()).toUtf8());
 		}
 	}

@@ -125,6 +125,16 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCheckBox" name="brkOnChange">
+       <property name="toolTip">
+        <string>Stop when the expression becomes true, instead of every instruction while it is true</string>
+       </property>
+       <property name="text">
+        <string>On change</string>
+       </property>
+      </widget>
+     </item>
     </layout>
    </item>
    <item row="0" column="0">
