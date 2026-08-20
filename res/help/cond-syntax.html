@@ -1,0 +1,86 @@
+<!-- Syntax reference for breakpoint conditions and watcher expressions.
+     Shown by the "?" button in the breakpoint editor, loaded from the Qt
+     resource as :/res/help/cond-syntax.html. Qt's rich text understands a
+     subset of html, keep it simple: tables, lists, tt/b/i. -->
+
+<h3>Operators</h3>
+<p>the topmost binds tighter, one row = one priority</p>
+<table cellpadding="0" cellspacing="0">
+<tr><td><tt>&nbsp;( )&nbsp; [x]&nbsp; M(x)&nbsp;</tt></td><td>brackets, <b>word</b> and <b>byte</b> from memory</td></tr>
+<tr><td><tt>&nbsp;! ~ -&nbsp;</tt></td><td>logical <b>not</b>, <b>invert</b> bits, <b>negate</b></td></tr>
+<tr><td><tt>&nbsp;x-&gt;n&nbsp;</tt></td><td><b>byte</b> at x+n</td></tr>
+<tr><td><tt>&nbsp;* / %&nbsp;</tt></td><td><b>multiply</b>, <b>divide</b>, <b>remainder</b></td></tr>
+<tr><td><tt>&nbsp;+ -&nbsp;</tt></td><td><b>add</b>, <b>subtract</b></td></tr>
+<tr><td><tt>&nbsp;&lt;&lt; &gt;&gt;&nbsp;</tt></td><td><b>shift</b> left, <b>shift</b> right</td></tr>
+<tr><td><tt>&nbsp;&lt; &gt; &lt;= &gt;=&nbsp;</tt></td><td><b>compare</b></td></tr>
+<tr><td><tt>&nbsp;== != =&nbsp;</tt></td><td><b>equal</b>, <b>not equal</b>; <tt>=</tt> is the same as <tt>==</tt></td></tr>
+<tr><td><tt>&nbsp;&amp;&nbsp;</tt></td><td>bitwise <b>and</b></td></tr>
+<tr><td><tt>&nbsp;^&nbsp;</tt></td><td>bitwise <b>xor</b></td></tr>
+<tr><td><tt>&nbsp;|&nbsp;</tt></td><td>bitwise <b>or</b></td></tr>
+<tr><td><tt>&nbsp;&amp;&amp;&nbsp;</tt></td><td>logical <b>and</b></td></tr>
+<tr><td><tt>&nbsp;||&nbsp;</tt></td><td>logical <b>or</b></td></tr>
+</table>
+
+<h3>Operands</h3>
+<table cellpadding="0" cellspacing="0">
+<tr><td><tt>&nbsp;A HL PC BC' IXL ...&nbsp;</tt></td><td>CPU <b>registers</b>; <tt>.NAME</tt> forces a register when a label has the same name</td></tr>
+<tr><td><tt>&nbsp;name&nbsp;</tt></td><td><b>label</b></td></tr>
+<tr><td><tt>&nbsp;M(x)&nbsp;</tt></td><td><b>byte</b> from memory at x</td></tr>
+<tr><td><tt>&nbsp;[x]&nbsp;</tt></td><td><b>word</b> from memory at x</td></tr>
+<tr><td><tt>&nbsp;RAY(x, y)&nbsp;</tt></td><td>1 if the <b>beam crossed</b> that dot during this instruction</td></tr>
+<tr><td><tt>&nbsp;1234&nbsp;</tt></td><td>number in <b>decimal</b></td></tr>
+<tr><td><tt>&nbsp;0x1234 #1234&nbsp;</tt></td><td>number in <b>hex</b></td></tr>
+<tr><td><tt>&nbsp;0123&nbsp;</tt></td><td>number in <b>octal</b> - a leading zero, as in C</td></tr>
+<tr><td><tt>&nbsp;'A'&nbsp;</tt></td><td><b>character</b></td></tr>
+</table>
+
+<h3>Last memory or I/O access</h3>
+<p>all of them are FFFFFFFF when it didn't happen</p>
+<table cellpadding="0" cellspacing="0">
+<tr><td><tt>&nbsp;RD&nbsp; WR&nbsp;</tt></td><td><b>address</b> of the last memory read / write</td></tr>
+<tr><td><tt>&nbsp;MDT&nbsp;</tt></td><td><b>data</b> of that read / write</td></tr>
+<tr><td><tt>&nbsp;IN&nbsp; OUT&nbsp;</tt></td><td><b>port</b> of the last IN / OUT</td></tr>
+<tr><td><tt>&nbsp;VAL&nbsp;</tt></td><td><b>data</b> of that IN / OUT</td></tr>
+</table>
+
+<h3>Machine state</h3>
+<table cellpadding="0" cellspacing="0">
+<tr><td><tt>&nbsp;DOS&nbsp;</tt></td><td>the <b>DOS ROM</b> is on</td></tr>
+<tr><td><tt>&nbsp;SLOT0 SLOT1 SLOT2 SLOT3&nbsp;</tt></td><td>which <b>page</b> is mapped into the memory window at #0000, #4000, #8000 and #C000 - the four rows of the <b>MEMMAP</b> panel. On a 128K <tt>SLOT3</tt> is the page the 7FFD port put there, 0..7</td></tr>
+<tr><td><tt>&nbsp;FRAME&nbsp;</tt></td><td><b>frames</b> drawn since the last reset - a reset puts it back to 0</td></tr>
+<tr><td><tt>&nbsp;RAYX RAYY&nbsp;</tt></td><td>where the <b>beam</b> stands between instructions - the two numbers of the <b>RAY</b> panel. <tt>RAYY</tt> is the <b>line</b>, <tt>RAYX</tt> the <b>dot</b> in it, both counted from the first visible one, both including the borders. The line is longer than the picture: the retrace sits at its end, and on a ZX a dot is half a T-state, so a 48K frame is 448 x 312. Use them for a <b>region</b>; for one exact dot use <tt>RAY(x, y)</tt></td></tr>
+<tr><td><tt>&nbsp;HITS&nbsp;</tt></td><td>on a breakpoint <b>with an address</b>: how many times that address has been hit, the current hit included and whatever the condition says - so <tt>HITS &gt; 30</tt> lets the first 30 hits pass and stops on the 31st. On a <b>global</b> condition there is no address to count, so it counts its own firings: <tt>HITS &lt; 3</tt> stops on the first three</td></tr>
+</table>
+
+<h3>Good to know</h3>
+<ul>
+<li>A breakpoint of type <b>Condition (global)</b> needs <b>no address</b>: it is checked after every instruction and stops <b>while</b> the expression is true - the way it reads, and the way a condition on an address breakpoint works. Tick <b>On change</b> to stop only when it <b>becomes</b> true instead.</li>
+<li><b>Numbers</b> follow the same rules as the assembler in the disassembler window: <tt>100</tt> is a hundred, <tt>0x100</tt> and <tt>#100</tt> are 256, <tt>0100</tt> is 64. A bare <tt>BC</tt> or <tt>FF</tt> is therefore <b>never a number</b> - it is looked up as a register, a variable or a label, and hex always needs its prefix.</li>
+<li>The line under the condition field shows <b>how the expression was understood</b>, with the priorities as brackets - worth a glance before pressing OK.</li>
+<li>On a <b>Fetch</b> breakpoint the registers are read <b>before</b> the instruction, on <b>Read/Write/IO</b> ones <b>after</b> it.</li>
+<li><b>Division by zero</b> gives 0 and is not an error, so a condition doesn't start stopping everywhere when a divisor happens to be 0.</li>
+<li>An address holds <b>one</b> breakpoint, so it has one condition. Join several with <tt>||</tt>.</li>
+<li>An expression that <b>fails to evaluate</b> stops the emulation, so a mistake in it can't go unnoticed.</li>
+<li><tt>HITS</tt> in a global condition can <b>limit but not skip</b>: the counter only moves when the condition fires, so <tt>(PC == 0x8000) &amp;&amp; (HITS &gt; 30)</tt> never becomes true - <tt>HITS</tt> waits for the condition and the condition waits for <tt>HITS</tt>. To let an address pass N times first, make it an <b>address breakpoint</b> at 8000 with the condition <tt>HITS &gt; 30</tt>: there the counter moves on every hit.</li>
+<li>A condition is checked <b>between instructions</b>, but the beam moves 8 to 46 dots inside one, so it is almost never standing on the dot you asked for: <tt>RAYX == 200 &amp;&amp; RAYY == 100</tt> came true 4 times in 1024 frames, and widening it to a range only trades misses for several stops on the same line. <tt>RAY(200, 100)</tt> asks the other question - <b>did the beam pass that dot while this instruction ran</b> - which the emulator can answer exactly, because it knows where the beam was before the instruction and where it is after. Once a frame, no range, nothing missed, wrap around the line and the frame included.</li>
+<li>Both arguments of <tt>RAY</tt> are ordinary expressions - <tt>RAY(200 + B, RAYY)</tt> is fine. A plain number outside the frame is refused while you type it, with the size of this machine's frame in the message. A computed one cannot be refused before it runs, so a dot outside the frame is one the beam never reaches and the answer is no. That is decided at every check, not once: <tt>RAY(A, 100)</tt> fires like a constant would, a byte being a valid dot on any frame, while <tt>RAY(HL, A)</tt> stays quiet for as long as <tt>HL</tt> holds an address and starts firing the moment it holds something small.</li>
+<li>You stop <b>right after</b> the instruction the beam crossed the dot in - that instruction is the row above the one the cursor is on, and the <b>RAY</b> panel shows where the beam ended up. Stopping in front of it would mean knowing how long it takes before running it, which is not something a condition can do.</li>
+<li>A Z80 <b>port is 16 bits</b> wide - <tt>IN A,(n)</tt> puts A on the high half, <tt>IN r,(C)</tt> puts B there - and ZX hardware only decodes a part of it. So <tt>IN</tt> and <tt>OUT</tt> hold the whole 16 bits, and <tt>(IN &amp; 0xFF) == 0xFE</tt> is how you ask for "the keyboard port" instead of one exact address like <tt>IN == 0xFEFE</tt>. When the code does use a fixed value, as 7FFD paging does, plain <tt>OUT == 0x7FFD</tt> is enough.</li>
+</ul>
+
+<h3>Examples</h3>
+<table cellpadding="0" cellspacing="0">
+<tr><td><tt>&nbsp;A == 5 &amp;&amp; [SP] &gt; 0xFF00&nbsp;</tt></td><td>A is 5 and the stack is high</td></tr>
+<tr><td><tt>&nbsp;(BC == 0x1234) || (BC == 0x5678)&nbsp;</tt></td><td>either value in BC</td></tr>
+<tr><td><tt>&nbsp;M(PC) == 0x76&nbsp;</tt></td><td>a HALT is about to be executed</td></tr>
+<tr><td><tt>&nbsp;SP &lt; 0x5B00&nbsp;</tt></td><td>the stack ran away into the screen</td></tr>
+<tr><td><tt>&nbsp;WR &gt;= 0x4000 &amp;&amp; WR &lt; 0x5800&nbsp;</tt></td><td>something is writing to the screen bitmap</td></tr>
+<tr><td><tt>&nbsp;(IN &amp; 0xFF) == 0xFE &amp;&amp; VAL != 0xFF&nbsp;</tt></td><td>a key is being pressed</td></tr>
+<tr><td><tt>&nbsp;(OUT &amp; 0xFF) == 0xFD &amp;&amp; (VAL &amp; 7) == 3&nbsp;</tt></td><td>RAM page 3 is being paged in at #C000</td></tr>
+<tr><td><tt>&nbsp;SLOT3 == 7&nbsp;</tt></td><td>RAM page 7 is mapped at #C000 - which page is <b>shown</b> is a different bit of 7FFD</td></tr>
+<tr><td><tt>&nbsp;HITS == 30&nbsp;</tt></td><td>on an address breakpoint: the 30th time that address is hit</td></tr>
+<tr><td><tt>&nbsp;FRAME == 300&nbsp;</tt></td><td>as a global condition with <b>On change</b>: the first instruction of frame 300</td></tr>
+<tr><td><tt>&nbsp;RAYY == 100&nbsp;</tt></td><td>every instruction of line 100; with <b>On change</b>, once a frame</td></tr>
+<tr><td><tt>&nbsp;RAYY == 100 &amp;&amp; RAYX &gt;= 200&nbsp;</tt></td><td>the same line, from dot 200 on</td></tr>
+<tr><td><tt>&nbsp;RAY(200, 100)&nbsp;</tt></td><td>the instruction the beam passed dot 200 of line 100 in</td></tr>
+</table>

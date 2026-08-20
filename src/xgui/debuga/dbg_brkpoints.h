@@ -19,6 +19,7 @@ class xBreakListModel : public xTableModel {
 		xBreakListModel(QObject* = NULL);
 		void update();
 	private:
+		int lastRows;		// to reset the model only when the list size changes
 		int rowCount(const QModelIndex& = QModelIndex()) const;
 		int columnCount(const QModelIndex& = QModelIndex()) const;
 		QVariant data(const QModelIndex&, int) const;
@@ -37,7 +38,11 @@ class xBreakTable : public QTableView {
 		void rqDasmDump();
 	private:
 		xBreakListModel* model;
+		int addrWidth;		// width of the Addr column, kept over model resets
+		unsigned setcol:1;	// we are setting the widths ourselves
 	private slots:
+		void applyColumns();
+		void colResized(int, int, int);
 		void onCellClick(QModelIndex);
 		void onDoubleClick(QModelIndex);
 	protected:
@@ -52,10 +57,14 @@ class xBrkManager : public QDialog {
 	private:
 		Ui::BrkManager ui;
 		xBrkPoint obrk;
+		QDialog* helpWin;
 		void setElements(int);
+		void setLimits(int);
 	private slots:
 		void confirm();
 		void chaType(int);
+		void chaCond(QString);
+		void condHelp();
 		void bnkChanged(int);
 		void startOffChanged(int);
 		void startAbsChanged(int);

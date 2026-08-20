@@ -51,6 +51,7 @@ void help() {
 	printf("--sp ADR\t\tset SP\n");
 	printf("--bp ADR\t\tset fetch brakepoint to address ADR\n");
 	printf("--bp NAME\t\tset fetch brakepoint to label NAME (see -l key)\n");
+	printf("--brk FILE\t\tload breakpoints list (*.xbrk)\n");
 	printf("--disk X\t\tselect drive to loading file (0..3 | a..d | A..D)\n");
 	printf("--style\t\t\tMacOSX only: use native qt style, else 'fusion' will be forced\n");
 	printf("--xmap FILE\t\tLoad *.xmap file\n");
@@ -321,6 +322,13 @@ int main(int ac,char** av) {
 					brkSet(BRK_CPUADR, MEM_BRK_FETCH, xadr.adr & 0xffff, -1);
 				} else {
 					brkSet(BRK_CPUADR, MEM_BRK_FETCH, strtol(av[i],NULL,0) & 0xffff, -1);
+				}
+				i++;
+			} else if (!strcmp(parg,"--brk")) {
+				if (i >= ac) {
+					printf("--brk needs a file name\n");
+				} else if (!brk_load_list(av[i])) {
+					printf("can't read breakpoints from %s\n", av[i]);
 				}
 				i++;
 			} else if (!strcmp(parg,"-l") || !strcmp(parg,"--labels")) {

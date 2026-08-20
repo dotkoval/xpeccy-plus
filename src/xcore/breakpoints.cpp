@@ -1,3 +1,6 @@
+#include <QFile>
+#include <QStringList>
+
 #include "xcore.h"
 
 typedef struct {
@@ -19,6 +22,11 @@ xbpIndex brkFind(xBrkPoint* brk, int flag = 0) {
 		if ((tbrk->type == brk->type) && (tbrk->adr == brk->adr)) {
 			if (brk->type == BRK_IOPORT) {
 				if (tbrk->mask == brk->mask) {
+					res.ptr = tbrk;
+					res.idx = i;
+				}
+			} else if (brk->type == BRK_COND) {
+				if (tbrk->cond == brk->cond) {		// global conditions differ by text only
 					res.ptr = tbrk;
 					res.idx = i;
 				}
@@ -119,9 +127,69 @@ xBrkPoint brkCreate(int type, int flag, int adr, int mask, int act = BRK_ACT_DBG
 	brk.write = !!(flag & MEM_BRK_WR);
 	brk.temp = 0;
 	brk.mask = mask;
+	brk.hits = 0;
 	brk.count = 0;
 	brk.action = act;
+	brk.last = 0;
+	brk.fired = 0;
+	brk.onchg = 0;
 	return brk;
+}
+
+// (re)compile the condition of a breakpoint
+
+void brk_set_cond(xBrkPoint* brk, const char* cond) {
+	brk->cond = cond ? cond : "";
+	brk->script = xexpr_compile(brk->cond.c_str());
+	brk->last = 0;
+}
+
+// true = breakpoint may fire. a broken condition breaks too, so that a typo
+// doesn't silently disable the breakpoint
+
+int brk_cond_true(xBrkPoint* brk, Computer* comp) {
+	bool err = false;
+	unsigned res;
+	if (brk->cond.empty()) return 1;
+	if (!xexpr_ok(brk->script)) return 1;
+	res = xexpr_eval(brk->script, comp, &err, brk->hits);
+	if (err) return 1;
+	return res ? 1 : 0;
+}
+
+// global conditions: fire on false->true edge only, else a condition like
+// 'A==5' would stop on every instruction while A stays 5
+
+static int cond_count = 0;
+
+int brk_cond_count() {
+	return cond_count;
+}
+
+// marks every condition that fired and returns how many there are: two of them
+// can come true on the same instruction, and both are entitled to their action.
+// a condition fires while it is true, the way it reads and the way an address
+// breakpoint treats its own condition; 'on change' asks for the edge instead
+
+int brk_check_cond(Computer* comp) {
+	int res = 0;
+	int trg;
+	for (auto it = conf.prof.cur->brk.list.begin(); it != conf.prof.cur->brk.list.end(); it++) {
+		it->fired = 0;
+		if (it->type != BRK_COND) continue;
+		if (it->off) {
+			it->last = 0;
+			continue;
+		}
+		trg = brk_cond_true(&(*it), comp);
+		if (trg && !(it->onchg && it->last)) {
+			it->hits++;
+			it->fired = 1;
+			res++;
+		}
+		it->last = trg ? 1 : 0;
+	}
+	return res;
 }
 
 bool brk_compare(xBrkPoint& bp1, xBrkPoint& bp2) {return (bp1.adr < bp2.adr);}
@@ -133,6 +201,9 @@ void brkAdd(xBrkPoint brk, int flag) {
 		bp->fetch = brk.fetch;
 		bp->read = brk.read;
 		bp->write = brk.write;
+		bp->action = brk.action;
+		bp->cond = brk.cond;
+		bp->script = brk.script;
 	} else if (flag & BRKF_SYSTEM) {
 		conf.prof.cur->brk.list_sys.push_back(brk);
 	} else {
@@ -275,6 +346,15 @@ void brkInstallList(std::vector<xBrkPoint>* list) {
 void brkInstallAll() {
 	xProfile* prf = conf.prof.cur;
 	Computer* comp = prf->zx;
+	int conds = 0;
+	cond_count = 0;
+	for (auto it = prf->brk.list.begin(); it != prf->brk.list.end(); it++) {
+		it->script = xexpr_compile(it->cond.c_str());	// cpu/labels may have changed
+		if (!it->cond.empty()) conds++;
+		if ((it->type == BRK_COND) && !it->off) cond_count++;
+	}
+	comp->flgCOND = conds ? 1 : 0;
+	comp_brk_newstep(comp);		// conditions start from a known beam position
 	memset(comp->brkAdrMap, 0x00, MEM_64K);
 	memset(comp->brkIOMap, 0x00, MEM_64K);
 	clearMap(comp->brkRamMap, MEM_4M);
@@ -294,4 +374,286 @@ void brkInstallAll() {
 		brkInstall(&(*it), 0);
 	}
 #endif
+}
+
+// breakpoint list files
+
+static bool parseRange(QString str, xBrkPoint* p) {
+	bool r;
+	int badr;
+	int eadr;
+	int tadr;
+	QStringList splt;
+	splt = str.split('-', X_SkipEmptyParts);
+	badr = splt.first().toInt(&r, 16);
+	if (r) {
+		if (splt.size() > 1) {
+			eadr = splt[1].toInt(&r, 16);
+			if (eadr < badr) {
+				tadr = badr;
+				badr = eadr;
+				eadr = tadr;
+			}
+		} else {
+			eadr = badr;
+		}
+		if (r) {
+			p->adr = badr;
+			p->eadr = eadr;
+		}
+	}
+	return r;
+}
+
+
+// a number the way unreal writes it: 0x forces hex, # and $ too, everything
+// else is decimal (that is what unreal's own sscanf("%i") does)
+
+static int unreal_num(QString str, bool* ok) {
+	str = str.trimmed();
+	if (str.startsWith("#") || str.startsWith("$"))
+		return str.mid(1).toInt(ok, 16);
+	return str.toInt(ok, 0);
+}
+
+// one line of unreal's bpx.ini: x0=0x80A6 (exec), r0=/w0= (read/write), the
+// address may be a range: x0=0x8000-0x8FFF. the digit is the cpu index - unreal
+// has a second z80 in the General Sound, we don't, so only 0 is taken.
+// returns 1 if the line belongs to that format (even when it is skipped)
+
+static int brk_add_unreal(QString line) {
+	QString str = line.trimmed();
+	int adr, eadr;
+	bool ok = false;
+	if (str.size() < 3) return 0;
+	QChar tp = str.at(0).toLower();
+	if ((tp != QChar('x')) && (tp != QChar('r')) && (tp != QChar('w'))) return 0;
+	str.remove(0, 1);
+	if (str.at(0).isDigit()) {			// cpu index
+		if (str.at(0) != QChar('0')) return 1;	// another cpu: not for us
+		str.remove(0, 1);
+	}
+	if (!str.startsWith("=")) return 0;
+	str.remove(0, 1);
+	QStringList prt = str.split('-', X_SkipEmptyParts);
+	if (prt.isEmpty()) return 0;
+	adr = unreal_num(prt.first(), &ok) & 0xffff;
+	if (!ok) return 0;
+	eadr = adr;
+	if (prt.size() > 1) {
+		eadr = unreal_num(prt.at(1), &ok) & 0xffff;
+		if (!ok) return 0;
+		if (eadr < adr) return 0;
+	}
+	// unreal keeps read, write and exec in separate lines: merge them
+	for (auto it = conf.prof.cur->brk.list.begin(); it != conf.prof.cur->brk.list.end(); it++) {
+		if ((it->type != BRK_CPUADR) || (it->adr != adr) || (it->eadr != eadr)) continue;
+		if (tp == QChar('x')) it->fetch = 1;
+		else if (tp == QChar('r')) it->read = 1;
+		else it->write = 1;
+		return 1;
+	}
+	int flag = MEM_BRK_WR;
+	if (tp == QChar('x')) flag = MEM_BRK_FETCH;
+	else if (tp == QChar('r')) flag = MEM_BRK_RD;
+	xBrkPoint brk = brkCreate(BRK_CPUADR, flag, adr, (eadr > adr) ? eadr : -1);
+	brk_set_cond(&brk, "");
+	conf.prof.cur->brk.list.push_back(brk);
+	return 1;
+}
+
+// load / save the breakpoint list. one breakpoint per line:
+// type:arg1:arg2:flags:action:condition - the condition comes last, so it can
+// hold colons of its own. lines in unreal's bpx.ini format are taken too
+
+int brk_load_list(const char* fpath) {
+	QString fnam(fpath);
+	QFile file(fnam);
+	QString line;
+	QStringList splt;
+	QStringList list;
+	int off;
+	bool b0,b1;
+	if (!file.open(QFile::ReadOnly)) return 0;
+	conf.prof.cur->brk.list.clear();
+	while(!file.atEnd()) {
+		line = QString(file.readLine());
+		if (line.trimmed().isEmpty()) continue;
+		if (brk_add_unreal(line)) continue;	// unreal's bpx.ini line
+		if (!line.startsWith(";")) {
+			xBrkPoint brk{};		// every field zeroed, not left from the line before
+			b0 = true;
+			b1 = true;
+			list = line.trimmed().split(":", X_KeepEmptyParts);
+			while(list.size() < 6)
+				list.append(QString());
+			// the condition is the last field: keep its own colons, if any
+			QString cond = QStringList(list.mid(5)).join(":").trimmed();
+			brk.fetch = list.at(3).contains("F") ? 1 : 0;
+			brk.read = list.at(3).contains("R") ? 1 : 0;
+			brk.write = list.at(3).contains("W") ? 1 : 0;
+			brk.off = list.at(3).contains("0") ? 1 : 0;
+			brk.onchg = list.at(3).contains("E") ? 1 : 0;
+			if (list.at(0) == "IO") {
+				brk.type = BRK_IOPORT;
+				brk.adr = list.at(1).toInt(&b0, 16) & 0xffff;
+				brk.mask = list.at(2).toInt(&b1, 16) & 0xffff;
+			} else if (list.at(0) == "CPU") {
+				brk.type = BRK_CPUADR;
+				b0 = parseRange(list.at(1), &brk);
+				brk.adr &= 0xffff;
+				brk.eadr &= 0xffff;
+//					if (list.at(1).contains("-")) {		// 1234-ABCD
+//						splt = list.at(1).split(QLatin1Char('-'), X_SkipEmptyParts);
+//						list[1] = splt.first();
+//						list[2] = splt.last();
+//					}
+//					brk.adr = list.at(1).toInt(&b0, 16) & 0xffff;
+//					if (list.at(2).isEmpty()) {
+//						brk.eadr = brk.adr;
+//					} else {
+//						brk.eadr = list.at(2).toInt(&b1, 16) & 0xffff;
+//						if (brk.eadr < brk.adr)
+//							brk.eadr = brk.adr;
+//					}
+			} else if (list.at(0) == "ROM") {
+				brk.type = BRK_MEMROM;
+				b0 = parseRange(list.at(2), &brk);
+				off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+				brk.adr = (brk.adr & 0x3fff) | off;
+				brk.eadr = (brk.eadr & 0x3fff) | off;
+//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
+//					brk.eadr = brk.adr;
+			} else if (list.at(0) == "RAM") {
+				brk.type = BRK_MEMRAM;
+				b0 = parseRange(list.at(2), &brk);
+				off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+				brk.adr = (brk.adr & 0x3fff) | off;
+				brk.eadr = (brk.eadr & 0x3fff) | off;
+//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
+//					brk.eadr = brk.adr;
+			} else if (list.at(0) == "SLT") {
+				brk.type = BRK_MEMSLT;
+				b0 = parseRange(list.at(2), &brk);
+				off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+				brk.adr = (brk.adr & 0x3fff) | off;
+				brk.eadr = (brk.eadr & 0x3fff) | off;
+//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
+//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
+//					brk.eadr = brk.adr;
+			} else if (list.at(0) == "IRQ") {
+				brk.type = BRK_IRQ;
+			} else if (list.at(0) == "COND") {
+				brk.type = BRK_COND;
+				brk.adr = 0;
+				brk.eadr = 0;
+			} else {
+				b0 = false;
+			}
+			if (list.at(4) == "SCR") {
+				brk.action = BRK_ACT_SCR;
+			} else if (list.at(4) == "CNT") {
+				brk.action = BRK_ACT_COUNT;
+			} else {
+				brk.action = BRK_ACT_DBG;
+			}
+			if (b0 && b1) {
+				brk.hits = 0;
+				brk.count = 0;
+				brk.temp = 0;
+				brk.last = 0;
+				brk_set_cond(&brk, cond.toLocal8Bit().data());
+				conf.prof.cur->brk.list.push_back(brk);
+			}
+		}
+	}
+	file.close();
+	brkInstallAll();
+	return 1;
+}
+
+int brk_save_list(const char* fpath) {
+	xBrkPoint brk;
+	QString fnam(fpath);
+	QFile file(fnam);
+	QString nm,ar1,ar2,flag,act;
+	if (!file.open(QFile::WriteOnly)) return 0;
+	file.write("; Xpeccy+ deBUGa breakpoints list\n");
+	foreach(brk, conf.prof.cur->brk.list) {
+		switch(brk.type) {
+			case BRK_IOPORT:
+				nm = "IO";
+				ar1 = gethexword(brk.adr & 0xffff);
+				ar2 = gethexword(brk.mask & 0xffff);
+				break;
+			case BRK_CPUADR:
+				nm = "CPU";
+				ar1 = gethexword(brk.adr & 0xffff);
+				ar2.clear();
+				if (brk.eadr > brk.adr) {
+					ar1.append("-");
+					ar1.append(gethexword(brk.eadr & 0xffff));
+				}
+				break;
+			case BRK_MEMRAM:
+				nm = "RAM";
+				ar1 = gethexbyte((brk.adr >> 14) & 0xff);	// 16K page
+				ar2 = gethexword(brk.adr & 0x3fff);		// adr in page
+				if (brk.eadr > brk.adr) {
+					ar2.append("-");
+					ar2.append(gethexword(brk.eadr & 0x3fff));
+				}
+				break;
+			case BRK_MEMROM:
+				nm = "ROM";
+				ar1 = gethexbyte((brk.adr >> 14) & 0xff);
+				ar2 = gethexword(brk.adr & 0x3fff);
+				if (brk.eadr > brk.adr) {
+					ar2.append("-");
+					ar2.append(gethexword(brk.eadr & 0x3fff));
+				}
+				break;
+			case BRK_MEMSLT:
+				nm = "SLT";
+				ar1 = gethexbyte((brk.adr >> 14) & 0xff);
+				ar2 = gethexword(brk.adr & 0x3fff);
+				if (brk.eadr > brk.adr) {
+					ar2.append("-");
+					ar2.append(gethexword(brk.eadr & 0x3fff));
+				}
+				break;
+			case BRK_IRQ:
+				nm = "IRQ";
+				ar1.clear();
+				ar2.clear();
+				break;
+			case BRK_COND:
+				nm = "COND";
+				ar1.clear();
+				ar2.clear();
+				break;
+			default:
+				nm.clear();
+				break;
+		}
+		switch(brk.action) {
+			case BRK_ACT_DBG: act = "DBG"; break;
+			case BRK_ACT_SCR: act = "SCR"; break;
+			case BRK_ACT_COUNT: act = "CNT"; break;
+			default: act.clear(); break;
+		}
+		if (!nm.isEmpty()) {
+			flag.clear();
+			if (brk.fetch) flag.append("F");
+			if (brk.read) flag.append("R");
+			if (brk.write) flag.append("W");
+			if (brk.off) flag.append("0");
+			if (brk.onchg) flag.append("E");
+			file.write(QString("%0:%1:%2:%3:%4:%5\n").arg(nm).arg(ar1).arg(ar2).arg(flag).arg(act).arg(brk.cond.c_str()).toUtf8());
+		}
+	}
+	file.close();
+	return 1;
 }

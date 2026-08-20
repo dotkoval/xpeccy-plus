@@ -86,6 +86,7 @@ typedef struct {
 #define flgEXT	sysflag[14]
 #define flgBDI	sysflag[15]
 #define flgHEAT	sysflag[16]		// collect memory read/write/exec usage stats
+#define flgCOND	sysflag[17]		// breakpoint conditions in use: latch mem/io events
 
 typedef struct Computer {
 	struct HardWare *hw;	// computer core - misc params, callbacks
@@ -96,10 +97,17 @@ typedef struct Computer {
 
 	int brkt;		// breakpoint type (cpu, ram, rom...)
 	int brka;		// breakpoint addr
+	// last mem/io event, for breakpoint conditions (-1 = didn't happen)
+	struct {
+		int rd, wr, mdt;
+		int in, out, val;
+	} brkev;
+	int brkray;		// beam position (dots from frame start) before this instruction
 
 	char* msg;		// message ptr for displaying outside
 	int resbank;		// rompart active after reset
 
+	int frmCount;		// frames since reset (for breakpoint conditions)
 	int tickCount;		// accumulate T
 	int frmtCount;		// accumulate T, but reset each INT
 	int hCount;		// T before HALT = frmtCount @ HALT
@@ -225,6 +233,7 @@ void cmsWr(Computer*, int);
 void rzxStop(Computer*);
 
 void comp_brk(Computer*, int);
+void comp_brk_newstep(Computer*);
 unsigned char* getBrkPtr(Computer*, int);
 unsigned char getBrk(Computer*, int);
 void setBrk(Computer*, int, unsigned char);

@@ -326,6 +326,22 @@ void z80_set_a(CPU* cpu, int v) {cpu->regA = v;}
 void z80_set_bc(CPU* cpu, int v) {cpu->regBC = v;}
 void z80_set_de(CPU* cpu, int v) {cpu->regDE = v;}
 void z80_set_hl(CPU* cpu, int v) {cpu->regHL = v;}
+void z80_set_b(CPU* cpu, int v) {cpu->regB = v;}
+void z80_set_c(CPU* cpu, int v) {cpu->regC = v;}
+void z80_set_d(CPU* cpu, int v) {cpu->regD = v;}
+void z80_set_e(CPU* cpu, int v) {cpu->regE = v;}
+void z80_set_h(CPU* cpu, int v) {cpu->regH = v;}
+void z80_set_l(CPU* cpu, int v) {cpu->regL = v;}
+void z80_set_ixh(CPU* cpu, int v) {cpu->regIXh = v;}
+void z80_set_ixl(CPU* cpu, int v) {cpu->regIXl = v;}
+void z80_set_iyh(CPU* cpu, int v) {cpu->regIYh = v;}
+void z80_set_iyl(CPU* cpu, int v) {cpu->regIYl = v;}
+void z80_set_ba(CPU* cpu, int v) {cpu->regBCa = (cpu->regBCa & 0x00ff) | ((v & 0xff) << 8);}
+void z80_set_ca(CPU* cpu, int v) {cpu->regBCa = (cpu->regBCa & 0xff00) | (v & 0xff);}
+void z80_set_da(CPU* cpu, int v) {cpu->regDEa = (cpu->regDEa & 0x00ff) | ((v & 0xff) << 8);}
+void z80_set_ea(CPU* cpu, int v) {cpu->regDEa = (cpu->regDEa & 0xff00) | (v & 0xff);}
+void z80_set_ha(CPU* cpu, int v) {cpu->regHLa = (cpu->regHLa & 0x00ff) | ((v & 0xff) << 8);}
+void z80_set_la(CPU* cpu, int v) {cpu->regHLa = (cpu->regHLa & 0xff00) | (v & 0xff);}
 void z80_set_afa(CPU* cpu, int v) {cpu->regAFa = v;}
 void z80_set_aa(CPU* cpu, int v) {cpu->regAa = v;}
 void z80_set_abc(CPU* cpu, int v) {cpu->regBCa = v;}
@@ -349,6 +365,22 @@ int z80_get_a(CPU* cpu) {return cpu->regA;}
 int z80_get_bc(CPU* cpu) {return cpu->regBC;}
 int z80_get_de(CPU* cpu) {return cpu->regDE;}
 int z80_get_hl(CPU* cpu) {return cpu->regHL;}
+int z80_get_b(CPU* cpu) {return cpu->regB;}
+int z80_get_c(CPU* cpu) {return cpu->regC;}
+int z80_get_d(CPU* cpu) {return cpu->regD;}
+int z80_get_e(CPU* cpu) {return cpu->regE;}
+int z80_get_h(CPU* cpu) {return cpu->regH;}
+int z80_get_l(CPU* cpu) {return cpu->regL;}
+int z80_get_ixh(CPU* cpu) {return cpu->regIXh;}
+int z80_get_ixl(CPU* cpu) {return cpu->regIXl;}
+int z80_get_iyh(CPU* cpu) {return cpu->regIYh;}
+int z80_get_iyl(CPU* cpu) {return cpu->regIYl;}
+int z80_get_ba(CPU* cpu) {return (cpu->regBCa >> 8) & 0xff;}
+int z80_get_ca(CPU* cpu) {return cpu->regBCa & 0xff;}
+int z80_get_da(CPU* cpu) {return (cpu->regDEa >> 8) & 0xff;}
+int z80_get_ea(CPU* cpu) {return cpu->regDEa & 0xff;}
+int z80_get_ha(CPU* cpu) {return (cpu->regHLa >> 8) & 0xff;}
+int z80_get_la(CPU* cpu) {return cpu->regHLa & 0xff;}
 int z80_get_afa(CPU* cpu) {return cpu->regAFa;}
 int z80_get_aa(CPU* cpu) {return cpu->regAa;}
 int z80_get_abc(CPU* cpu) {return cpu->regBCa;}
@@ -395,6 +427,23 @@ xRegDsc z80RegTab[] = {
 	{REG_EMPTY, "A'", REG_BYTE, 0, z80_get_aa, z80_set_aa},
 	{REG_EMPTY, "F", REG_32, REG_FLG, z80_get_flag, z80_set_flag},
 	{REG_EMPTY, "F'", REG_32, 0, z80_get_fa, z80_set_fa},
+	// single registers: not shown in deBUGa, but usable in expressions
+	{REG_EMPTY, "B", REG_BYTE, 0, z80_get_b, z80_set_b},
+	{REG_EMPTY, "C", REG_BYTE, 0, z80_get_c, z80_set_c},
+	{REG_EMPTY, "D", REG_BYTE, 0, z80_get_d, z80_set_d},
+	{REG_EMPTY, "E", REG_BYTE, 0, z80_get_e, z80_set_e},
+	{REG_EMPTY, "H", REG_BYTE, 0, z80_get_h, z80_set_h},
+	{REG_EMPTY, "L", REG_BYTE, 0, z80_get_l, z80_set_l},
+	{REG_EMPTY, "B'", REG_BYTE, 0, z80_get_ba, z80_set_ba},
+	{REG_EMPTY, "C'", REG_BYTE, 0, z80_get_ca, z80_set_ca},
+	{REG_EMPTY, "D'", REG_BYTE, 0, z80_get_da, z80_set_da},
+	{REG_EMPTY, "E'", REG_BYTE, 0, z80_get_ea, z80_set_ea},
+	{REG_EMPTY, "H'", REG_BYTE, 0, z80_get_ha, z80_set_ha},
+	{REG_EMPTY, "L'", REG_BYTE, 0, z80_get_la, z80_set_la},
+	{REG_EMPTY, "IXH", REG_BYTE, 0, z80_get_ixh, z80_set_ixh},
+	{REG_EMPTY, "IXL", REG_BYTE, 0, z80_get_ixl, z80_set_ixl},
+	{REG_EMPTY, "IYH", REG_BYTE, 0, z80_get_iyh, z80_set_iyh},
+	{REG_EMPTY, "IYL", REG_BYTE, 0, z80_get_iyl, z80_set_iyl},
 #ifdef ISDEBUG
 	{Z80_REG_WZ, "WZ", REG_WORD, REG_RDMP, z80_get_wz, z80_set_wz},
 #endif

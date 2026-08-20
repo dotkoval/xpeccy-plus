@@ -1,4 +1,6 @@
 #include <QFileDialog>
+#include <QTextBrowser>
+#include <QVBoxLayout>
 
 #include "xcore/xcore.h"
 #include "dbg_brkpoints.h"
@@ -6,7 +8,7 @@
 // Model
 
 xBreakListModel::xBreakListModel(QObject* par):xTableModel(par) {
-
+	lastRows = 0;
 }
 
 int xBreakListModel::rowCount(const QModelIndex&) const {
@@ -15,7 +17,7 @@ int xBreakListModel::rowCount(const QModelIndex&) const {
 }
 
 int xBreakListModel::columnCount(const QModelIndex&) const {
-	return 6;
+	return 7;
 }
 
 QString brkGetString(xBrkPoint brk) {
@@ -53,6 +55,9 @@ QString brkGetString(xBrkPoint brk) {
 		case BRK_IRQ:
 			res = QString("IRQ");
 			break;
+		case BRK_COND:
+			res = brk.onchg ? QString("COND, on change") : QString("COND");
+			break;
 	}
 	return res;
 }
@@ -74,10 +79,14 @@ QVariant xBreakListModel::data(const QModelIndex& idx, int role) const {
 				case 3: if (brk.type != BRK_IRQ) res = brk.write ? Qt::Checked : Qt::Unchecked; break;
 			}
 			break;
+		case Qt::TextAlignmentRole:
+			if (col == 6) res = (int)(Qt::AlignRight | Qt::AlignVCenter);
+			break;
 		case Qt::DisplayRole:
 			switch(col) {
 				case 4: res = brkGetString(brk); break;
-				case 5: res = brk.count; break;
+				case 5: res = QString(brk.cond.c_str()); break;
+				case 6: res = brk.count; break;
 			}
 			break;
 	}
@@ -98,7 +107,8 @@ QVariant xBreakListModel::headerData(int sect, Qt::Orientation ornt, int role) c
 						case 2: res = "R"; break;
 						case 3: res = "W"; break;
 						case 4: res = "Addr"; break;
-						case 5: res = "Cnt"; break;
+						case 5: res = "Cond"; break;
+						case 6: res = "Cnt"; break;
 					}
 					break;
 			}
@@ -117,6 +127,7 @@ bool xbsCnt(const xBrkPoint bpa, const xBrkPoint bpb) {return (bpa.count < bpb.c
 bool xbsName(const xBrkPoint bpa, const xBrkPoint bpb) {
 	return brkGetString(bpa) < brkGetString(bpb);
 }
+bool xbsCond(const xBrkPoint bpa, const xBrkPoint bpb) {return (bpa.cond < bpb.cond);}
 
 void xBreakListModel::sort(int col, Qt::SortOrder ord) {
 	if (!conf.prof.cur) return;
@@ -126,13 +137,25 @@ void xBreakListModel::sort(int col, Qt::SortOrder ord) {
 		case 2: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsRd); break;
 		case 3: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsWr); break;
 		case 4: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsName); break;
-		case 5: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsCnt); break;
+		case 5: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsCond); break;
+		case 6: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsCnt); break;
 	}
 	emit dataChanged(index(0,0), index(rowCount() - 1, columnCount() - 1));
 }
 
+// a full reset makes the view forget the column widths, so do it only when the
+// list really changed size
+
 void xBreakListModel::update() {
-	emit endResetModel();
+	int rows = rowCount();
+	if (rows == lastRows) {
+		if (rows > 0)
+			emit dataChanged(index(0, 0), index(rows - 1, columnCount() - 1));
+	} else {
+		beginResetModel();
+		lastRows = rows;
+		endResetModel();
+	}
 }
 
 // Widget
@@ -140,14 +163,38 @@ void xBreakListModel::update() {
 xBreakTable::xBreakTable(QWidget* p):QTableView(p) {
 	model = new xBreakListModel();
 	setModel(model);
-	setColumnWidth(0, 30);
-	setColumnWidth(1, 30);
-	setColumnWidth(2, 30);
-	setColumnWidth(3, 30);
-	setColumnWidth(4, 200);
-	setColumnWidth(5, 40);
+	addrWidth = 150;
+	setcol = 0;
+	applyColumns();
+	connect(model, &QAbstractItemModel::modelReset, this, &xBreakTable::applyColumns);
+	connect(horizontalHeader(), &QHeaderView::sectionResized, this, &xBreakTable::colResized);
 	connect(this, SIGNAL(clicked(QModelIndex)), this, SLOT(onCellClick(QModelIndex)));
 	connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(onDoubleClick(QModelIndex)));
+}
+
+// checkboxes and the counter keep their width whatever happens to the model,
+// Addr keeps the width the user gave it and Cond takes the rest
+
+void xBreakTable::applyColumns() {
+	QHeaderView* hdr = horizontalHeader();
+	int i;
+	setcol = 1;
+	hdr->setStretchLastSection(false);	// Cond stretches instead, Cnt fits its value
+	for (i = 0; i < 4; i++) {
+		hdr->setSectionResizeMode(i, QHeaderView::Fixed);
+		setColumnWidth(i, 30);
+	}
+	hdr->setSectionResizeMode(4, QHeaderView::Interactive);
+	setColumnWidth(4, addrWidth);
+	hdr->setSectionResizeMode(5, QHeaderView::Stretch);
+	hdr->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+	setcol = 0;
+}
+
+void xBreakTable::colResized(int col, int, int siz) {
+	if (setcol) return;
+	if (col != 4) return;
+	if (siz > 0) addrWidth = siz;
 }
 
 void xBreakTable::update() {
@@ -165,6 +212,7 @@ void xBreakTable::onCellClick(QModelIndex idx) {
 	int col = idx.column();
 	xProfile* prf = conf.prof.cur;
 	xBrkPoint* brk = &prf->brk.list[row];
+	if ((col > 0) && (brk->type == BRK_COND)) return;
 	switch(col) {
 		case 0: brk->off ^= 1; break;
 		case 1: brk->fetch ^= 1; break;
@@ -195,6 +243,8 @@ void xBreakTable::onDoubleClick(QModelIndex idx) {
 
 xBrkManager::xBrkManager(QWidget* p):QDialog(p) {
 	ui.setupUi(this);
+	helpWin = nullptr;
+	ui.labCondErr->setWordWrap(true);
 
 	ui.brkType->addItem("ADR bus (MEM)", BRK_CPUADR);
 	ui.brkType->addItem("ADR bus (IO)", BRK_IOPORT);
@@ -202,6 +252,7 @@ xBrkManager::xBrkManager(QWidget* p):QDialog(p) {
 	ui.brkType->addItem("ROM cell", BRK_MEMROM);
 	ui.brkType->addItem("SLT cell", BRK_MEMSLT);
 	ui.brkType->addItem("IRQ", BRK_IRQ);
+	ui.brkType->addItem("Condition (global)", BRK_COND);
 
 	ui.brkAdrEnd->setMin(0x0000);
 	ui.brkAdrEnd->setMax(0xffffff);
@@ -229,6 +280,8 @@ xBrkManager::xBrkManager(QWidget* p):QDialog(p) {
 	connect(ui.brkAdrEnd,SIGNAL(valueChanged(int)),this,SLOT(endAbsChanged(int)));
 
 	connect(ui.brkType, SIGNAL(currentIndexChanged(int)), this, SLOT(chaType(int)));
+	connect(ui.leCond, SIGNAL(textChanged(QString)), this, SLOT(chaCond(QString)));
+	connect(ui.tbCondHelp, SIGNAL(clicked()), this, SLOT(condHelp()));
 //	connect(ui.brkAdrHex, SIGNAL(valueChanged(int)), ui.brkAdrEnd, SLOT(setMin(int)));
 	connect(ui.pbOK, SIGNAL(clicked()), this, SLOT(confirm()));
 }
@@ -277,6 +330,8 @@ void xBrkManager::endAbsChanged(int v) {
 //	ui.leEndOffset->blockSignals(true);
 }
 
+#define EL_CHG 2048
+#define EL_CND 1024
 #define EL_VAL 512
 #define EL_FE 256
 #define EL_RD 128
@@ -292,7 +347,8 @@ void xBrkManager::setElements(int mask) {
 	ui.brkFetch->setVisible(mask & EL_FE);
 	ui.brkRead->setVisible(mask & EL_RD);
 	ui.brkWrite->setVisible(mask & EL_WR);
-	ui.labFlags->setVisible(mask & (EL_FE | EL_RD | EL_WR));
+	ui.brkOnChange->setVisible(mask & EL_CHG);
+	ui.labFlags->setVisible(mask & (EL_FE | EL_RD | EL_WR | EL_CHG));
 	ui.brkBank->setVisible(mask & EL_BNK);
 	ui.labBank->setVisible(mask & EL_BNK);
 	ui.leStartOffset->setVisible(mask & EL_SOF);
@@ -310,24 +366,105 @@ void xBrkManager::setElements(int mask) {
 	ui.labValMask->setVisible(mask & EL_VAL);
 	ui.leValue->setVisible(mask & EL_VAL);
 	ui.leValMask->setVisible(mask & EL_VAL);
+
+	ui.labCond->setVisible(mask & EL_CND);
+	ui.leCond->setVisible(mask & EL_CND);
+	ui.tbCondHelp->setVisible(mask & EL_CND);
+	ui.labCondErr->setVisible(mask & EL_CND);
+}
+
+// max address depends on what the address means: a cpu/io one is limited by the
+// bus, a memory cell one by the size of ram/rom/slot
+
+void xBrkManager::setLimits(int t) {
+	Computer* comp = conf.prof.cur->zx;
+	int max;
+	switch (t) {
+		case BRK_CPUADR:
+		case BRK_IOPORT: max = comp->mem->busmask; break;
+		case BRK_MEMRAM: max = comp->mem->ramMask; break;
+		case BRK_MEMROM: max = comp->mem->romMask; break;
+		case BRK_MEMSLT: max = comp->slot->memMask; break;
+		default: max = 0xffffff; break;
+	}
+	if (max < 0xffff) max = 0xffff;
+	ui.brkAdrHex->setMax(max);
+	ui.brkAdrEnd->setMax(max);
+	ui.brkBank->setMaximum(max >> 14);
 }
 
 void xBrkManager::chaType(int i) {
 	int t = ui.brkType->itemData(i).toInt();
+	setLimits(t);
+	chaCond(ui.leCond->text());		// the note about HITS depends on the type
 	switch (t) {
 		case BRK_IRQ:
-			setElements(0);
+			setElements(EL_CND);
+			break;
+		case BRK_COND:				// the condition and how it fires
+			setElements(EL_CND | EL_CHG);
 			break;
 		case BRK_IOPORT:
-			setElements(EL_RD | EL_WR | EL_SAD | EL_MSK);
+			setElements(EL_CND | EL_RD | EL_WR | EL_SAD | EL_MSK);
 			break;
 		case BRK_CPUADR:
-			setElements(EL_FE | EL_RD | EL_WR | EL_SAD | EL_EAD);
+			setElements(EL_CND | EL_FE | EL_RD | EL_WR | EL_SAD | EL_EAD);
 			break;
 		default:
-			setElements(EL_FE | EL_RD | EL_WR | EL_BNK | EL_SOF | EL_SAD | EL_EOF | EL_EAD);
+			setElements(EL_CND | EL_FE | EL_RD | EL_WR | EL_BNK | EL_SOF | EL_SAD | EL_EOF | EL_EAD);
 			break;
 	}
+}
+
+// check the expression as it is typed
+
+void xBrkManager::chaCond(QString str) {
+	xExpr exp = xexpr_compile(str.trimmed().toLocal8Bit().data());
+	if (str.trimmed().isEmpty()) {
+		ui.labCondErr->setStyleSheet("");
+		ui.labCondErr->setText("");
+	} else if (xexpr_ok(exp)) {
+		// show how it was understood: a wrong base or priority shows up at once
+		QString res = QString("ok: %0").arg(xexpr_text(exp).c_str());
+		// HITS of a global condition counts its own firings, so it can't be used
+		// to skip the first N of anything - that needs an address breakpoint
+		if ((ui.brkType->itemData(ui.brkType->currentIndex()).toInt() == BRK_COND)
+			&& xexpr_uses_var(exp, XV_HITS)) {
+			ui.labCondErr->setStyleSheet("color:#c17d11");
+			res.append(QString(QChar(10)) + "HITS counts what this condition fired, so it can limit"
+				" (HITS < 3) but not skip. To stop on the Nth hit of an"
+				" address, make it an address breakpoint with HITS > N-1");
+		} else {
+			ui.labCondErr->setStyleSheet("");
+		}
+		ui.labCondErr->setText(res);
+	} else {
+		ui.labCondErr->setStyleSheet("color:#ef2929");
+		ui.labCondErr->setText(QString("%0 at %1").arg(exp.err.c_str()).arg(exp.errpos));
+	}
+}
+
+void xBrkManager::condHelp() {
+	if (!helpWin) {
+		// the text lives in res/help/cond-syntax.html, built into the binary
+		QFile file(":/res/help/cond-syntax.html");
+		QString txt = "no help text in this build";
+		if (file.open(QFile::ReadOnly)) {
+			txt = QString::fromUtf8(file.readAll());
+			file.close();
+		}
+		helpWin = new QDialog(this);
+		helpWin->setWindowTitle("Expression syntax");
+		helpWin->resize(620, 640);
+		QTextBrowser* brw = new QTextBrowser(helpWin);
+		brw->document()->setDefaultStyleSheet("td {padding-right:16px;} p {margin:2px 0px;} li {margin:2px 0px;}");
+		brw->setHtml(txt);
+		QVBoxLayout* lay = new QVBoxLayout(helpWin);
+		lay->setContentsMargins(4, 4, 4, 4);
+		lay->addWidget(brw);
+	}
+	helpWin->show();
+	helpWin->raise();
 }
 
 void xBrkManager::edit(xBrkPoint* sbrk) {
@@ -344,16 +481,24 @@ void xBrkManager::edit(xBrkPoint* sbrk) {
 		obrk.read = 0;
 		obrk.write = 0;
 		obrk.off = 0;
+		obrk.temp = 0;
+		obrk.last = 0;
+		obrk.fired = 0;
+		obrk.onchg = 0;
+		obrk.hits = 0;
 		obrk.count = 0;
 		obrk.action = BRK_ACT_DBG;
+		obrk.cond.clear();
 	}
+	ui.leCond->setText(QString(obrk.cond.c_str()));
+	chaCond(ui.leCond->text());
 	ui.brkAction->setCurrentIndex(ui.brkAction->findData(obrk.action));
 	ui.brkType->setCurrentIndex(ui.brkType->findData(obrk.type));
 	ui.brkFetch->setChecked(obrk.fetch);
+	ui.brkOnChange->setChecked(obrk.onchg);
 	ui.brkRead->setChecked(obrk.read);
 	ui.brkWrite->setChecked(obrk.write);
-	ui.brkAdrHex->setMax(conf.prof.cur->zx->mem->busmask);
-	ui.brkAdrEnd->setMax(conf.prof.cur->zx->mem->busmask);
+	setLimits(obrk.type);
 	switch(obrk.type) {
 		case BRK_IOPORT:
 			ui.brkBank->setValue(0);
@@ -379,15 +524,33 @@ void xBrkManager::edit(xBrkPoint* sbrk) {
 
 void xBrkManager::confirm() {
 	xBrkPoint brk;
+	QString cond = ui.leCond->text().trimmed();
+	if (!cond.isEmpty() && !xexpr_ok(xexpr_compile(cond.toLocal8Bit().data()))) {
+		ui.leCond->setFocus();
+		return;			// don't accept a broken condition
+	}
 	brk.off = 0;
+	brk.temp = 0;
+	brk.last = 0;
+	brk.fired = 0;
+	brk.onchg = ui.brkOnChange->isChecked() ? 1 : 0;
+	brk_set_cond(&brk, cond.toLocal8Bit().data());
 	brk.type = ui.brkType->itemData(ui.brkType->currentIndex()).toInt();
 	brk.fetch = ui.brkFetch->isChecked() ? 1 : 0;
 	brk.read = ui.brkRead->isChecked() ? 1 : 0;
 	brk.write = ui.brkWrite->isChecked() ? 1 : 0;
 	brk.action = ui.brkAction->itemData(ui.brkAction->currentIndex()).toInt();
+	brk.hits = obrk.hits;
 	brk.count = obrk.count;
 	int bnk = ui.brkBank->value();
 	switch (brk.type) {
+		case BRK_COND:			// no address, no flags
+			brk.fetch = 0;
+			brk.read = 0;
+			brk.write = 0;
+			brk.adr = 0;
+			brk.eadr = 0;
+			break;
 		case BRK_CPUADR:
 			brk.adr = ui.brkAdrHex->getValue();
 			brk.eadr = ui.brkAdrEnd->getValue();
@@ -474,132 +637,17 @@ void xBreakWidget::resetBrk() {
 	QModelIndexList idxl = ui.bpList->selectionModel()->selectedRows();
 	QModelIndex idx;
 	foreach(idx, idxl) {
+		conf.prof.cur->brk.list[idx.row()].hits = 0;
 		conf.prof.cur->brk.list[idx.row()].count = 0;
 	}
 	ui.bpList->update();
 	emit updated();		// fill disasm/dump
 }
 
-bool parseRange(QString str, xBrkPoint* p) {
-	bool r;
-	int badr;
-	int eadr;
-	int tadr;
-	QStringList splt;
-	splt = str.split('-', X_SkipEmptyParts);
-	badr = splt.first().toInt(&r, 16);
-	if (r) {
-		if (splt.size() > 1) {
-			eadr = splt[1].toInt(&r, 16);
-			if (eadr < badr) {
-				tadr = badr;
-				badr = eadr;
-				eadr = tadr;
-			}
-		} else {
-			eadr = badr;
-		}
-		if (r) {
-			p->adr = badr;
-			p->eadr = eadr;
-		}
-	}
-	return r;
-}
-
 void xBreakWidget::openBrk() {
 	QString path = QFileDialog::getOpenFileName(this, "Open breakpoints list", "", "deBUGa breakpoints (*.xbrk)",nullptr,QFileDialog::DontUseNativeDialog);
 	if (path.isEmpty()) return;
-	QFile file(path);
-	QString line;
-	QStringList splt;
-	QStringList list;
-	xBrkPoint brk;
-	int off;
-	bool b0,b1;
-	if (file.open(QFile::ReadOnly)) {
-		conf.prof.cur->brk.list.clear();
-		while(!file.atEnd()) {
-			line = tr(file.readLine());
-			if (!line.startsWith(";")) {
-				b0 = true;
-				b1 = true;
-				list = line.trimmed().split(":", X_KeepEmptyParts);
-				while(list.size() < 5)
-					list.append(QString());
-				brk.fetch = list.at(3).contains("F") ? 1 : 0;
-				brk.read = list.at(3).contains("R") ? 1 : 0;
-				brk.write = list.at(3).contains("W") ? 1 : 0;
-				brk.off = list.at(3).contains("0") ? 1 : 0;
-				if (list.at(0) == "IO") {
-					brk.type = BRK_IOPORT;
-					brk.adr = list.at(1).toInt(&b0, 16) & 0xffff;
-					brk.mask = list.at(2).toInt(&b1, 16) & 0xffff;
-				} else if (list.at(0) == "CPU") {
-					brk.type = BRK_CPUADR;
-					b0 = parseRange(list.at(1), &brk);
-					brk.adr &= 0xffff;
-					brk.eadr &= 0xffff;
-//					if (list.at(1).contains("-")) {		// 1234-ABCD
-//						splt = list.at(1).split(QLatin1Char('-'), X_SkipEmptyParts);
-//						list[1] = splt.first();
-//						list[2] = splt.last();
-//					}
-//					brk.adr = list.at(1).toInt(&b0, 16) & 0xffff;
-//					if (list.at(2).isEmpty()) {
-//						brk.eadr = brk.adr;
-//					} else {
-//						brk.eadr = list.at(2).toInt(&b1, 16) & 0xffff;
-//						if (brk.eadr < brk.adr)
-//							brk.eadr = brk.adr;
-//					}
-				} else if (list.at(0) == "ROM") {
-					brk.type = BRK_MEMROM;
-					b0 = parseRange(list.at(2), &brk);
-					off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-					brk.adr = (brk.adr & 0x3fff) | off;
-					brk.eadr = (brk.eadr & 0x3fff) | off;
-//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
-//					brk.eadr = brk.adr;
-				} else if (list.at(0) == "RAM") {
-					brk.type = BRK_MEMRAM;
-					b0 = parseRange(list.at(2), &brk);
-					off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-					brk.adr = (brk.adr & 0x3fff) | off;
-					brk.eadr = (brk.eadr & 0x3fff) | off;
-//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
-//					brk.eadr = brk.adr;
-				} else if (list.at(0) == "SLT") {
-					brk.type = BRK_MEMSLT;
-					b0 = parseRange(list.at(2), &brk);
-					off = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-					brk.adr = (brk.adr & 0x3fff) | off;
-					brk.eadr = (brk.eadr & 0x3fff) | off;
-//					brk.adr = (list.at(1).toInt(&b0, 16) & 0xff) << 14;
-//					brk.adr |= (list.at(2).toInt(&b1, 16) & 0x3fff);
-//					brk.eadr = brk.adr;
-				} else if (list.at(0) == "IRQ") {
-					brk.type = BRK_IRQ;
-				} else {
-					b0 = false;
-				}
-				if (list.at(4) == "SCR") {
-					brk.action = BRK_ACT_SCR;
-				} else if (list.at(4) == "CNT") {
-					brk.action = BRK_ACT_COUNT;
-				} else {
-					brk.action = BRK_ACT_DBG;
-				}
-				if (b0 && b1) {
-					brk.count = 0;
-					conf.prof.cur->brk.list.push_back(brk);
-				}
-			}
-		}
-		file.close();
-		brkInstallAll();
+	if (brk_load_list(path.toLocal8Bit().data())) {
 		ui.bpList->update();
 		emit updated();
 	} else {
@@ -613,80 +661,6 @@ void xBreakWidget::saveBrk() {
 		return;
 	if (!path.endsWith(".xbrk", Qt::CaseInsensitive))
 		path.append(".xbrk");
-	xBrkPoint brk;
-	QFile file(path);
-	QString nm,ar1,ar2,flag,act;
-	if (file.open(QFile::WriteOnly)) {
-		file.write("; Xpeccy+ deBUGa breakpoints list\n");
-		foreach(brk, conf.prof.cur->brk.list) {
-			switch(brk.type) {
-				case BRK_IOPORT:
-					nm = "IO";
-					ar1 = gethexword(brk.adr & 0xffff);
-					ar2 = gethexword(brk.mask & 0xffff);
-					break;
-				case BRK_CPUADR:
-					nm = "CPU";
-					ar1 = gethexword(brk.adr & 0xffff);
-					ar2.clear();
-					if (brk.eadr > brk.adr) {
-						ar1.append("-");
-						ar1.append(gethexword(brk.eadr & 0xffff));
-					}
-					break;
-				case BRK_MEMRAM:
-					nm = "RAM";
-					ar1 = gethexbyte((brk.adr >> 14) & 0xff);	// 16K page
-					ar2 = gethexword(brk.adr & 0x3fff);		// adr in page
-					if (brk.eadr > brk.adr) {
-						ar2.append("-");
-						ar2.append(gethexword(brk.eadr & 0x3fff));
-					}
-					break;
-				case BRK_MEMROM:
-					nm = "ROM";
-					ar1 = gethexbyte((brk.adr >> 14) & 0xff);
-					ar2 = gethexword(brk.adr & 0x3fff);
-					if (brk.eadr > brk.adr) {
-						ar2.append("-");
-						ar2.append(gethexword(brk.eadr & 0x3fff));
-					}
-					break;
-				case BRK_MEMSLT:
-					nm = "SLT";
-					ar1 = gethexbyte((brk.adr >> 14) & 0xff);
-					ar2 = gethexword(brk.adr & 0x3fff);
-					if (brk.eadr > brk.adr) {
-						ar2.append("-");
-						ar2.append(gethexword(brk.eadr & 0x3fff));
-					}
-					break;
-				case BRK_IRQ:
-					nm = "IRQ";
-					ar1.clear();
-					ar2.clear();
-					break;
-				default:
-					nm.clear();
-					break;
-			}
-			switch(brk.action) {
-				case BRK_ACT_DBG: act = "DBG"; break;
-				case BRK_ACT_SCR: act = "SCR"; break;
-				case BRK_ACT_COUNT: act = "CNT"; break;
-				default: act.clear(); break;
-			}
-			if (!nm.isEmpty()) {
-				flag.clear();
-				if (brk.fetch) flag.append("F");
-				if (brk.read) flag.append("R");
-				if (brk.write) flag.append("W");
-				if (brk.off) flag.append("0");
-				file.write(QString("%0:%1:%2:%3:%4\n").arg(nm).arg(ar1).arg(ar2).arg(flag).arg(act).toUtf8());
-			}
-		}
-		file.close();
-	} else {
+	if (!brk_save_list(path.toLocal8Bit().data()))
 		shitHappens("Can't open file for writing");
-	}
 }
