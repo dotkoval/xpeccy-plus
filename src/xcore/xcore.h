@@ -98,6 +98,8 @@ QString gethexshift(char);
 QString getdecshift(char);
 QString gethexbyte(int);
 QString gethexword(int);
+QString getPortString(int, int);
+bool parsePort(const QString&, int*, int*);
 QString getoctword(int);
 QString gethex6(int);
 QString gethexint(int);
@@ -260,6 +262,9 @@ void prfChangeLayName(std::string, std::string);
 #define	PLOAD_RS	4
 
 int prfLoad(std::string);
+
+QStringList getWatchPorts(Computer*, int = 1);
+void setWatchPorts(Computer*, QStringList);
 
 #define PSAVE_OK	PLOAD_OK
 #define	PSAVE_NF	PLOAD_NF
@@ -535,6 +540,11 @@ struct xConfig {
 		unsigned synhl:1;	// syntax colors in the command column
 		unsigned blocksep:1;	// empty line after RET/JP/JR
 		unsigned romwr:1;
+		unsigned showmmap:1;	// blocks of the misc panel
+		unsigned showports:1;
+		unsigned showsig:1;
+		unsigned showray:1;
+		unsigned showfrm:1;
 		QFont font;
 		int dbsize;
 		int dwsize;

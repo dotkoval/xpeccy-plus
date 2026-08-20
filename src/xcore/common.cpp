@@ -36,6 +36,25 @@ QString gethexbyte(int num) {
 	return res.rightJustified(2, '0');
 }
 
+// A watched port written with four digits is the address on the bus as it is;
+// two digits mean a byte port, compared by its low byte alone. It is the number
+// of digits that says which, so the width travels in the mask and the two
+// round-trip through the profile file
+
+QString getPortString(int port, int mask) {
+	return (mask > 0xff) ? gethexword(port) : gethexbyte(port);
+}
+
+bool parsePort(const QString& str, int* port, int* mask) {
+	QString txt = str.trimmed();
+	bool ok = false;
+	int prt = txt.toInt(&ok, 16);
+	if (!ok || (prt <= 0) || (txt.size() > 4)) return false;
+	*port = prt;
+	*mask = (txt.size() > 2) ? 0xffff : 0xff;
+	return true;
+}
+
 QString gethexshift(char shft) {
 	QString str = (shft < 0) ? "-" : "+";
 	if (shft < 0)

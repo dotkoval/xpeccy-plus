@@ -211,6 +211,37 @@ int prfSetHardware(xProfile* prf, std::string nm) {
 	return compSetHardware(prf->zx, nm.empty() ? NULL : nm.c_str());
 }
 
+// the ports the debugger watches, as text: "7FFD" is watched, "-7FFD" keeps its
+// place in the list switched off. The editor wants them all; the profile file
+// takes only what the user decided, since the ports the machine brings itself
+// are put back by comp_pwatch_sync() anyway
+
+QStringList getWatchPorts(Computer* comp, int all) {
+	QStringList res;
+	for (int i = 0; i < comp->pwcount; i++) {
+		if (!all && comp->pwatch[i].hw && comp->pwatch[i].on) continue;
+		QString str = getPortString(comp->pwatch[i].port, comp->pwatch[i].mask);
+		res << (comp->pwatch[i].on ? str : "-" + str);
+	}
+	return res;
+}
+
+// the list is built anew every time: a port that leaves takes its history with
+// it, and the emulation reads the same array between two instructions
+
+void setWatchPorts(Computer* comp, QStringList ports) {
+	int port, mask;
+	emu_lock();
+	comp_pwatch_clear(comp);
+	foreach(QString str, ports) {
+		bool on = !str.startsWith('-');
+		if (parsePort(on ? str : str.mid(1), &port, &mask))
+			comp_pwatch_add(comp, port, mask, on);
+	}
+	comp_pwatch_sync(comp);
+	emu_unlock();
+}
+
 // load-save
 
 #define	PS_NONE		0
@@ -224,6 +255,7 @@ int prfSetHardware(xProfile* prf, std::string nm) {
 #define	PS_IDE		8
 #define	PS_SDC		9
 #define PS_SLOT		10
+#define	PS_DEBUGA	11
 
 void setDiskString(Computer* comp,Floppy* flp,std::string st) {
 	if (st.size() < 4) return;
@@ -398,6 +430,7 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 			if (pnam=="[INPUT]") section = PS_INPUT;
 			if (pnam=="[SDC]") section = PS_SDC;
 			if (pnam=="[SLOT]") section = PS_SLOT;
+			if (pnam=="[DEBUGA]") section = PS_DEBUGA;
 		} else {
 			switch (section) {
 				case PS_ROMSET:
@@ -544,6 +577,10 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 					if (pnam == "sdcimage") sdcSetImage(comp->sdc, arg.s);
 					if (pnam == "sdclock") comp->sdc->lock = arg.b;
 					// if (pnam == "capacity") sdcSetCapacity(comp->sdc, arg.i);
+					break;
+				case PS_DEBUGA:
+					if (pnam == "ports")
+						setWatchPorts(comp, QString(arg.s).split(","));
 					break;
 				case PS_SLOT:
 					if ((pnam == "slot.type") || (pnam == "slotA.type") || (pnam == "type"))
@@ -774,6 +811,12 @@ int prfSave(std::string nm) {
 	fprintf(file, "sdcimage = %s\n", comp->sdc->image ? comp->sdc->image : "");
 	fprintf(file, "sdclock = %s\n", YESNO(comp->sdc->lock));
 //	fprintf(file, "capacity = %i\n", comp->sdc->capacity);
+
+	QStringList pts = getWatchPorts(comp, 0);
+	if (!pts.isEmpty()) {
+		fprintf(file, "\n[DEBUGA]\n");
+		fprintf(file, "ports = %s\n", pts.join(",").toLatin1().data());
+	}
 
 	fprintf(file, "\n[SLOT]\n");
 	fprintf(file, "type = %i\n",comp->slot->mapType);
