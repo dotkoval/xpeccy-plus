@@ -11,6 +11,20 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **Conditional breakpoints** (the way Unreal's debugger does it): a breakpoint can carry a
+  C-like condition and only stops when it is true - `bc == 0x1234`, `(out & 0xff) == 0xfd`. A
+  condition with no address of its own is a breakpoint in itself: it is checked after every
+  instruction and fires the moment it becomes true. Expressions take cpu registers, labels,
+  memory (`M(x)`, `[x]`), the last memory/io access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`),
+  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`) and the breakpoint's own hit counter
+  (`HITS`), so an address breakpoint with `HITS > 30` lets the first 30 hits pass and stops on
+  the 31st, and `FRAME == 300` stops on the first instruction of frame 300. Numbers follow the same rules as the assembler in the disassembler window -
+  decimal, `0x`/`#` for hex, a leading zero for octal - and while a condition is typed, the
+  line under the field shows how it was understood, with the priorities as brackets. The `?` button in the breakpoint editor lists them all with examples.
+  Conditions are saved and loaded with the breakpoint list, and the list can be loaded at
+  startup with `--brk FILE`, which also reads Unreal's `bpx.ini` format (`x0=0x80A6`,
+  `r0=0x8000-0x8FFF`) - the one sjasmplus writes.
+
 - **The disassembly listing reads more like a listing** (ideas borrowed from Spectaculator):
   the address and the opcode columns can be dimmed, constants are coloured and labels go
   bold, and an empty line follows every `RET`/`JP`/`JR`. Four switches in the debugger
@@ -30,6 +44,16 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- Watcher expressions understand the same syntax as breakpoint conditions - comparisons,
+  logic, shifts, `M(x)` and the last memory/io access. Single Z80 registers (`b`, `c`, `h'`,
+  `ixl` and the rest) can be used as well. **Two things changed meaning**: a number without a
+  prefix is decimal now, where it used to be read in the machine's base, so hex needs `0x` or
+  `#` (`hl == 4000` is four thousand, `hl == 0x4000` is the screen) and a name is never a
+  number, which is what makes `bc` unambiguously the register pair; and operator priorities
+  are C's now, so mixed bitwise and arithmetic can shift - `hl&0xff+1` used to mean
+  `(hl&0xff)+1` and now means `hl&(0xff+1)`. Labels, `.name`, `[x]` and `0x` work as before,
+  and nothing on disk holds expressions, so saved xmap/label files are not affected.
+
 - **One set of AY/TurboSound settings instead of three.** Sound now asks how many chips there
   are - none, one, TurboSound (NedoPC) or TurboSound (ZX Next) - and the type, clock and stereo
   mode apply to all of them. No machine ever mixed different chips, clocks or stereo layouts in
@@ -45,6 +69,9 @@ before that point is upstream's history and is not repeated here.
   register panel is wide enough for two columns.
 
 ### Fixed
+
+- A breakpoint loaded from a file could come up with random flags - most visibly a stray
+  "temporary" one - because the loader left part of the record uninitialised.
 
 - **The context menu of a changed register is readable again.** It took the pink
   highlight of the field as its own background.
