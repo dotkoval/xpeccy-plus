@@ -11,6 +11,24 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **The side panel of the debugger shows the frame number**, under SIGNALS: frames since
+  reset, the same number breakpoint conditions read as `FRAME`. A right click on it puts the
+  counter back to 0.
+
+- **The ports in that panel are a list of your own now.** The ones a machine keeps by itself
+  are in it from the start, any port on the bus can join them (up to 16 per profile), and each
+  one can be switched off without leaving the list. The cell shows the last value that went
+  through the port, either way. A port of four digits is the address as it is (`7FFD`, `BFFE`
+  for one keyboard half-row); two digits are a byte port and only the low byte counts, which
+  is what catches `in a,(31)` on the Kempston joystick or `out (#FE),a` on the border - the
+  Z80 puts A in the high byte there. Edited in Options - deBUGa, or by a right click on the
+  PORTS block.
+
+- **Blocks of that panel can be turned off** - ports, signals, frame, beam position - in
+  Options - deBUGa. That page is laid out anew: the style picker and the font moved into
+  View, the panel switches and the port list sit under it, and the palette takes the whole
+  height beside them.
+
 - **Conditional breakpoints** (the way Unreal's debugger does it): a breakpoint can carry a
   C-like condition and only stops when it is true - `bc == 0x1234`, `(out & 0xff) == 0xfd`. A
   condition with no address of its own is a breakpoint in itself: it is checked after every
