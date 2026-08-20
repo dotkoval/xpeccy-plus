@@ -1,6 +1,6 @@
 /* Solarized Dark -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Solarized by Ethan Schoonover (MIT). Low contrast on purpose: the
  * greys sit close together and only the accents carry.

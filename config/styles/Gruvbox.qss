@@ -1,6 +1,6 @@
 /* Gruvbox -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Gruvbox dark by Pavel Pertsev (MIT), the warm one: brown-olive
  * greys with a mustard accent, and no cold blue anywhere.

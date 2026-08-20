@@ -1,6 +1,6 @@
 /* ZX Spectrum -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Written for Xpeccy+. Neutral dark chrome so it stays usable, with
  * the accents taken from the machine itself: magenta #BB00BB for a

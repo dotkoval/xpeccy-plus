@@ -1,6 +1,6 @@
 /* Light -- interface style for Xpeccy+
  *
- * Setup -> deBUGa -> Style Sheet. "System" there means no style sheet at all.
+ * Setup -> Debugger -> Style Sheet. "System" there means no style sheet at all.
  *
  * Follows the light look Windows itself draws: same greys, same button
  * size, the pale Explorer selection. Meant for desktops whose system
