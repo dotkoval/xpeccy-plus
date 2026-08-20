@@ -88,6 +88,8 @@ typedef struct {
 #define flgHEAT	sysflag[16]		// collect memory read/write/exec usage stats
 #define flgCOND	sysflag[17]		// breakpoint conditions in use: latch mem/io events
 
+#define PWATCH_MAX	16		// ports the debugger can watch at once
+
 typedef struct Computer {
 	struct HardWare *hw;	// computer core - misc params, callbacks
 
@@ -103,6 +105,21 @@ typedef struct Computer {
 		int in, out, val;
 	} brkev;
 	int brkray;		// beam position (dots from frame start) before this instruction
+	// ports the debugger watches. A hit is (bus & mask) == port; a port the
+	// machine keeps a copy of is read from there instead of the bus, the rest
+	// hold the last value that went through them (-1 = nothing yet). A port
+	// switched off keeps its place in the list, it is just not watched
+	struct {
+		int port;
+		int mask;
+		int type;		// what the machine keeps it in...
+		size_t offset;		// ...and where, 0 = watch the bus
+		int on;
+		int hw;			// came from the machine's own table
+		int val;
+	} pwatch[PWATCH_MAX];
+	int pwcount;
+	int pwbus;			// how many of them the bus has to be watched for
 
 	char* msg;		// message ptr for displaying outside
 	int resbank;		// rompart active after reset
@@ -234,6 +251,12 @@ void rzxStop(Computer*);
 
 void comp_brk(Computer*, int);
 void comp_brk_newstep(Computer*);
+
+void comp_pwatch_clear(Computer*);
+void comp_pwatch_add(Computer*, int, int, int);
+void comp_pwatch_sync(Computer*);
+int comp_pwatch_val(Computer*, int);
+
 unsigned char* getBrkPtr(Computer*, int);
 unsigned char getBrk(Computer*, int);
 void setBrk(Computer*, int, unsigned char);
