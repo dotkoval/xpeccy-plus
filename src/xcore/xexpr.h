@@ -42,6 +42,8 @@ enum {
 	XV_SLOT2,
 	XV_SLOT3,
 	XV_FRAME,	// frames since reset
+	XV_RAYX,	// beam position, the two numbers of the RAY panel
+	XV_RAYY,
 	XV_HITS		// how many times this breakpoint was hit
 };
 
@@ -66,5 +68,3 @@ bool xexpr_ok(const xExpr&);
 std::string xexpr_text(const xExpr&);
 // does the expression use this pseudo-variable (XV_*)
 bool xexpr_uses_var(const xExpr&, int);
-// list of pseudo-variable names, for the syntax help
-const char* xexpr_var_name(int);

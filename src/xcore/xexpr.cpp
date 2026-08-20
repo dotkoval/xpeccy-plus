@@ -31,10 +31,10 @@ static int xe_prio(int op) {
 
 static const char* xe_var_tab[] = {
 	"RD", "WR", "MDT", "IN", "OUT", "VAL", "DOS",
-	"SLOT0", "SLOT1", "SLOT2", "SLOT3", "FRAME", "HITS", NULL
+	"SLOT0", "SLOT1", "SLOT2", "SLOT3", "FRAME", "RAYX", "RAYY", "HITS", NULL
 };
 
-const char* xexpr_var_name(int id) {
+static const char* xe_var_name(int id) {
 	if (id < 0) return NULL;
 	if (id >= (int)(sizeof(xe_var_tab) / sizeof(xe_var_tab[0])) - 1) return NULL;
 	return xe_var_tab[id];
@@ -411,7 +411,7 @@ std::string xexpr_text(const xExpr& exp) {
 					stk.push_back(it->name);
 					break;
 				case XE_VAR:
-					nam = xexpr_var_name(it->val);
+					nam = xe_var_name(it->val);
 					stk.push_back(nam ? nam : "?");
 					break;
 			}
@@ -459,6 +459,8 @@ static unsigned xe_var_value(Computer* comp, unsigned id, int hits) {
 			// >> 6 turns it into the 16K page number deBUGa shows
 			return comp->mem->map[((id - XV_SLOT0) << 6) & 0xff].num >> 6;
 		case XV_FRAME: return comp->frmCount;
+		case XV_RAYX: return comp->vid->ray.x;
+		case XV_RAYY: return comp->vid->ray.y;
 		case XV_HITS: return hits;
 	}
 	return 0;
