@@ -81,6 +81,15 @@
      <property name="verticalSpacing">
       <number>1</number>
      </property>
+     <property name="fieldGrowthPolicy">
+      <enum>QFormLayout::FieldsStayAtSizeHint</enum>
+     </property>
+     <property name="formAlignment">
+      <set>Qt::AlignHCenter|Qt::AlignTop</set>
+     </property>
+     <property name="labelAlignment">
+      <set>Qt::AlignRight|Qt::AlignVCenter</set>
+     </property>
     </layout>
    </item>
    <item>
@@ -144,6 +153,34 @@
      </property>
      <property name="text">
       <string>INT</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labHeadFrame">
+     <property name="font">
+      <font>
+       <pointsize>9</pointsize>
+      </font>
+     </property>
+     <property name="text">
+      <string>FRAME</string>
+     </property>
+     <property name="alignment">
+      <set>Qt::AlignCenter</set>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QLabel" name="labFrame">
+     <property name="autoFillBackground">
+      <bool>true</bool>
+     </property>
+     <property name="text">
+      <string>0</string>
      </property>
      <property name="alignment">
       <set>Qt::AlignCenter</set>

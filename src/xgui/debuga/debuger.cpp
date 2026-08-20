@@ -16,6 +16,7 @@
 #include "dbg_sprscan.h"
 #include "filer.h"
 #include "../xgui.h"
+#include "../portwatch.h"
 
 // debuga.layout format: bump whenever the set of docks changes, so an older
 // file is refused instead of scattering panels it knows nothing about.
@@ -114,8 +115,10 @@ void DebugWin::updateStyle() {
 	str = getStyleString("dbg.header.bg", "dbg.header.txt");
 	ui_cpu.labHeadFlags->setStyleSheet(str);
 	ui_misc.labHeadRay->setStyleSheet(str);
+	ui_misc.labHeadFrame->setStyleSheet(str);
 	ui_misc.labHeadSignal->setStyleSheet(str);
 	ui_misc.labPorts->setStyleSheet(str);
+	setMiscBlocks();
 	foreach(xDockWidget* dw, dockWidgets) {
 		dw->titleBarWidget()->setStyleSheet(str);
 	}
@@ -600,6 +603,22 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	connect(memFiller, SIGNAL(rqRefill()),this,SLOT(fillNotCPU()));
 	connect(memFiller, &xMemFiller::rqRefill, this, &DebugWin::fillDisasm);
 
+// right click on a block of the misc panel. PORTS also gets it row by row, as
+// the rows are made (setPortRow); FRAME goes back to 0, so the next stop is
+// counted from here - breakpoint conditions read the same number
+
+	setLabelMenu(ui_misc.labPorts, ":/images/bars.png", "Watched ports...", [this](){
+		editWatchPorts();
+	});
+	setLabelMenu(ui_misc.labHeadFrame, ":/images/refresh.png", "Reset counter", [this](){
+		conf.prof.cur->zx->frmCount = 0;
+		fillNotCPU();
+	});
+	setLabelMenu(ui_misc.labFrame, ":/images/refresh.png", "Reset counter", [this](){
+		conf.prof.cur->zx->frmCount = 0;
+		fillNotCPU();
+	});
+
 // context menu
 	cellMenu = new QMenu(this);
 	QMenu* bpMenu = new QMenu("Breakpoints");
@@ -990,6 +1009,8 @@ void DebugWin::fillNotCPU() {
 	setSignal(ui_misc.labRX, comp->vid->hblank);
 	ui_misc.labRY->setNum(comp->vid->ray.y);
 	setSignal(ui_misc.labRY, comp->vid->vblank);
+
+	ui_misc.labFrame->setNum(comp->frmCount);
 
 	if (memViewer->isVisible())
 		memViewer->fillImage();
@@ -1759,34 +1780,90 @@ void DebugWin::fillStack() {
 
 // ports
 
+// a label of the misc panel with one action behind the right click
+
+void DebugWin::setLabelMenu(QWidget* wid, QString icon, QString text, std::function<void()> action) {
+	wid->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(wid, &QWidget::customContextMenuRequested, this, [this, wid, icon, text, action](QPoint pos){
+		QMenu mnu(this);
+		QAction* act = mnu.addAction(QIcon(icon), text);
+		if (mnu.exec(wid->mapToGlobal(pos)) == act)
+			action();
+	});
+}
+
+// the ports this profile watches, edited from the panel itself
+
+void DebugWin::editWatchPorts() {
+	Computer* comp = conf.prof.cur->zx;
+	xPortWatchDialog dlg(this);
+	dlg.wid->setPorts(getWatchPorts(comp));
+	if (dlg.exec() != QDialog::Accepted) return;
+	setWatchPorts(comp, dlg.wid->getPorts());
+	fillPorts();
+}
+
+// which blocks of the misc panel the user wants to see (Options - deBUGa).
+// PORTS is left to fillPorts: it is the only one that can be empty by itself
+
+void DebugWin::setMiscBlocks() {
+	ui_misc.labPG0->setVisible(conf.dbg.showmmap);
+	ui_misc.labPG1->setVisible(conf.dbg.showmmap);
+	ui_misc.labPG2->setVisible(conf.dbg.showmmap);
+	ui_misc.labPG3->setVisible(conf.dbg.showmmap);
+	ui_misc.labHeadSignal->setVisible(conf.dbg.showsig);
+	ui_misc.labDOS->setVisible(conf.dbg.showsig);
+	ui_misc.labROM->setVisible(conf.dbg.showsig);
+	ui_misc.labCPM->setVisible(conf.dbg.showsig);
+	ui_misc.labINT->setVisible(conf.dbg.showsig);
+	ui_misc.labHeadFrame->setVisible(conf.dbg.showfrm);
+	ui_misc.labFrame->setVisible(conf.dbg.showfrm);
+	ui_misc.labHeadRay->setVisible(conf.dbg.showray);
+	ui_misc.labRX->setVisible(conf.dbg.showray);
+	ui_misc.labRY->setVisible(conf.dbg.showray);
+	fillPorts();
+}
+
+// one row of the PORTS block, adding it when the panel is short of rows
+
+void DebugWin::setPortRow(int idx, QString nam, QString val) {
+	while (idx >= ui_misc.formPort->rowCount()) {
+		QLabel* lnam = new QLabel;
+		QLabel* lval = new QLabel;
+		lnam->setFont(conf.dbg.font);		// added after the font was handed out
+		lval->setFont(conf.dbg.font);
+		lnam->setToolTip("Last value on the port");
+		lval->setToolTip("Last value on the port");
+		setLabelMenu(lnam, ":/images/bars.png", "Watched ports...", [this](){ editWatchPorts(); });
+		setLabelMenu(lval, ":/images/bars.png", "Watched ports...", [this](){ editWatchPorts(); });
+		ui_misc.formPort->addRow(lnam, lval);
+	}
+	QLabel* wid = (QLabel*)(ui_misc.formPort->itemAt(idx, QFormLayout::LabelRole)->widget());
+	wid->setVisible(true);
+	wid->setText(nam);
+	wid = (QLabel*)(ui_misc.formPort->itemAt(idx, QFormLayout::FieldRole)->widget());
+	wid->setVisible(true);
+	wid->setText(val);
+}
+
+// one list, the machine's own ports among the rest (comp_pwatch_sync), and one
+// value per port: its register when the machine keeps one, the bus otherwise
+
 void DebugWin::fillPorts() {
 	Computer* comp = conf.prof.cur->zx;
-	xPortValue* tab = hwGetPorts(comp);
-	QLabel* wid;
 	int i = 0;
-	int cnt = ui_misc.formPort->rowCount();
-	if (tab) {
-		if (tab[0].port > 0) {
-			while (tab[i].port > 0) {
-				if (i >= cnt) {
-					ui_misc.formPort->addRow(new QLabel, new QLabel);
-					cnt++;
-				}
-				wid = (QLabel*)(ui_misc.formPort->itemAt(i, QFormLayout::LabelRole)->widget());
-				wid->setVisible(true);
-				wid->setText(gethexword(tab[i].port));
-				wid = (QLabel*)(ui_misc.formPort->itemAt(i, QFormLayout::FieldRole)->widget());
-				wid->setVisible(true);
-				wid->setText(gethexbyte(tab[i].value));
-				i++;
-			}
-			ui_misc.labPorts->setVisible(true);
-		} else {
-			ui_misc.labPorts->setVisible(false);
+	int n;
+	if (conf.dbg.showports) {
+		for (n = 0; n < comp->pwcount; n++) {
+			if (!comp->pwatch[n].on) continue;
+			int val = comp_pwatch_val(comp, n);
+			setPortRow(i, getPortString(comp->pwatch[n].port, comp->pwatch[n].mask),
+				(val < 0) ? QString("--") : gethexbyte(val));
+			i++;
 		}
-	} else {
-		ui_misc.labPorts->setVisible(false);
 	}
+	ui_misc.labPorts->setVisible(i > 0);
+	int cnt = ui_misc.formPort->rowCount();
 	while (i < cnt) {
 		((QLabel*)(ui_misc.formPort->itemAt(i, QFormLayout::LabelRole)->widget()))->setVisible(false);
 		((QLabel*)(ui_misc.formPort->itemAt(i, QFormLayout::FieldRole)->widget()))->setVisible(false);
