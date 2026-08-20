@@ -21,11 +21,11 @@ before that point is upstream's history and is not repeated here.
   through the port, either way. A port of four digits is the address as it is (`7FFD`, `BFFE`
   for one keyboard half-row); two digits are a byte port and only the low byte counts, which
   is what catches `in a,(31)` on the Kempston joystick or `out (#FE),a` on the border - the
-  Z80 puts A in the high byte there. Edited in Options - deBUGa, or by a right click on the
+  Z80 puts A in the high byte there. Edited in Options - Debugger, or by a right click on the
   PORTS block.
 
 - **Blocks of that panel can be turned off** - ports, signals, frame, beam position - in
-  Options - deBUGa. That page is laid out anew: the style picker and the font moved into
+  Options - Debugger. That page is laid out anew: the style picker and the font moved into
   View, the panel switches and the port list sit under it, and the palette takes the whole
   height beside them.
 
@@ -89,6 +89,10 @@ before that point is upstream's history and is not repeated here.
 - **`I` and `R` are one `IR` field in the debugger**, and share a line with `IM` when the
   register panel is wide enough for two columns.
 
+- **The debugger and the watcher go by their names now** - deBUGa and WUTcha are gone from the
+  window titles, the menu, the hotkey list and the Options page. A handful of interface typos
+  went with them (`Maping`, `Palete`, `Lenght`, `Ouput`, `MSX Maper`, `Debuger`).
+
 ### Fixed
 
 - A breakpoint loaded from a file could come up with random flags - most visibly a stray
@@ -117,13 +121,13 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 
 ### Added
 
-- **Eight interface styles**, in `config/styles` - pick one in Setup - Xpeccy+ - deBUGa -
+- **Eight interface styles**, in `config/styles` - pick one in Setup - Xpeccy+ - Debugger -
   Style Sheet.
   `Light`, `Dark`, `ZX Spectrum`, and five from the editors people already use: `Sublime`
   (Monokai), `Gruvbox` (Pavel Pertsev), `Solarized Dark` and `Solarized Light` (Ethan
   Schoonover), `Dracula` (Zeno Rocha and contributors) - their palettes, under the same MIT
   license. Each style also brings the debugger colours a style sheet cannot reach, in a `.pal`
-  file next to it; they stay editable in Setup - Xpeccy+ - deBUGa - Palette.
+  file next to it; they stay editable in Setup - Xpeccy+ - Debugger - Palette.
 - **DejaVu Sans Mono ships with the emulator** (Volutar), so the debugger lines up the same way
   everywhere - macOS has no copy of it at all. It keeps its own license, see `LICENSE_DEJAVU`.
 - **Kempston joystick (port `#1F`) on ATM Turbo 2+, ZXM-Phoenix, ZX Spectrum +2 and +3.**
@@ -148,7 +152,7 @@ Entries marked **(Volutar)** are the work of [Volutar](https://github.com/Voluta
 - **The debugger opens at 960x720**, and its font and screen zoom start smaller, so the window
   fits a 1280x800 display.
 - **Labels stand out in the disassembler.** They share the disk ID colours, so a style sets
-  them and Setup - Xpeccy+ - deBUGa - Palette retunes them.
+  them and Setup - Xpeccy+ - Debugger - Palette retunes them.
 - **The dumps read in groups of four.** Cells no longer stretch with the panel: they keep a
   fixed width, line up from the left and leave a gap every four bytes, the same in the
   memory, track and register dumps. A register dump row now says which pointer it follows,
