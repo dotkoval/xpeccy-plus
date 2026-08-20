@@ -14,9 +14,11 @@ before that point is upstream's history and is not repeated here.
 - **Conditional breakpoints** (the way Unreal's debugger does it): a breakpoint can carry a
   C-like condition and only stops when it is true - `bc == 0x1234`, `(out & 0xff) == 0xfd`. A
   condition with no address of its own is a breakpoint in itself: it is checked after every
-  instruction and fires the moment it becomes true. Expressions take cpu registers, labels,
-  memory (`M(x)`, `[x]`), the last memory/io access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`),
-  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`) and the breakpoint's own hit counter
+  instruction and stops while it is true, or only when it becomes true if "On change" is
+  ticked. Expressions take CPU registers, labels,
+  memory (`M(x)`, `[x]`), the last memory/IO access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`),
+  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`, the beam position `RAYX`/`RAYY`) and
+  the breakpoint's own hit counter
   (`HITS`), so an address breakpoint with `HITS > 30` lets the first 30 hits pass and stops on
   the 31st, and `FRAME == 300` stops on the first instruction of frame 300. Numbers follow the same rules as the assembler in the disassembler window -
   decimal, `0x`/`#` for hex, a leading zero for octal - and while a condition is typed, the
@@ -45,7 +47,7 @@ before that point is upstream's history and is not repeated here.
 ### Changed
 
 - Watcher expressions understand the same syntax as breakpoint conditions - comparisons,
-  logic, shifts, `M(x)` and the last memory/io access. Single Z80 registers (`b`, `c`, `h'`,
+  logic, shifts, `M(x)` and the last memory/IO access. Single Z80 registers (`b`, `c`, `h'`,
   `ixl` and the rest) can be used as well. **Two things changed meaning**: a number without a
   prefix is decimal now, where it used to be read in the machine's base, so hex needs `0x` or
   `#` (`hl == 4000` is four thousand, `hl == 0x4000` is the screen) and a name is never a
