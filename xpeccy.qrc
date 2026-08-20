@@ -1,6 +1,7 @@
 <RCC>
     <qresource prefix="/">
         <file>config/roms/48.rom</file>
+        <file>res/help/cond-syntax.html</file>
         <file>res/fallback/config.conf</file>
         <file>res/fallback/xpeccy.conf</file>
         <file>images/cd.png</file>

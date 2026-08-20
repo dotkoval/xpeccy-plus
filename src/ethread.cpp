@@ -138,6 +138,39 @@ void xThread::tap_catch_save(Computer* comp) {
 	}
 }
 
+// what to do when a breakpoint fired
+
+void xThread::brkAction(Computer* comp, xBrkPoint* ptr, int* brkskip) {
+	QString fnams;
+	QFile file;
+	int idx;
+	// TODO: fetch break continues to repeat, comp->brk=0 is not enough?
+	switch (ptr->action) {
+		case BRK_ACT_COUNT:			// counted by the caller, just go on
+			comp->flgBRK = 0;
+			if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
+			break;
+		case BRK_ACT_SCR:
+			fnams = QString(conf.scrShot.dir.c_str()).append(SLASH);
+			fnams.append(QString("xpeccy_%0").arg(QTime::currentTime().toString("HHmmss_zzz")));	// TODO: counter-based name (1ms is not enough)
+			idx = 0;
+			do {
+				file.setFileName(QString("%0_%1.scr").arg(fnams).arg(idx));
+				idx++;
+			} while (file.exists());
+			file.open(QFile::WriteOnly);
+			file.write((char*)(comp->mem->ramData + (5 << 14)), 0x1b00);
+			file.close();
+			comp->flgBRK = 0;
+			if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
+			break;
+		default:					// BRK_ACT_DBG
+			conf.emu.pause |= PR_DEBUG;
+			emit dbgRequest();
+			break;
+	}
+}
+
 void xThread::emuCycle(Computer* comp) {
 	int tm;
 	int brkskip = 0;
@@ -190,6 +223,7 @@ void xThread::emuCycle(Computer* comp) {
 		if (comp->flgFRM) {
 			comp->flgFRM = 0;
 			conf.vid.fcount++;
+			comp->frmCount++;
 			autostart_frame(comp);
 // process noflic/scanlines (if !fast ???)
 // buffers is already switches, bufimg - just painted (greyscale, if flag is set), scrimg - new
@@ -211,40 +245,31 @@ void xThread::emuCycle(Computer* comp) {
 				emit s_close();
 			} else {				// others
 				xBrkPoint* ptr = brk_find(comp->brkt, comp->brka);
-				if (ptr) {
-					QString fnams;
-					QFile file;
-					// TODO: fetch break continues to repeat, comp->brk=0 is not enough?
-					switch (ptr->action) {
-						case BRK_ACT_COUNT:
-							ptr->count++;
-							comp->flgBRK = 0;
-							if (ptr->fetch) brkskip = 1;
-							break;
-						case BRK_ACT_SCR:
-							fnams = QString(conf.scrShot.dir.c_str()).append(SLASH);
-							fnams.append(QString("xpeccy_%0").arg(QTime::currentTime().toString("HHmmss_zzz")));	// TODO: counter-based name (1ms is not enough)
-							tm = 0;
-							do {
-								file.setFileName(QString("%0_%1.scr").arg(fnams).arg(tm));
-								tm++;
-							} while (file.exists());
-							file.open(QFile::WriteOnly);
-							file.write((char*)(comp->mem->ramData + (5 << 14)), 0x1b00);
-							file.close();
-							comp->flgBRK = 0;
-							if (ptr->fetch) brkskip = 1;
-							break;
-						default:					// BRK_ACT_DBG
-							conf.emu.pause |= PR_DEBUG;
-							emit dbgRequest();
-							break;
-					}
-				} else {				// breakpoint didn't found, but bit is set (?)
+				if (!ptr) {			// breakpoint didn't found, but bit is set (?)
 					comp->flgBRK = 0;
+				} else {
+					ptr->hits++;		// counted before the condition, HITS uses it
+					if (!brk_cond_true(ptr, comp)) {	// condition is false: go on
+						comp->flgBRK = 0;
+						if (ptr->fetch) brkskip = 1;
+					} else {
+						ptr->count++;
+						brkAction(comp, ptr, &brkskip);
+					}
 				}
 			}
+		} else if (brk_cond_count()) {		// conditions not bound to an address
+			xBrkPoint* ptr = brk_check_cond(comp);
+			if (ptr) {
+				comp->flgBRK = 1;
+				comp->brkt = BRK_COND;
+				comp->brka = 0;
+				ptr->count++;
+				brkAction(comp, ptr, &brkskip);
+			}
 		}
+		if (comp->flgCOND)
+			comp_brkev_reset(comp);
 	}
 	comp->flgBRK = 0;
 	comp->flgNMIRQ = 0;

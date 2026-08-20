@@ -23,6 +23,7 @@ class xThread : public QThread {
 	private:
 		void run();
 		void emuCycle(Computer*);
+		void brkAction(Computer*, xBrkPoint*, int*);
 		void tap_catch_load(Computer*);
 		void tap_catch_save(Computer*);
 };
