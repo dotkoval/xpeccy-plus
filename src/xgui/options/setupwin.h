@@ -7,6 +7,7 @@
 #include <QKeySequence>
 
 #include "../../xcore/xcore.h"
+#include "../portwatch.h"
 #include "padbinder.h"
 #include "opt_romset.h"
 #include "opt_diskcat.h"
@@ -44,6 +45,7 @@ class SetupWin : public QDialog {
 		xPalEditor* paleditor;
 
 		xPadBinder* padial;
+		xPortWatch* portwid;
 		xGamepadWidget* gpwid_a;
 		xGamepadWidget* gpwid_b;
 
