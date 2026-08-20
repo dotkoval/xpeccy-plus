@@ -645,6 +645,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(uia.umaok,SIGNAL(released()),this,SLOT(umaconf()));
 	connect(uia.umacn,SIGNAL(released()),umadial,SLOT(hide()));
 // debuga
+	portwid = new xPortWatch;		// the same editor the debugger opens itself
+	ui.layDbgPorts->addWidget(portwid);
+
 	connect(ui.tbDbgFont,SIGNAL(released()),this,SLOT(selectDbgFont()));
 // palette
 	QToolButton* tbarr[] = {
@@ -911,6 +914,12 @@ void SetupWin::start() {
 	ui.sbDbSize->setValue(conf.dbg.dbsize);
 	ui.sbDwSize->setValue(conf.dbg.dwsize);
 	ui.sbTextSize->setValue(conf.dbg.dmsize);
+	ui.cbDbgMemmap->setChecked(conf.dbg.showmmap);
+	ui.cbDbgPorts->setChecked(conf.dbg.showports);
+	ui.cbDbgSignals->setChecked(conf.dbg.showsig);
+	ui.cbDbgFrame->setChecked(conf.dbg.showfrm);
+	ui.cbDbgRay->setChecked(conf.dbg.showray);
+	portwid->setPorts(getWatchPorts(conf.prof.cur->zx));
 	dbgfnt = conf.dbg.font;
 	ui.leDbgFont->setText(QString("%0, %1 pt").arg(dbgfnt.family()).arg(dbgfnt.pointSize()));
 	ui.leDbgFont->setFont(dbgfnt);
@@ -1132,6 +1141,11 @@ void SetupWin::apply() {
 	conf.dbg.dwsize = ui.sbDwSize->value();
 	conf.dbg.dmsize = ui.sbTextSize->value();
 	conf.dbg.font = dbgfnt;
+	conf.dbg.showports = ui.cbDbgPorts->isChecked() ? 1 : 0;
+	conf.dbg.showsig = ui.cbDbgSignals->isChecked() ? 1 : 0;
+	conf.dbg.showfrm = ui.cbDbgFrame->isChecked() ? 1 : 0;
+	conf.dbg.showray = ui.cbDbgRay->isChecked() ? 1 : 0;
+	setWatchPorts(conf.prof.cur->zx, portwid->getPorts());
 	name = getRFSData(ui.cbStyleSheet);
 	std::string style = name.isEmpty() ? std::string() : name.toStdString();
 	if (style != conf.style) {

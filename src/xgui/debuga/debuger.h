@@ -10,6 +10,7 @@
 #include <QTimer>
 #include <QItemDelegate>
 #include <QMenu>
+#include <functional>
 #include <QTableWidget>
 #if QT_VERSION >= QT_VERSION_CHECK(5,4,0)
 #include <QRegularExpressionValidator>
@@ -163,6 +164,10 @@ class DebugWin : public QMainWindow {
 		void fillMem();
 		void fillStack();
 		void fillPorts();
+		void setPortRow(int, QString, QString);
+		void setMiscBlocks();
+		void editWatchPorts();
+		void setLabelMenu(QWidget*, QString, QString, std::function<void()>);
 		void reFormCPU(xRegBunch*);
 		void reFormFlags(int);
 		void placeReg(xRegBunch*, int, int, int);

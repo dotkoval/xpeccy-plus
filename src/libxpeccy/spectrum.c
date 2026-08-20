@@ -208,6 +208,103 @@ void zxSetUlaPalete(Computer* comp) {
 	}
 }
 
+// the debugger shows the last value that went through a watched port. Reading
+// the port again when the emulation stops is not the same thing: half the ports
+// answer with an open bus, and some clear a flag when read. Ports the machine
+// keeps a copy of need none of this, so they are left out of the count and the
+// hot path costs nothing until a port of one's own is watched
+
+static void pwatch_recount(Computer* comp) {
+	int i;
+	comp->pwbus = 0;
+	for (i = 0; i < comp->pwcount; i++) {
+		if (comp->pwatch[i].on && !comp->pwatch[i].offset)
+			comp->pwbus++;
+	}
+}
+
+static void pwatch_hit(Computer* comp, int port, int val) {
+	int i;
+	for (i = 0; i < comp->pwcount; i++) {
+		if (!comp->pwatch[i].on || comp->pwatch[i].offset) continue;
+		if ((port & comp->pwatch[i].mask) != comp->pwatch[i].port) continue;
+		comp->pwatch[i].val = val & 0xff;
+	}
+}
+
+void comp_pwatch_clear(Computer* comp) {
+	comp->pwcount = 0;
+	comp->pwbus = 0;
+}
+
+// mask tells a byte port (0xff, matched on the low byte alone) from an address
+// on the bus (0xffff); whoever read the port from text decides which it is
+
+void comp_pwatch_add(Computer* comp, int port, int mask, int on) {
+	if ((comp->pwcount < PWATCH_MAX) && mask) {
+		comp->pwatch[comp->pwcount].port = port & mask;
+		comp->pwatch[comp->pwcount].mask = mask;
+		comp->pwatch[comp->pwcount].type = 0;
+		comp->pwatch[comp->pwcount].offset = 0;
+		comp->pwatch[comp->pwcount].on = on ? 1 : 0;
+		comp->pwatch[comp->pwcount].hw = 0;
+		comp->pwatch[comp->pwcount].val = -1;
+		comp->pwcount++;
+		pwatch_recount(comp);
+	}
+}
+
+// the ports this machine keeps by itself belong in the same list, so they can
+// be switched off like any other: whatever isn't there yet is added, and the
+// ones this machine has no more leave again. Run on a profile load and every
+// time the machine changes. A port the user asked for himself stays either way
+
+void comp_pwatch_sync(Computer* comp) {
+	xPortDsc* tab = comp->hw ? comp->hw->portab : NULL;
+	int i, j;
+	for (i = 0; i < comp->pwcount; i++) {
+		comp->pwatch[i].type = 0;
+		comp->pwatch[i].offset = 0;
+	}
+	for (i = comp->pwcount - 1; i >= 0; i--) {
+		if (!comp->pwatch[i].hw) continue;
+		for (j = 0; tab && (tab[j].port > 0) && (tab[j].port != comp->pwatch[i].port); j++);
+		if (tab && (tab[j].port > 0)) continue;
+		for (j = i; j < comp->pwcount - 1; j++) {
+			comp->pwatch[j] = comp->pwatch[j + 1];
+		}
+		comp->pwcount--;
+	}
+	for (i = 0; tab && (tab[i].port > 0); i++) {
+		for (j = 0; j < comp->pwcount; j++) {
+			if (comp->pwatch[j].port == tab[i].port) break;
+		}
+		if (j == comp->pwcount) {
+			comp_pwatch_add(comp, tab[i].port, 0xffff, 1);
+			if (j == comp->pwcount) break;		// no room left
+		}
+		comp->pwatch[j].hw = 1;
+		comp->pwatch[j].type = tab[i].type;
+		comp->pwatch[j].offset = tab[i].offset;
+	}
+	pwatch_recount(comp);
+}
+
+// what to show for the port: its own register when the machine has one,
+// the last value on the bus otherwise
+
+int comp_pwatch_val(Computer* comp, int idx) {
+	void* ptr;
+	if ((idx < 0) || (idx >= comp->pwcount)) return -1;
+	if (!comp->pwatch[idx].offset) return comp->pwatch[idx].val;
+	ptr = ((void*)comp) + comp->pwatch[idx].offset;
+	switch(comp->pwatch[idx].type) {
+		case REG_WORD: return *((unsigned short*)ptr) & 0xffff;
+		case REG_32: return *((unsigned int*)ptr);
+	}
+	return *((unsigned char*)ptr) & 0xff;
+}
+
 int iord(int port, void* ptr) {
 	Computer* comp = (Computer*)ptr;
 // TODO: zx only
@@ -249,6 +346,7 @@ int iord(int port, void* ptr) {
 		comp->brkev.in = port;
 		comp->brkev.val = res & 0xff;
 	}
+	if (comp->pwbus) pwatch_hit(comp, port, res);
 	return res;
 }
 
@@ -286,6 +384,7 @@ void iowr(int port, int val, void* ptr) {
 		comp->brkev.out = port;
 		comp->brkev.val = val & 0xff;
 	}
+	if (comp->pwbus) pwatch_hit(comp, port, val);
 }
 
 int intrq(void* ptr) {
@@ -490,7 +589,11 @@ void compDestroy(Computer* comp) {
 }
 
 void compReset(Computer* comp,int res) {
+	int i;
 	comp->frmCount = 0;
+	for (i = 0; i < comp->pwcount; i++) {	// what a watched port held is history now
+		comp->pwatch[i].val = -1;
+	}
 #ifdef HAVEZLIB
 	if (comp->rzx.play)
 		rzxStop(comp);
@@ -564,6 +667,8 @@ void comp_kbd_release(Computer* comp) {
 
 // hardware
 
+// NOTE: keeps the watched ports in step with the machine (comp_pwatch_sync)
+
 int compSetHardware(Computer* comp, const char* name) {
 	HardWare* hw;
 	if (name == NULL) {
@@ -578,6 +683,7 @@ int compSetHardware(Computer* comp, const char* name) {
 	comp->tape->xen = 0;
 	mem_set_bus(comp->mem, hw->adrbus);
 	compSetBaseFrq(comp, 0);	// recalculations
+	comp_pwatch_sync(comp);
 	return 1;
 }
 

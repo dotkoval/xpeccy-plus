@@ -233,6 +233,11 @@ void saveConfig() {
 	fprintf(cfile, "dim.opcodes = %s\n", YESNO(conf.dbg.dimops));
 	fprintf(cfile, "syntax.colors = %s\n", YESNO(conf.dbg.synhl));
 	fprintf(cfile, "block.separator = %s\n", YESNO(conf.dbg.blocksep));
+	fprintf(cfile, "show.memmap = %s\n", YESNO(conf.dbg.showmmap));
+	fprintf(cfile, "show.ports = %s\n", YESNO(conf.dbg.showports));
+	fprintf(cfile, "show.signals = %s\n", YESNO(conf.dbg.showsig));
+	fprintf(cfile, "show.ray = %s\n", YESNO(conf.dbg.showray));
+	fprintf(cfile, "show.frame = %s\n", YESNO(conf.dbg.showfrm));
 	fprintf(cfile, "font = %s\n", conf.dbg.font.toString().toUtf8().data());
 	fprintf(cfile, "window = %i:%i:%i:%i\n",conf.dbg.pos.x(),conf.dbg.pos.y(),conf.dbg.siz.width(),conf.dbg.siz.height());
 
@@ -430,6 +435,11 @@ void loadConfig() {
 	conf.dbg.dimops = 1;
 	conf.dbg.synhl = 1;
 	conf.dbg.blocksep = 1;
+	conf.dbg.showmmap = 1;
+	conf.dbg.showports = 1;
+	conf.dbg.showsig = 1;
+	conf.dbg.showray = 1;
+	conf.dbg.showfrm = 1;
 	conf.dbg.siz = QSize(960, 720);		// deBUGa default, until the user resizes it
 	conf.dbg.font = QFont("DejaVu Sans Mono", 9);		// default, shipped in the resources
 // init volumes
@@ -503,6 +513,11 @@ void loadConfig() {
 					if (pnam == "dim.opcodes") conf.dbg.dimops = arg.b;
 					if (pnam == "syntax.colors") conf.dbg.synhl = arg.b;
 					if (pnam == "block.separator") conf.dbg.blocksep = arg.b;
+					if (pnam == "show.memmap") conf.dbg.showmmap = arg.b;
+					if (pnam == "show.ports") conf.dbg.showports = arg.b;
+					if (pnam == "show.signals") conf.dbg.showsig = arg.b;
+					if (pnam == "show.ray") conf.dbg.showray = arg.b;
+					if (pnam == "show.frame") conf.dbg.showfrm = arg.b;
 					break;
 				case SECT_BOOKMARK:
 					addBookmark(pnam, pval);
