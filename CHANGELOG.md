@@ -7,6 +7,12 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
+## Unreleased
+
+### Fixed
+
+- The disassembler no longer leaves a selected row stuck highlighted, with its syntax colouring gone, once the debugger loses focus.
+
 ## 2026.2 - 2026-08-21
 
 ### Added

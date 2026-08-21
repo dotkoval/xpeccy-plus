@@ -1282,6 +1282,25 @@ void xDisasmTable::mouseReleaseEvent(QMouseEvent* ev) {
 		markAdr = -1;
 }
 
+// Qt keeps the current cell selected (and thus filled with the native
+// Highlight colour) even once the table loses focus, only greying it out -
+// which both clashes with the style and drowns xDasmSyntax::paint's syntax
+// colours (it reads QPalette::HighlightedText for the token base colour).
+// Drop the selection while unfocused so the row goes back to its normal,
+// syntax-highlighted look, and restore it on refocus.
+
+void xDisasmTable::focusOutEvent(QFocusEvent* ev) {
+	selectionModel()->clearSelection();
+	QTableView::focusOutEvent(ev);
+}
+
+void xDisasmTable::focusInEvent(QFocusEvent* ev) {
+	QTableView::focusInEvent(ev);
+	QModelIndex idx = currentIndex();
+	if (idx.isValid())
+		selectionModel()->select(idx, QItemSelectionModel::ClearAndSelect);
+}
+
 void xDisasmTable::mouseMoveEvent(QMouseEvent* ev) {
 	if (mode != XVIEW_CPU) return;
 	int row = rowAt(ev->pos().y());

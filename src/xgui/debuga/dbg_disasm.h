@@ -6,6 +6,7 @@
 #include <QAbstractTableModel>
 #include <QKeyEvent>
 #include <QMouseEvent>
+#include <QFocusEvent>
 
 #include "../../libxpeccy/spectrum.h"
 #include "../../xcore/xcore.h"
@@ -107,6 +108,8 @@ class xDisasmTable : public QTableView {
 		void mouseMoveEvent(QMouseEvent*);
 		void wheelEvent(QWheelEvent*);
 		void resizeEvent(QResizeEvent*);
+		void focusOutEvent(QFocusEvent*);
+		void focusInEvent(QFocusEvent*);
 };
 
 // paints the command column token by token: constants take their own
