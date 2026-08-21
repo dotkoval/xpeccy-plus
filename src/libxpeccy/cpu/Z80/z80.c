@@ -249,7 +249,8 @@ xMnem z80_mnem(CPU* cpu, int qadr, cbdmr mrd, void* data) {
 		mn.cond = 1;
 		mn.met = (cpu->regB == 1) ? 0 : 1;
 	} else if (opt == npTab) {
-		if (((op & 0xc7) == 0xc2) || ((op & 0xc7) == 0xc4) || ((op & 0xc7) == 0xc0)) {		// call, jp, ret
+		int retcc = (op & 0xc7) == 0xc0;
+		if (((op & 0xc7) == 0xc2) || ((op & 0xc7) == 0xc4) || retcc) {		// call cc, jp cc, ret cc
 			mn.cond = 1;
 			// mn.met = (cpu->f & z80_cnd[(op >> 4) & 3]) ? 0 : 1;
 			switch((op >> 4) & 3) {
@@ -260,6 +261,15 @@ xMnem z80_mnem(CPU* cpu, int qadr, cbdmr mrd, void* data) {
 			}
 			if (op & 8)
 				mn.met ^= 1;
+			if (retcc)		// ret cc: no operand, peek the stack for the target
+				mn.oadr = cpu_peek_word(mrd, data, cpu->regSP);
+		} else if ((op == 0xc3) || (op == 0xcd)) {						// jp, call
+			mn.cond = 1;
+			mn.met = 1;
+		} else if (op == 0xc9) {								// ret
+			mn.cond = 1;
+			mn.met = 1;
+			mn.oadr = cpu_peek_word(mrd, data, cpu->regSP);
 		} else if (op == 0x18) {								// jr
 			mn.cond = 1;
 			mn.met = 1;

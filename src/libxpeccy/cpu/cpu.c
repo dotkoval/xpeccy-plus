@@ -265,6 +265,12 @@ int cpu_exec(CPU* cpu) {
 static const char halfByte[] = "0123456789ABCDEF";
 static char tmpbuf[1024];
 
+// used to recover a return address that isn't encoded in the opcode (ret/reti/retn),
+// by reading it straight off the stack instead
+unsigned short cpu_peek_word(cbdmr mrd, void* data, int adr) {
+	return (mrd(adr & 0xffff, data) & 0xff) | ((mrd((adr + 1) & 0xffff, data) & 0xff) << 8);
+}
+
 xMnem cpuDisasm(CPU* cpu, int adr, char* buf, cbdmr mrd, void* data) {
 	xMnem mn;
 //	opCode* opt = cpu->tab;

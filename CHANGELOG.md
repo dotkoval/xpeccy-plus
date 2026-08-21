@@ -9,6 +9,10 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Added
+
+- The current-instruction arrow in the disassembler (up/down/self, showing where a taken branch lands) now also appears on unconditional `jp`/`call` and on `ret`, not just conditional jumps and calls. `ret`'s target is read straight off the stack. Z80, Game Boy and 6502 cores.
+
 ### Fixed
 
 - The disassembler no longer leaves a selected row stuck highlighted, with its syntax colouring gone, once the debugger loses focus.

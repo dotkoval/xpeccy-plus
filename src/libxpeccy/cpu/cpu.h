@@ -22,7 +22,7 @@ typedef struct {
 	unsigned mem:1;		// operand mem rd :(nn),(hl),(de) etc
 	int flag;
 	int len;
-	int oadr;		// direct addressation adr
+	int oadr;		// direct addressation adr; also the ret/reti/retn target, peeked off the stack
 	unsigned short mop;	// operand
 	const char* mnem;
 } xMnem;
@@ -274,6 +274,7 @@ extern cpuCore cpuTab[];
 xMnem cpuDisasm(CPU*, int, char*, cbdmr, void*);
 int cpuAsm(CPU*, const char*, char*, unsigned short);
 xAsmScan scanAsmTab(const char*, opCode*);
+unsigned short cpu_peek_word(cbdmr, void*, int);	// little-endian word at adr, wrapping at 0xffff
 
 xRegBunch cpuGetRegs(CPU*);
 xRegister cpuGetReg(CPU*, int);

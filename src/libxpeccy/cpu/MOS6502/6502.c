@@ -103,6 +103,13 @@ int m6502_exec(CPU* cpu) {
 
 // static unsigned char m6502_cond[4] = {MFN, MFV, MFC, MFZ};
 
+// word at stack offset off from S, page 1 (0x0100 | S), wrapping within the page
+static unsigned short m6502_peek_stack(cbdmr mrd, void* data, int s, int off) {
+	unsigned char lo = mrd(0x0100 | ((s + off) & 0xff), data);
+	unsigned char hi = mrd(0x0100 | ((s + off + 1) & 0xff), data);
+	return lo | (hi << 8);
+}
+
 xMnem m6502_mnem(CPU* cpu, int qadr, cbdmr mrd, void* data) {
 	xMnem mn;
 	mn.oadr = -1;
@@ -127,6 +134,17 @@ xMnem m6502_mnem(CPU* cpu, int qadr, cbdmr mrd, void* data) {
 #endif
 		if (op & 0x20)							// true if 1
 			mn.met ^= 1;
+	} else if ((op == 0x20) || (op == 0x4c)) {	// jsr, jmp abs: target already decoded via the operand
+		mn.cond = 1;
+		mn.met = 1;
+	} else if (op == 0x60) {		// rts: target isn't encoded, peek the stack
+		mn.cond = 1;
+		mn.met = 1;
+		mn.oadr = (m6502_peek_stack(mrd, data, cpu->regS, 1) + 1) & 0xffff;
+	} else if (op == 0x40) {		// rti: target isn't encoded, peek the stack (past the pushed flags)
+		mn.cond = 1;
+		mn.met = 1;
+		mn.oadr = m6502_peek_stack(mrd, data, cpu->regS, 2);
 	} else {
 		mn.cond = 0;
 	}
