@@ -889,6 +889,11 @@ void xDasmSyntax::paint(QPainter* pnt, const QStyleOptionViewItem& option, const
 	QFontMetrics fm(opt.font);
 	QFontMetrics bfm(bfnt);
 	QColor cst = conf.pal.value(DBG_PAL_CONST);
+	// hover (the item:hover style rule) and selection (native Highlight)
+	// both replace the row background, and the fixed constant colour is
+	// not picked to stay readable against either - fall back to bold
+	// instead of risking a low-contrast pair
+	bool highlighted = opt.state & (QStyle::State_MouseOver | QStyle::State_Selected);
 	int x = rect.left();
 	int y = rect.top() + (rect.height() + fm.ascent() - fm.descent()) / 2;
 	int pos = 0;
@@ -905,8 +910,13 @@ void xDasmSyntax::paint(QPainter* pnt, const QStyleOptionViewItem& option, const
 			while ((end < text.size()) && (end != lpos) && (is_word_char(text.at(end)) == word))
 				end++;
 			QChar chr = text.at(pos);
-			if (word && ((chr == QChar(0x23)) || (chr == QChar(0x24)) || chr.isDigit()))
-				clr = cst;
+			if (word && ((chr == QChar(0x23)) || (chr == QChar(0x24)) || chr.isDigit())) {
+				if (highlighted) {
+					bold = true;
+				} else {
+					clr = cst;
+				}
+			}
 		}
 		QString tok = text.mid(pos, end - pos);
 		pnt->setFont(bold ? bfnt : opt.font);
