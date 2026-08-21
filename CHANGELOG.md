@@ -7,7 +7,7 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
-## Unreleased
+## 2026.2 - 2026-08-21
 
 ### Added
 
@@ -107,6 +107,10 @@ before that point is upstream's history and is not repeated here.
 - **Two more visual artefacts in ZX Evo (TSConf) demos**: a seam running along the horizon,
   and single dots of a wrong colour drifting about the picture. Both show in the greetings
   part of *Synchronization*.
+
+- **Smaller interface fixes**: the `Sublime` style takes its chrome colours from Monokai
+  Classic and keeps constants readable on the PC row, the hotkey list no longer cuts long
+  names short, and a picked AY frequency is readable again in the sound settings.
 
 ### From upstream
 
