@@ -30,7 +30,7 @@ static int text_width(const QFontMetrics& fm, const QString& str) {
 // a return or a jump ends a logical block, conditional ones too. The list
 // covers every cpu core here: z80/i8080/gb, 6502, x86 and 1801vm1
 
-static bool is_block_end(const dasmData& drow) {
+bool is_block_end(const dasmData& drow) {
 	static const char* ends[] = {
 		"RET","RETI","RETN","RETF","RTS","RTI","IRET","RETURN",
 		"JP","JR","JMP","DJNZ","BR","BRA",
@@ -48,6 +48,13 @@ static bool is_block_end(const dasmData& drow) {
 	QString mnem = (pos < 0) ? drow.command : drow.command.left(pos);
 	for (int i = 0; ends[i]; i++)
 		if (mnem == ends[i]) return true;
+	return false;
+}
+
+bool dasm_ends_block(const QList<dasmData>& list) {
+	dasmData drow;
+	foreach (drow, list)
+		if (is_block_end(drow)) return true;
 	return false;
 }
 
@@ -1067,8 +1074,10 @@ void xDisasmTable::copyToCbrd() {
 			}
 			str += "\n";
 		}
-		cbrd->setText(str);
+		if (dasm_ends_block(dasm) && conf.dbg.blocksep)
+			str += "\n";
 	}
+	cbrd->setText(str);
 }
 
 void xDisasmTable::jumpMarked(int idx, Qt::KeyboardModifiers mod) {

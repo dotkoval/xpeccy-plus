@@ -12,6 +12,7 @@ before that point is upstream's history and is not repeated here.
 ### Fixed
 
 - The disassembler no longer leaves a selected row stuck highlighted, with its syntax colouring gone, once the debugger loses focus.
+- Copying the disassembly to the clipboard or saving it to a file now keeps the blank line after each branch, same as the on-screen listing, when that separator option is on.
 
 ## 2026.2 - 2026-08-21
 

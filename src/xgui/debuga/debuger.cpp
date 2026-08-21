@@ -1681,6 +1681,8 @@ void DebugWin::saveDasm() {
 				}
 				strm << "\n";
 			}
+			if (dasm_ends_block(list) && conf.dbg.blocksep)
+				strm << "\n";
 		}
 		file.close();
 	} else {
