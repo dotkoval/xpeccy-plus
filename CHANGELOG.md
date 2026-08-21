@@ -13,6 +13,7 @@ before that point is upstream's history and is not repeated here.
 
 - The disassembler no longer leaves a selected row stuck highlighted, with its syntax colouring gone, once the debugger loses focus.
 - Copying the disassembly to the clipboard or saving it to a file now keeps the blank line after each branch, same as the on-screen listing, when that separator option is on.
+- The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still accepts the old names when typing code into the disassembler, alongside the new ones.
 
 ## 2026.2 - 2026-08-21
 

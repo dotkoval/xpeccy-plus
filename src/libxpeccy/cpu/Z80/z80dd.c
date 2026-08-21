@@ -36,17 +36,17 @@ void dd23(CPU* cpu) {
 	cpu->regIX++;
 }
 
-// 24	inc hx		4
+// 24	inc ixh		4
 void dd24(CPU* cpu) {
 	cpu->regIXh = z80_inc8(cpu, cpu->regIXh);
 }
 
-// 25	dec hx		4
+// 25	dec ixh		4
 void dd25(CPU* cpu) {
 	cpu->regIXh = z80_dec8(cpu, cpu->regIXh);
 }
 
-// 26	ld hx,n		4 3rd
+// 26	ld ixh,n		4 3rd
 void dd26(CPU* cpu) {
 	cpu->regIXh = z80_mrd(cpu, cpu->regPC++);
 }
@@ -69,17 +69,17 @@ void dd2B(CPU* cpu) {
 	cpu->regIX--;
 }
 
-// 2C	inc lx		4
+// 2C	inc ixl		4
 void dd2C(CPU* cpu) {
 	cpu->regIXl = z80_inc8(cpu, cpu->regIXl);
 }
 
-// 2D	dec lx		4
+// 2D	dec ixl		4
 void dd2D(CPU* cpu) {
 	cpu->regIXl = z80_dec8(cpu, cpu->regIXl);
 }
 
-// 2E	ld lx,n		4 3rd
+// 2E	ld ixl,n		4 3rd
 void dd2E(CPU* cpu) {
 	cpu->regIXl = z80_mrd(cpu, cpu->regPC++);
 }
@@ -271,18 +271,18 @@ opCode ddTab[256]={
 	{0,4,dd21,NULL,"ld ix,:2"},
 	{OF_MWORD | OF_MEMADR,4,dd22,NULL,"ld (:2),ix"},		// 4,3rd,3rd,3wr,3wr
 	{0,6,dd23,NULL,"inc ix"},
-	{0,4,dd24,NULL,"inc hx"},
-	{0,4,dd25,NULL,"dec hx"},
-	{0,4,dd26,NULL,"ld hx,:1"},
+	{0,4,dd24,NULL,"inc ixh"},
+	{0,4,dd25,NULL,"dec ixh"},
+	{0,4,dd26,NULL,"ld ixh,:1"},
 	{0,4,npr27,NULL,"daa"},
 
 	{OF_RELJUMP,4,npr28,NULL,"jr z,:3"},
 	{0,11,dd29,NULL,"add ix,ix"},
 	{OF_MWORD | OF_MEMADR,4,dd2A,NULL,"ld ix,(:2)"},		// 4,3rd,3rd,3rd,3rd
 	{0,6,dd2B,NULL,"dec ix"},
-	{0,4,dd2C,NULL,"inc lx"},
-	{0,4,dd2D,NULL,"dec lx"},
-	{0,4,dd2E,NULL,"ld lx,:1"},
+	{0,4,dd2C,NULL,"inc ixl"},
+	{0,4,dd2D,NULL,"dec ixl"},
+	{0,4,dd2E,NULL,"ld ixl,:1"},
 	{0,4,npr2F,NULL,"cpl"},
 
 	{OF_RELJUMP,4,npr30,NULL,"jr nc,:3"},
@@ -307,8 +307,8 @@ opCode ddTab[256]={
 	{0,4,npr41,NULL,"ld b,c"},
 	{0,4,npr42,NULL,"ld b,d"},
 	{0,4,npr43,NULL,"ld b,e"},
-	{0,4,dd44,NULL,"ld b,hx"},
-	{0,4,dd45,NULL,"ld b,lx"},
+	{0,4,dd44,NULL,"ld b,ixh"},
+	{0,4,dd45,NULL,"ld b,ixl"},
 	{0,4,dd46,NULL,"ld b,(ix:4)"},
 	{0,4,npr47,NULL,"ld b,a"},
 
@@ -316,8 +316,8 @@ opCode ddTab[256]={
 	{0,4,npr49,NULL,"ld c,c"},
 	{0,4,npr4A,NULL,"ld c,d"},
 	{0,4,npr4B,NULL,"ld c,e"},
-	{0,4,dd4C,NULL,"ld c,hx"},
-	{0,4,dd4D,NULL,"ld c,lx"},
+	{0,4,dd4C,NULL,"ld c,ixh"},
+	{0,4,dd4D,NULL,"ld c,ixl"},
 	{0,4,dd4E,NULL,"ld c,(ix:4)"},
 	{0,4,npr4F,NULL,"ld c,a"},
 
@@ -325,8 +325,8 @@ opCode ddTab[256]={
 	{0,4,npr51,NULL,"ld d,c"},
 	{0,4,npr52,NULL,"ld d,d"},
 	{0,4,npr53,NULL,"ld d,e"},
-	{0,4,dd54,NULL,"ld d,hx"},
-	{0,4,dd55,NULL,"ld d,lx"},
+	{0,4,dd54,NULL,"ld d,ixh"},
+	{0,4,dd55,NULL,"ld d,ixl"},
 	{0,4,dd56,NULL,"ld d,(ix:4)"},
 	{0,4,npr57,NULL,"ld d,a"},
 
@@ -334,28 +334,28 @@ opCode ddTab[256]={
 	{0,4,npr59,NULL,"ld e,c"},
 	{0,4,npr5A,NULL,"ld e,d"},
 	{0,4,npr5B,NULL,"ld e,e"},
-	{0,4,dd5C,NULL,"ld e,hx"},
-	{0,4,dd5D,NULL,"ld e,lx"},
+	{0,4,dd5C,NULL,"ld e,ixh"},
+	{0,4,dd5D,NULL,"ld e,ixl"},
 	{0,4,dd5E,NULL,"ld e,(ix:4)"},
 	{0,4,npr5F,NULL,"ld e,a"},
 
-	{0,4,dd60,NULL,"ld hx,b"},
-	{0,4,dd61,NULL,"ld hx,c"},
-	{0,4,dd62,NULL,"ld hx,d"},
-	{0,4,dd63,NULL,"ld hx,e"},
-	{0,4,dd64,NULL,"ld hx,hx"},
-	{0,4,dd65,NULL,"ld hx,lx"},
+	{0,4,dd60,NULL,"ld ixh,b"},
+	{0,4,dd61,NULL,"ld ixh,c"},
+	{0,4,dd62,NULL,"ld ixh,d"},
+	{0,4,dd63,NULL,"ld ixh,e"},
+	{0,4,dd64,NULL,"ld ixh,ixh"},
+	{0,4,dd65,NULL,"ld ixh,ixl"},
 	{0,4,dd66,NULL,"ld h,(ix:4)"},
-	{0,4,dd67,NULL,"ld hx,a"},
+	{0,4,dd67,NULL,"ld ixh,a"},
 
-	{0,4,dd68,NULL,"ld lx,b"},
-	{0,4,dd69,NULL,"ld lx,c"},
-	{0,4,dd6A,NULL,"ld lx,d"},
-	{0,4,dd6B,NULL,"ld lx,e"},
-	{0,4,dd6C,NULL,"ld lx,hx"},
-	{0,4,dd6D,NULL,"ld lx,lx"},
+	{0,4,dd68,NULL,"ld ixl,b"},
+	{0,4,dd69,NULL,"ld ixl,c"},
+	{0,4,dd6A,NULL,"ld ixl,d"},
+	{0,4,dd6B,NULL,"ld ixl,e"},
+	{0,4,dd6C,NULL,"ld ixl,ixh"},
+	{0,4,dd6D,NULL,"ld ixl,ixl"},
 	{0,4,dd6E,NULL,"ld l,(ix:4)"},
-	{0,4,dd6F,NULL,"ld lx,a"},
+	{0,4,dd6F,NULL,"ld ixl,a"},
 
 	{0,4,dd70,NULL,"ld (ix:4),b"},
 	{0,4,dd71,NULL,"ld (ix:4),c"},
@@ -370,8 +370,8 @@ opCode ddTab[256]={
 	{0,4,npr79,NULL,"ld a,c"},
 	{0,4,npr7A,NULL,"ld a,d"},
 	{0,4,npr7B,NULL,"ld a,e"},
-	{0,4,dd7C,NULL,"ld a,hx"},
-	{0,4,dd7D,NULL,"ld a,lx"},
+	{0,4,dd7C,NULL,"ld a,ixh"},
+	{0,4,dd7D,NULL,"ld a,ixl"},
 	{0,4,dd7E,NULL,"ld a,(ix:4)"},
 	{0,4,npr7F,NULL,"ld a,a"},
 
@@ -379,8 +379,8 @@ opCode ddTab[256]={
 	{0,4,npr81,NULL,"add a,c"},
 	{0,4,npr82,NULL,"add a,d"},
 	{0,4,npr83,NULL,"add a,e"},
-	{0,4,dd84,NULL,"add a,hx"},
-	{0,4,dd85,NULL,"add a,lx"},
+	{0,4,dd84,NULL,"add a,ixh"},
+	{0,4,dd85,NULL,"add a,ixl"},
 	{0,4,dd86,NULL,"add a,(ix:4)"},
 	{0,4,npr87,NULL,"add a,a"},
 
@@ -388,8 +388,8 @@ opCode ddTab[256]={
 	{0,4,npr89,NULL,"adc a,c"},
 	{0,4,npr8A,NULL,"adc a,d"},
 	{0,4,npr8B,NULL,"adc a,e"},
-	{0,4,dd8C,NULL,"adc a,hx"},
-	{0,4,dd8D,NULL,"adc a,lx"},
+	{0,4,dd8C,NULL,"adc a,ixh"},
+	{0,4,dd8D,NULL,"adc a,ixl"},
 	{0,4,dd8E,NULL,"adc a,(ix:4)"},
 	{0,4,npr8F,NULL,"adc a,a"},
 
@@ -397,8 +397,8 @@ opCode ddTab[256]={
 	{0,4,npr91,NULL,"sub c"},
 	{0,4,npr92,NULL,"sub d"},
 	{0,4,npr93,NULL,"sub e"},
-	{0,4,dd94,NULL,"sub hx"},
-	{0,4,dd95,NULL,"sub lx"},
+	{0,4,dd94,NULL,"sub ixh"},
+	{0,4,dd95,NULL,"sub ixl"},
 	{0,4,dd96,NULL,"sub (ix:4)"},
 	{0,4,npr97,NULL,"sub a"},
 
@@ -406,8 +406,8 @@ opCode ddTab[256]={
 	{0,4,npr99,NULL,"sbc a,c"},
 	{0,4,npr9A,NULL,"sbc a,d"},
 	{0,4,npr9B,NULL,"sbc a,e"},
-	{0,4,dd9C,NULL,"sbc a,hx"},
-	{0,4,dd9D,NULL,"sbc a,lx"},
+	{0,4,dd9C,NULL,"sbc a,ixh"},
+	{0,4,dd9D,NULL,"sbc a,ixl"},
 	{0,4,dd9E,NULL,"sbc a,(ix:4)"},
 	{0,4,npr9F,NULL,"sbc a,a"},
 
@@ -415,8 +415,8 @@ opCode ddTab[256]={
 	{0,4,nprA1,NULL,"and c"},
 	{0,4,nprA2,NULL,"and d"},
 	{0,4,nprA3,NULL,"and e"},
-	{0,4,ddA4,NULL,"and hx"},
-	{0,4,ddA5,NULL,"and lx"},
+	{0,4,ddA4,NULL,"and ixh"},
+	{0,4,ddA5,NULL,"and ixl"},
 	{0,4,ddA6,NULL,"and (ix:4)"},
 	{0,4,nprA7,NULL,"and a"},
 
@@ -424,8 +424,8 @@ opCode ddTab[256]={
 	{0,4,nprA9,NULL,"xor c"},
 	{0,4,nprAA,NULL,"xor d"},
 	{0,4,nprAB,NULL,"xor e"},
-	{0,4,ddAC,NULL,"xor hx"},
-	{0,4,ddAD,NULL,"xor lx"},
+	{0,4,ddAC,NULL,"xor ixh"},
+	{0,4,ddAD,NULL,"xor ixl"},
 	{0,4,ddAE,NULL,"xor (ix:4)"},
 	{0,4,nprAF,NULL,"xor a"},
 
@@ -433,8 +433,8 @@ opCode ddTab[256]={
 	{0,4,nprB1,NULL,"or c"},
 	{0,4,nprB2,NULL,"or d"},
 	{0,4,nprB3,NULL,"or e"},
-	{0,4,ddB4,NULL,"or hx"},
-	{0,4,ddB5,NULL,"or lx"},
+	{0,4,ddB4,NULL,"or ixh"},
+	{0,4,ddB5,NULL,"or ixl"},
 	{0,4,ddB6,NULL,"or (ix:4)"},
 	{0,4,nprB7,NULL,"or a"},
 
@@ -442,8 +442,8 @@ opCode ddTab[256]={
 	{0,4,nprB9,NULL,"cp c"},
 	{0,4,nprBA,NULL,"cp d"},
 	{0,4,nprBB,NULL,"cp e"},
-	{0,4,ddBC,NULL,"cp hx"},
-	{0,4,ddBD,NULL,"cp lx"},
+	{0,4,ddBC,NULL,"cp ixh"},
+	{0,4,ddBD,NULL,"cp ixl"},
 	{0,4,ddBE,NULL,"cp (ix:4)"},
 	{0,4,nprBF,NULL,"cp a"},
 

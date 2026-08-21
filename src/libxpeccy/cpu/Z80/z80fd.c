@@ -36,17 +36,17 @@ void fd23(CPU* cpu) {
 	cpu->regIY++;
 }
 
-// 24	inc hy		4
+// 24	inc iyh		4
 void fd24(CPU* cpu) {
 	cpu->regIYh = z80_inc8(cpu, cpu->regIYh);
 }
 
-// 25	dec hy		4
+// 25	dec iyh		4
 void fd25(CPU* cpu) {
 	cpu->regIYh = z80_dec8(cpu, cpu->regIYh);
 }
 
-// 26	ld hy,n		4 3rd
+// 26	ld iyh,n		4 3rd
 void fd26(CPU* cpu) {
 	cpu->regIYh = z80_mrd(cpu, cpu->regPC++);
 }
@@ -69,17 +69,17 @@ void fd2B(CPU* cpu) {
 	cpu->regIY--;
 }
 
-// 2C	inc ly		4
+// 2C	inc iyl		4
 void fd2C(CPU* cpu) {
 	cpu->regIYl = z80_inc8(cpu, cpu->regIYl);
 }
 
-// 2D	dec ly		4
+// 2D	dec iyl		4
 void fd2D(CPU* cpu) {
 	cpu->regIYl = z80_dec8(cpu, cpu->regIYl);
 }
 
-// 2E	ld ly,n		4 3rd
+// 2E	ld iyl,n		4 3rd
 void fd2E(CPU* cpu) {
 	cpu->regIYl = z80_mrd(cpu, cpu->regPC++);
 }
@@ -202,7 +202,7 @@ void fdCB(CPU* cpu) {
 
 // e1	pop iy		4 3rd 3rd
 void fdE1(CPU* cpu) {
-	cpu->regIY = z80_pop(cpu); // POP(cpu->hy,cpu->ly);
+	cpu->regIY = z80_pop(cpu); // POP(cpu->iyh,cpu->iyl);
 }
 
 // e3	ex (sp),iy	4 3rd 4rd 3wr 5wr	wz = iy
@@ -271,18 +271,18 @@ opCode fdTab[256]={
 	{0,4,fd21,NULL,"ld iy,:2"},
 	{OF_MWORD | OF_MEMADR,4,fd22,NULL,"ld (:2),iy"},		// 4,3rd,3rd,3wr,3wr
 	{0,6,fd23,NULL,"inc iy"},
-	{0,4,fd24,NULL,"inc hy"},
-	{0,4,fd25,NULL,"dec hy"},
-	{0,4,fd26,NULL,"ld hy,:1"},
+	{0,4,fd24,NULL,"inc iyh"},
+	{0,4,fd25,NULL,"dec iyh"},
+	{0,4,fd26,NULL,"ld iyh,:1"},
 	{0,4,npr27,NULL,"daa"},
 
 	{OF_RELJUMP,4,npr28,NULL,"jr z,:3"},
 	{0,11,fd29,NULL,"add iy,iy"},
 	{OF_MWORD | OF_MEMADR,4,fd2A,NULL,"ld iy,(:2)"},		// 4,3rd,3rd,3rd,3rd
 	{0,6,fd2B,NULL,"dec iy"},
-	{0,4,fd2C,NULL,"inc ly"},
-	{0,4,fd2D,NULL,"dec ly"},
-	{0,4,fd2E,NULL,"ld ly,:1"},
+	{0,4,fd2C,NULL,"inc iyl"},
+	{0,4,fd2D,NULL,"dec iyl"},
+	{0,4,fd2E,NULL,"ld iyl,:1"},
 	{0,4,npr2F,NULL,"cpl"},
 
 	{OF_RELJUMP,4,npr30,NULL,"jr nc,:3"},
@@ -307,8 +307,8 @@ opCode fdTab[256]={
 	{0,4,npr41,NULL,"ld b,c"},
 	{0,4,npr42,NULL,"ld b,d"},
 	{0,4,npr43,NULL,"ld b,e"},
-	{0,4,fd44,NULL,"ld b,hy"},
-	{0,4,fd45,NULL,"ld b,ly"},
+	{0,4,fd44,NULL,"ld b,iyh"},
+	{0,4,fd45,NULL,"ld b,iyl"},
 	{0,4,fd46,NULL,"ld b,(iy:4)"},
 	{0,4,npr47,NULL,"ld b,a"},
 
@@ -316,8 +316,8 @@ opCode fdTab[256]={
 	{0,4,npr49,NULL,"ld c,c"},
 	{0,4,npr4A,NULL,"ld c,d"},
 	{0,4,npr4B,NULL,"ld c,e"},
-	{0,4,fd4C,NULL,"ld c,hy"},
-	{0,4,fd4D,NULL,"ld c,ly"},
+	{0,4,fd4C,NULL,"ld c,iyh"},
+	{0,4,fd4D,NULL,"ld c,iyl"},
 	{0,4,fd4E,NULL,"ld c,(iy:4)"},
 	{0,4,npr4F,NULL,"ld c,a"},
 
@@ -325,8 +325,8 @@ opCode fdTab[256]={
 	{0,4,npr51,NULL,"ld d,c"},
 	{0,4,npr52,NULL,"ld d,d"},
 	{0,4,npr53,NULL,"ld d,e"},
-	{0,4,fd54,NULL,"ld d,hy"},
-	{0,4,fd55,NULL,"ld d,ly"},
+	{0,4,fd54,NULL,"ld d,iyh"},
+	{0,4,fd55,NULL,"ld d,iyl"},
 	{0,4,fd56,NULL,"ld d,(iy:4)"},
 	{0,4,npr57,NULL,"ld d,a"},
 
@@ -334,28 +334,28 @@ opCode fdTab[256]={
 	{0,4,npr59,NULL,"ld e,c"},
 	{0,4,npr5A,NULL,"ld e,d"},
 	{0,4,npr5B,NULL,"ld e,e"},
-	{0,4,fd5C,NULL,"ld e,hy"},
-	{0,4,fd5D,NULL,"ld e,ly"},
+	{0,4,fd5C,NULL,"ld e,iyh"},
+	{0,4,fd5D,NULL,"ld e,iyl"},
 	{0,4,fd5E,NULL,"ld e,(iy:4)"},
 	{0,4,npr5F,NULL,"ld e,a"},
 
-	{0,4,fd60,NULL,"ld hy,b"},
-	{0,4,fd61,NULL,"ld hy,c"},
-	{0,4,fd62,NULL,"ld hy,d"},
-	{0,4,fd63,NULL,"ld hy,e"},
-	{0,4,fd64,NULL,"ld hy,hy"},
-	{0,4,fd65,NULL,"ld hy,ly"},
+	{0,4,fd60,NULL,"ld iyh,b"},
+	{0,4,fd61,NULL,"ld iyh,c"},
+	{0,4,fd62,NULL,"ld iyh,d"},
+	{0,4,fd63,NULL,"ld iyh,e"},
+	{0,4,fd64,NULL,"ld iyh,iyh"},
+	{0,4,fd65,NULL,"ld iyh,iyl"},
 	{0,4,fd66,NULL,"ld h,(iy:4)"},
-	{0,4,fd67,NULL,"ld hy,a"},
+	{0,4,fd67,NULL,"ld iyh,a"},
 
-	{0,4,fd68,NULL,"ld ly,b"},
-	{0,4,fd69,NULL,"ld ly,c"},
-	{0,4,fd6A,NULL,"ld ly,d"},
-	{0,4,fd6B,NULL,"ld ly,e"},
-	{0,4,fd6C,NULL,"ld ly,hy"},
-	{0,4,fd6D,NULL,"ld ly,ly"},
+	{0,4,fd68,NULL,"ld iyl,b"},
+	{0,4,fd69,NULL,"ld iyl,c"},
+	{0,4,fd6A,NULL,"ld iyl,d"},
+	{0,4,fd6B,NULL,"ld iyl,e"},
+	{0,4,fd6C,NULL,"ld iyl,iyh"},
+	{0,4,fd6D,NULL,"ld iyl,iyl"},
 	{0,4,fd6E,NULL,"ld l,(iy:4)"},
-	{0,4,fd6F,NULL,"ld ly,a"},
+	{0,4,fd6F,NULL,"ld iyl,a"},
 
 	{0,4,fd70,NULL,"ld (iy:4),b"},
 	{0,4,fd71,NULL,"ld (iy:4),c"},
@@ -370,8 +370,8 @@ opCode fdTab[256]={
 	{0,4,npr79,NULL,"ld a,c"},
 	{0,4,npr7A,NULL,"ld a,d"},
 	{0,4,npr7B,NULL,"ld a,e"},
-	{0,4,fd7C,NULL,"ld a,hy"},
-	{0,4,fd7D,NULL,"ld a,ly"},
+	{0,4,fd7C,NULL,"ld a,iyh"},
+	{0,4,fd7D,NULL,"ld a,iyl"},
 	{0,4,fd7E,NULL,"ld a,(iy:4)"},
 	{0,4,npr7F,NULL,"ld a,a"},
 
@@ -379,8 +379,8 @@ opCode fdTab[256]={
 	{0,4,npr81,NULL,"add a,c"},
 	{0,4,npr82,NULL,"add a,d"},
 	{0,4,npr83,NULL,"add a,e"},
-	{0,4,fd84,NULL,"add a,hy"},
-	{0,4,fd85,NULL,"add a,ly"},
+	{0,4,fd84,NULL,"add a,iyh"},
+	{0,4,fd85,NULL,"add a,iyl"},
 	{0,4,fd86,NULL,"add a,(iy:4)"},
 	{0,4,npr87,NULL,"add a,a"},
 
@@ -388,8 +388,8 @@ opCode fdTab[256]={
 	{0,4,npr89,NULL,"adc a,c"},
 	{0,4,npr8A,NULL,"adc a,d"},
 	{0,4,npr8B,NULL,"adc a,e"},
-	{0,4,fd8C,NULL,"adc a,hy"},
-	{0,4,fd8D,NULL,"adc a,ly"},
+	{0,4,fd8C,NULL,"adc a,iyh"},
+	{0,4,fd8D,NULL,"adc a,iyl"},
 	{0,4,fd8E,NULL,"adc a,(iy:4)"},
 	{0,4,npr8F,NULL,"adc a,a"},
 
@@ -397,8 +397,8 @@ opCode fdTab[256]={
 	{0,4,npr91,NULL,"sub c"},
 	{0,4,npr92,NULL,"sub d"},
 	{0,4,npr93,NULL,"sub e"},
-	{0,4,fd94,NULL,"sub hy"},
-	{0,4,fd95,NULL,"sub ly"},
+	{0,4,fd94,NULL,"sub iyh"},
+	{0,4,fd95,NULL,"sub iyl"},
 	{0,4,fd96,NULL,"sub (iy:4)"},
 	{0,4,npr97,NULL,"sub a"},
 
@@ -406,8 +406,8 @@ opCode fdTab[256]={
 	{0,4,npr99,NULL,"sbc a,c"},
 	{0,4,npr9A,NULL,"sbc a,d"},
 	{0,4,npr9B,NULL,"sbc a,e"},
-	{0,4,fd9C,NULL,"sbc a,hy"},
-	{0,4,fd9D,NULL,"sbc a,ly"},
+	{0,4,fd9C,NULL,"sbc a,iyh"},
+	{0,4,fd9D,NULL,"sbc a,iyl"},
 	{0,4,fd9E,NULL,"sbc a,(iy:4)"},
 	{0,4,npr9F,NULL,"sbc a,a"},
 
@@ -415,8 +415,8 @@ opCode fdTab[256]={
 	{0,4,nprA1,NULL,"and c"},
 	{0,4,nprA2,NULL,"and d"},
 	{0,4,nprA3,NULL,"and e"},
-	{0,4,fdA4,NULL,"and hy"},
-	{0,4,fdA5,NULL,"and ly"},
+	{0,4,fdA4,NULL,"and iyh"},
+	{0,4,fdA5,NULL,"and iyl"},
 	{0,4,fdA6,NULL,"and (iy:4)"},
 	{0,4,nprA7,NULL,"and a"},
 
@@ -424,8 +424,8 @@ opCode fdTab[256]={
 	{0,4,nprA9,NULL,"xor c"},
 	{0,4,nprAA,NULL,"xor d"},
 	{0,4,nprAB,NULL,"xor e"},
-	{0,4,fdAC,NULL,"xor hy"},
-	{0,4,fdAD,NULL,"xor ly"},
+	{0,4,fdAC,NULL,"xor iyh"},
+	{0,4,fdAD,NULL,"xor iyl"},
 	{0,4,fdAE,NULL,"xor (iy:4)"},
 	{0,4,nprAF,NULL,"xor a"},
 
@@ -433,8 +433,8 @@ opCode fdTab[256]={
 	{0,4,nprB1,NULL,"or c"},
 	{0,4,nprB2,NULL,"or d"},
 	{0,4,nprB3,NULL,"or e"},
-	{0,4,fdB4,NULL,"or hy"},
-	{0,4,fdB5,NULL,"or ly"},
+	{0,4,fdB4,NULL,"or iyh"},
+	{0,4,fdB5,NULL,"or iyl"},
 	{0,4,fdB6,NULL,"or (iy:4)"},
 	{0,4,nprB7,NULL,"or a"},
 
@@ -442,8 +442,8 @@ opCode fdTab[256]={
 	{0,4,nprB9,NULL,"cp c"},
 	{0,4,nprBA,NULL,"cp d"},
 	{0,4,nprBB,NULL,"cp e"},
-	{0,4,fdBC,NULL,"cp hy"},
-	{0,4,fdBD,NULL,"cp ly"},
+	{0,4,fdBC,NULL,"cp iyh"},
+	{0,4,fdBD,NULL,"cp iyl"},
 	{0,4,fdBE,NULL,"cp (iy:4)"},
 	{0,4,nprBF,NULL,"cp a"},
 

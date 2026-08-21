@@ -276,37 +276,75 @@ xMnem z80_mnem(CPU* cpu, int qadr, cbdmr mrd, void* data) {
 
 // asm
 
+// accept the old undocumented hx/lx/hy/ly half-register names as input aliases
+// for ixh/ixl/iyh/iyl, which is what ddTab/fdTab mnem strings (and the disasm
+// display built from them) use now
+static const char* const z80_half_reg_alias[][2] = {
+	{"hx", "ixh"}, {"lx", "ixl"}, {"hy", "iyh"}, {"ly", "iyl"}
+};
+
+static void z80_expand_half_regs(const char* src, char* dst) {
+	while (*src) {
+		if ((*src >= 'a') && (*src <= 'z')) {
+			const char* start = src;
+			while (((*src >= 'a') && (*src <= 'z')) || ((*src >= '0') && (*src <= '9')))
+				src++;
+			int len = src - start;
+			const char* rep = start;
+			int replen = len;
+			if (len == 2) {
+				for (unsigned i = 0; i < sizeof(z80_half_reg_alias) / sizeof(z80_half_reg_alias[0]); i++) {
+					if (!strncmp(start, z80_half_reg_alias[i][0], 2)) {
+						rep = z80_half_reg_alias[i][1];
+						replen = 3;
+						break;
+					}
+				}
+			}
+			memcpy(dst, rep, replen);
+			dst += replen;
+		} else {
+			*dst++ = *src++;
+		}
+	}
+	*dst = 0;
+}
+
 xAsmScan z80_asm(int adr, const char* cbuf, char* buf) {
-	xAsmScan res = scanAsmTab(cbuf, npTab);
+	// cpuAsm caps its input at 255 chars (cbuf[256] there); each 2-char alias
+	// token can grow to 3 chars, so 256 * 3/2 = 384 is the worst case expansion
+	char ebuf[512];
+	z80_expand_half_regs(cbuf, ebuf);
+	xAsmScan res = scanAsmTab(ebuf, npTab);
 	res.ptr = buf;
 	if (!res.match) {
-		res = scanAsmTab(cbuf, ddTab);
+		res = scanAsmTab(ebuf, ddTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xdd;
 	}
 	if (!res.match) {
-		res = scanAsmTab(cbuf, fdTab);
+		res = scanAsmTab(ebuf, fdTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xfd;
 	}
 	if (!res.match) {
-		res = scanAsmTab(cbuf, cbTab);
+		res = scanAsmTab(ebuf, cbTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xcb;
 	}
 	if (!res.match) {
-		res = scanAsmTab(cbuf, edTab);
+		res = scanAsmTab(ebuf, edTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xed;
 	}
 	if (!res.match) {
-		res = scanAsmTab(cbuf, ddcbTab);
+		res = scanAsmTab(ebuf, ddcbTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xdd;
 		*res.ptr++ = 0xcb;
 	}
 	if (!res.match) {
-		res = scanAsmTab(cbuf, fdcbTab);
+		res = scanAsmTab(ebuf, fdcbTab);
 		res.ptr = buf;
 		*res.ptr++ = 0xfd;
 		*res.ptr++ = 0xcb;
