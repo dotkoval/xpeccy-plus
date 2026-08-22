@@ -19,6 +19,7 @@
 #include "libxpeccy/cpu/Z80/z80.h"
 
 #include "xapp.h"
+#include "titlebar.h"
 #include "emulwin.h"
 #include "xgui/debuga/debuger.h"
 #include "xgui/options/setupwin.h"
@@ -74,6 +75,19 @@ void xApp::d_style() {
 			file.close();
 		}
 	}
+	foreach(QWidget* w, topLevelWidgets())
+		applyTitleBarStyle(w);
+}
+
+// catches every top-level window's first Show, so a titlebar gets its colour
+// without touching each of the dozen QDialog/QMainWindow classes individually
+bool xApp::eventFilter(QObject* obj, QEvent* ev) {
+	if (ev->type() == QEvent::Show) {
+		QWidget* w = qobject_cast<QWidget*>(obj);
+		if (w && w->isWindow())
+			applyTitleBarStyle(w);
+	}
+	return QApplication::eventFilter(obj, ev);
 }
 
 // for apple users
@@ -149,6 +163,7 @@ int main(int ac,char** av) {
 #endif
 
 	xApp app(ac,av,true);
+	app.installEventFilter(&app);	// colours each window's titlebar on its first Show
 
 	// fallback icon for every window that doesn't set its own (options, tape,
 	// rzx, watcher). Windows takes it from the exe resource, X11 has nothing

@@ -63,3 +63,7 @@ From there the colours belong to the configuration like any other: change any of
 Xpeccy+ - Debugger - Palette (right click on a swatch puts the built-in default back) and what you set
 stays, both when the emulator is restarted and when the same style is picked again later. Only
 switching to a *different* style starts the two steps over.
+
+On Windows 11, `dbg.header.bg`/`dbg.header.txt` also colour the native titlebar of every window
+(via DWM - see `src/titlebar.cpp`), so picking a style tints the titlebar the same as the
+debugger's panel headers instead of leaving it the plain system one. `System` leaves it alone.

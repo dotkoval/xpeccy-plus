@@ -15,4 +15,5 @@ class xApp : public QApplication {
 		void s_frame();
 	protected:
 		bool event(QEvent*);
+		bool eventFilter(QObject*, QEvent*);
 };
