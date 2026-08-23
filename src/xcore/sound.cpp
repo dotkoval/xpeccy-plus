@@ -29,11 +29,18 @@ static sndPair sndLev;
 
 OutSys* findOutSys(const char*);
 
-static long double H[DISCRATE] = {0};
+// decimation FIR: spans 4 DISCRATE blocks of oversampled history (matches smpBuf size below),
+// windowed-sinc lowpass cut at the output Nyquist (Fout/2 = Fd/(2*DISCRATE), independent of rate).
+// coefficients are fixed-point (Q.FIRSHIFT), computed once from long double in init_kih() -
+// long double per-tap in the audio hot path caused occasional stalls (small tail coefficients
+// hit denormals, and x87 extended-precision denormal handling is very slow and non-uniform).
+#define FIRTAPS (DISCRATE * 4)
+#define FIRSHIFT 24
+static long long HQ[FIRTAPS] = {0};
 
 static int sb_pos = 0;
 static int sp_pos = 0;
-static sndPair smpBuf[128] = {{0,0}};
+static sndPair smpBuf[FIRTAPS] = {{0,0}};
 
 #if defined(HAVESDL2)
 static SDL_AudioDeviceID sdldevid;
@@ -41,7 +48,7 @@ static SDL_AudioDeviceID sdldevid;
 
 // output
 
-#define USEKIH 0
+#define USEKIH 1
 
 // return 1 when buffer is full
 // NOTE: need sync|flush devices if debug
@@ -57,23 +64,30 @@ int sndSync(Computer* comp) {
 			if (sndLev.left > 0x7fff) sndLev.left = 0x7fff;
 			if (sndLev.right > 0x7fff) sndLev.right = 0x7fff;
 
-			smpBuf[sb_pos & 127] = sndLev;
+			smpBuf[sb_pos & (FIRTAPS - 1)] = sndLev;
 			sb_pos++;
 			if ((sb_pos % DISCRATE) == 0) {
-				tmpLev.left = 0;
-				tmpLev.right = 0;
 #if USEKIH
-				sp_pos = sb_pos - DISCRATE;
-				for (int i = 0; i < DISCRATE; i++) {
-					tmpLev.left += smpBuf[sp_pos & 127].left * H[i];
-					tmpLev.right += smpBuf[sp_pos & 127].right * H[i];
+				// full-window decimation FIR, not just the newest DISCRATE block.
+				// fixed-point accumulation (see HQ/FIRSHIFT above) - no floating point
+				// in the per-sample hot path.
+				long long accL = 0, accR = 0;
+				sp_pos = sb_pos - FIRTAPS;
+				for (int i = 0; i < FIRTAPS; i++) {
+					int idx = sp_pos & (FIRTAPS - 1);
+					accL += (long long)smpBuf[idx].left * HQ[i];
+					accR += (long long)smpBuf[idx].right * HQ[i];
 					sp_pos++;
 				}
+				tmpLev.left = (int)(accL >> FIRSHIFT);
+				tmpLev.right = (int)(accR >> FIRSHIFT);
 #else
+				tmpLev.left = 0;
+				tmpLev.right = 0;
 				sp_pos = sb_pos - DISCRATE;
 				for (int i = 0; i < DISCRATE; i++) {
-					tmpLev.left += smpBuf[sp_pos & 127].left;
-					tmpLev.right += smpBuf[sp_pos & 127].right;
+					tmpLev.left += smpBuf[sp_pos & (FIRTAPS - 1)].left;
+					tmpLev.right += smpBuf[sp_pos & (FIRTAPS - 1)].right;
 					sp_pos++;
 				}
 				tmpLev.left /= DISCRATE;
@@ -296,25 +310,23 @@ OutSys* findOutSys(const char* name) {
 }
 
 void init_kih() {
-	long double Fd = conf.snd.rate * DISCRATE;
-	long double Fs = 20;
-	long double Fx = 40;
-	long double H_id [DISCRATE] = {0};
-	long double W[DISCRATE] = {0};
-	long double Fc = (Fs + Fx) / (2 * Fd);
+	// windowed-sinc decimation lowpass over the full FIRTAPS history (not just the newest
+	// DISCRATE block), cut at the output Nyquist. As a fraction of the oversampled rate Fd
+	// (= rate*DISCRATE) that cutoff is fc = 1/(2*DISCRATE), fixed regardless of conf.snd.rate.
+	long double fc = 1.0L / (2 * DISCRATE);
+	long double center = (FIRTAPS - 1) / 2.0L;
+	long double Htmp[FIRTAPS];
 	int i;
-	for (i = 0; i < DISCRATE; i++) {
-		if (i == 0) {
-			H_id[i] = 2 * M_PI * Fc;
-		} else {
-			H_id[i] = sinl(2 * M_PI * Fc * i) / (M_PI * i);
-		}
-		W[i] = 0.42 + 0.5 * cosl((2 * M_PI * i) / (DISCRATE - 1)) + 0.08 * cosl((4 * M_PI * i) / (DISCRATE - 1));
-		H[i] = H_id[i] * W[i];
+	for (i = 0; i < FIRTAPS; i++) {
+		// FIRTAPS is a multiple of 4, so center is always a half-integer and x never hits 0
+		long double x = i - center;
+		long double ideal = sinl(2 * M_PI * fc * x) / (M_PI * x);
+		long double w = 0.42L - 0.5L * cosl(2 * M_PI * i / (FIRTAPS - 1)) + 0.08L * cosl(4 * M_PI * i / (FIRTAPS - 1));
+		Htmp[i] = ideal * w;
 	}
-	double sum = 0;
-	for (i = 0; i < DISCRATE; i++) sum += H[i];
-	for (i = 0; i < DISCRATE; i++) H[i] /= sum;
+	long double sum = 0;
+	for (i = 0; i < FIRTAPS; i++) sum += Htmp[i];
+	for (i = 0; i < FIRTAPS; i++) HQ[i] = llroundl(Htmp[i] / sum * (1LL << FIRSHIFT));
 }
 
 void sndInit() {
