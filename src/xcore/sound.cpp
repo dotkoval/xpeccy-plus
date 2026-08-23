@@ -105,6 +105,18 @@ int sndSync(Computer* comp) {
 				if (conf.snd.need > 0)
 					conf.snd.need--;
 
+				// write the wav sample from the exact same decimated value as the live
+				// output, right when it's produced - a separately-clocked accumulator
+				// (the old ethread.cpp wavNs/wavNsPerSample) drifts against this rate
+				// (integer truncation makes the two periods a few ns apart) and beats
+				// audibly against it, heard as noise/graininess riding on the signal.
+				// this is inside the outer !conf.emu.fast/!conf.emu.pause guard, so wav
+				// output pauses along with the live one during fast-forward/pause instead
+				// of recording repeated stale samples like the old accumulator did - a
+				// deliberate side effect of the fix, not an oversight.
+				if (conf.snd.wavout)
+					snd_wav_write();
+
 				sbuf[posf & 0x3fff] = sndLev.left & 0xff;
 				posf++;
 				sbuf[posf & 0x3fff] = (sndLev.left >> 8) & 0xff;
@@ -356,9 +368,9 @@ wavHead wav_prepare(unsigned int rate, unsigned short chans) {
 	hd.audioFormat = 1;
 	hd.numChannels = chans;
 	hd.sampleRate = rate;
-	hd.byteRate = rate * chans;
-	hd.blockAlign = chans;
-	hd.bitsPerSample = 8;
+	hd.byteRate = rate * chans * 2;
+	hd.blockAlign = chans * 2;
+	hd.bitsPerSample = 16;
 	memcpy(hd.subchunk2Id, "data", 4);
 	hd.subchunk2Size = 0;				// later
 	return hd;
@@ -379,7 +391,7 @@ void snd_wav_close() {
 
 int snd_wav_open(const char* path) {
 	int res = ERR_OK;
-	wavHead hd = wav_prepare(44100, 2);
+	wavHead hd = wav_prepare(conf.snd.rate, 2);
 	snd_wav_close();
 	conf.snd.wavfile = fopen(path, "wb");
 	if (conf.snd.wavfile) {
@@ -393,8 +405,9 @@ int snd_wav_open(const char* path) {
 
 void snd_wav_write() {
 	if (conf.snd.wavfile) {
-		fputc(sndLev.left >> 8, conf.snd.wavfile);
-		fputc(sndLev.right >> 8, conf.snd.wavfile);
+		// same S16LE resolution as the live sbuf ring below - not just the top byte
+		fputw(sndLev.left & 0xffff, conf.snd.wavfile);
+		fputw(sndLev.right & 0xffff, conf.snd.wavfile);
 	}
 }
 

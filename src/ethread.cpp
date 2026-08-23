@@ -175,7 +175,6 @@ void xThread::emuCycle(Computer* comp) {
 	int tm;
 	int brkskip = 0;
 	sndNs = 0;
-	wavNs = 0;
 	conf.snd.fill = 1;
 	while (!comp->flgBRK && conf.snd.fill && !finish && !conf.emu.pause) {
 		// exec 1 opcode (or handle INT, NMI)
@@ -192,7 +191,6 @@ void xThread::emuCycle(Computer* comp) {
 				tm = compExec(comp);			// TODO: it exits when fetch-brk is occured, pc doesn't changed
 			}
 			sndNs += tm;
-			wavNs += tm;
 			// tape trap	TODO: rework it as a system breakpoint
 			int pc = cpu_get_pc(comp->cpu);
 			if ((comp->hw->grp == HWG_ZX) && (comp->mem->map[0].type == MEM_ROM) && comp->flgROM && !comp->flgDOS && !comp->flgEXT) {
@@ -207,12 +205,6 @@ void xThread::emuCycle(Computer* comp) {
 					tapStop(comp->tape);
 					emit tapeSignal(TW_STATE,TWS_STOP);
 				}
-			}
-			// write wav sample
-			if (wavNs > 22675) {		// ns per sample @ 44100Hz
-				wavNs -= 22675;
-				if (conf.snd.wavout)
-					snd_wav_write();
 			}
 		}
 		// sound buffer update
