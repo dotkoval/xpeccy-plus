@@ -11,6 +11,7 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- `--sdcard FILE` selects an SD-card image at startup.
 - On Windows 11, the titlebar of every window now follows the chosen interface style (background and text colour) instead of always being the plain system one, while Windows itself still draws the min/maximize/close controls. `System` (no style sheet) leaves it untouched, same as before.
 - The current-instruction arrow in the disassembler (up/down/self, showing where a taken branch lands) now also appears on unconditional `jp`/`call` and on `ret`, not just conditional jumps and calls. `ret`'s target is read straight off the stack. Z80, Game Boy and 6502 cores.
 
