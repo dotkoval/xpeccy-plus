@@ -7,6 +7,7 @@
 #include <QBuffer>
 #include <QPainter>
 #include <QShowEvent>
+#include <QTabBar>
 #include <QVector>
 #include <QFileDialog>
 #include <QTemporaryFile>
@@ -119,8 +120,18 @@ void DebugWin::updateStyle() {
 	ui_misc.labHeadSignal->setStyleSheet(str);
 	ui_misc.labPorts->setStyleSheet(str);
 	setMiscBlocks();
+	// gap from whatever's above (native titlebar or another dock), which would
+	// otherwise touch it with no border - dbg.header.bg colours both alike
+	static const QString headerGap = QStringLiteral("margin-top:2px;");
+	QString headStr = str + headerGap;
 	foreach(xDockWidget* dw, dockWidgets) {
-		dw->titleBarWidget()->setStyleSheet(str);
+		dw->titleBarWidget()->setStyleSheet(headStr);
+	}
+	// tabified docks show a QTabBar instead of a title bar; margin has to be on
+	// ::tab, not the bar itself, or the dock area's layout ignores it
+	QString tabGapStr = QStringLiteral("QTabBar::tab{") + headerGap + QLatin1Char('}');
+	foreach (QTabBar* tb, findChildren<QTabBar*>()) {
+		tb->setStyleSheet(tabGapStr);
 	}
 
 	setFont(conf.dbg.font);
