@@ -20,6 +20,15 @@ before that point is upstream's history and is not repeated here.
 - Copying the disassembly to the clipboard or saving it to a file now keeps the blank line after each branch, same as the on-screen listing, when that separator option is on.
 - The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still accepts the old names when typing code into the disassembler, alongside the new ones.
 
+### From upstream
+
+Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260824`, by SAM style.
+
+- A new hardware profile, `PentEvo21` ("Evo Baseconf, after 2021"), alongside the existing
+  PentEvo. Marked unstable by upstream.
+- Jumping to an address in the disassembler (F4) or returning (F5) no longer leaves a duplicate
+  entry in the jump history.
+
 ## 2026.2 - 2026-08-21
 
 ### Added
