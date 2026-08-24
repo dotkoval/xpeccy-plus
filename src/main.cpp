@@ -54,6 +54,7 @@ void help() {
 	printf("--bp NAME\t\tset fetch brakepoint to label NAME (see -l key)\n");
 	printf("--brk FILE\t\tload breakpoints list (*.xbrk)\n");
 	printf("--disk X\t\tselect drive to loading file (0..3 | a..d | A..D)\n");
+	printf("--sdcard FILE\t\tset SD card image\n");
 	printf("--style\t\t\tMacOSX only: use native qt style, else 'fusion' will be forced\n");
 	printf("--xmap FILE\t\tLoad *.xmap file\n");
 	printf("--confdir DIR\t\tChange config directory\n");
@@ -364,6 +365,9 @@ int main(int ac,char** av) {
 				i++;
 			} else if (!strcmp(parg,"--fullscreen")) {
 				conf.vid.fullScreen = atoi(av[i]) ? 1 : 0;
+				i++;
+			} else if (!strcmp(parg, "--sdcard")) {
+				sdcSetImage(conf.prof.cur->zx->sdc, av[i]);
 				i++;
 			} else if (!strcmp(parg, "--disk")) {
 				parg = av[i];
