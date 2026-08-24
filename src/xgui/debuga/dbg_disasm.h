@@ -101,6 +101,7 @@ class xDisasmTable : public QTableView {
 
 		void copyToCbrd();
 		void jumpMarked(int, Qt::KeyboardModifiers);
+		void selectAdr(int);
 
 		void keyPressEvent(QKeyEvent*);
 		void mousePressEvent(QMouseEvent*);

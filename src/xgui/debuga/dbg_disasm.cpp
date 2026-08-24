@@ -992,11 +992,13 @@ void xDisasmTable::setAdr(int adr, int hist) {
 		history.append(model->asmadr);
 	int oadr = model->asmadr;
 	model->asmadr = adr & conf.prof.cur->zx->mem->busmask;
-	updContent();
-	if (oadr != model->asmadr)
+	if (oadr != model->asmadr) {
+		updContent();
 		emit s_adrch(model->asmadr);
+	}
 }
 
+// used as slot
 void xDisasmTable::setAdrX(int adr) {
 	setAdr(adr, 0);
 }
@@ -1088,6 +1090,18 @@ void xDisasmTable::copyToCbrd() {
 			str += "\n";
 	}
 	cbrd->setText(str);
+}
+
+// puts the cursor on the row of 'adr', skipping block separators: those
+// carry the address of the row below them (see make_separator), so a plain
+// row-index match can land on a separator instead of the real instruction
+void xDisasmTable::selectAdr(int adr) {
+	for (int row = 0; row < model->dasm.size(); row++) {
+		if (!model->dasm[row].issep && (model->dasm[row].adr == adr)) {
+			setCurrentIndex(model->index(row, 0));
+			return;
+		}
+	}
 }
 
 void xDisasmTable::jumpMarked(int idx, Qt::KeyboardModifiers mod) {
@@ -1204,16 +1218,16 @@ void xDisasmTable::keyPressEvent(QKeyEvent* ev) {
 			if (!idx.isValid()) break;
 			adr = model->dasm[idx.row()].oadr;
 			if (adr < 0) break;
-			history.append(model->asmadr);
 			model->setData(model->index(idx.row(), 0), QString::number(adr, 16).prepend("0x"), Qt::EditRole);
 			updContent();
-			setCurrentIndex(idx);
+			selectAdr(adr);
 			emit s_adrch(model->asmadr);
 			break;
 		case XCUT_RETFROM:
 			if (history.size() < 1) break;
 			model->asmadr = history.takeLast();
 			updContent();
+			selectAdr(model->asmadr);
 			emit s_adrch(model->asmadr);
 			break;
 		case XCUT_GOTOADR:
