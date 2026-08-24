@@ -64,10 +64,12 @@ static uint32_t blend_2c(uint32_t p0, uint32_t p1, float ratio) {
 	unsigned char frame1_g = srgb_to_linear[(p1 >> 8) & 0xFF];
 	unsigned char frame1_b = srgb_to_linear[(p1 >> 16) & 0xFF];
 
-	// Look up precomputed blended components in encoded (8-bit) space
+	// Look up precomputed blended components in encoded (8-bit) space.
+	// Alpha forced opaque: the source pixels always are, but a bare RGB OR leaves it at 0.
 	return 	linear_to_srgb[int(frame1_r * ratio + frame0_r * ratio_rev)] |
 			linear_to_srgb[int(frame1_g * ratio + frame0_g * ratio_rev)] << 8 |
-			linear_to_srgb[int(frame1_b * ratio + frame0_b * ratio_rev)] << 16;
+			linear_to_srgb[int(frame1_b * ratio + frame0_b * ratio_rev)] << 16 |
+			0xFF000000;
 }
 
 // 3-Color blending in linear light using LUTs
@@ -87,10 +89,12 @@ static uint32_t blend_3c(uint32_t p0, uint32_t p1, uint32_t p2, float ratio) {
 	unsigned char frame2_g = srgb_to_linear[(p2 >> 8) & 0xFF];
 	unsigned char frame2_b = srgb_to_linear[(p2 >> 16) & 0xFF];
 
-	// Encode averaged linear components back to RGBA encoded space (linear -> sRGB)
+	// Encode averaged linear components back to RGBA encoded space (linear -> sRGB).
+	// Alpha forced opaque: the source pixels always are, but a bare RGB OR leaves it at 0.
 	return 	linear_to_srgb[int((frame0_r + frame1_r + frame2_r) / 3 * ratio + frame0_r * ratio_rev)] |
 			linear_to_srgb[int((frame0_g + frame1_g + frame2_g) / 3 * ratio + frame0_g * ratio_rev)] << 8 |
-			linear_to_srgb[int((frame0_b + frame1_b + frame2_b) / 3 * ratio + frame0_b * ratio_rev)] << 16;
+			linear_to_srgb[int((frame0_b + frame1_b + frame2_b) / 3 * ratio + frame0_b * ratio_rev)] << 16 |
+			0xFF000000;
 }
 
 // Check if RGBA pixel has more than one color component
