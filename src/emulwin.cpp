@@ -958,6 +958,22 @@ void MainWin::screenShot() {
 				dx = comp->vid->scrn.x * conf.vid.scale;
 				dy = comp->vid->scrn.y * conf.vid.scale;
 				img = img.copy(x, y, dx, dy);
+			} else if (comp->hw->grp == HWG_ZX) {
+				// ZX raster border is rarely symmetric (Pentagon's is shifted down
+				// further than most), so keep only the smaller margin on each axis
+				// instead of the raw, lopsided full-border capture - the paper
+				// area stays centered in the saved image either way.
+				int lBrd = comp->vid->bord.x - comp->vid->lcut.x;
+				int rBrd = comp->vid->rcut.x - comp->vid->send.x;
+				int tBrd = comp->vid->bord.y - comp->vid->lcut.y;
+				int bBrd = comp->vid->rcut.y - comp->vid->send.y;
+				int hBrd = (lBrd < rBrd) ? lBrd : rBrd;
+				int vBrd = (tBrd < bBrd) ? tBrd : bBrd;
+				x = (lBrd - hBrd) * conf.vid.scale;
+				y = (tBrd - vBrd) * conf.vid.scale;
+				dx = (comp->vid->scrn.x + 2 * hBrd) * conf.vid.scale;
+				dy = (comp->vid->scrn.y + 2 * vBrd) * conf.vid.scale;
+				img = img.copy(x, y, dx, dy);
 			}
 			img.save(QString(fnam.c_str()),fext.c_str());
 			break;

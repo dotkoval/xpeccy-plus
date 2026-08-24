@@ -21,6 +21,7 @@ before that point is upstream's history and is not repeated here.
 - Copying the disassembly to the clipboard or saving it to a file now keeps the blank line after each branch, same as the on-screen listing, when that separator option is on.
 - The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still accepts the old names when typing code into the disassembler, alongside the new ones.
 - Jumping to an address (F4) or returning (F5) in the disassembler now keeps the cursor on the right row and column: F4 could land it one row off (or on an unselectable block separator, where it just vanished), and F5 dropped it back to the top of the listing instead of the row it actually jumped from.
+- Screenshots no longer come out with transparent pixels wherever the anti-flicker blending changed a pixel from the frame before. On ZX machines, a screenshot with the border kept is now cropped to the smaller of its left/right and top/bottom margins, so the picture stays centered instead of showing the raw, off-center raster capture.
 
 ### From upstream
 
