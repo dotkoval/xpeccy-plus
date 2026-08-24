@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QColor>
+#include <QPair>
 #include <QTableView>
 #include <QStyledItemDelegate>
 #include <QAbstractTableModel>
@@ -92,7 +93,10 @@ class xDisasmTable : public QTableView {
 	private:
 		int markAdr;
 		xDisasmModel* model;
-		QList<int> history;
+		// one entry per undoable jump: the viewport anchor (asmadr) to
+		// restore the scroll position, and the cursor's own row address -
+		// not the same thing, the cursor can be anywhere in the listing
+		QList<QPair<int, int>> history;
 		QColor pc_bgr,pc_txt,blk_bgr,blk_txt,brk_txt;
 		int storedAddress[5];
 
@@ -101,6 +105,9 @@ class xDisasmTable : public QTableView {
 
 		void copyToCbrd();
 		void jumpMarked(int, Qt::KeyboardModifiers);
+		void pushHistory(int);
+		int rowForAdr(int);
+		void selectAdr(int, int);
 
 		void keyPressEvent(QKeyEvent*);
 		void mousePressEvent(QMouseEvent*);

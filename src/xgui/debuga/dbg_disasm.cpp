@@ -989,7 +989,7 @@ int xDisasmTable::getAdr() {
 
 void xDisasmTable::setAdr(int adr, int hist) {
 	if (hist)
-		history.append(model->asmadr);
+		pushHistory(model->asmadr);
 	int oadr = model->asmadr;
 	model->asmadr = adr & conf.prof.cur->zx->mem->busmask;
 	if (oadr != model->asmadr) {
@@ -1036,7 +1036,7 @@ void xDisasmTable::update() {
 
 void xDisasmTable::t_update(int oadr, int nadr) {
 	if (oadr >= 0) {
-		history.append(oadr);
+		pushHistory(oadr);
 	}
 	updContent();
 	if (oadr != nadr)
@@ -1090,6 +1090,33 @@ void xDisasmTable::copyToCbrd() {
 			str += "\n";
 	}
 	cbrd->setText(str);
+}
+
+// records a jump for F5 to undo: 'oldAsmadr' (the viewport anchor before the
+// jump) restores the scroll position, and the cursor's own row address (not
+// the same thing - the cursor can be anywhere in the visible listing)
+// restores which row F5 actually selects
+void xDisasmTable::pushHistory(int oldAsmadr) {
+	QModelIndex idx = currentIndex();
+	int curAdr = idx.isValid() ? model->dasm[idx.row()].adr : oldAsmadr;
+	history.append(qMakePair(oldAsmadr, curAdr));
+}
+
+// finds the row that holds 'adr', skipping block separators: those carry
+// the address of the row below them (see make_separator), so a plain
+// row-index match can land on a separator instead of the real instruction
+int xDisasmTable::rowForAdr(int adr) {
+	for (int row = 0; row < model->dasm.size(); row++) {
+		if (!model->dasm[row].issep && (model->dasm[row].adr == adr))
+			return row;
+	}
+	return -1;
+}
+
+void xDisasmTable::selectAdr(int adr, int col) {
+	int row = rowForAdr(adr);
+	if (row >= 0)
+		setCurrentIndex(model->index(row, col));
 }
 
 void xDisasmTable::jumpMarked(int idx, Qt::KeyboardModifiers mod) {
@@ -1208,16 +1235,19 @@ void xDisasmTable::keyPressEvent(QKeyEvent* ev) {
 			if (adr < 0) break;
 			model->setData(model->index(idx.row(), 0), QString::number(adr, 16).prepend("0x"), Qt::EditRole);
 			updContent();
-			setCurrentIndex(idx);
+			selectAdr(adr, idx.column());
 			emit s_adrch(model->asmadr);
 			break;
-		case XCUT_RETFROM:
+		case XCUT_RETFROM: {
 			if (history.size() < 1) break;
-			model->asmadr = history.takeLast();
+			QPair<int, int> h = history.takeLast();
+			model->asmadr = h.first;
+			adr = h.second;
 			updContent();
-			setCurrentIndex(idx);
+			selectAdr(adr, idx.column());
 			emit s_adrch(model->asmadr);
 			break;
+		}
 		case XCUT_GOTOADR:
 			// put the cursor on the address of the first row, so the address can be typed at once
 			i = 0;
