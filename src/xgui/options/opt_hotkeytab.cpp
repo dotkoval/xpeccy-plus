@@ -106,7 +106,13 @@ void xKeyEditor::keyPressEvent(QKeyEvent* ev) {
 	if (mods & Qt::AltModifier) str += "Alt + ";
 	if (mods & Qt::ControlModifier) str += "Ctrl + ";
 	if (mods & Qt::ShiftModifier) str += "Shift + ";
+#ifdef __APPLE__
+	if (mods & Qt::MetaModifier) str += "Cmd + ";
+#elif defined(__WIN32)
+	if (mods & Qt::MetaModifier) str += "Win + ";	// unreachable: the shell grabs the Win key before Qt sees it
+#else
 	if (mods & Qt::MetaModifier) str += "Meta + ";
+#endif
 	switch (ev->key()) {
 		case Qt::Key_Alt:
 		case Qt::Key_Multi_key:		// TODO: this is right-alt?

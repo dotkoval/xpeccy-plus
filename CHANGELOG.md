@@ -51,7 +51,8 @@ before that point is upstream's history and is not repeated here.
 - On macOS, the hotkey editor no longer shows the wrong modifier for the key you actually
   pressed, and existing Ctrl-based shortcuts now match the physical Ctrl key instead of Cmd -
   Qt's default Ctrl/Cmd swap is now off. Options also defaults to the native Cmd+, instead of
-  F1.
+  F1. The editor also labels that modifier per platform now: Cmd on macOS, Meta on Linux, Win
+  on Windows (though Windows itself never lets you actually bind it).
 
 ### From upstream
 
