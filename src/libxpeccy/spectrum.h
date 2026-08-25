@@ -129,7 +129,9 @@ typedef struct Computer {
 	int frmtCount;		// accumulate T, but reset each INT
 	int hCount;		// T before HALT = frmtCount @ HALT
 	int fCount;		// T in last frame
-	int nsPerTick;
+	double nsPerTick;	// real ns/T, kept precise: truncating this to int was the
+				// root cause of a systemic ~0.3-0.9% emulation speed error
+				// (see nsPerSample-driven pacing in ethread.cpp)
 
 	bool flag[128];			// each machine have its own flags
 	bool sysflag[32];		// some common flags used by several machines or debuga
