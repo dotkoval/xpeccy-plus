@@ -37,8 +37,13 @@ concurrency:
 
 jobs:
   build:
-    name: arm64, Qt6
-    runs-on: macos-latest
+    name: arm64, Qt6, macOS 14+
+    # Pinned, not macos-latest: Homebrew's arm64 bottles are tagged to the OS
+    # they were built on, so this is what actually sets the app's minimum
+    # macOS. macos-14 is the oldest tag Homebrew still bottles for, and is
+    # itself deprecating (unsupported from 2026-11-02) - a floor for a few
+    # months, not a permanent answer.
+    runs-on: macos-14
     timeout-minutes: 40
 
     env:
