@@ -12,16 +12,46 @@ before that point is upstream's history and is not repeated here.
 ### Added
 
 - `--sdcard FILE` selects an SD-card image at startup.
-- On Windows 11, the titlebar of every window now follows the chosen interface style (background and text colour) instead of always being the plain system one, while Windows itself still draws the min/maximize/close controls. `System` (no style sheet) leaves it untouched, same as before.
-- The current-instruction arrow in the disassembler (up/down/self, showing where a taken branch lands) now also appears on unconditional `jp`/`call` and on `ret`, not just conditional jumps and calls. `ret`'s target is read straight off the stack. Z80, Game Boy and 6502 cores.
+
+- On Windows 11, the titlebar of every window now follows the chosen interface style
+  (background and text colour) instead of always being the plain system one, while Windows
+  itself still draws the min/maximize/close controls. `System` (no style sheet) leaves it
+  untouched, same as before.
+
+- The current-instruction arrow in the disassembler (up/down/self, showing where a taken
+  branch lands) now also appears on unconditional `jp`/`call` and on `ret`, not just
+  conditional jumps and calls. `ret`'s target is read straight off the stack. Z80, Game Boy
+  and 6502 cores.
+
+- A hotkey to quit the emulator, bound to Alt+F4 by default on Windows and Linux and to Cmd+Q
+  on macOS.
 
 ### Fixed
 
-- The disassembler no longer leaves a selected row stuck highlighted, with its syntax colouring gone, once the debugger loses focus.
-- Copying the disassembly to the clipboard or saving it to a file now keeps the blank line after each branch, same as the on-screen listing, when that separator option is on.
-- The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still accepts the old names when typing code into the disassembler, alongside the new ones.
-- Jumping to an address (F4) or returning (F5) in the disassembler now keeps the cursor on the right row and column: F4 could land it one row off (or on an unselectable block separator, where it just vanished), and F5 dropped it back to the top of the listing instead of the row it actually jumped from.
-- Screenshots no longer come out with transparent pixels wherever the anti-flicker blending changed a pixel from the frame before. On ZX machines, a screenshot with the border kept is now cropped to the smaller of its left/right and top/bottom margins, so the picture stays centered instead of showing the raw, off-center raster capture.
+- The disassembler no longer leaves a selected row stuck highlighted, with its syntax
+  colouring gone, once the debugger loses focus.
+
+- Copying the disassembly to the clipboard or saving it to a file now keeps the blank line
+  after each branch, same as the on-screen listing, when that separator option is on.
+
+- The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics
+  every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still
+  accepts the old names when typing code into the disassembler, alongside the new ones.
+
+- Jumping to an address (F4) or returning (F5) in the disassembler now keeps the cursor on the
+  right row and column: F4 could land it one row off (or on an unselectable block separator,
+  where it just vanished), and F5 dropped it back to the top of the listing instead of the row
+  it actually jumped from.
+
+- Screenshots no longer come out with transparent pixels wherever the anti-flicker blending
+  changed a pixel from the frame before. On ZX machines, a screenshot with the border kept is
+  now cropped to the smaller of its left/right and top/bottom margins, so the picture stays
+  centered instead of showing the raw, off-center raster capture.
+
+- On macOS, the hotkey editor no longer shows the wrong modifier for the key you actually
+  pressed, and existing Ctrl-based shortcuts now match the physical Ctrl key instead of Cmd -
+  Qt's default Ctrl/Cmd swap is now off. Options also defaults to the native Cmd+, instead of
+  F1.
 
 ### From upstream
 
@@ -58,18 +88,18 @@ Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260824`, by SAM
   C-like condition and only stops when it is true - `bc == 0x1234`, `(out & 0xff) == 0xfd`. A
   condition with no address of its own is a breakpoint in itself: it is checked after every
   instruction and stops while it is true, or only when it becomes true if "On change" is
-  ticked. Expressions take CPU registers, labels,
-  memory (`M(x)`, `[x]`), the last memory/IO access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`),
-  the machine state (`DOS`, `SLOT0`..`SLOT3`, `FRAME`, the beam position `RAYX`/`RAYY`,
-  `RAY(x, y)` for the instruction the beam passed a given dot in) and the breakpoint's own
-  hit counter
-  (`HITS`), so an address breakpoint with `HITS > 30` lets the first 30 hits pass and stops on
-  the 31st, and `FRAME == 300` stops on the first instruction of frame 300. Numbers follow the same rules as the assembler in the disassembler window -
-  decimal, `0x`/`#` for hex, a leading zero for octal - and while a condition is typed, the
-  line under the field shows how it was understood, with the priorities as brackets. The `?` button in the breakpoint editor lists them all with examples.
-  Conditions are saved and loaded with the breakpoint list, and the list can be loaded at
-  startup with `--brk FILE`, which also reads Unreal's `bpx.ini` format (`x0=0x80A6`,
-  `r0=0x8000-0x8FFF`) - the one sjasmplus writes.
+  ticked. Expressions take CPU registers, labels, memory (`M(x)`, `[x]`), the last memory/IO
+  access (`RD`, `WR`, `MDT`, `IN`, `OUT`, `VAL`), the machine state (`DOS`, `SLOT0`..`SLOT3`,
+  `FRAME`, the beam position `RAYX`/`RAYY`, `RAY(x, y)` for the instruction the beam passed a
+  given dot in) and the breakpoint's own hit counter (`HITS`), so an address breakpoint with
+  `HITS > 30` lets the first 30 hits pass and stops on the 31st, and `FRAME == 300` stops on
+  the first instruction of frame 300. Numbers follow the same rules as the assembler in the
+  disassembler window - decimal, `0x`/`#` for hex, a leading zero for octal - and while a
+  condition is typed, the line under the field shows how it was understood, with the
+  priorities as brackets. The `?` button in the breakpoint editor lists them all with
+  examples. Conditions are saved and loaded with the breakpoint list, and the list can be
+  loaded at startup with `--brk FILE`, which also reads Unreal's `bpx.ini` format
+  (`x0=0x80A6`, `r0=0x8000-0x8FFF`) - the one sjasmplus writes.
 
 - **The disassembly listing reads more like a listing** (ideas borrowed from Spectaculator):
   the address and the opcode columns can be dimmed, constants are coloured and labels go
