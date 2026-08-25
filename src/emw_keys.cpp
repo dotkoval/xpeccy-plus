@@ -29,7 +29,7 @@ static QMap<qint32, int> key_press_map;
 int ev_to_keyid(QKeyEvent* ev, bool kgrab) {
 	int keyid = -1;
 	if (!kgrab) {
-		keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key() | ev->modifiers()));
+		keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key() | xNativeMods(ev->modifiers())));
 		if (keyid < 0)
 			keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key()));
 	}
@@ -273,6 +273,9 @@ void MainWin::xkey_press(int xkey) {
 				pause(true, PR_OPTS);
 				emit s_options();
 				break;
+			case XCUT_QUIT:
+				close();
+				break;
 			case XCUT_SAVE:
 				pause(true,PR_FILE);
 				save_file(comp, NULL, FG_ALL, -1);
@@ -378,7 +381,7 @@ void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 		} else {
 			keyid = -1;
 			if (!pckAct->isChecked()) {
-				keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key() | ev->modifiers()));
+				keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key() | xNativeMods(ev->modifiers())));
 				if (keyid < 0)
 					keyid = shortcut_check(SCG_MAIN, QKeySequence(ev->key()));
 			}
