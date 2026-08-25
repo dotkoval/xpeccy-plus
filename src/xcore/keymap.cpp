@@ -408,7 +408,11 @@ int key2qid(int key) {
 // shortcuts
 
 static xShortcut short_tab[] = {
+#ifdef __APPLE__
+	{SCG_MAIN | SCG_DEBUGA, XCUT_OPTIONS, "key.options", "Options", QKeySequence(), QKeySequence(Qt::META | Qt::Key_Comma)},
+#else
 	{SCG_MAIN | SCG_DEBUGA, XCUT_OPTIONS, "key.options", "Options", QKeySequence(), QKeySequence(Qt::Key_F1)},
+#endif
 	{SCG_MAIN | SCG_DEBUGA, XCUT_DEBUG, "key.debuger", "Debugger", QKeySequence(), QKeySequence(Qt::Key_Escape)},
 	{SCG_MAIN, XCUT_PAUSE, "key.pause", "Pause", QKeySequence(), QKeySequence(Qt::Key_Pause)},
 	{SCG_MAIN, XCUT_FAST, "key.fast", "Fast mode", QKeySequence(), QKeySequence(Qt::Key_Insert)},
@@ -440,6 +444,11 @@ static xShortcut short_tab[] = {
 //	{SCG_MAIN, XCUT_TVLINES, "key.scanlines", "Switch scanlines", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_WAV_OUT, "key.write.wav", "Start/stop wav output", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_RELOAD_SHD, "key.reload.shader", "Reload shader", QKeySequence(), QKeySequence()},
+#ifdef __APPLE__
+	{SCG_MAIN, XCUT_QUIT, "key.quit", "Quit", QKeySequence(), QKeySequence(Qt::META | Qt::Key_Q)},
+#else
+	{SCG_MAIN, XCUT_QUIT, "key.quit", "Quit", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_F4)},
+#endif
 
 	{SCG_DEBUGA, XCUT_STEPIN, "key.dbg.stepin", "Debugger: Step in", QKeySequence(), QKeySequence(Qt::Key_F7)},
 	{SCG_DEBUGA, XCUT_STEPOVER, "key.dbg.stepover", "Debugger: Step over", QKeySequence(), QKeySequence(Qt::Key_F8)},
@@ -535,4 +544,21 @@ int shortcut_match(int grp, int id, QKeySequence seq) {
 
 xShortcut* shortcut_tab() {
 	return short_tab;
+}
+
+// Qt swaps Ctrl and Cmd on macOS by default (Cmd is reported as Qt::ControlModifier,
+// physical Ctrl as Qt::MetaModifier), so a raw ev->modifiers() from a QKeyEvent matches
+// the wrong physical key against this table's Ctrl/Meta bindings, and displays the wrong
+// name for whatever was actually pressed. Swapping the two bits back here - only where
+// this hotkey table reads modifiers, not globally - fixes both without touching Qt's
+// native shortcut handling or any other Ctrl-modified feature elsewhere in the app.
+Qt::KeyboardModifiers xNativeMods(Qt::KeyboardModifiers mod) {
+#ifdef __APPLE__
+	Qt::KeyboardModifiers res = mod & ~(Qt::ControlModifier | Qt::MetaModifier);
+	if (mod & Qt::ControlModifier) res |= Qt::MetaModifier;
+	if (mod & Qt::MetaModifier) res |= Qt::ControlModifier;
+	return res;
+#else
+	return mod;
+#endif
 }

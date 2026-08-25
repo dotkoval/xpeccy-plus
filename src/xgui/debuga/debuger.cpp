@@ -806,9 +806,9 @@ void DebugWin::keyPressEvent(QKeyEvent* ev) {
 		return;
 	}
 	int i;
-	int key = shortcut_check(SCG_DEBUGA, QKeySequence(ev->key() | ev->modifiers()));
+	int key = shortcut_check(SCG_DEBUGA, QKeySequence(ev->key() | xNativeMods(ev->modifiers())));
 	if (key < 0)
-		key = ev->key() | ev->modifiers();
+		key = ev->key() | xNativeMods(ev->modifiers());
 	unsigned char* ptr;
 	int len;
 	dasmData drow;
@@ -910,7 +910,7 @@ void DebugWin::keyPressEvent(QKeyEvent* ev) {
 }
 
 void DebugWin::keyReleaseEvent(QKeyEvent* ev) {
-	QKeySequence seq(ev->key() | ev->modifiers());
+	QKeySequence seq(ev->key() | xNativeMods(ev->modifiers()));
 	if (!ev->isAutoRepeat() && (shortcut_match(SCG_DEBUGA, XCUT_STEPIN, seq) != QKeySequence::NoMatch)) {
 		stopTrace();
 	}

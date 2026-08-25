@@ -102,10 +102,11 @@ xKeyEditor::xKeyEditor(QWidget* p):QDialog(p) {
 
 void xKeyEditor::keyPressEvent(QKeyEvent* ev) {
 	QString str;
-	if (ev->modifiers() & Qt::AltModifier) str += "Alt + ";
-	if (ev->modifiers() & Qt::ControlModifier) str += "Ctrl + ";
-	if (ev->modifiers() & Qt::ShiftModifier) str += "Shift + ";
-	if (ev->modifiers() & Qt::MetaModifier) str += "Meta + ";
+	Qt::KeyboardModifiers mods = xNativeMods(ev->modifiers());
+	if (mods & Qt::AltModifier) str += "Alt + ";
+	if (mods & Qt::ControlModifier) str += "Ctrl + ";
+	if (mods & Qt::ShiftModifier) str += "Shift + ";
+	if (mods & Qt::MetaModifier) str += "Meta + ";
 	switch (ev->key()) {
 		case Qt::Key_Alt:
 		case Qt::Key_Multi_key:		// TODO: this is right-alt?
@@ -116,7 +117,7 @@ void xKeyEditor::keyPressEvent(QKeyEvent* ev) {
 			break;
 		default:
 			str += QKeySequence(ev->key()).toString();
-			kseq = QKeySequence(ev->key() | ev->modifiers());
+			kseq = QKeySequence(ev->key() | mods);
 			break;
 	}
 	if (str.isEmpty()) str = QString("<press now>");

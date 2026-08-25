@@ -328,6 +328,7 @@ enum {
 //	XCUT_TVLINES,
 	XCUT_WAV_OUT,
 	XCUT_RELOAD_SHD,
+	XCUT_QUIT,
 
 	XCUT_STEPIN,
 	XCUT_STEPOVER,
@@ -394,6 +395,7 @@ void set_shortcut_name(const char*, QKeySequence);
 xShortcut* shortcut_tab();
 int shortcut_check(int, QKeySequence);
 int shortcut_match(int, int, QKeySequence);
+Qt::KeyboardModifiers xNativeMods(Qt::KeyboardModifiers);
 
 // bookmarks
 
