@@ -4,6 +4,7 @@
 #include <QProgressBar>
 #include <QTableWidget>
 #include <QTime>
+#include <QElapsedTimer>
 #include <QUrl>
 #include <QMimeData>
 #include <QPainter>
@@ -402,7 +403,11 @@ void MainWin::gpAxisChanged(int n, double v) {
 
 // calling on timer every 20ms
 
-static QList<int> fpsmem;
+// fps sampling window: frame count + real elapsed ns together, so curfps is
+// frames/real-second (not frames/assumed-200ms-tick)
+struct FpsSample { int frames; qint64 ns; };
+static QList<FpsSample> fpsmem;
+static QElapsedTimer fpsClock;
 
 #if defined(__WIN32) && STICKY_KEY
 
@@ -427,12 +432,22 @@ void MainWin::timerEvent(QTimerEvent* ev) {
 	if (ev->timerId() == secid) {		// 0.2 sec timer, fps counter
 		// printf("0.2 sec timer event\n");
 		if (!conf.emu.pause) {
-			// printf("%i (%i)\n", comp->vid->fcnt, fpsmem.first());
-			fpsmem.append(conf.vid.fcount);
-			conf.vid.curfps = conf.vid.fcount - fpsmem.first();
-			while(fpsmem.size() > 5)
+			if (!fpsClock.isValid())
+				fpsClock.start();
+			qint64 now = fpsClock.nsecsElapsed();
+			fpsmem.append({conf.vid.fcount, now});
+			qint64 dtNs = now - fpsmem.first().ns;
+			int dFrames = conf.vid.fcount - fpsmem.first().frames;
+			conf.vid.curfps = (dtNs > 0) ? (dFrames * 1e9 / dtNs) : 0.0;
+			while (fpsmem.size() > 10)
 				fpsmem.removeFirst();
-			// printf("%i\n", conf.vid.curfps);
+		} else {
+			// no frames are made while paused (emuCycle() itself checks
+			// conf.emu.pause), so a stale pre-pause sample would otherwise sit
+			// at fpsmem.first() and drag the average down across the whole
+			// pause - drop the window instead of letting it slide out one
+			// entry at a time after resuming.
+			fpsmem.clear();
 		}
 		if (comp->vid->upd) {
 			comp->vid->upd = 0;
@@ -817,7 +832,7 @@ void MainWin::drawIcons(QPainter& pnt) {
 	}
 // put fps
 	if (conf.led.fps) {
-		sprintf(numbuf, " %d ", conf.vid.curfps);
+		sprintf(numbuf, " %.1f ", conf.vid.curfps);
 		drawText(&pnt, width() - (strlen(numbuf) * 12) - 5, 5, numbuf);
 	}
 // put halt counter
