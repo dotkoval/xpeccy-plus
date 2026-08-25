@@ -292,7 +292,7 @@ QTabBar::tab {
 	background-color: #141414;
 	color: #e6e6e6;
 	border: 1px solid #333333;
-	padding: 3px 8px;
+	padding: 3px 6px;
 }
 
 QTabBar::tab:top {

@@ -128,8 +128,10 @@ void DebugWin::updateStyle() {
 		dw->titleBarWidget()->setStyleSheet(headStr);
 	}
 	// tabified docks show a QTabBar instead of a title bar; margin has to be on
-	// ::tab, not the bar itself, or the dock area's layout ignores it
-	QString tabGapStr = QStringLiteral("QTabBar::tab{") + headerGap + QLatin1Char('}');
+	// ::tab, not the bar itself, or the dock area's layout ignores it. Any
+	// style sheet on a QTabBar drops it out of native painting, so under
+	// "System" (no style sheet at all) leave it alone instead of shrinking it
+	QString tabGapStr = conf.style.empty() ? QString() : QStringLiteral("QTabBar::tab{") + headerGap + QLatin1Char('}');
 	foreach (QTabBar* tb, findChildren<QTabBar*>()) {
 		tb->setStyleSheet(tabGapStr);
 	}
