@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 #include "spectrum.h"
 #include "filetypes/filetypes.h"
@@ -152,7 +153,7 @@ void zx_cont_delay(Computer* comp) {
 
 void zx_free_ticks(Computer* comp, int t) {
 	comp->cpu->t += t;
-	vid_sync(comp->vid, t * comp->nsPerTick);
+	vid_sync(comp->vid, (int)llround(t * comp->nsPerTick));
 	res4 = comp->cpu->t;
 }
 
@@ -313,7 +314,7 @@ int iord(int port, void* ptr) {
 			zx_cont_t1(comp, port);
 			zx_cont_tn(comp, port);
 		} else {
-			vid_sync(comp->vid,(comp->cpu->t + 3 - res4) * comp->nsPerTick);
+			vid_sync(comp->vid,(int)llround((comp->cpu->t + 3 - res4) * comp->nsPerTick));
 			res4 = comp->cpu->t + 3;
 		}
 	}
@@ -355,7 +356,7 @@ void iowr(int port, int val, void* ptr) {
 	comp->flgBDI = (comp->flgDOS && (comp->dif->type == DIF_BDI)) ? 1 : 0;
 	if (comp->hw->grp == HWG_ZX) {
 		// sync video to current T
-		vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+		vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
 		res4 = comp->cpu->t;
 		if (comp->flgCNTI) {
 			zx_cont_t1(comp, port);
@@ -363,7 +364,7 @@ void iowr(int port, int val, void* ptr) {
 			zx_cont_tn(comp, port);
 			comp->cpu->t -= 4;
 		} else {
-			vid_sync(comp->vid, comp->nsPerTick);
+			vid_sync(comp->vid, (int)llround(comp->nsPerTick));
 			res4++;
 			comp->hw->out(comp, port, val);
 		}
@@ -408,14 +409,14 @@ void comp_irq(int t, void* ptr) {
 			comp->hCount = comp->frmtCount;			// fix T counter from INT to start of HALT
 			break;
 		case IRQ_VID_INT:
-			comp->fCount = comp->vid->nsPerFrame / comp->nsPerTick;		// fixed each frame (but depends on cpu freq @ int)
+			comp->fCount = (int)llround(comp->vid->nsPerFrame / comp->nsPerTick);	// T-states/frame, exact given precise nsPerTick
 			comp->frmtCount = 0;
 			if (!comp->cpu->flgHALT) {
 				comp->hCount = comp->fCount;		// if not HALT-ed during frame, count all ticks
 			}
 			break;
 		case IRQ_CPU_SYNC:
-			vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+			vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
 			res4 = comp->cpu->t;
 			break;
 	}
@@ -726,7 +727,7 @@ int compExec(Computer* comp) {
 	}
 #endif
 #if 1
-	vid_sync(comp->vid, (res2 - res4) * comp->nsPerTick);
+	vid_sync(comp->vid, (int)llround((res2 - res4) * comp->nsPerTick));
 #else
 	if (res2 > res4) {
 		if (comp->hw->grp == HWG_ZX) {

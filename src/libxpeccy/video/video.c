@@ -243,10 +243,15 @@ void vidDestroy(Video* vid) {
 	free(vid);
 }
 
-void vid_upd_timings(Video* vid, int nspd) {
-	vid->nsPerDot = nspd;
-	vid->nsPerLine = vid->nsPerDot * vid->full.x;
-	vid->nsPerFrame = vid->nsPerLine * vid->full.y;
+void vid_upd_timings(Video* vid, double nspd) {
+	// nsPerDot rounds to a whole ns; vid_sync()'s per-dot accumulator carries
+	// the remainder so that doesn't drift. nsPerLine/nsPerFrame are each
+	// rounded once from the precise nspd, not multiplied up from the rounded
+	// nsPerDot, so they don't inherit compounded error.
+	double nsLine = nspd * vid->full.x;
+	vid->nsPerDot = (int)llround(nspd);
+	vid->nsPerLine = (int)llround(nsLine);
+	vid->nsPerFrame = (int)llround(nsLine * vid->full.y);
 #ifdef ISDEBUG
 	// printf("%i / %i / %i\n", vid->nsPerDot, vid->nsPerLine, vid->nsPerFrame);
 #endif

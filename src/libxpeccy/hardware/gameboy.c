@@ -396,10 +396,10 @@ void gbIOWr(Computer* comp, unsigned short port, unsigned char val) {
 			// b2 : timer on
 			// b0,1 : 00 = 4KHz, 01 = 256KHz, 10 = 64KHz, 11 = 16KHz
 			switch (val & 3) {
-				case 0: comp->gb.timer.t.per = comp->nsPerTick << 10; break;
-				case 1: comp->gb.timer.t.per = comp->nsPerTick << 4; break;
-				case 2: comp->gb.timer.t.per = comp->nsPerTick << 6; break;
-				case 3: comp->gb.timer.t.per = comp->nsPerTick << 8; break;
+				case 0: comp->gb.timer.t.per = comp->nsPerTick * 1024; break;
+				case 1: comp->gb.timer.t.per = comp->nsPerTick * 16; break;
+				case 2: comp->gb.timer.t.per = comp->nsPerTick * 64; break;
+				case 3: comp->gb.timer.t.per = comp->nsPerTick * 256; break;
 			}
 			comp->fTMRON = (val & 4) ? 1 : 0;
 			break;
@@ -739,7 +739,7 @@ void gbc_irq(Computer* comp, int t) {
 // called from comp_update_timings. comp->nsPerTick is no-turbo tick duration
 void gbc_init(Computer* comp) {
 //	comp->fps = 60;
-	comp->gbsnd->wav.period = comp->nsPerTick << 5;				// 128KHz period for wave generator = cpu.frq / 32
+	comp->gbsnd->wav.period = comp->nsPerTick * 32;				// 128KHz period for wave generator = cpu.frq / 32
 	comp->gb.timer.div.per = (comp->nsPerTick / comp->frqMul) * 256;	// 16KHz timer divider tick. this timer depends on turbo speed
 	comp->vid->mrd = gbc_vid_mrd;
 	vid_upd_timings(comp->vid, comp->nsPerTick);				// dot:4.2MHz, cpu:4.2MHz

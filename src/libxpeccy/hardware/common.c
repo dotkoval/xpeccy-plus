@@ -1,6 +1,7 @@
 #include "hardware.h"
 #include "../filetypes/filetypes.h"
 #include "../cpu/Z80/z80.h"
+#include <math.h>
 
 int compflags = 0;
 
@@ -54,7 +55,7 @@ void zx_cont_tick(Computer* comp, int adr) {
 	res4 = comp->cpu->t;
 	int wns = vid_wait(comp->vid, adr);			// high memory addr
 	if (wns) {					// if there is contention zone, wait for it ends
-		comp->cpu->t += wns / comp->nsPerTick;	// add 'empty' ticks. in fact, there is no ticks at all, cpu stopped
+		comp->cpu->t += (int)llround(wns / comp->nsPerTick);	// add 'empty' ticks. in fact, there is no ticks at all, cpu stopped
 		vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
 		res4 = comp->cpu->t;
 	}
@@ -106,7 +107,7 @@ void zx_irq(Computer* comp, int t) {
 			}
 			break;
 		case IRQ_CPU_ACK:
-			vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+			vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
 			res4 = comp->cpu->t;
 			comp->cpu->flgACK = !!comp->vid->intFRAME;
 			break;
@@ -118,10 +119,9 @@ int zx_ack(Computer* comp) {
 }
 
 void zx_init(Computer* comp) {
-	comp->nsPerTick &= ~1;		// make even
 //	comp->fps = 50;
 	dif_align_flps(comp->dif, comp->dif->fdc, 0, 1, 2, 3);
-	vid_upd_timings(comp->vid, comp->nsPerTick >> 1);
+	vid_upd_timings(comp->vid, comp->nsPerTick / 2.0);
 	fdc_set_hd(comp->dif->fdc, 0);
 	chip_set_xdev(comp->ts->chipA, NULL, NULL, NULL);
 	kbd_set_type(comp->keyb, KBD_SPECTRUM);

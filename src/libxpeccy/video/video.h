@@ -372,7 +372,7 @@ void vid_set_layout(Video*, vLayout*);
 void vid_set_resolution(Video*, int, int);
 void vid_set_border(Video*, double);
 void vid_upd_layout(Video*);
-void vid_upd_timings(Video*, int);
+void vid_upd_timings(Video*, double);
 
 void vid_get_screen(Video*, unsigned char*, int, int, int);
 

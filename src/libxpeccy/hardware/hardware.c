@@ -1,6 +1,7 @@
 #include "hardware.h"
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 // layout = v9938:342:313:16:13:57:80:64:0:0:256:192
 // {{full},{border},{blank},{screen},{ipos},ilen}
 
@@ -192,7 +193,7 @@ void zx_cont_mem(Computer* comp) {
 		vid_sync(comp->vid, comp->nsPerTick * (comp->cpu->t - res4));	// before
 		res4 = comp->cpu->t;
 		wns = vid_wait(comp->vid, pg->num << 8);
-		comp->cpu->t += wns / comp->nsPerTick;
+		comp->cpu->t += (int)llround(wns / comp->nsPerTick);
 		vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
 		res4 = comp->cpu->t;
 	}

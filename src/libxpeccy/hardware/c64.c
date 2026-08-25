@@ -283,7 +283,7 @@ sndPair c64_vol(Computer* comp, sndVolume* sv) {
 }
 
 void c64_init(Computer* comp) {
-	vid_upd_timings(comp->vid, comp->nsPerTick >> 3);
+	vid_upd_timings(comp->vid, comp->nsPerTick / 8.0);
 	fdc_set_hd(comp->dif->fdc, 0);
 	comp->vid->mrd = c64_vic_mrd;
 //	comp->tape->xen = 1;
