@@ -4,6 +4,16 @@
 #include <QVBoxLayout>
 #include <QHeaderView>
 
+// PortableText, not NativeText: NativeText follows Qt's own Ctrl/Meta convention,
+// which is inverted from ours on macOS and swaps the symbols.
+static QString shortcutText(const QKeySequence& seq) {
+	QString str = seq.toString();
+#ifdef __APPLE__
+	str.replace("Meta", "Cmd");
+#endif
+	return str;
+}
+
 // model
 
 xHotkeyModel::xHotkeyModel(QObject* p):xTableModel(p) {
@@ -34,13 +44,7 @@ QVariant xHotkeyModel::data(const QModelIndex& idx, int role) const {
 			if (col == 0) {
 				var = tab[row].text;
 			} else {
-				// PortableText, not NativeText: NativeText follows Qt's own Ctrl/Meta
-				// convention, which is inverted from ours on macOS and swaps the symbols.
-#ifdef __APPLE__
-				var = tab[row].seq.toString().replace("Meta", "Cmd");
-#else
-				var = tab[row].seq.toString();
-#endif
+				var = shortcutText(tab[row].seq);
 			}
 			break;
 	}
@@ -145,7 +149,7 @@ void xKeyEditor::edit(int f) {
 	foo = f;
 	xShortcut* cut = find_shortcut_id(f);
 	kseq = cut->seq;
-	lab.setText(kseq.isEmpty() ? "<no key>" : kseq.toString());
+	lab.setText(kseq.isEmpty() ? "<no key>" : shortcutText(kseq));
 	grabKeyboard();
 	show();
 }
