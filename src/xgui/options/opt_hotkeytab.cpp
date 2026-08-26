@@ -34,7 +34,13 @@ QVariant xHotkeyModel::data(const QModelIndex& idx, int role) const {
 			if (col == 0) {
 				var = tab[row].text;
 			} else {
-				var = tab[row].seq.toString(QKeySequence::NativeText);
+				// PortableText, not NativeText: NativeText follows Qt's own Ctrl/Meta
+				// convention, which is inverted from ours on macOS and swaps the symbols.
+#ifdef __APPLE__
+				var = tab[row].seq.toString().replace("Meta", "Cmd");
+#else
+				var = tab[row].seq.toString();
+#endif
 			}
 			break;
 	}
