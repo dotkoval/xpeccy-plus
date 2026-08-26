@@ -11,52 +11,40 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
-- `--sdcard FILE` selects an SD-card image at startup.
+- `--sdcard FILE` selects an SD-card image at startup. (nihirash)
 
-- On Windows 11, the titlebar of every window now follows the chosen interface style
-  (background and text colour) instead of always being the plain system one, while Windows
-  itself still draws the min/maximize/close controls. `System` (no style sheet) leaves it
-  untouched, same as before.
+- A Nix flake, for building and running on NixOS/Nix-based systems. (nihirash)
 
-- The current-instruction arrow in the disassembler (up/down/self, showing where a taken
-  branch lands) now also appears on unconditional `jp`/`call` and on `ret`, not just
-  conditional jumps and calls. `ret`'s target is read straight off the stack. Z80, Game Boy
-  and 6502 cores.
+- On Windows 11, window titlebars now follow the chosen interface style instead of always
+  looking like the plain system one.
 
-- A hotkey to quit the emulator, bound to Alt+F4 by default on Windows and Linux and to Cmd+Q
-  on macOS.
+- The disassembler's jump-target arrow now also shows up for unconditional `jp`/`call` and for
+  `ret`, not just conditional jumps and calls.
 
 ### Fixed
 
-- The disassembler no longer leaves a selected row stuck highlighted, with its syntax
-  colouring gone, once the debugger loses focus.
+- The disassembler no longer loses its selected row's highlight and syntax colours when the
+  debugger loses focus.
 
-- Copying the disassembly to the clipboard or saving it to a file now keeps the blank line
-  after each branch, same as the on-screen listing, when that separator option is on.
+- Copying or saving the disassembly now keeps the blank line between branches, matching the
+  on-screen listing.
 
-- The IX/IY half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL`, the mnemonics
-  every other Z80 assembler uses, instead of the old `HX`/`LX`/`HY`/`LY`. The assembler still
-  accepts the old names when typing code into the disassembler, alongside the new ones.
+- Half-register opcodes now disassemble as `IXH`/`IXL`/`IYH`/`IYL` instead of `HX`/`LX`/`HY`/`LY`
+  (the old names still work when typing code in).
 
-- Jumping to an address (F4) or returning (F5) in the disassembler now keeps the cursor on the
-  right row and column: F4 could land it one row off (or on an unselectable block separator,
-  where it just vanished), and F5 dropped it back to the top of the listing instead of the row
-  it actually jumped from.
+- Jumping to an address (F4) or returning (F5) in the disassembler now puts the cursor in the
+  right place instead of leaving it off by a row or back at the top.
 
-- Screenshots no longer come out with transparent pixels wherever the anti-flicker blending
-  changed a pixel from the frame before. On ZX machines, a screenshot with the border kept is
-  now cropped to the smaller of its left/right and top/bottom margins, so the picture stays
-  centered instead of showing the raw, off-center raster capture.
+- Screenshots no longer have transparent pixels, and ZX screenshots with the border kept are
+  now centered correctly.
 
-- On macOS, the hotkey editor no longer shows the wrong modifier for the key you actually
-  pressed, and existing Ctrl-based shortcuts now match the physical Ctrl key instead of Cmd -
-  Qt's default Ctrl/Cmd swap is now off. Options also defaults to the native Cmd+, instead of
-  F1. The editor also labels that modifier per platform now: Cmd on macOS, Meta on Linux, Win
-  on Windows (though Windows itself never lets you actually bind it).
+- On macOS, the hotkey editor now shows the correct modifier for the key you press (Ctrl no
+  longer gets swapped with Cmd), and Options opens with the native Cmd+, by default.
 
-- On macOS, Cmd+Q now actually quits. Cocoa was resolving it as the key equivalent of the
-  default stub Quit item every app gets in its menu bar, before the keypress could ever reach
-  our own Quit hotkey - it needed a real Quit-role action, not a table entry.
+- Emulation timing is more precise: it used to run every machine up to ~1% faster than real
+  hardware, affecting audio pitch and frame rate.
+
+- The FPS indicator now shows a more accurate frame rate, including right after unpausing.
 
 ### From upstream
 
