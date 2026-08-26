@@ -1,5 +1,6 @@
 #include <QMatrix4x4>
 #include <QMenu>
+#include <QMenuBar>
 #include <QMessageBox>
 #include <QProgressBar>
 #include <QTableWidget>
@@ -207,6 +208,22 @@ MainWin::MainWin() {
 	connect(userMenu,SIGNAL(aboutToShow()),SLOT(menuShow()));
 	connect(userMenu,SIGNAL(aboutToHide()),SLOT(menuHide()));
 	fillUserMenu();
+
+#ifdef __APPLE__
+	// Cocoa always gives the app a menu bar, even though this app never creates a
+	// QMenuBar, and that menu already binds Cmd+Q to its own stub Quit item. Qt's
+	// menu-role merging only replaces that stub with an app-supplied QuitRole action
+	// when the action lives inside an actual QMenu/QMenuBar - a bare QAction on a
+	// widget (tried first) never enters that tree, so the stub kept catching Cmd+Q.
+	// An unparented QMenuBar becomes the app's default menu bar on macOS without
+	// ever showing as an in-window menu on Windows/Linux.
+	QMenuBar* macMenuBar = new QMenuBar(nullptr);
+	QMenu* macAppMenu = macMenuBar->addMenu(QString());
+	QAction* quitAct = macAppMenu->addAction(tr("Quit"));
+	quitAct->setMenuRole(QAction::QuitRole);
+	quitAct->setShortcut(QKeySequence::Quit);
+	connect(quitAct, &QAction::triggered, this, &QWidget::close);
+#endif
 
 #ifdef USENETWORK
 	openServer();

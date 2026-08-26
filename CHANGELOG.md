@@ -21,6 +21,8 @@ before that point is upstream's history and is not repeated here.
 - The disassembler's jump-target arrow now also shows up for unconditional `jp`/`call` and for
   `ret`, not just conditional jumps and calls.
 
+- A hotkey to quit the emulator: Alt+F4 on Windows and Linux, Cmd+Q on macOS.
+
 ### Fixed
 
 - The disassembler no longer loses its selected row's highlight and syntax colours when the
