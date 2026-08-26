@@ -34,7 +34,7 @@ QVariant xHotkeyModel::data(const QModelIndex& idx, int role) const {
 			if (col == 0) {
 				var = tab[row].text;
 			} else {
-				var = tab[row].seq.toString();
+				var = tab[row].seq.toString(QKeySequence::NativeText);
 			}
 			break;
 	}
