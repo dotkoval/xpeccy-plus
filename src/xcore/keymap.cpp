@@ -444,11 +444,6 @@ static xShortcut short_tab[] = {
 //	{SCG_MAIN, XCUT_TVLINES, "key.scanlines", "Switch scanlines", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_WAV_OUT, "key.write.wav", "Start/stop wav output", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_RELOAD_SHD, "key.reload.shader", "Reload shader", QKeySequence(), QKeySequence()},
-#ifdef __APPLE__
-	{SCG_MAIN, XCUT_QUIT, "key.quit", "Quit", QKeySequence(), QKeySequence(Qt::META | Qt::Key_Q)},
-#else
-	{SCG_MAIN, XCUT_QUIT, "key.quit", "Quit", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_F4)},
-#endif
 
 	{SCG_DEBUGA, XCUT_STEPIN, "key.dbg.stepin", "Debugger: Step in", QKeySequence(), QKeySequence(Qt::Key_F7)},
 	{SCG_DEBUGA, XCUT_STEPOVER, "key.dbg.stepover", "Debugger: Step over", QKeySequence(), QKeySequence(Qt::Key_F8)},

@@ -273,9 +273,6 @@ void MainWin::xkey_press(int xkey) {
 				pause(true, PR_OPTS);
 				emit s_options();
 				break;
-			case XCUT_QUIT:
-				close();
-				break;
 			case XCUT_SAVE:
 				pause(true,PR_FILE);
 				save_file(comp, NULL, FG_ALL, -1);
