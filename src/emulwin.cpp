@@ -208,6 +208,19 @@ MainWin::MainWin() {
 	connect(userMenu,SIGNAL(aboutToHide()),SLOT(menuHide()));
 	fillUserMenu();
 
+#ifdef __APPLE__
+	// Cocoa always gives the app a default menu bar, even though this app never
+	// creates a QMenuBar - and that menu already binds Cmd+Q to its own stub Quit
+	// item. Key equivalents are resolved against the menu before the event ever
+	// reaches keyPressEvent(), so the XCUT_QUIT binding in short_tab[] never fires.
+	// A real QuitRole action gets Qt to wire Cmd+Q to it instead of the stub.
+	QAction* quitAct = new QAction(tr("Quit"), this);
+	quitAct->setMenuRole(QAction::QuitRole);
+	quitAct->setShortcut(QKeySequence::Quit);
+	connect(quitAct, &QAction::triggered, this, &QWidget::close);
+	addAction(quitAct);
+#endif
+
 #ifdef USENETWORK
 	openServer();
 	connect(&srv, SIGNAL(newConnection()),this, SLOT(connected()));

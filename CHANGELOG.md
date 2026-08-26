@@ -54,6 +54,10 @@ before that point is upstream's history and is not repeated here.
   F1. The editor also labels that modifier per platform now: Cmd on macOS, Meta on Linux, Win
   on Windows (though Windows itself never lets you actually bind it).
 
+- On macOS, Cmd+Q now actually quits. Cocoa was resolving it as the key equivalent of the
+  default stub Quit item every app gets in its menu bar, before the keypress could ever reach
+  our own Quit hotkey - it needed a real Quit-role action, not a table entry.
+
 ### From upstream
 
 Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260824`, by SAM style.
