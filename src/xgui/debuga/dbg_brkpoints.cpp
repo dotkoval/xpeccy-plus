@@ -202,6 +202,21 @@ void xBreakTable::update() {
 	QTableView::update();
 }
 
+// the header drops the widths set here when the font or style changes, and the
+// debugger hands its font to every panel after the window is built
+
+void xBreakTable::changeEvent(QEvent* ev) {
+	QTableView::changeEvent(ev);
+	switch (ev->type()) {
+		case QEvent::FontChange:
+		case QEvent::StyleChange:
+			applyColumns();
+			break;
+		default:
+			break;
+	}
+}
+
 void xBreakTable::keyPressEvent(QKeyEvent* ev) {
 	ev->ignore();
 }

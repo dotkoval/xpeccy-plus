@@ -47,6 +47,7 @@ class xBreakTable : public QTableView {
 		void onDoubleClick(QModelIndex);
 	protected:
 		void keyPressEvent(QKeyEvent*);
+		void changeEvent(QEvent*);
 };
 
 class xBrkManager : public QDialog {
