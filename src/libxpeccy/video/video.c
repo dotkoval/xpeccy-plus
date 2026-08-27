@@ -207,6 +207,7 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->xirq = ci;
 	vid->xptr = dptr;
 	vid->nsPerDot = 150;
+	vid->nsPerDotExact = 150;
 	vid->res.x = -1;
 	vid->res.y = -1;
 	vid_set_mode(vid, VID_UNKNOWN);
@@ -249,6 +250,7 @@ void vid_upd_timings(Video* vid, double nspd) {
 	// rounded once from the precise nspd, not multiplied up from the rounded
 	// nsPerDot, so they don't inherit compounded error.
 	double nsLine = nspd * vid->full.x;
+	vid->nsPerDotExact = nspd;
 	vid->nsPerDot = (int)llround(nspd);
 	vid->nsPerLine = (int)llround(nsLine);
 	vid->nsPerFrame = (int)llround(nsLine * vid->full.y);
@@ -313,7 +315,7 @@ void vid_upd_layout(Video* vid) {
 	vid->send.y = vid->bord.y + vid->scrn.y;		// screen end line
 	vid->vBytes = vid->vsze.x * vid->vsze.y * 8;		// real size of image buffer (4 bytes/dot x2:x1)
 	vid->dotPerFrame = vid->full.y * vid->full.x;
-	vid_upd_timings(vid, vid->nsPerDot);
+	vid_upd_timings(vid, vid->nsPerDotExact);
 }
 
 void vid_set_layout(Video* vid, vLayout* lay) {

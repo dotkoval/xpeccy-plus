@@ -144,6 +144,9 @@ struct Video {
 	int nsPerFrame;
 	int nsPerLine;
 	int nsPerDot;
+	double nsPerDotExact;	// precise pre-rounding value, so vid_upd_layout() can
+				// re-derive nsPerLine/nsPerFrame without compounding
+				// nsPerDot's rounding into them
 	int nsDraw;
 	int time;		// +nsPerDot each dot
 	int busy;		// (cycles) to emulate busy period
