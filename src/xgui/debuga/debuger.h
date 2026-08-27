@@ -21,6 +21,7 @@
 #include "../labelist.h"
 #include "libxpeccy/spectrum.h"
 #include "dbg_widgets.h"
+#include "dbg_stack.h"
 
 #include "ui_dumpdial.h"
 #include "ui_openDump.h"
@@ -29,7 +30,6 @@
 #include "ui_form_cpu.h"
 #include "ui_form_disasm.h"
 #include "ui_form_misc.h"
-#include "ui_form_stack.h"
 
 enum {
 	DMP_MEM = 1,
@@ -94,9 +94,9 @@ class DebugWin : public QMainWindow {
 		Ui::CPUWidget ui_cpu;
 		Ui::DisasmWidget ui_asm;
 		Ui::FormDbgMisc ui_misc;
-		Ui::FormDbgStack ui_stack;
 		xDockWidget* wid_misc;		// memmap + ports + signals + ray
 		xDockWidget* wid_stack;
+		xStackView* wid_stack_view;	// its content, see fillStack
 		QDockWidget* wid_anchor_l;	// empty strips at the window edges: something
 		QDockWidget* wid_anchor_r;	// to drop a panel next to, see make_edge_anchor
 		xDumpWidget* wid_dump;

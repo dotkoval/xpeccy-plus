@@ -550,6 +550,7 @@ struct xConfig {
 		int dbsize;
 		int dwsize;
 		int dmsize;
+		int stackofs;		// first offset the stack panel shows, even, see DBG_STACK_OFS
 		int scrzoom;
 		QPoint pos;
 		QSize siz;
@@ -559,5 +560,9 @@ struct xConfig {
 // constants in the disasm listing (labels go bold instead of coloured)
 
 #define DBG_PAL_CONST	"dbg.asm.const.txt"
+
+// how far either way the stack panel may start from SP
+
+#define DBG_STACK_OFS	16
 
 extern xConfig conf;

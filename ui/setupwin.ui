@@ -3435,6 +3435,35 @@
                     </property>
                    </widget>
                   </item>
+                  <item row="5" column="0">
+                   <widget class="QLabel" name="label_stackofs">
+                    <property name="text">
+                     <string>Stack offset</string>
+                    </property>
+                    <property name="toolTip">
+                     <string>Offset the stack panel starts at. It goes on until the panel runs out of height</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="5" column="1">
+                   <widget class="QSpinBox" name="sbDbgStackOfs">
+                    <property name="toolTip">
+                     <string>Offset the stack panel starts at. It goes on until the panel runs out of height</string>
+                    </property>
+                    <property name="minimum">
+                     <number>-16</number>
+                    </property>
+                    <property name="maximum">
+                     <number>16</number>
+                    </property>
+                    <property name="singleStep">
+                     <number>2</number>
+                    </property>
+                    <property name="value">
+                     <number>-2</number>
+                    </property>
+                   </widget>
+                  </item>
                  </layout>
                 </widget>
                </item>
