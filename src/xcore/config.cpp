@@ -228,6 +228,7 @@ void saveConfig() {
 	fprintf(cfile, "dbsize = %i\n", conf.dbg.dbsize);
 	fprintf(cfile, "dwsize = %i\n", conf.dbg.dwsize);
 	fprintf(cfile, "dmsize = %i\n", conf.dbg.dmsize);
+	fprintf(cfile, "stack.offset = %i\n", conf.dbg.stackofs);
 	fprintf(cfile, "scr.zoom = %i\n", conf.dbg.scrzoom);
 	fprintf(cfile, "dim.address = %s\n", YESNO(conf.dbg.dimadr));
 	fprintf(cfile, "dim.opcodes = %s\n", YESNO(conf.dbg.dimops));
@@ -430,6 +431,7 @@ void loadConfig() {
 	conf.dbg.dbsize = 8;
 	conf.dbg.dwsize = 4;
 	conf.dbg.dmsize = 127;
+	conf.dbg.stackofs = -2;
 	conf.dbg.scrzoom = 1;
 	conf.dbg.dimadr = 0;
 	conf.dbg.dimops = 1;
@@ -493,6 +495,8 @@ void loadConfig() {
 					if (pnam == "dbsize") conf.dbg.dbsize = arg.i;
 					if (pnam == "dwsize") conf.dbg.dwsize = arg.i;
 					if (pnam == "dmsize") conf.dbg.dmsize = arg.i;
+					if ((pnam == "stack.offset") && (arg.i >= -DBG_STACK_OFS) && (arg.i <= DBG_STACK_OFS))
+						conf.dbg.stackofs = arg.i & ~1;
 					if (pnam == "font") conf.dbg.font.fromString(QString(arg.s));
 					if (pnam == "window") {
 						vect = splitstr(pval,":");

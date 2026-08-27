@@ -649,6 +649,10 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.layDbgPorts->addWidget(portwid);
 
 	connect(ui.tbDbgFont,SIGNAL(released()),this,SLOT(selectDbgFont()));
+	// the arrows step by 2, a typed-in odd value snaps once the field is left
+	connect(ui.sbDbgStackOfs, &QAbstractSpinBox::editingFinished, this, [this](){
+		ui.sbDbgStackOfs->setValue(ui.sbDbgStackOfs->value() & ~1);
+	});
 // palette
 	QToolButton* tbarr[] = {
 		ui.tbDbgChaBG, ui.tbDbgChaFG, ui.tbDbgHeadBG, ui.tbDbgHeadFG,
@@ -914,6 +918,7 @@ void SetupWin::start() {
 	ui.sbDbSize->setValue(conf.dbg.dbsize);
 	ui.sbDwSize->setValue(conf.dbg.dwsize);
 	ui.sbTextSize->setValue(conf.dbg.dmsize);
+	ui.sbDbgStackOfs->setValue(conf.dbg.stackofs);
 	ui.cbDbgMemmap->setChecked(conf.dbg.showmmap);
 	ui.cbDbgPorts->setChecked(conf.dbg.showports);
 	ui.cbDbgSignals->setChecked(conf.dbg.showsig);
@@ -1140,6 +1145,8 @@ void SetupWin::apply() {
 	conf.dbg.dbsize = ui.sbDbSize->value();
 	conf.dbg.dwsize = ui.sbDwSize->value();
 	conf.dbg.dmsize = ui.sbTextSize->value();
+	// the step is 2, but a typed-in value can still land odd
+	conf.dbg.stackofs = ui.sbDbgStackOfs->value() & ~1;
 	conf.dbg.font = dbgfnt;
 	conf.dbg.showports = ui.cbDbgPorts->isChecked() ? 1 : 0;
 	conf.dbg.showsig = ui.cbDbgSignals->isChecked() ? 1 : 0;

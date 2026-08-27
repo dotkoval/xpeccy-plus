@@ -148,6 +148,7 @@ void DebugWin::updateStyle() {
 		xhs->refitWidth();
 	}
 	curCpuCore = nullptr;		// font changed: re-measure the register columns
+	fillStack();			// the font sets the row height, and the offset may be new
 	fillDisasm();
 	wid_dump->draw();
 	//ui.dumpTable->update();
@@ -356,11 +357,11 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_misc->setObjectName("MISC");
 	wid_misc->setWidget(wmisc);
 
-	QWidget* wstack = new QWidget;
-	ui_stack.setupUi(wstack);
+	wid_stack_view = new xStackView;
+	wid_stack_view->installEventFilter(this);	// refills to the height, see fillStack
 	wid_stack = new xDockWidget("", "STACK");
 	wid_stack->setObjectName("STACK");
-	wid_stack->setWidget(wstack);
+	wid_stack->setWidget(wid_stack_view);
 
 	wid_anchor_l = make_edge_anchor("ANCHOR_L");
 	wid_anchor_r = make_edge_anchor("ANCHOR_R");
@@ -1423,8 +1424,11 @@ void DebugWin::showEvent(QShowEvent* ev) {
 	}
 }
 
-// cpu panel resized: reflow if another number of columns fits now
+// a panel resized: the cpu one reflows its columns, the stack one refills to
+// however many lines fit now
 bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
+	if ((obj == wid_stack_view) && (ev->type() == QEvent::Resize) && isVisible())
+		fillStack();		// only repaints the panel: safe from inside a resize
 	// isVisible: while the window is hidden the panel is squeezed to its minimum
 	if ((obj == wid_cpu) && (ev->type() == QEvent::Resize) && isVisible()
 			&& regPairW && conf.prof.cur && conf.prof.cur->zx) {
@@ -1774,23 +1778,31 @@ void DebugWin::heatExport() {
 
 // stack
 
+// the offset column: signed hex padded to two digits so the labels are all one
+// width, and nothing at all at +0 - the word at SP itself is what the panel is
+// about
+static QString stack_row_name(int ofs) {
+	if (!ofs) return QString();
+	return QString("%0%1:").arg(QLatin1Char(ofs < 0 ? '-' : '+'))
+		.arg(qAbs(ofs), 2, 16, QLatin1Char('0')).toUpper();
+}
+
 void DebugWin::fillStack() {
+	if (!conf.prof.cur || !conf.prof.cur->zx) return;
 	Computer* comp = conf.prof.cur->zx;
 	int adr = cpu_get_sp(comp->cpu) + comp->cpu->ss.base;
-	QString str;
-	for (int i = -2; i < 16; i+=2) {
-		str.append(gethexbyte(rdbyte(adr+i+1, comp)));
-		str.append(gethexbyte(rdbyte(adr+i, comp)));
+	int ofs = conf.dbg.stackofs;		// kept even where it is set, see DBG_STACK_OFS
+	int cnt = wid_stack_view->rowsFit();
+	QList<xStackRow> rows;
+	xStackRow row;
+	for (int i = 0; i < cnt; i++) {
+		row.name = stack_row_name(ofs);
+		row.value = gethexbyte(rdbyte(adr + ofs + 1, comp));
+		row.value.append(gethexbyte(rdbyte(adr + ofs, comp)));
+		rows << row;
+		ofs += 2;
 	}
-	ui_stack.labSPm2->setText(str.left(4));
-	ui_stack.labSP->setText(str.mid(4,4));
-	ui_stack.labSP2->setText(str.mid(8,4));
-	ui_stack.labSP4->setText(str.mid(12,4));
-	ui_stack.labSP6->setText(str.mid(16,4));
-	ui_stack.labSP8->setText(str.mid(20,4));
-	ui_stack.labSP10->setText(str.mid(24,4));
-	ui_stack.labSP12->setText(str.mid(28,4));
-	ui_stack.labSP14->setText(str.mid(32,4));
+	wid_stack_view->setRows(rows);
 }
 
 // ports

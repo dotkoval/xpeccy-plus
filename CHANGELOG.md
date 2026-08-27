@@ -21,6 +21,12 @@ before that point is upstream's history and is not repeated here.
 - The disassembler's jump-target arrow now also shows up for unconditional `jp`/`call` and for
   `ret`, not just conditional jumps and calls.
 
+### Changed
+
+- **The stack panel fills its whole height** instead of always showing nine entries, and the
+  offset it starts from is set in Setup - Xpeccy+ - Debugger. The entries are centered now,
+  and the word at SP itself is shown without an offset.
+
 ### Fixed
 
 - The disassembler no longer loses its selected row's highlight and syntax colours when the
