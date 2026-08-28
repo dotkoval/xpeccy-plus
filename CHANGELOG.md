@@ -52,6 +52,9 @@ before that point is upstream's history and is not repeated here.
 
 - The debugger window no longer takes noticeably longer to open the first time.
 
+- The icons on the debugger's panel tabs are centered again when an interface style is in
+  use, instead of sitting left of the middle.
+
 - Emulation timing is more precise: it used to run every machine up to ~1% faster than real
   hardware, affecting audio pitch and frame rate.
 

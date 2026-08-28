@@ -88,6 +88,10 @@ QString getStyleString(QString bgcn, QString txcn, int f = 0, int g = 100) {
 	return str;
 }
 
+// gap from whatever's above (native titlebar, another dock or a tab bar), which
+// would otherwise touch it with no border - dbg.header.bg colours both alike
+static const QString headerGap = QStringLiteral("margin-top:2px;");
+
 void DebugWin::updateStyle() {
 	QString str;
 #if 0
@@ -120,21 +124,11 @@ void DebugWin::updateStyle() {
 	ui_misc.labHeadSignal->setStyleSheet(str);
 	ui_misc.labPorts->setStyleSheet(str);
 	setMiscBlocks();
-	// gap from whatever's above (native titlebar or another dock), which would
-	// otherwise touch it with no border - dbg.header.bg colours both alike
-	static const QString headerGap = QStringLiteral("margin-top:2px;");
 	QString headStr = str + headerGap;
 	foreach(xDockWidget* dw, dockWidgets) {
 		dw->titleBarWidget()->setStyleSheet(headStr);
 	}
-	// tabified docks show a QTabBar instead of a title bar; margin has to be on
-	// ::tab, not the bar itself, or the dock area's layout ignores it. Any
-	// style sheet on a QTabBar drops it out of native painting, so under
-	// "System" (no style sheet at all) leave it alone instead of shrinking it
-	QString tabGapStr = conf.style.empty() ? QString() : QStringLiteral("QTabBar::tab{") + headerGap + QLatin1Char('}');
-	foreach (QTabBar* tb, findChildren<QTabBar*>()) {
-		tb->setStyleSheet(tabGapStr);
-	}
+	styleTabBars();
 
 	setFont(conf.dbg.font);
 	// A style sheet gives every widget a font of its own, which stops the
@@ -153,6 +147,46 @@ void DebugWin::updateStyle() {
 	wid_dump->draw();
 	//ui.dumpTable->update();
 	wid_disk_dump->draw();
+}
+
+// A dock area's tab bar, once panels are tabified onto it. It needs the same
+// gap under the titlebar as a dock header does - on ::tab, not on the bar
+// itself, or the dock area's layout ignores it - and, when the tabs carry
+// nothing but icons, a width. A style sheet makes Qt count the icon twice,
+// once for the tab and once for the text that is not there, and it leaves the
+// spare room on the right, which is what pushes the icon off centre. Pinning
+// the content box to the icon takes that room back.
+// The room around the icon comes from the same metric the native bar uses, so
+// a styled tab keeps the size of a System one instead of shrinking to the
+// style's own padding. Asking the tab bar for it would give 0: a style sheet
+// with a box on ::tab zeroes that metric.
+// A bar mixing icons with titled tabs is left alone: a width would squash the
+// text, and a style sheet has no per-tab selector to tell them apart.
+// Under "System" nothing is set at all: any style sheet on a QTabBar drops it
+// out of native painting.
+void DebugWin::styleTabBars() {
+	bool styled = !conf.style.empty();
+	int pad = styled ? style()->pixelMetric(QStyle::PM_TabBarTabHSpace, nullptr, this) / 2 : 0;
+	// direct children only: a panel's own tabs belong to its QTabWidget, not here
+	foreach (QTabBar* tb, findChildren<QTabBar*>(QString(), Qt::FindDirectChildrenOnly)) {
+		QString str;
+		if (styled) {
+			QString rules = headerGap;
+			// an icon-only dock has no tab text (see xDockWidget)
+			bool icons = tb->count() > 0;
+			for (int i = 0; i < tb->count(); i++) {
+				if (!tb->tabText(i).isEmpty()) { icons = false; break; }
+			}
+			if (icons) {
+				rules.append(QString("width:%0px;").arg(tb->iconSize().width()));
+				if (pad > 0) rules.append(QString("padding-left:%0px;padding-right:%0px;").arg(pad));
+			}
+			str = QStringLiteral("QTabBar::tab{") + rules + QLatin1Char('}');
+		}
+		// setStyleSheet repolishes the widget even when nothing changed, and a
+		// dock being dropped fires this for every bar
+		if (tb->styleSheet() != str) tb->setStyleSheet(str);
+	}
 }
 
 void DebugWin::save_mem_map() {
@@ -294,6 +328,7 @@ void DebugWin::onPrfChange() {
 
 	wid_dump->setBase(comp->hw->base, comp->hw->id);
 	wid_brk->moved();
+	styleTabBars();		// hiding panels changes what a tab bar carries
 
 	fillAll();
 }
@@ -674,11 +709,14 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 
 	resize(minimumSize());
 
-	// A dock moving can change what sits under the cpu panel. Queued: the
-	// geometry is not settled yet while the drop is being handled
+	// A dock moving can change what sits under the cpu panel, and which tabs
+	// share a bar. Queued: the geometry is not settled yet while the drop is
+	// being handled, and the new tab bar may not exist yet either
 	foreach (xDockWidget* dw, dockWidgets) {
 		connect(dw, &QDockWidget::dockLocationChanged,
 			this, &DebugWin::updateCpuDockWidth, Qt::QueuedConnection);
+		connect(dw, &QDockWidget::dockLocationChanged,
+			this, &DebugWin::styleTabBars, Qt::QueuedConnection);
 	}
 
 	// A saved layout only makes sense for the set of panels it was written for.
