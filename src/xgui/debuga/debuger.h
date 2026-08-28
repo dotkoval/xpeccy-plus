@@ -54,6 +54,7 @@ class DebugWin : public QMainWindow {
 
 //		void reject();
 		void stop();
+		void prewarm();
 
 	signals:
 		void closed();

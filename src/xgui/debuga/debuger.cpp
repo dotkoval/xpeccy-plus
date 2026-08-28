@@ -178,6 +178,22 @@ void DebugWin::d_remap(int _b, int _t, int _n) {
 	wid_mmap->draw();
 }
 
+// The whole panel tree is realized, polished and laid out on the first show,
+// and painted right after - which is what the first Escape used to pay for.
+// WA_DontShowOnScreen does all of it with no window appearing. This is also
+// where the debugger gets its style: start() does not apply it any more.
+
+void DebugWin::prewarm() {
+	if (isVisible()) return;
+	setAttribute(Qt::WA_DontShowOnScreen, true);
+	updateStyle();		// before show(): it re-fonts every widget, laying out twice
+	show();
+	fillAll();		// keeps the register grid built, and gives grab() real content
+	grab();			// forces the first paint of every panel
+	hide();
+	setAttribute(Qt::WA_DontShowOnScreen, false);
+}
+
 void DebugWin::start() {
 	if (isVisible()) {
 		activateWindow();
@@ -201,7 +217,8 @@ void DebugWin::start() {
 
 	brk_clear_tmp(comp);		// clear temp breakpoints
 
-	updateStyle();		// this will call fillAll
+	// no updateStyle() here: prewarm() applies the style, Options re-applies it
+	// on every change, and doing it per open rebuilt the register grid for nothing
 	show();
 // fillall redrawing all vivisble widgets
 	if (!fillAll()) {
