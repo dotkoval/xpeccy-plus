@@ -63,13 +63,43 @@ void comp_heat_free(Computer* comp) {
 	heatBankFree(&comp->heatRom);
 }
 
-void comp_heat_hit(Computer* comp, int adr, int kind) {
-	xAdr xadr = mem_get_xadr(comp->mem, adr);
-	switch (xadr.type) {
-		case MEM_RAM: heatBankHit(&comp->heatRam, xadr.abs & comp->mem->ramMask, kind); break;
-		case MEM_ROM: heatBankHit(&comp->heatRom, xadr.abs & comp->mem->romMask, kind); break;
-		default: break;		// slot/ext/io cells are not tracked
+static const xHeatCell heat_nocell = {0, 0, 0, 0};
+
+// which bank an absolute address lands in, and where in it. NULL when nothing
+// is counted there - slot, ext and io cells are not tracked. every read and
+// write of the counters goes through here, so the rule lives in one place.
+
+static xHeatBank* heatBankFor(Computer* comp, int type, int abs, int* idx) {
+	switch (type) {
+		case MEM_RAM: *idx = abs & comp->mem->ramMask; return &comp->heatRam;
+		case MEM_ROM: *idx = abs & comp->mem->romMask; return &comp->heatRom;
 	}
+	return NULL;
+}
+
+xHeatCell comp_heat_phys(Computer* comp, int type, int abs) {
+	int idx;
+	xHeatCell cell = heat_nocell;
+	xHeatBank* bank = heatBankFor(comp, type, abs, &idx);
+	if (bank && (idx >= 0) && (idx < bank->size)) {
+		cell.rd = bank->rd[idx];
+		cell.wr = bank->wr[idx];
+		cell.ex = bank->ex[idx];
+		cell.valid = 1;
+	}
+	return cell;
+}
+
+xHeatCell comp_heat_cpu(Computer* comp, int adr) {
+	xAdr xadr = mem_get_xadr(comp->mem, adr);
+	return comp_heat_phys(comp, xadr.type, xadr.abs);
+}
+
+void comp_heat_hit(Computer* comp, int adr, int kind) {
+	int idx;
+	xAdr xadr = mem_get_xadr(comp->mem, adr);
+	xHeatBank* bank = heatBankFor(comp, xadr.type, xadr.abs, &idx);
+	if (bank) heatBankHit(bank, idx, kind);
 }
 
 // dump one bank to CSV: "type,page,offset,read,write,exec" per cell, decimal throughout.

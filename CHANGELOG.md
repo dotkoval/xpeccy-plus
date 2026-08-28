@@ -11,6 +11,14 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **The memory heat map has a panel of its own** in the debugger. It draws the read, write and
+  exec counters as a picture of memory - one pixel per byte, 256 bytes to a row - for the whole
+  address space or for one RAM/ROM page, in the colours `tools/heatmap_png.py` uses. All three
+  counters can be shown at once or one at a time, with a settable number of intensity steps, and
+  the legend under the picture doubles as the readout for the cell under the cursor. A double
+  click jumps the disassembler there. Collecting, resetting and exporting moved here from the
+  disassembler's options menu.
+
 - `--sdcard FILE` selects an SD-card image at startup. (nihirash)
 
 - A Nix flake, for building and running on NixOS/Nix-based systems. (nihirash)

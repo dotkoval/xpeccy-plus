@@ -123,6 +123,7 @@ class DebugWin : public QMainWindow {
 		xCiaWidget* wid_cia;
 		xVicWidget* wid_vic;
 		xMMapWidget* wid_mmap;
+		xHeatWidget* wid_heat;
 		QList<xDockWidget*> dockWidgets;
 
 		QList<xLabel*> dbgRegLabs;
@@ -204,10 +205,6 @@ class DebugWin : public QMainWindow {
 		void loadMap();
 		void mapClear();
 		void mapAuto();
-
-		void heatToggle(bool);
-		void heatReset();
-		void heatExport();
 
 		int fillDisasm();
 		void regClick(QMouseEvent*);
