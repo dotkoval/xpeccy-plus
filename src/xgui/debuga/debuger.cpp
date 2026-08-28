@@ -1795,25 +1795,29 @@ void DebugWin::heatExport() {
 
 // stack
 
-// the offset column: signed hex padded to two digits so the labels are all one
-// width, and nothing at all at +0 - the word at SP itself is what the panel is
-// about
-static QString stack_row_name(int ofs) {
-	if (!ofs) return QString();
+// the offset column: signed hex padded to two digits so the labels are all one width
+static QString stack_offset_label(int ofs) {
 	return QString("%0%1:").arg(QLatin1Char(ofs < 0 ? '-' : '+'))
 		.arg(qAbs(ofs), 2, 16, QLatin1Char('0')).toUpper();
+}
+
+// the +0 row names itself by its own address rather than a zero offset
+static QString stack_anchor_label(int sp) {
+	return QString("%0:").arg(gethexword(sp));
 }
 
 void DebugWin::fillStack() {
 	if (!conf.prof.cur || !conf.prof.cur->zx) return;
 	Computer* comp = conf.prof.cur->zx;
-	int adr = cpu_get_sp(comp->cpu) + comp->cpu->ss.base;
+	int sp = cpu_get_sp(comp->cpu);
+	int adr = sp + comp->cpu->ss.base;
 	int ofs = conf.dbg.stackofs;		// kept even where it is set, see DBG_STACK_OFS
 	int cnt = wid_stack_view->rowsFit();
 	QList<xStackRow> rows;
 	xStackRow row;
 	for (int i = 0; i < cnt; i++) {
-		row.name = stack_row_name(ofs);
+		row.anchor = !ofs;
+		row.name = ofs ? stack_offset_label(ofs) : stack_anchor_label(sp);
 		row.value = gethexbyte(rdbyte(adr + ofs + 1, comp));
 		row.value.append(gethexbyte(rdbyte(adr + ofs, comp)));
 		rows << row;

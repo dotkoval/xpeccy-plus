@@ -4,11 +4,12 @@
 #include <QList>
 #include <QString>
 
-// one line of the stack panel: the offset column ("-2:", empty at +0) and the
-// word that lies there
+// one line of the stack panel: the offset column ("-2:", or SP's own address
+// at +0) and the word that lies there
 typedef struct {
 	QString name;
 	QString value;
+	bool anchor;		// the row at SP itself: painted on a tinted band
 } xStackRow;
 
 // The stack panel. Painted instead of laid out: it shows as many lines as its

@@ -25,7 +25,7 @@ before that point is upstream's history and is not repeated here.
 
 - **The stack panel fills its whole height** instead of always showing nine entries, and the
   offset it starts from is set in Setup - Xpeccy+ - Debugger. The entries are centered now,
-  and the word at SP itself is shown without an offset.
+  and the row at SP itself is highlighted and shows its own address instead of an offset.
 
 ### Fixed
 

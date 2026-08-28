@@ -21,10 +21,11 @@ int xStackView::rowsFit() const {
 	return (free - one) / rowPitch() + 1;
 }
 
-// one line, and room for the widest offset the panel is likely to reach
+// one line, and room for the name column: "0000:" (the +0 row's own address)
+// is always wider than an offset label like "+00:", so it sets the width
 QSize xStackView::minimumSizeHint() const {
 	QFontMetrics fm = fontMetrics();
-	return QSize(fm.horizontalAdvance("+00:") + STACK_GAP + fm.horizontalAdvance("0000") + 2 * STACK_PAD,
+	return QSize(fm.horizontalAdvance("0000:") + STACK_GAP + fm.horizontalAdvance("0000") + 2 * STACK_PAD,
 		fm.height() + 2 * STACK_PAD);
 }
 
@@ -35,6 +36,13 @@ QSize xStackView::sizeHint() const {
 void xStackView::setRows(const QList<xStackRow>& lst) {
 	rows = lst;
 	update();
+}
+
+// a faint tint of the panel background, the way item views alternate their rows.
+// Derived rather than taken from the palette: a plain widget gets no
+// alternate-background-color from the style sheet, that is an item view thing
+static QColor row_tint(const QColor& bg) {
+	return (bg.lightness() < 128) ? bg.lighter(130) : bg.darker(107);
 }
 
 void xStackView::paintEvent(QPaintEvent*) {
@@ -58,8 +66,11 @@ void xStackView::paintEvent(QPaintEvent*) {
 	int hgt = fm.height();
 	int pitch = rowPitch();
 	int y = STACK_PAD;
+	QColor tint = row_tint(opt.palette.color(QPalette::Window));
 	pnt.setPen(opt.palette.color(QPalette::WindowText));
 	foreach (const xStackRow& row, rows) {
+		if (row.anchor)
+			pnt.fillRect(QRect(0, y, width(), hgt), tint);
 		if (!row.name.isEmpty())
 			pnt.drawText(QRect(x, y, nw, hgt), Qt::AlignRight | Qt::AlignVCenter, row.name);
 		pnt.drawText(QRect(x + nw + gap, y, vw, hgt), Qt::AlignLeft | Qt::AlignVCenter, row.value);
