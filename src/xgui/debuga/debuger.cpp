@@ -393,12 +393,13 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_cia = new xCiaWidget("","CIA");
 	wid_vic = new xVicWidget("","VIC");
 	wid_mmap = new xMMapWidget(":/images/memory.png","Memory map");
+	wid_heat = new xHeatWidget(":/images/heatmap.png","Heat map");
 	wid_ps2 = new xPS2Widget("","PS/2");
 	wid_pal = new xPalWidget(":/images/palette.png", "Palette");
 
 	dockWidgets << wid_dump << wid_rdump << wid_disk_dump << wid_vmem_dump << wid_cmos_dump;
 	dockWidgets << wid_brk << wid_zxscr << wid_ay << wid_tape;
-	dockWidgets << wid_fdd << wid_mmap << wid_gb << wid_gbv << wid_ppu << wid_pal;
+	dockWidgets << wid_fdd << wid_mmap << wid_heat << wid_gb << wid_gbv << wid_ppu << wid_pal;
 	dockWidgets << wid_cia << wid_dma << wid_pic << wid_pit << wid_vga << wid_ps2;
 
 	// misc used to be one monolithic MISCTOOLBAR pinned to the window edge.
@@ -557,9 +558,6 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	ui_asm.tbDbgOpt->addAction(ui_asm.actRomWr);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actMaping);
 	ui_asm.tbDbgOpt->addAction(ui_asm.actMapingClear);
-	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatEnable);
-	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatReset);
-	ui_asm.tbDbgOpt->addAction(ui_asm.actHeatExport);
 	QAction* actResetLayout = new QAction("Reset panel layout", this);
 	ui_asm.tbDbgOpt->addAction(actResetLayout);
 	connect(actResetLayout, &QAction::triggered, this, &DebugWin::resetLayout);
@@ -568,9 +566,6 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	connect(this, &DebugWin::needStep, this, &DebugWin::doStep);
 	connect(ui_asm.cbAccT, &QCheckBox::toggled, this, &DebugWin::resetTCount);
 	connect(ui_asm.actMapingClear, &QAction::triggered, this, &DebugWin::mapClear);
-	connect(ui_asm.actHeatEnable, &QAction::toggled, this, &DebugWin::heatToggle);
-	connect(ui_asm.actHeatReset, &QAction::triggered, this, &DebugWin::heatReset);
-	connect(ui_asm.actHeatExport, &QAction::triggered, this, &DebugWin::heatExport);
 	connect(ui_asm.dasmTable, &xDisasmTable::customContextMenuRequested, this, &DebugWin::putBreakPoint);
 	//connect(ui_asm.dasmTable, &xDisasmTable::rqRefill, this, &DebugWin::fillDisasm);		// must update internally
 	connect(ui_asm.dasmTable, &xDisasmTable::rqRefill, wid_dump, &xDumpWidget::draw);
@@ -621,6 +616,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 
 	connect(wid_mmap, SIGNAL(s_remap(int, int, int)), this, SLOT(d_remap(int,int,int)));
 	connect(wid_mmap, &xMMapWidget::s_restore, this, &DebugWin::rest_mem_map);
+	connect(wid_heat, &xHeatWidget::s_adr, ui_asm.dasmTable, &xDisasmTable::setAdrX);
 
 //	connect (ui.tbSaveVRam, SIGNAL(released()), this, SLOT(saveVRam()));
 // registers
@@ -1390,6 +1386,7 @@ void DebugWin::setDefaultLayout() {
 	tabifyDockWidget(wid_brk, wid_tape);
 	tabifyDockWidget(wid_brk, wid_fdd);
 	tabifyDockWidget(wid_brk, wid_mmap);
+	tabifyDockWidget(wid_brk, wid_heat);
 	tabifyDockWidget(wid_brk, wid_gb);
 	tabifyDockWidget(wid_brk, wid_gbv);
 	tabifyDockWidget(wid_brk, wid_ppu);
@@ -1807,28 +1804,6 @@ void DebugWin::mapClear() {
 
 void DebugWin::mapAuto() {
 
-}
-
-// memory heat-map (read/write/exec usage counters)
-
-void DebugWin::heatToggle(bool on) {
-	Computer* comp = conf.prof.cur->zx;
-	comp->flgHEAT = on;
-	if (on) comp_heat_sync(comp);		// make sure banks are allocated for current hardware
-}
-
-void DebugWin::heatReset() {
-	if (!areSure("Reset memory heat-map counters?")) return;
-	comp_heat_reset(conf.prof.cur->zx);
-}
-
-void DebugWin::heatExport() {
-	QString path = QFileDialog::getSaveFileName(this, "Export memory heat-map", QString(), "Heat-map CSV (*.csv)", nullptr, QFileDialog::DontUseNativeDialog);
-	if (path.isEmpty()) return;
-	if (!path.endsWith(".csv", Qt::CaseInsensitive))
-		path.append(".csv");
-	if (comp_heat_save(conf.prof.cur->zx, path.toLocal8Bit().data()) != 0)
-		shitHappens("Can't write heat-map file");
 }
 
 // stack
