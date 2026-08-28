@@ -413,6 +413,7 @@ int main(int ac,char** av) {
 		mwin.activateWindow();
 		mwin.updateWindow();
 		mwin.checkState();
+		dbgw.prewarm();		// build the debugger now, not on the first Escape
 		if (dbg) mwin.doDebug();
 		conf.running = 1;
 		ethread.start();

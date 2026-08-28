@@ -50,6 +50,8 @@ before that point is upstream's history and is not repeated here.
 - On macOS, Cmd+Q now quits the app (it used to do nothing). Alt+F4 already quit on Windows and
   Linux.
 
+- The debugger window no longer takes noticeably longer to open the first time.
+
 - Emulation timing is more precise: it used to run every machine up to ~1% faster than real
   hardware, affecting audio pitch and frame rate.
 
