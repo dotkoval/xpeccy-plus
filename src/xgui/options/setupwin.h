@@ -87,7 +87,9 @@ class SetupWin : public QDialog {
 		void newa(); void newb(); void newc(); void newd(); void newdisk(int, int=0);
 		void loatape(); void savtape(); void ejctape();
 		void tblkup(); void tblkdn(); void tblkrm();
+		void hddShowGeom(int);
 		void hddMasterImg(); void hddSlaveImg();
+		void hddMasterDir(); void hddSlaveDir();
 		void umadd(); void umdel(); void umup(); void umdn();
 		void umedit(QModelIndex);
 		void umaselp(); void umaconf();
@@ -99,6 +101,8 @@ class SetupWin : public QDialog {
 		void palstore();
 
 		void selSDCimg();
+		void selSDCdir();
+		void sdcPathChanged();
 
 		void openSlot();
 		void ejectSlot();

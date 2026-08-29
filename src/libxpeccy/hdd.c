@@ -128,7 +128,9 @@ void ataReadSector(ATADev* dev) {
 		dev->reg.state |= HDF_ERR;
 		dev->reg.err |= (HDF_ABRT | HDF_IDNF);
 	} else {
-		if (dev->file) {
+		if (dev->vfat) {
+			vfat_read(dev->vfat, dev->lba, dev->buf.data);
+		} else if (dev->file) {
 			nps = dev->lba * dev->pass.bps + dev->offset;
 			fseek(dev->file,nps,SEEK_SET);			// if filesize < nps, there will be 0xFF in buf
 			fread((char*)dev->buf.data,dev->pass.bps,1,dev->file);
@@ -143,7 +145,7 @@ void ataWriteSector(ATADev* dev) {
 	if (dev->lba >= dev->maxlba) {			// sector not found
 		dev->reg.state |= HDF_ERR;
 		dev->reg.err |= (HDF_ABRT | HDF_IDNF);
-	} else {
+	} else if (!dev->vfat) {			// a folder is served read only
 		if (dev->file) {
 			long pos = dev->lba * dev->pass.bps + dev->offset;
 			fseek(dev->file, pos, SEEK_SET);
@@ -537,14 +539,44 @@ HDDImageDsc hdd_file_tab[] = {
 	{NULL, ata_load_raw}
 };
 
-void ideSetImage(IDE *ide, int wut, const char *name) {
-	ATADev* dev = NULL;
-	if (wut == IDE_MASTER)
-		dev = ide->master;
-	else if (wut == IDE_SLAVE)
-		dev = ide->slave;
-	if (dev == NULL) return;
+static ATADev* ide_get_dev(IDE* ide, int wut) {
+	if (wut == IDE_MASTER) return ide->master;
+	if (wut == IDE_SLAVE) return ide->slave;
+	return NULL;
+}
+
+// release whatever the device holds: an image file or a folder volume
+static void ataCloseFile(ATADev* dev) {
 	if (dev->file) fclose(dev->file);
+	dev->file = NULL;
+	if (dev->vfat) vfat_free(dev->vfat);
+	dev->vfat = NULL;
+}
+
+// mount a synthetic volume built from a host folder. The device takes ownership
+// of the volume; the folder path is kept in ->image, as with an image file.
+void ideSetFolder(IDE* ide, int wut, const char* name, vFat* vf) {
+	ATADev* dev = ide_get_dev(ide, wut);
+	if (dev == NULL) return;
+	ataCloseFile(dev);
+	free(dev->image);
+	dev->image = NULL;
+	if (!vf) return;
+	dev->image = (char*)malloc(strlen(name) + 1);
+	strcpy(dev->image, name);
+	dev->vfat = vf;
+	dev->offset = 0;
+	dev->pass.bps = 512;
+	dev->pass.hds = 16;
+	dev->pass.spt = 63;
+	dev->maxlba = vf->volume;
+	dev->pass.cyls = dev->maxlba / (dev->pass.hds * dev->pass.spt);
+}
+
+void ideSetImage(IDE *ide, int wut, const char *name) {
+	ATADev* dev = ide_get_dev(ide, wut);
+	if (dev == NULL) return;
+	ataCloseFile(dev);
 	if (strlen(name) == 0) {
 		free(dev->image);
 		dev->image = NULL;
@@ -1234,14 +1266,8 @@ void ide_set_type(IDE* ide, int id) {
 	}
 }
 
-void ideOpenFiles(IDE* ide) {
-	if (ide->master->image) ide->master->file = fopen(ide->master->image,"rb+");		// NULL when file doesn't exist
-	if (ide->slave->image) ide->slave->file = fopen(ide->slave->image,"rb+");
-}
-
+// reopening is ide_mount()'s job: only it knows a path may be a folder
 void ideCloseFiles(IDE* ide) {
-	if (ide->master->file) fclose(ide->master->file);
-	ide->master->file = NULL;
-	if (ide->slave->file) fclose(ide->slave->file);
-	ide->slave->file = NULL;
+	ataCloseFile(ide->master);
+	ataCloseFile(ide->slave);
 }

@@ -19,6 +19,11 @@ before that point is upstream's history and is not repeated here.
   click jumps the disassembler there. Collecting, resetting and exporting moved here from the
   disassembler's options menu.
 
+- **A folder on the host can stand in for an SD card or a hard disk image.** Pick a folder
+  instead of an image file in Setup - Storage (or pass one to `--sdcard`) and it shows up in
+  the emulator as a read-only FAT32 card or disk: drop files in from the desktop and they are
+  there, no image to build or resize. Long and Russian names are kept.
+
 - `--sdcard FILE` selects an SD-card image at startup. (nihirash)
 
 - A Nix flake, for building and running on NixOS/Nix-based systems. (nihirash)

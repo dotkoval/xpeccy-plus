@@ -3,6 +3,7 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 #include <QVector3D>
 #include <QLibrary>
@@ -24,6 +25,7 @@
 #include "xcore/xcore.h"
 #include "xcore/sound.h"
 #include "xcore/vfilters.h"
+#include "xcore/vfat_scan.h"
 #include "libxpeccy/spectrum.h"
 #include "libxpeccy/filetypes/filetypes.h"
 #include "libxpeccy/input/input.h"
@@ -616,8 +618,12 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 // hdd
 	connect(ui.hm_pathtb,SIGNAL(released()),this,SLOT(hddMasterImg()));
 	connect(ui.hs_pathtb,SIGNAL(released()),this,SLOT(hddSlaveImg()));
+	connect(ui.hm_pathdir,SIGNAL(released()),this,SLOT(hddMasterDir()));
+	connect(ui.hs_pathdir,SIGNAL(released()),this,SLOT(hddSlaveDir()));
 // external
 	connect(ui.tbSDCimg,SIGNAL(released()),this,SLOT(selSDCimg()));
+	connect(ui.tbSDCdir,SIGNAL(released()),this,SLOT(selSDCdir()));
+	connect(ui.sdPath,SIGNAL(textChanged(QString)),this,SLOT(sdcPathChanged()));
 	connect(ui.tbsdcfree,SIGNAL(released()),ui.sdPath,SLOT(clear()));
 	connect(ui.cSlotOpen,SIGNAL(released()),this,SLOT(openSlot()));
 	connect(ui.cSlotEject,SIGNAL(released()),this,SLOT(ejectSlot()));
@@ -893,6 +899,7 @@ void SetupWin::start() {
 // external
 	ui.sdPath->setText(QString::fromLocal8Bit(comp->sdc->image));
 	ui.sdlock->setChecked(comp->sdc->lock);
+	sdcPathChanged();
 
 	ui.cSlotName->setText(comp->slot->path);
 	setRFIndex(ui.cSlotType, comp->slot->mapType);
@@ -1110,15 +1117,15 @@ void SetupWin::apply() {
 	ide_set_type(comp->ide, getRFIData(ui.hiface));
 
 	comp->ide->master->type = getRFIData(ui.hm_type);
-	ideSetImage(comp->ide,IDE_MASTER,ui.hm_path->text().toLocal8Bit().data());
+	ide_mount(comp->ide, IDE_MASTER, ui.hm_path->text());
 	comp->ide->master->hasLBA = ui.hm_islba->isChecked() ? 1 : 0;
 
 	comp->ide->slave->type = getRFIData(ui.hs_type);
-	ideSetImage(comp->ide,IDE_SLAVE,ui.hs_path->text().toLocal8Bit().data());
+	ide_mount(comp->ide, IDE_SLAVE, ui.hs_path->text());
 	comp->ide->slave->hasLBA = ui.hs_islba->isChecked() ? 1 : 0;
 // others
-	sdcSetImage(comp->sdc,ui.sdPath->text().isEmpty() ? "" : ui.sdPath->text().toLocal8Bit().data());
-	comp->sdc->lock = ui.sdlock->isChecked() ? 1 : 0;
+	sdc_mount(comp->sdc, ui.sdPath->text());
+	sdcSetLock(comp->sdc, ui.sdlock->isChecked() ? 1 : 0);
 
 	comp->slot->mapType = getRFIData(ui.cSlotType);
 // tape
@@ -1965,32 +1972,52 @@ void SetupWin::tlistclick(QModelIndex idx) {
 
 // hdd
 
+// show what the device reports after it was given an image or a folder
+void SetupWin::hddShowGeom(int wut) {
+	ATADev* dev = (wut == IDE_MASTER) ? conf.prof.cur->zx->ide->master : conf.prof.cur->zx->ide->slave;
+	QSpinBox* cyl = (wut == IDE_MASTER) ? ui.hm_gcyl : ui.hs_gcyl;
+	QSpinBox* sec = (wut == IDE_MASTER) ? ui.hm_gsec : ui.hs_gsec;
+	QSpinBox* hds = (wut == IDE_MASTER) ? ui.hm_ghd : ui.hs_ghd;
+	QSpinBox* lba = (wut == IDE_MASTER) ? ui.hm_glba : ui.hs_glba;
+	QSpinBox* cap = (wut == IDE_MASTER) ? ui.hm_capacity : ui.hs_capacity;
+	cyl->setValue(dev->pass.cyls);
+	sec->setValue(dev->pass.spt);
+	hds->setValue(dev->pass.hds);
+	lba->setValue(dev->maxlba);
+	cap->setValue(dev->maxlba >> 11);		// 512 (sector) -> 1024*1024 (Mb)
+}
+
 void SetupWin::hddMasterImg() {
-	Computer* comp = conf.prof.cur->zx;
 	QString path = QFileDialog::getOpenFileName(this,"Image for master HDD","","All files (*)",NULL,QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
-	if (path != "") {
-		ui.hm_path->setText(path);
-		ideSetImage(comp->ide, IDE_MASTER, path.toLocal8Bit().data());
-		ui.hm_ghd->setValue(comp->ide->master->pass.cyls);
-		ui.hm_gsec->setValue(comp->ide->master->pass.spt);
-		ui.hm_ghd->setValue(comp->ide->master->pass.hds);
-		ui.hm_glba->setValue(comp->ide->master->maxlba);
-		ui.hm_capacity->setValue(comp->ide->master->maxlba >> 11);	// 512 (sector) -> 1024*1024 (Mb)
-	}
+	if (path.isEmpty()) return;
+	ui.hm_path->setText(path);
+	ide_mount(conf.prof.cur->zx->ide, IDE_MASTER, path);
+	hddShowGeom(IDE_MASTER);
+}
+
+// a host folder is served as a read only disk
+void SetupWin::hddMasterDir() {
+	QString path = QFileDialog::getExistingDirectory(this,"Folder to serve as master HDD","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
+	if (path.isEmpty()) return;
+	ui.hm_path->setText(path);
+	ide_mount(conf.prof.cur->zx->ide, IDE_MASTER, path);
+	hddShowGeom(IDE_MASTER);
+}
+
+void SetupWin::hddSlaveDir() {
+	QString path = QFileDialog::getExistingDirectory(this,"Folder to serve as slave HDD","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
+	if (path.isEmpty()) return;
+	ui.hs_path->setText(path);
+	ide_mount(conf.prof.cur->zx->ide, IDE_SLAVE, path);
+	hddShowGeom(IDE_SLAVE);
 }
 
 void SetupWin::hddSlaveImg() {
-	Computer* comp = conf.prof.cur->zx;
 	QString path = QFileDialog::getOpenFileName(this,"Image for slave HDD","","All files (*)",NULL,QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
-	if (path != "") {
-		ui.hs_path->setText(path);
-		ideSetImage(comp->ide, IDE_SLAVE, path.toLocal8Bit().data());
-		ui.hs_ghd->setValue(comp->ide->slave->pass.cyls);
-		ui.hs_gsec->setValue(comp->ide->slave->pass.spt);
-		ui.hs_ghd->setValue(comp->ide->slave->pass.hds);
-		ui.hs_glba->setValue(comp->ide->slave->maxlba);
-		ui.hs_capacity->setValue(comp->ide->slave->maxlba >> 11);	// 512 (sector) -> 1024*1024 (Mb)
-	}
+	if (path.isEmpty()) return;
+	ui.hs_path->setText(path);
+	ide_mount(conf.prof.cur->zx->ide, IDE_SLAVE, path);
+	hddShowGeom(IDE_SLAVE);
 }
 
 /*
@@ -2010,6 +2037,18 @@ void SetupWin::hddcap() {
 void SetupWin::selSDCimg() {
 	QString fnam = QFileDialog::getOpenFileName(this,"Image for SD card","","All files (*.*)",nullptr,QFileDialog::DontUseNativeDialog);
 	if (!fnam.isEmpty()) ui.sdPath->setText(fnam);
+}
+
+// a host folder is served as a read only card, so the lock box follows the path
+void SetupWin::selSDCdir() {
+	QString fnam = QFileDialog::getExistingDirectory(this,"Folder to serve as SD card","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
+	if (!fnam.isEmpty()) ui.sdPath->setText(fnam);
+}
+
+void SetupWin::sdcPathChanged() {
+	bool dir = !ui.sdPath->text().isEmpty() && QFileInfo(ui.sdPath->text()).isDir();
+	if (dir) ui.sdlock->setChecked(true);
+	ui.sdlock->setEnabled(!dir);
 }
 
 void SetupWin::openSlot() {
