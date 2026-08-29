@@ -22,5 +22,8 @@
 // sound from playing it (see sndGetRingDistance in sound.cpp), so pacing
 // from the clock instead of the callback does not hurt audio.
 
+// monotonic ns since pacingInit(), the timebase the emulation thread runs on
+long long paceClockNs();
+
 void pacingInit();
 void pacingClose();

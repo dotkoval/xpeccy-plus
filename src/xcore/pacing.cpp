@@ -63,6 +63,10 @@ static Uint32 pace_tick(Uint32 interval, void*) {
 	return interval;
 }
 
+long long paceClockNs() {
+	return paceClock.nsecsElapsed();
+}
+
 void pacingInit() {
 	paceClock.start();
 	paceLastNs = paceClock.nsecsElapsed();
