@@ -7,6 +7,7 @@
 #include "xcore/xcore.h"
 #include "xgui/xgui.h"
 #include "xcore/sound.h"
+#include "xcore/pacing.h"
 #include "xcore/autostart.h"
 #include "xcore/vfilters.h"
 #include "libxpeccy/cpu/Z80/z80.h"
@@ -224,6 +225,7 @@ void xThread::emuCycle(Computer* comp) {
 		}
 		if (comp->flgFRM) {
 			comp->flgFRM = 0;
+			conf.vid.fctime = paceClockNs();	// for the fps readout
 			conf.vid.fcount++;
 			comp->frmCount++;
 			autostart_frame(comp);

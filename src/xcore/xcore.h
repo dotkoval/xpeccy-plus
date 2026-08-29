@@ -480,7 +480,8 @@ struct xConfig {
 		unsigned lowLatency:1;	// show each frame at once (low input lag), else buffer for smooth motion
 		int scale;		// x1..x4
 		int fcount;		// frames counter (for fps showing) (= fcnt ???)
-		double curfps;		// measured over real elapsed time, not an assumed tick interval
+		long long fctime;	// time of that frame, ns (see paceClockNs)
+		double curfps;		// last measured fps
 		std::string shader;
 		int shd_support;
 	} vid;
