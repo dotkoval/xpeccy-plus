@@ -584,7 +584,7 @@ void ibm_reset(Computer* comp) {
 }
 
 void ibm_init(Computer* comp) {
-	comp->vid->nsPerDot = 1e9/60/comp->vid->full.x/comp->vid->full.y;
+	vid_set_dot_ns(comp->vid, 1e9/60.0/comp->vid->full.x/comp->vid->full.y);
 	fdc_set_hd(comp->dif->fdc, 1);
 	dif_align_flps(comp->dif, comp->dif->fdc, 0, 1, 2, 3);
 	dma_set_cb(comp->dma1, ibm_dma_mrd, ibm_dma_mwr);		// mrd/mwr callbacks

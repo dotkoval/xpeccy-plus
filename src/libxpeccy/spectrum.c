@@ -140,20 +140,19 @@ void memwr(int adr, int val, void* ptr) {
 }
 
 void zx_cont_delay(Computer* comp) {
-	int wns = vid_wait(comp->vid, 5 << 14);	// video is already at end of wait cycle
-	int tns = 0;
+	long long wns = vid_wait_dots(comp->vid, 5 << 14) * comp->vid->nsPerDotFixed;	// video is already at end of wait cycle
+	int t0 = comp->cpu->t;
 	while (wns > 0) {
 		comp->cpu->t++;
-		wns -= comp->nsPerTick;
-		tns += comp->nsPerTick;
+		wns -= comp->nsPerTickFixed;
 	}
-	vid_sync(comp->vid, tns);
+	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - t0));
 	res4 = comp->cpu->t;
 }
 
 void zx_free_ticks(Computer* comp, int t) {
 	comp->cpu->t += t;
-	vid_sync(comp->vid, (int)llround(t * comp->nsPerTick));
+	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, t));
 	res4 = comp->cpu->t;
 }
 
@@ -314,7 +313,7 @@ int iord(int port, void* ptr) {
 			zx_cont_t1(comp, port);
 			zx_cont_tn(comp, port);
 		} else {
-			vid_sync(comp->vid,(int)llround((comp->cpu->t + 3 - res4) * comp->nsPerTick));
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t + 3 - res4));
 			res4 = comp->cpu->t + 3;
 		}
 	}
@@ -356,7 +355,7 @@ void iowr(int port, int val, void* ptr) {
 	comp->flgBDI = (comp->flgDOS && (comp->dif->type == DIF_BDI)) ? 1 : 0;
 	if (comp->hw->grp == HWG_ZX) {
 		// sync video to current T
-		vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
+		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 		res4 = comp->cpu->t;
 		if (comp->flgCNTI) {
 			zx_cont_t1(comp, port);
@@ -364,7 +363,7 @@ void iowr(int port, int val, void* ptr) {
 			zx_cont_tn(comp, port);
 			comp->cpu->t -= 4;
 		} else {
-			vid_sync(comp->vid, (int)llround(comp->nsPerTick));
+			vid_sync_fixed(comp->vid, comp->nsPerTickFixed);
 			res4++;
 			comp->hw->out(comp, port, val);
 		}
@@ -416,7 +415,7 @@ void comp_irq(int t, void* ptr) {
 			}
 			break;
 		case IRQ_CPU_SYNC:
-			vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 			res4 = comp->cpu->t;
 			break;
 	}
@@ -641,6 +640,9 @@ void comp_update_timings(Computer* comp) {
 	if (comp->hw->init)
 		comp->hw->init(comp);
 	comp->nsPerTick /= comp->frqMul;
+	// after hw->init: a machine may set its own nsPerTick from there (nes.c does)
+	comp->nsPerTickFixed = NSD_TO_FIXED(comp->nsPerTick);
+	comp->tickPerNsFixed = (long long)llround((double)(1LL << TICK_FIXED_BITS) / comp->nsPerTick);
 }
 
 void compSetBaseFrq(Computer* comp, double frq) {
@@ -727,7 +729,7 @@ int compExec(Computer* comp) {
 	}
 #endif
 #if 1
-	vid_sync(comp->vid, (int)llround((res2 - res4) * comp->nsPerTick));
+	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, res2 - res4));
 #else
 	if (res2 > res4) {
 		if (comp->hw->grp == HWG_ZX) {

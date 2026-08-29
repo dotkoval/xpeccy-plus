@@ -1,7 +1,6 @@
 #include "hardware.h"
 #include "../filetypes/filetypes.h"
 #include "../cpu/Z80/z80.h"
-#include <math.h>
 
 int compflags = 0;
 
@@ -51,12 +50,12 @@ extern int res4;
 
 void zx_cont_tick(Computer* comp, int adr) {
 	// sync video before this moment
-	vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 	res4 = comp->cpu->t;
-	int wns = vid_wait(comp->vid, adr);			// high memory addr
-	if (wns) {					// if there is contention zone, wait for it ends
-		comp->cpu->t += (int)llround(wns / comp->nsPerTick);	// add 'empty' ticks. in fact, there is no ticks at all, cpu stopped
-		vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+	int wdots = vid_wait_dots(comp->vid, adr);		// high memory addr
+	if (wdots) {					// if there is contention zone, wait for it ends
+		comp->cpu->t += ns_fixed_to_ticks(comp, wdots * comp->vid->nsPerDotFixed);	// add 'empty' ticks. in fact, there is no ticks at all, cpu stopped
+		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 		res4 = comp->cpu->t;
 	}
 	// comp->cpu->t++;		// free tick
@@ -98,7 +97,7 @@ void zx_irq(Computer* comp, int t) {
 			if (comp->flgCNTM) {
 				xAdr xa = mem_get_xadr(comp->mem, comp->cpu->adr);
 				if (xa.type == MEM_RAM) {
-					comp->cpu->flgWAIT = !!vid_wait(comp->vid, xa.abs);
+					comp->cpu->flgWAIT = !!vid_wait_dots(comp->vid, xa.abs);
 				} else {
 					comp->cpu->flgWAIT = 0;
 				}
@@ -107,7 +106,7 @@ void zx_irq(Computer* comp, int t) {
 			}
 			break;
 		case IRQ_CPU_ACK:
-			vid_sync(comp->vid, (int)llround((comp->cpu->t - res4) * comp->nsPerTick));
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 			res4 = comp->cpu->t;
 			comp->cpu->flgACK = !!comp->vid->intFRAME;
 			break;

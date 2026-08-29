@@ -10,7 +10,7 @@ class xThread : public QThread {
 	public:
 		xThread();
 		unsigned finish:1;
-		int sndNs;
+		long long sndNsFixed;
 		int wavNs;
 	public slots:
 		void stop();

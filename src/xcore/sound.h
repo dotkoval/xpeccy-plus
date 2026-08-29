@@ -30,7 +30,7 @@ typedef struct {
 extern OutSys sndTab[];
 extern OutSys* sndOutput;
 
-extern int nsPerSample;
+extern long long nsPerSampleFixed;
 
 void sndInit();
 void addOutput(std::string, bool(*)(),void(*)(),void(*)());

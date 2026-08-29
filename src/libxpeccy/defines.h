@@ -1,7 +1,20 @@
 #pragma once
 
 #include <stdint.h>
+#include <math.h>
 #include <time.h>
+
+// Emulated time is carried as 16.16 fixed point nanoseconds, and the `Fixed`
+// suffix on a name means a value in that format rather than a plain count of
+// nanoseconds. A whole ns is a coarse unit here - a ZX dot period is 142.857ns
+// - so rounding per dot or per instruction biases the frame length, and doing
+// it with llround() also costs speed: gcc emits an out-of-line CRT call for
+// that at -O2.
+#define NS_FIXED_BITS 16
+#define NS_FIXED_ONE (1LL << NS_FIXED_BITS)
+#define NS_TO_FIXED(ns) ((long long)(ns) << NS_FIXED_BITS)		// whole ns -> 16.16
+#define FIXED_TO_NS(v) ((long long)(v) >> NS_FIXED_BITS)		// 16.16 -> whole ns
+#define NSD_TO_FIXED(ns) ((long long)llround((ns) * (double)NS_FIXED_ONE))	// ns as a double -> 16.16
 
 #ifdef __WIN32
 	#define EXPORTDLL __declspec(dllimport)

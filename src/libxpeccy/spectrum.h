@@ -90,6 +90,10 @@ typedef struct {
 
 #define PWATCH_MAX	16		// ports the debugger can watch at once
 
+// scale of comp->tickPerNsFixed. Separate from NS_FIXED_BITS: it is a
+// reciprocal, and needs the extra bits to stay accurate for short tick periods
+#define TICK_FIXED_BITS 32
+
 typedef struct Computer {
 	struct HardWare *hw;	// computer core - misc params, callbacks
 
@@ -131,7 +135,13 @@ typedef struct Computer {
 	int fCount;		// T in last frame
 	double nsPerTick;	// real ns/T, kept precise: truncating this to int was the
 				// root cause of a systemic ~0.3-0.9% emulation speed error
-				// (see nsPerSample-driven pacing in ethread.cpp)
+				// (see nsPerSampleFixed-driven pacing in ethread.cpp)
+	// nsPerTick in 16.16, and its inverse in 32.32. The per-instruction sync
+	// paths run on these: they sit on every memory access, and llround() is an
+	// out-of-line CRT call with gcc at -O2. Both derived by
+	// comp_update_timings(), never set by hand.
+	long long nsPerTickFixed;
+	long long tickPerNsFixed;
 
 	bool flag[128];			// each machine have its own flags
 	bool sysflag[32];		// some common flags used by several machines or debuga
@@ -227,6 +237,19 @@ typedef struct Computer {
 		unsigned char iomap[128];
 	} gb;
 } Computer;
+
+// The two conversions the per-instruction sync paths need. Not inverses of each
+// other: one produces fixed point ns, the other consumes it.
+
+static inline long long ticks_to_ns_fixed(Computer* comp, int t) {
+	return (long long)t * comp->nsPerTickFixed;
+}
+
+static inline int ns_fixed_to_ticks(Computer* comp, long long ns_fixed) {
+	// reciprocal multiply, not a divide: this is on the contention path
+	return (int)((ns_fixed * comp->tickPerNsFixed + (1LL << (TICK_FIXED_BITS + NS_FIXED_BITS - 1)))
+			>> (TICK_FIXED_BITS + NS_FIXED_BITS));
+}
 
 #include "hardware/hardware.h"
 

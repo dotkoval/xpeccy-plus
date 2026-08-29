@@ -1,7 +1,6 @@
 #include "hardware.h"
 #include <stdlib.h>
 #include <string.h>
-#include <math.h>
 // layout = v9938:342:313:16:13:57:80:64:0:0:256:192
 // {{full},{border},{blank},{screen},{ipos},ilen}
 
@@ -186,15 +185,15 @@ HardWare* findHardware(const char* name) {
 
 static MemPage* pg;
 extern int res4;
-static int wns;
+static int wdots;
 
 void zx_cont_mem(Computer* comp) {
 	if (pg->type == MEM_RAM) {
-		vid_sync(comp->vid, comp->nsPerTick * (comp->cpu->t - res4));	// before
+		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));	// before
 		res4 = comp->cpu->t;
-		wns = vid_wait(comp->vid, pg->num << 8);
-		comp->cpu->t += (int)llround(wns / comp->nsPerTick);
-		vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
+		wdots = vid_wait_dots(comp->vid, pg->num << 8);
+		comp->cpu->t += ns_fixed_to_ticks(comp, wdots * comp->vid->nsPerDotFixed);
+		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 		res4 = comp->cpu->t;
 	}
 }
