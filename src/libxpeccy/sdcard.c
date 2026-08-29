@@ -70,6 +70,27 @@ void sdcSetImage(SDCard* sdc, const char* name) {
 	}
 }
 
+// mount a synthetic volume built from a host folder. The card takes ownership
+// of the volume; the folder path is kept in ->image, so everything checking for
+// an inserted card keeps working.
+void sdcSetFolder(SDCard* sdc, const char* name, vFat* vf) {
+	sdcCloseFile(sdc);
+	if (sdc->image) free(sdc->image);
+	sdc->image = NULL;
+	if (!vf) return;
+	sdc->image = (char*)malloc(strlen(name) + 1);
+	strcpy(sdc->image, name);
+	sdc->vfat = vf;
+	sdc->maxlba = vf->volume;
+	sdc->capacity = vf->volume >> 11;	// 512-byte sectors -> Mb
+	sdcSetLock(sdc, 0);
+}
+
+// write protection: on by request, and always on for a folder
+void sdcSetLock(SDCard* sdc, int lock) {
+	sdc->lock = (lock || sdc->vfat) ? 1 : 0;
+}
+
 void sdcSetCapacity(SDCard* sdc, int cpc) {
 /*
 	if (cpc < SDC_32M) cpc = SDC_32M;
@@ -83,7 +104,9 @@ void sdcSetCapacity(SDCard* sdc, int cpc) {
 
 void sdcRdSector(SDCard* sdc) {
 //	printf("SDC read sector %i\n",sdc->addr);
-	if ((sdc->addr < sdc->maxlba) && sdc->file) {
+	if ((sdc->addr < sdc->maxlba) && sdc->vfat) {
+		vfat_read(sdc->vfat, sdc->addr, sdc->buf.data + 1);
+	} else if ((sdc->addr < sdc->maxlba) && sdc->file) {
 		fseek(sdc->file,sdc->addr << 9,SEEK_SET);
 		fread(sdc->buf.data + 1, 512, 1, sdc->file);
 	} else {
@@ -93,6 +116,7 @@ void sdcRdSector(SDCard* sdc) {
 
 void sdcWrSector(SDCard* sdc) {
 //	printf("SDC write sector %i\n",sdc->addr);
+	if (sdc->vfat) return;			// a folder is served read only
 	if ((sdc->addr < sdc->maxlba) && sdc->file) {
 		fseek(sdc->file,sdc->addr << 9,SEEK_SET);
 		fwrite(sdc->buf.data + 1,512,1,sdc->file);
@@ -311,4 +335,7 @@ void sdcCloseFile(SDCard* sdc) {
 	if (sdc->file)
 		fclose(sdc->file);
 	sdc->file = NULL;
+	if (sdc->vfat)
+		vfat_free(sdc->vfat);
+	sdc->vfat = NULL;
 }

@@ -10,6 +10,7 @@ extern "C" {
 #include "defines.h"
 #include "nvram.h"
 #include "cmos.h"
+#include "vfat.h"
 
 // IDE interface type
 enum {
@@ -111,8 +112,9 @@ typedef struct {
 	int lba;
 	int maxlba;
 
-	char* image;
+	char* image;		// image file name, or the mounted host folder
 	FILE* file;
+	vFat* vfat;		// synthetic volume, when a folder is mounted
 	int offset;		// for future: data offset inside image (0 by default)
 
 	struct {
@@ -171,11 +173,11 @@ void ideDestroy(IDE*);
 int ideIn(IDE*, int, int*, int);
 int ideOut(IDE*, int, int, int);
 void ideReset(IDE*);
-void ideOpenFiles(IDE*);
 void ideCloseFiles(IDE*);
 
 void ide_set_type(IDE*, int);
 void ideSetImage(IDE*,int,const char*);
+void ideSetFolder(IDE*,int,const char*,vFat*);
 ATAPassport ideGetPassport(IDE*,int);
 
 unsigned short ataRd(ATADev*, int);

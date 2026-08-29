@@ -2,6 +2,8 @@
 
 #include <stdio.h>
 
+#include "vfat.h"
+
 /*
 // mode
 enum {
@@ -60,8 +62,9 @@ typedef struct {
 	unsigned int addr;
 	int capacity;
 	unsigned int maxlba;
-	char* image;		// image file name
+	char* image;		// image file name, or the mounted host folder
 	FILE* file;		// image file
+	vFat* vfat;		// synthetic volume, when a folder is mounted
 	struct {		// data buffer
 		int pos;
 		unsigned char data[515];	// data packet: token(1),data(512),crc(2)
@@ -76,6 +79,8 @@ int sdcRead(SDCard*);
 void sdcWrite(SDCard*, int);
 
 void sdcSetImage(SDCard*,const char*);
+void sdcSetFolder(SDCard*,const char*,vFat*);
+void sdcSetLock(SDCard*,int);
 void sdcSetCapacity(SDCard*,int);
 
 void sdcOpenFile(SDCard*);

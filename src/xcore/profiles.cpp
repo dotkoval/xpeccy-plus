@@ -11,6 +11,7 @@
 #include "sound.h"
 #include "filer.h"
 #include "gamepad.h"
+#include "vfat_scan.h"
 
 void prf_load_cmos(xProfile* prf, std::string path) {
 	FILE* file = fopen(path.c_str(), "rb");
@@ -157,9 +158,10 @@ bool prfSetCurrent(std::string nm) {
 		prfLoad(nprf->name);
 		compReset(nprf->zx, RES_DEFAULT);
 		conf.emu.pause &= ~PR_EXTRA;
+	} else {				// loading the profile has already mounted its media
+		ide_remount(nprf->zx->ide);
+		sdc_remount(nprf->zx->sdc);
 	}
-	ideOpenFiles(nprf->zx->ide);
-	sdcOpenFile(nprf->zx->sdc);
 	prfSetLayout(nprf, nprf->layName);
 	comp_kbd_release(nprf->zx);
 	mouseReleaseAll(nprf->zx->mouse);
@@ -546,10 +548,10 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 					if (pnam == "iface") ide_set_type(comp->ide, arg.i); // comp->ide->type = arg.i;
 					if (pnam == "master.type") comp->ide->master->type = arg.i;
 					if (pnam == "master.lba") comp->ide->master->hasLBA = arg.b;
-					if (pnam == "master.image") ideSetImage(comp->ide,IDE_MASTER, arg.s);
+					if (pnam == "master.image") ide_mount(comp->ide, IDE_MASTER, QString::fromLocal8Bit(arg.s));
 					if (pnam == "slave.type") comp->ide->slave->type = arg.i;
 					if (pnam == "slave.lba") comp->ide->slave->hasLBA = arg.b;
-					if (pnam == "slave.image") ideSetImage(comp->ide,IDE_SLAVE, arg.s);
+					if (pnam == "slave.image") ide_mount(comp->ide, IDE_SLAVE, QString::fromLocal8Bit(arg.s));
 					break;
 				case PS_INPUT:
 					if (pnam == "mouse") comp->mouse->enable = arg.b;
@@ -574,8 +576,8 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 					}
 					break;
 				case PS_SDC:
-					if (pnam == "sdcimage") sdcSetImage(comp->sdc, arg.s);
-					if (pnam == "sdclock") comp->sdc->lock = arg.b;
+					if (pnam == "sdcimage") sdc_mount(comp->sdc, QString::fromLocal8Bit(arg.s));
+					if (pnam == "sdclock") sdcSetLock(comp->sdc, arg.b);
 					// if (pnam == "capacity") sdcSetCapacity(comp->sdc, arg.i);
 					break;
 				case PS_DEBUGA:
