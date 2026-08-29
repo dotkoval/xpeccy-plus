@@ -44,7 +44,7 @@ static FILE* file = nullptr;
 // unsigned char* blkData = NULL;
 
 xThread::xThread() {
-	sndNs = 0;
+	sndNsFixed = 0;
 	conf.emu.fast = 0;
 	finish = 0;
 }
@@ -174,13 +174,15 @@ void xThread::brkAction(Computer* comp, xBrkPoint* ptr, int* brkskip) {
 void xThread::emuCycle(Computer* comp) {
 	int tm;
 	int brkskip = 0;
-	sndNs = 0;
+	// sndNsFixed is deliberately not cleared here: it holds the part of a sample
+	// not yet made, and a cycle can end anywhere. Clearing it dropped that
+	// remainder on every wake-up, and wake-ups come every 2ms.
 	wavNs = 0;
 	conf.snd.fill = 1;
 	while (!comp->flgBRK && conf.snd.fill && !finish && !conf.emu.pause) {
 		// exec 1 opcode (or handle INT, NMI)
 		if (conf.emu.pause) {
-			sndNs += 1000;
+			sndNsFixed += NS_TO_FIXED(1000);
 		} else {
 			if (brkskip) {
 				brkskip = comp->flgDBG;
@@ -191,7 +193,7 @@ void xThread::emuCycle(Computer* comp) {
 			} else {
 				tm = compExec(comp);			// TODO: it exits when fetch-brk is occured, pc doesn't changed
 			}
-			sndNs += tm;
+			sndNsFixed += NS_TO_FIXED(tm);
 			wavNs += tm;
 			// tape trap	TODO: rework it as a system breakpoint
 			int pc = cpu_get_pc(comp->cpu);
@@ -216,9 +218,9 @@ void xThread::emuCycle(Computer* comp) {
 			}
 		}
 		// sound buffer update
-		while (sndNs > nsPerSample) {
+		while (sndNsFixed > nsPerSampleFixed) {
 			sndSync(comp);
-			sndNs -= nsPerSample;
+			sndNsFixed -= nsPerSampleFixed;
 		}
 		if (comp->flgFRM) {
 			comp->flgFRM = 0;

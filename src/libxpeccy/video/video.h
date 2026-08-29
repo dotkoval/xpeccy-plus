@@ -143,14 +143,15 @@ struct Video {
 
 	int nsPerFrame;
 	int nsPerLine;
-	int nsPerDot;
-	double nsPerDotExact;	// precise pre-rounding value, so vid_upd_layout() can
-				// re-derive nsPerLine/nsPerFrame without compounding
-				// nsPerDot's rounding into them
-	int nsDraw;
-	int time;		// +nsPerDot each dot
+	long long nsPerDotFixed;	// the dot period, 16.16, and what the ray steps by
+	double nsPerDotExact;	// same value as a double, for vid_upd_layout() to
+				// re-derive nsPerLine/nsPerFrame from
+	int nsPerDot;		// whole-ns form. Nothing here reads it any more; it is
+				// kept because upstream's Video struct has it
+	long long nsDrawFixed;	// time handed in but not yet drawn, 16.16
+	long long nsOwedFixed;	// fraction of a ns owed to vid->time, carried not dropped
+	int time;		// whole ns drawn since the step began
 	int busy;		// (cycles) to emulate busy period
-	int intTime;
 	int dotPerFrame;
 
 	int flash;
@@ -362,13 +363,17 @@ Video* vidCreate(cbxrd, cbirq, void*);
 void vidDestroy(Video*);
 
 void vid_reset(Video*);
-void vid_sync(Video*,int);
+void vid_sync(Video*,int);		// whole-ns entry point, for callers outside the ZX paths
+void vid_sync_fixed(Video*,long long);
+// sets the dot period alone. vid_upd_timings() is the complete one - it also
+// re-derives nsPerLine/nsPerFrame, which the frame timer in emulwin.cpp reads
+void vid_set_dot_ns(Video*,double);
 // void vid_irq(Video*, int);
 void vid_set_mode(Video*,int);
 void vid_reset_ray(Video*);
 void vid_set_ray(Video*, int);
 
-int vid_wait(Video*, int);
+int vid_wait_dots(Video*, int);		// contention wait in dots, not ns
 void vid_dark_tail(Video*);
 
 void vid_set_layout(Video*, vLayout*);

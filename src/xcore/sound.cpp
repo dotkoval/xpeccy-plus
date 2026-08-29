@@ -22,7 +22,14 @@ OutSys *sndOutput = NULL;
 // static int sndChunks = 882;
 
 #define DISCRATE 32
-int nsPerSample = 22675;
+// ns per sub-sample, 16.16. This turns emulated time into the sample budget the
+// pacer hands out, so the fraction matters: at 44100Hz the whole-ns value was
+// 708 against a true 708.6168.
+static long long ns_per_sample_fixed(int rate) {
+	return NSD_TO_FIXED(1e9 / rate / DISCRATE);
+}
+
+long long nsPerSampleFixed = ns_per_sample_fixed(44100);
 // static int disCount = 0;
 static sndPair tmpLev = {0, 0};
 static sndPair sndLev;
@@ -133,7 +140,7 @@ void setOutput(const char* name) {
 		printf("Can't open sound system '%s'. Reset to NULL\n",name);
 		setOutput("NULL");
 	}
-	nsPerSample = 1e9 / conf.snd.rate / DISCRATE;
+	nsPerSampleFixed = ns_per_sample_fixed(conf.snd.rate);
 }
 
 void sndClose() {

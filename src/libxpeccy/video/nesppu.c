@@ -294,7 +294,7 @@ void ppuLine(Video* vid) {
 		vid->spover = 0;
 		// if NTSC, x++ @ every other frame
 		if ((vid->fcnt & 1) && vid->ntsc)
-			vid_sync(vid, vid->nsPerDot);
+			vid_sync_fixed(vid, vid->nsPerDotFixed);
 	}
 
 	if (vid->ray.y > 239) return;		// 239? vid->vbsline?

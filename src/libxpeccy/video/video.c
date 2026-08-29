@@ -206,8 +206,7 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->mrd = cb;
 	vid->xirq = ci;
 	vid->xptr = dptr;
-	vid->nsPerDot = 150;
-	vid->nsPerDotExact = 150;
+	vid_set_dot_ns(vid, 150);
 	vid->res.x = -1;
 	vid->res.y = -1;
 	vid_set_mode(vid, VID_UNKNOWN);
@@ -226,7 +225,8 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->vidPage = 5;
 	vid->fcnt = 0;
 
-	vid->nsDraw = 0;
+	vid->nsDrawFixed = 0;
+	vid->nsOwedFixed = 0;
 	vid->ray.x = 0;
 	vid->ray.y = 0;
 	vid->idx = 0;
@@ -244,14 +244,21 @@ void vidDestroy(Video* vid) {
 	free(vid);
 }
 
-void vid_upd_timings(Video* vid, double nspd) {
-	// nsPerDot rounds to a whole ns; vid_sync()'s per-dot accumulator carries
-	// the remainder so that doesn't drift. nsPerLine/nsPerFrame are each
-	// rounded once from the precise nspd, not multiplied up from the rounded
-	// nsPerDot, so they don't inherit compounded error.
-	double nsLine = nspd * vid->full.x;
+// The one place the dot period is set. nsPerDot is the whole-ns value other
+// code reads; nsPerDotFixed keeps the fraction, and is what the ray steps by.
+void vid_set_dot_ns(Video* vid, double nspd) {
 	vid->nsPerDotExact = nspd;
 	vid->nsPerDot = (int)llround(nspd);
+	vid->nsPerDotFixed = NSD_TO_FIXED(nspd);
+	if (vid->nsPerDotFixed < 1)
+		vid->nsPerDotFixed = 1;		// never let vid_sync_fixed spin forever
+}
+
+void vid_upd_timings(Video* vid, double nspd) {
+	// nsPerLine/nsPerFrame are each rounded once from the precise nspd, not
+	// multiplied up from the rounded nsPerDot, so they don't inherit its error.
+	double nsLine = nspd * vid->full.x;
+	vid_set_dot_ns(vid, nspd);
 	vid->nsPerLine = (int)llround(nsLine);
 	vid->nsPerFrame = (int)llround(nsLine * vid->full.y);
 #ifdef ISDEBUG
@@ -267,7 +274,8 @@ void vid_reset(Video* vid) {
 	}
 	vid->ula->active = 0;
 	vid->vidPage = 5;
-	vid->nsDraw = 0;
+	vid->nsDrawFixed = 0;
+	vid->nsOwedFixed = 0;
 //	vidSetMode(vid, VID_NORMAL);
 }
 
@@ -506,7 +514,10 @@ void vid_get_screen(Video* vid, unsigned char* dst, int bank, int shift, int fla
 static int contTabA[] = {12,11,10,9,8,7,6,5,4,3,2,1,0,0,0,0};		// 48K 128K +2 (bank 1,3,5,7)
 static int contTabB[] = {2,1,0,0,14,13,12,11,10,9,8,7,6,5,4,3};		// +2A +3 (bank 4,5,6,7)
 
-int vid_wait(Video* vid, int adr) {
+// returns dots, not nanoseconds: one caller only tests it for zero, and the two
+// that want time want it in fixed point, so multiplying by the dot period here
+// would both round and be thrown away
+int vid_wait_dots(Video* vid, int adr) {
 	int* contTab = NULL;
 	switch (vid->ula->conttype) {
 		case CONT_PATA:
@@ -525,7 +536,7 @@ int vid_wait(Video* vid, int adr) {
 	xscr += vid->ula->early ? 6 : 4;		// 4 for starting @14336, 6 for @14335 (late/early timing?) -> for classic48 screen layout
 	if (xscr < 0) return 0;				// line before contention
 	if (xscr >= vid->scrn.x) return 0;		// line after contention
-	return contTab[xscr & 0x0f] * vid->nsPerDot;	// return time (ns)
+	return contTab[xscr & 0x0f];			// wait length in dots
 }
 
 void vid_set_grey(int f) {
@@ -1094,7 +1105,6 @@ void vid_tick(Video* vid) {
 		if (!vid->intFRAME)
 			vid->xirq(IRQ_VID_IEND, vid->xptr);
 	} else if ((vid->ray.yb == vid->intp.y) && (vid->ray.xb == vid->intp.x) && (vid->inten & 1)) {		// added: ...and frame int enabled
-		vid->intTime = vid->time;
 		vid->xirq(IRQ_VID_INT, vid->xptr);
 	}
 	if (vid->busy > 0) {
@@ -1106,11 +1116,24 @@ void vid_tick(Video* vid) {
 	if (vid->intf > 0) vid->intf--;
 }
 
-void vid_sync(Video* vid, int ns) {
-	vid->nsDraw += ns;
-	while (vid->nsDraw >= vid->nsPerDot) {
-		vid->nsDraw -= vid->nsPerDot;
-		vid->time += vid->nsPerDot;
+// The ray steps in fixed point ns. vid->time stays whole ns for everything
+// downstream (sound pacing among others); the fraction it is owed rides along
+// in nsOwedFixed rather than being dropped once per call.
+void vid_sync_fixed(Video* vid, long long nsFixed) {
+	if (!nsFixed) return;			// no time passed: the tail below is a no-op
+	vid->nsDrawFixed += nsFixed;
+	while (vid->nsDrawFixed >= vid->nsPerDotFixed) {
+		vid->nsDrawFixed -= vid->nsPerDotFixed;
+		vid->nsOwedFixed += vid->nsPerDotFixed;
 		vid_tick(vid);
 	}
+	// whole nanoseconds out, the rest stays owed. Once per call, not per dot:
+	// the dot loop runs ~143k times a frame.
+	long long whole = FIXED_TO_NS(vid->nsOwedFixed);
+	vid->nsOwedFixed -= NS_TO_FIXED(whole);
+	vid->time += (int)whole;
+}
+
+void vid_sync(Video* vid, int ns) {
+	vid_sync_fixed(vid, NS_TO_FIXED(ns));
 }
