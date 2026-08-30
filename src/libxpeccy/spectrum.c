@@ -641,7 +641,19 @@ void comp_update_timings(Computer* comp) {
 		comp->hw->init(comp);
 	comp->nsPerTick /= comp->frqMul;
 	// after hw->init: a machine may set its own nsPerTick from there (nes.c does)
-	comp->nsPerTickFixed = NSD_TO_FIXED(comp->nsPerTick);
+	// The tick and the dot come off the same crystal - a ZX tick is exactly two
+	// dots - so derive the tick period from the dot period instead of rounding
+	// each from its own double. Rounded separately they can land one 16.16 unit
+	// apart, and vid_sync_fixed then loses that fraction of a dot on every tick:
+	// on a Pentagon it slips a whole dot every ~130 frames, sliding the frame
+	// interrupt across the 4T boundaries of the HALT loop it lands in, which
+	// shows up as the border jumping 4 pixels every few seconds.
+	if (comp->vid->nsPerDotExact > 0.0) {
+		double dotsPerTick = comp->nsPerTick / comp->vid->nsPerDotExact;
+		comp->nsPerTickFixed = (long long)llround(comp->vid->nsPerDotFixed * dotsPerTick);
+	} else {
+		comp->nsPerTickFixed = NSD_TO_FIXED(comp->nsPerTick);
+	}
 	comp->tickPerNsFixed = (long long)llround((double)(1LL << TICK_FIXED_BITS) / comp->nsPerTick);
 }
 
