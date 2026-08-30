@@ -42,6 +42,12 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Pentagon, 128K, +2A/+3 and Scorpion now hold the frame interrupt for the 36 T-states
+  the real machines do, instead of the 48K's 32.
+
+- Scorpion ZS 256 draws its borders and retrace at the documented widths, and takes the
+  frame interrupt where the real machine does.
+
 - The disassembler no longer loses its selected row's highlight and syntax colours when the
   debugger loses focus.
 
