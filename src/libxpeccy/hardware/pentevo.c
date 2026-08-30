@@ -17,7 +17,7 @@
 #define flgVNMI flag[101]
 #define flgBRKE	flag[102]	// hw brk enabled
 #define flgNMIR flag[103]	// enter nmi with next int
-#define flgNMIE flag[104]	// switch ramFF on next m1 for nmi
+#define flgNMIS flag[104]	// switch ramFF on next m1 for nmi
 
 // palette (0..15)
 #define regPal(_n) reg[0xe0 + (_n)]
@@ -88,7 +88,7 @@ void evoReset(Computer* comp) {
 	sdcReset(comp->sdc);
 	comp->flgVDOS = 0;
 	comp->flgVNMI = 0;
-	comp->flgNMIE = 0;
+	comp->flgNMIS = 0;
 	comp->flgNMIR = 0;
 	comp->flgBRKE = 0;
 	comp->regM1CNT = 0;
@@ -111,11 +111,11 @@ int evoMRd(Computer* comp, int adr, int m1) {
 			}
 		}
 		// enter nmi
-		if (comp->flgNMIE) {
-			comp->flgNMIE = 0;
+		if (comp->flgNMIS) {
+			comp->flgNMIS = 0;
 			comp->flgVNMI = 1;	// set ramFF @ 0000
 			evoMapMem(comp);
-			return 0;		// swap opcode to nop
+			// return 0;		// change opcode to nop
 		}
 		// hw breakpoint (don't wait next int)
 		if ((comp->regBF & 0x10) && (adr == comp->xregBRKA.w)) {
@@ -575,22 +575,31 @@ void evo_sync(Computer* comp, int ns) {
 	// enter nmi: map ram(FF) @ 0000, cpu nmi
 	if (comp->flgNMIRQ) {
 		comp->cpu->intrq |= Z80_NMI;	// send nmi to cpu
-		comp->flgNMIE = 1;		// next m1 will turn ramFF @ 0000 and change opcode to 00. pc pushed during not-switched state
+		comp->flgNMIS = 1;		// next m1 will turn ramFF @ 0000 and change opcode to 00. pc pushed during not-switched state
 		comp->flgNMIRQ = 0;		// reset, don't act it in zx_sync
 	}
 	zx_sync(comp, ns);
 }
 
 void evo_irq(Computer* comp, int t) {
-	zx_irq(comp, t);
 	switch(t) {
 		case IRQ_VID_INT:
-			if (comp->flgNMIR) {		// if there was waiting nmi request. don't generate NMIRQ
+			if (comp->flgNMIR) {			// nmi was requested: nmi instead of the frame int
 				comp->flgNMIR = 0;
-				comp->flgNMIE = 1;
-				comp->cpu->intrq &= ~Z80_INT;	// nmi instead of int
+#ifdef HAVEZLIB
+				if (comp->rzx.play) break;	// ignore when playing rzx
+#endif
+				comp->flgNMIS = 1;
 				comp->cpu->intrq |= Z80_NMI;
+				break;
 			}
+			zx_irq(comp, t);
+			break;
+		case IRQ_NMI:				// send on nmi key pressing, catching on next int
+			comp->flgNMIR = 1;
+			break;
+		default:				// others: default
+			zx_irq(comp, t);
 			break;
 	}
 }

@@ -319,8 +319,7 @@ void MainWin::xkey_press(int xkey) {
 #if HAVEZLIB
 				if (comp->rzx.play) break;
 #endif
-				if (comp->cpu->type != CPU_Z80) break;
-				comp->flgNMIRQ = 1;
+				comp_irq(IRQ_NMI, comp);
 				break;
 			case XCUT_TAPWIN:
 				emit s_tape_show();

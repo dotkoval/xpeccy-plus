@@ -44,6 +44,7 @@ enum {
 	IRQ_VID_LINE,	// tsconf
 	IRQ_RZX_INT,
 	IRQ_DMA,
+	IRQ_NMI,
 	IRQ_CPU_SYNC,	// sync cpu ticks
 	IRQ_CPU_CONT,	// sync + wait states for the bus cycle about to start (MREQ)
 	IRQ_CPU_CONTNM,	// same, for an internal cycle that only holds an address

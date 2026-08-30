@@ -93,6 +93,9 @@ void zx_irq(Computer* comp, int t) {
 		case IRQ_VID_IEND:			// frame int end (for tsconf see in tslab.c)
 			comp->cpu->intrq &= ~Z80_INT;
 			break;
+		case IRQ_NMI:
+			comp->flgNMIRQ = 1;
+			break;
 		case IRQ_CPU_CONT:			// memory cycle: contend it
 			zx_contend(comp, 1);
 			break;
