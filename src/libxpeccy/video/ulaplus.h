@@ -14,7 +14,7 @@ typedef struct {
 
 	unsigned char reg;	// bf3b .w register
 	unsigned char data;	// ff3b rw data
-	int conttype;
+	int conttype;		// contention pattern, and with it the screen drawer
 	unsigned char pal[64];
 } ulaPlus;
 

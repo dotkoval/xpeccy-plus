@@ -2,18 +2,25 @@
 
 #include <string.h>
 
+// A Sinclair ULA reads a character pair two columns before it shows them;
+// the clones read at display time. Only the first leaves a multicolour
+// engine room to rewrite an attribute right after the ULA has taken it, so
+// the machines that have such a ULA - the ones with a contention pattern -
+// get the early-fetch drawer.
+void zx_set_vmode(Computer* comp) {
+	vid_set_mode(comp->vid, (comp->vid->ula->conttype == CONT_NONE) ? VID_NORMAL : VID_ULA_SCR);
+}
+
 void zx48_reset(Computer* comp) {
 	comp->mem->ramMask = MEM_128K - 1;	// to acces pages 2,5
 	comp->flgROM = 1;				// to switch to trdos
 	comp->vid->vidPage = 5;
-	//speReset(comp);
-	zx_set_pal(comp);
-	vid_set_mode(comp->vid, VID_ULA_SCR);
+	zx_reset(comp);
 }
 
 void zx_reset(Computer* comp) {
 	zx_set_pal(comp);
-	vid_set_mode(comp->vid, VID_NORMAL);
+	zx_set_vmode(comp);
 }
 
 int zx_slt_rd(int adr, void* ptr) {
