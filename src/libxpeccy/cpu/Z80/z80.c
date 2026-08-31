@@ -29,6 +29,7 @@ int z80_get_flag(CPU* cpu) {
 }
 
 void z80_call(CPU*, unsigned short);
+int z80_get_ir(CPU*);
 //void lr_push(CPU*, unsigned short);
 
 void z80_reset(CPU* cpu) {
@@ -54,14 +55,26 @@ void z80_reset(CPU* cpu) {
 
 int z80_mrdx(CPU* cpu, int adr, int m1) {
 	cpu->adr = adr;
-	cpu->t++;		// T1
-	do {
-		cpu->t++;	// T2 while wait
-		cpu->xirq(IRQ_CPU_SYNC, cpu->xptr);
-	} while (cpu->flgWAIT);
+	cpu->xirq(IRQ_CPU_CONT, cpu->xptr);	// wait states, sampled at T1
+	cpu->t += 2;		// T1, T2
+	// the ray has to reach the moment of the transfer before it happens: the
+	// video reads the same ram as it draws, so a read or write landing early
+	// shows up on screen a couple of dots off
+	cpu->xirq(IRQ_CPU_SYNC, cpu->xptr);
 	int r = cpu->mrd(adr, m1, cpu->xptr) & 0xff;
 	cpu->t++;		// T3
 	return r;
+}
+
+// An internal cycle: no MREQ, but the address stays on the bus and the
+// Ferranti ULA contends it just the same. One call per tick, as in fuse.
+void z80_wait(CPU* cpu, int adr, int n) {
+	cpu->adr = adr;
+	while (n > 0) {
+		cpu->xirq(IRQ_CPU_CONTNM, cpu->xptr);
+		cpu->t++;
+		n--;
+	}
 }
 
 int z80_fetch(CPU* cpu) {
@@ -75,11 +88,9 @@ int z80_mrd(CPU* cpu, int adr) {
 
 void z80_mwr(CPU *cpu, int adr, int data) {
 	cpu->adr = adr;
-	cpu->t++;		// T1
-	do {
-		cpu->t++;	// T2 while wait
-		cpu->xirq(IRQ_CPU_SYNC, cpu->xptr);
-	} while (cpu->flgWAIT);
+	cpu->xirq(IRQ_CPU_CONT, cpu->xptr);	// wait states, sampled at T1
+	cpu->t += 2;		// T1, T2
+	cpu->xirq(IRQ_CPU_SYNC, cpu->xptr);	// ray up to the transfer, see z80_mrdx
 	cpu->mwr(adr, data, cpu->xptr);
 	cpu->t++;		// T3
 }
@@ -88,7 +99,6 @@ void z80_mwr(CPU *cpu, int adr, int data) {
 
 int z80_int(CPU* cpu) {
 	int res = 0;
-	if (cpu->flgWAIT) return res;
 	if (cpu->intrq & Z80_INT) {		// int
 		if (cpu->flgIFF1 && !cpu->flgNOINT && cpu->flgACK) {
 			cpu->flgIFF1 = 0;
@@ -166,7 +176,14 @@ int z80_exec(CPU* cpu) {
 			cpu->com = z80_fetch(cpu); // cpu->mrd(cpu->pc++,1,cpu->xptr);
 			cpu->op = &cpu->opTab[cpu->com];
 			cpu->regR++;
-			cpu->t += cpu->op->t - 3;
+			// M1 is 4T and the fetch above took 3 of them; T4 rides on the
+			// same bus cycle, so it carries no wait states of its own.
+			// Anything past that is an internal cycle with IR on the bus -
+			// inc/dec rr, add hl,rr, push, rst, ret cc, ld a,i - and the
+			// ULA contends those one tick at a time.
+			cpu->t++;				// T4
+			if (cpu->op->t > 4)
+				z80_wait(cpu, z80_get_ir(cpu), cpu->op->t - 4);
 			cpu->op->exec(cpu);
 		} while (cpu->op->flag & OF_PREFIX);
 		res = cpu->t;

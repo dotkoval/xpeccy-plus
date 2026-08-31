@@ -245,10 +245,10 @@ static inline long long ticks_to_ns_fixed(Computer* comp, int t) {
 	return (long long)t * comp->nsPerTickFixed;
 }
 
-static inline int ns_fixed_to_ticks(Computer* comp, long long ns_fixed) {
-	// reciprocal multiply, not a divide: this is on the contention path
-	return (int)((ns_fixed * comp->tickPerNsFixed + (1LL << (TICK_FIXED_BITS + NS_FIXED_BITS - 1)))
-			>> (TICK_FIXED_BITS + NS_FIXED_BITS));
+// wait states end on a tick boundary, so round up. Exact: the dot and the
+// tick come off the same crystal, so the quotient is whole on every zx.
+static inline int ns_fixed_to_ticks_up(Computer* comp, long long ns_fixed) {
+	return (int)((ns_fixed + comp->nsPerTickFixed - 1) / comp->nsPerTickFixed);
 }
 
 #include "hardware/hardware.h"

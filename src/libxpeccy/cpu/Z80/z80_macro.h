@@ -38,16 +38,22 @@ extern const unsigned char FVsubTab[8];
 
 #define SWAP(rp1,rp2) {cpu->tmpw = rp1; rp1 = rp2; rp2 = cpu->tmpw;}		// swap 16bit regs
 
-#define	RDSHIFT(base) {\
+// read the displacement byte and form the target address
+#define	RDSHIFT0(base) {\
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);\
 	cpu->regWZ = base + (signed char)cpu->tmp;\
-	cpu->t += 5;\
+}
+
+// ...and idle five ticks on it, as every (ix+d) form but ld (ix+d),n does
+#define	RDSHIFT(base) {\
+	RDSHIFT0(base);\
+	z80_wait(cpu, cpu->regPC - 1, 5);\
 }
 
 #define XDCB(base,_name) {\
 	cpu->regWZ = base + (signed char)cpu->tmp;\
-	cpu->t += 5;\
-	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); cpu->t++;\
+	z80_wait(cpu, cpu->regPC - 1, 2);\
+	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); z80_wait(cpu, cpu->regWZ, 1);\
 	cpu->tmpb = _name(cpu, cpu->tmpb);\
 	z80_mwr(cpu, cpu->regWZ, cpu->tmpb);\
 }
@@ -59,15 +65,15 @@ extern const unsigned char FVsubTab[8];
 
 #define	BITX(base,bit) {\
 	cpu->regWZ = base + (signed char)cpu->tmp;\
-	cpu->t += 5;\
-	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); cpu->t++;\
+	z80_wait(cpu, cpu->regPC - 1, 2);\
+	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); z80_wait(cpu, cpu->regWZ, 1);\
 	BITM(bit,cpu->tmpb);\
 }
 
 #define RESX(base,bit) {\
 	cpu->regWZ = base + (signed char)cpu->tmp;\
-	cpu->t += 5;\
-	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); cpu->t++;\
+	z80_wait(cpu, cpu->regPC - 1, 2);\
+	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); z80_wait(cpu, cpu->regWZ, 1);\
 	cpu->tmpb &= ~(0x01 << bit);\
 	z80_mwr(cpu, cpu->regWZ, cpu->tmpb);\
 }
@@ -79,8 +85,8 @@ extern const unsigned char FVsubTab[8];
 
 #define SETX(base,bit) {\
 	cpu->regWZ = base + (signed char)cpu->tmp;\
-	cpu->t += 5;\
-	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); cpu->t++;\
+	z80_wait(cpu, cpu->regPC - 1, 2);\
+	cpu->tmpb = z80_mrd(cpu, cpu->regWZ); z80_wait(cpu, cpu->regWZ, 1);\
 	cpu->tmpb |= (0x01 << bit);\
 	z80_mwr(cpu, cpu->regWZ, cpu->tmpb);\
 }

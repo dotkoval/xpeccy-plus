@@ -32,6 +32,7 @@ void plusRes(Computer* comp) {
 	comp->flgROM = 0;
 	comp->flgDOS = 0;
 	comp->flgEXT = 0;
+	zx_set_vmode(comp);
 }
 
 // in

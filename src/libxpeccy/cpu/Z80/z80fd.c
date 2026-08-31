@@ -88,7 +88,7 @@ void fd2E(CPU* cpu) {
 void fd34(CPU* cpu) {
 	RDSHIFT(cpu->regIY);
 	cpu->tmp = z80_mrd(cpu, cpu->regWZ);
-	cpu->t++;
+	z80_wait(cpu, cpu->regWZ, 1);
 	cpu->tmp = z80_inc8(cpu, cpu->tmp);
 	z80_mwr(cpu, cpu->regWZ,cpu->tmp);
 }
@@ -97,15 +97,16 @@ void fd34(CPU* cpu) {
 void fd35(CPU* cpu) {
 	RDSHIFT(cpu->regIY);
 	cpu->tmp = z80_mrd(cpu, cpu->regWZ);
-	cpu->t++;
+	z80_wait(cpu, cpu->regWZ, 1);
 	cpu->tmp = z80_dec8(cpu, cpu->tmp);
 	z80_mwr(cpu, cpu->regWZ,cpu->tmp);
 }
 
 // 36	ld (iy+e),n	4 3rd {5add 3rd} 3wr	wz = iy+e
 void fd36(CPU* cpu) {
-	RDSHIFT(cpu->regIY);
-	cpu->tmp = z80_mrd(cpu, cpu->regPC++); cpu->t -= 3;
+	RDSHIFT0(cpu->regIY);
+	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
+	z80_wait(cpu, cpu->regPC - 1, 2);
 	z80_mwr(cpu, cpu->regWZ, cpu->tmp);
 }
 
@@ -195,7 +196,7 @@ void fdBE(CPU* cpu) {RDSHIFT(cpu->regIY); cpu->tmpb = z80_mrd(cpu, cpu->regWZ); 
 void fdCB(CPU* cpu) {
 	cpu->opTab = fdcbTab;
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
-	cpu->com = z80_mrd(cpu, cpu->regPC++); cpu->t -= 3;	// not M1. in the same time as ix+e calculating?
+	cpu->com = z80_mrd(cpu, cpu->regPC++);		// not M1. in the same time as iy+e calculating?
 	cpu->op = &fdcbTab[cpu->com];
 	cpu->op->exec(cpu);
 }
@@ -207,8 +208,8 @@ void fdE1(CPU* cpu) {
 
 // e3	ex (sp),iy	4 3rd 4rd 3wr 5wr	wz = iy
 void fdE3(CPU* cpu) {
-	cpu->tmpw = z80_pop(cpu); cpu->t++;	// 3,3+1
-	z80_push(cpu, cpu->regIY); cpu->t += 2;	// 3,3+2
+	cpu->tmpw = z80_pop(cpu); z80_wait(cpu, cpu->regSP - 1, 1);	// 3,3+1
+	z80_push(cpu, cpu->regIY); z80_wait(cpu, cpu->regSP, 2);	// 3,3+2
 	cpu->regIY = cpu->tmpw;
 	cpu->regWZ = cpu->regIY;
 }

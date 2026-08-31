@@ -139,13 +139,20 @@ void memwr(int adr, int val, void* ptr) {
 	comp->hw->mwr(comp,adr,val);
 }
 
+// i/o contention uses the no-mreq table (fuse: ula_contend_port_early/late),
+// so the +2A/+3 asic contends no i/o at all. The address is a stand-in for
+// "a contended page" - the caller has already looked at the port itself.
+//
+// The i/o window sits two ticks later than the memory one. Fuse anchors both
+// at the same tstate, but ula128.tap - which matches a real 128K and
+// Spectaculator pixel for pixel - only comes out right this way, so the test
+// wins over the model until we know why they differ.
+#define IO_CONT_DOTS (-4)
+
 void zx_cont_delay(Computer* comp) {
-	long long wns = vid_wait_dots(comp->vid, 5 << 14) * comp->vid->nsPerDotFixed;	// video is already at end of wait cycle
+	long long wns = vid_wait_dots(comp->vid, 5 << 14, 0, IO_CONT_DOTS) * (long long)comp->vid->nsPerDotFixed;	// video is already at end of wait cycle
 	int t0 = comp->cpu->t;
-	while (wns > 0) {
-		comp->cpu->t++;
-		wns -= comp->nsPerTickFixed;
-	}
+	comp->cpu->t += ns_fixed_to_ticks_up(comp, wns);
 	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - t0));
 	res4 = comp->cpu->t;
 }
@@ -165,10 +172,9 @@ void zx_cont_t1(Computer* comp, int port) {
 
 // Contention on T2-T4
 void zx_cont_tn(Computer* comp, int port) {
+	// zx_cont_t1 took the first of the four slots, three are left here
 	if ((port & 0xc000) == 0x4000) {
 		if (port & 1) {			// C:1 C:1 C:1 C:1
-//			zx_cont_delay(comp);
-//			zx_free_ticks(comp, 1);
 			zx_cont_delay(comp);
 			zx_free_ticks(comp, 1);
 			zx_cont_delay(comp);
@@ -176,15 +182,12 @@ void zx_cont_tn(Computer* comp, int port) {
 			zx_cont_delay(comp);
 			zx_free_ticks(comp, 1);
 		} else {			// C:1 C:3
-//			zx_cont_delay(comp);
-//			zx_free_ticks(comp, 1);
 			zx_cont_delay(comp);
 			zx_free_ticks(comp, 3);
 		}
 	} else if (port & 1) {			// N:4
 		zx_free_ticks(comp, 4-1);
 	} else {				// N:1 C:3
-//		zx_free_ticks(comp, 1);
 		zx_cont_delay(comp);
 		zx_free_ticks(comp, 3);
 	}
@@ -309,9 +312,14 @@ int iord(int port, void* ptr) {
 	Computer* comp = (Computer*)ptr;
 // TODO: zx only
 	if (comp->hw->grp == HWG_ZX) {
-		if (comp->flgCNTI && 0) {
+		if (comp->flgCNTI) {
+			// fuse reads the port after both halves of the i/o cycle have
+			// been contended (periph.c readport), so do the waiting first
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
+			res4 = comp->cpu->t;
 			zx_cont_t1(comp, port);
 			zx_cont_tn(comp, port);
+			comp->cpu->t -= 4;		// z80_iord puts the four back
 		} else {
 			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t + 3 - res4));
 			res4 = comp->cpu->t + 3;
@@ -415,6 +423,11 @@ void comp_irq(int t, void* ptr) {
 			}
 			break;
 		case IRQ_CPU_SYNC:
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
+			res4 = comp->cpu->t;
+			return;			// no machine acts on a plain sync
+		case IRQ_CPU_CONT:
+		case IRQ_CPU_CONTNM:
 			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 			res4 = comp->cpu->t;
 			break;
@@ -654,7 +667,6 @@ void comp_update_timings(Computer* comp) {
 	} else {
 		comp->nsPerTickFixed = NSD_TO_FIXED(comp->nsPerTick);
 	}
-	comp->tickPerNsFixed = (long long)llround((double)(1LL << TICK_FIXED_BITS) / comp->nsPerTick);
 }
 
 void compSetBaseFrq(Computer* comp, double frq) {

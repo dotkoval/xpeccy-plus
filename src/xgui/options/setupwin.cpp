@@ -1009,6 +1009,12 @@ void SetupWin::apply() {
 	comp->flgCNTI = ui.contIO->isChecked() ? 1 : 0;
 	comp->vid->ula->conttype = getRFIData(ui.cbContPattern);
 	comp->vid->ula->early = ui.cbEarlyTiming->isChecked();
+	// The ula type also picks the screen drawer. The reset above ran before this
+	// line and saw the old type, so it has to be redone here - but only while a
+	// plain zx screen is up: a machine sitting in one of its own modes keeps it
+	// and gets the drawer at its next reset.
+	if ((comp->vid->vmode == VID_NORMAL) || (comp->vid->vmode == VID_ULA_SCR))
+		zx_set_vmode(comp);
 	comp->vid->ula->enabled = ui.ulaPlus->isChecked() ? 1 : 0;
 	comp->flgDDP = ui.cbDDp->isChecked() ? 1 : 0;
 	prfSetLayout(NULL, getRFText(ui.geombox));

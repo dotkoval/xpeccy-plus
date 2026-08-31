@@ -173,6 +173,7 @@ int xInFFDF(Computer*, int);
 // common_zx calls
 void zx_init(Computer*);
 void zx_reset(Computer*);
+void zx_set_vmode(Computer*);	// pick the screen drawer for this ula
 void zx_keyp(Computer*, keyEntry*);
 void zx_keyr(Computer*, keyEntry*);
 void zx_sync(Computer*, int);

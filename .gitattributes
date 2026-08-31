@@ -24,3 +24,6 @@ LICENSE_DEJAVU -text
 # the newline, so a CRLF checkout appends a stray \r to the last key of every
 # line (harmless only because findKey() does not know that code)
 config/keymaps/*.map text eol=lf
+# fuse ships these with LF; keep them that way whatever autocrlf is set to
+tools/z80test/tests/* text eol=lf
+tools/z80test/LICENSE text eol=lf

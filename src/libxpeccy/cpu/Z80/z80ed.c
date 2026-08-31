@@ -233,7 +233,7 @@ void ed62(CPU* cpu) {
 void ed67(CPU* cpu) {
 	cpu->regWZ = cpu->regHL;
 	cpu->tmpb = z80_mrd(cpu, cpu->regWZ);
-	cpu->t += 4;
+	z80_wait(cpu, cpu->regWZ, 4);
 	z80_mwr(cpu, cpu->regWZ++, (cpu->regA << 4) | (cpu->tmpb >> 4));
 	cpu->regA = (cpu->regA & 0xf0) | (cpu->tmpb & 0x0f);
 	cpu->flgS = !!(cpu->regA & 0x80);
@@ -274,7 +274,7 @@ void ed6A(CPU* cpu) {
 void ed6F(CPU* cpu) {
 	cpu->regWZ = cpu->regHL;
 	cpu->tmpb = z80_mrd(cpu, cpu->regWZ);
-	cpu->t += 4;
+	z80_wait(cpu, cpu->regWZ, 4);
 	z80_mwr(cpu, cpu->regWZ++, (cpu->tmpb << 4 ) | (cpu->regA & 0x0f));
 	cpu->regA = (cpu->regA & 0xf0) | (cpu->tmpb >> 4);
 	cpu->flgS = !!(cpu->regA & 0x80);
@@ -355,8 +355,9 @@ void ed7B(CPU* cpu) {
 // a0	ldi	4 3rd 5wr
 void edA0(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regHL++);
-	z80_mwr(cpu, cpu->regDE++, cpu->tmp);
-	cpu->t += 2;
+	z80_mwr(cpu, cpu->regDE, cpu->tmp);
+	z80_wait(cpu, cpu->regDE, 2);		// de still holds the address just written
+	cpu->regDE++;
 	cpu->regBC--;
 	cpu->tmp += cpu->regA;
 	cpu->flgF5 = !!(cpu->tmp & 2);
@@ -371,6 +372,7 @@ void edA1(CPU* cpu) {
 	cpu->tmpb = z80_mrd(cpu, cpu->regHL);
 	cpu->tmpw = cpu->regA - cpu->tmpb;
 	cpu->tmp = ((cpu->regA & 0x08) >> 3) | ((cpu->tmpb & 0x08) >> 2) | ((cpu->tmpw & 0x08 ) >> 1);
+	z80_wait(cpu, cpu->regHL, 5);		// hl is still on the bus
 	cpu->regHL++;
 	cpu->regBC--;
 	cpu->flgS = !!(cpu->tmpw & 0x80);
@@ -382,7 +384,6 @@ void edA1(CPU* cpu) {
 	cpu->flgF5 = !!(cpu->tmpw & 2);
 	cpu->flgF3 = !!(cpu->tmpw & 3);
 	cpu->regWZ++;
-	cpu->t += 5;
 }
 
 // TODO: about in/out block instructions PV flag - https://rk.nvg.ntnu.no/sinclair/faq/tech_z80.html#UNDOC
@@ -425,8 +426,9 @@ void edA3(CPU* cpu) {
 // a8	ldd	4 3rd 5wr
 void edA8(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regHL--);
-	z80_mwr(cpu, cpu->regDE--,cpu->tmp);
-	cpu->t += 2;
+	z80_mwr(cpu, cpu->regDE, cpu->tmp);
+	z80_wait(cpu, cpu->regDE, 2);		// de still holds the address just written
+	cpu->regDE--;
 	cpu->regBC--;
 	cpu->tmp += cpu->regA;
 	cpu->flgF5 = !!(cpu->tmp & 2);
@@ -441,6 +443,7 @@ void edA9(CPU* cpu) {
 	cpu->tmpb = z80_mrd(cpu, cpu->regHL);
 	cpu->tmpw = cpu->regA - cpu->tmpb;
 	cpu->tmp = ((cpu->regA & 0x08) >> 3) | ((cpu->tmpb & 0x08) >> 2) | ((cpu->tmpw & 0x08 ) >> 1);
+	z80_wait(cpu, cpu->regHL, 5);		// hl is still on the bus
 	cpu->regHL--;
 	cpu->regBC--;
 	cpu->flgS = !!(cpu->tmpw & 0x80);
@@ -452,7 +455,6 @@ void edA9(CPU* cpu) {
 	cpu->flgF5 = !!(cpu->tmpw & 2);
 	cpu->flgF3 = !!(cpu->tmpw & 8);
 	cpu->regWZ--;
-	cpu->t += 5;
 }
 
 // aa	ind	5 4in 3wr	wz = bc - 1 (before dec)
@@ -491,9 +493,11 @@ void edAB(CPU* cpu) {
 }
 
 // for ldxr/cpxr: f3,f5 from (regPC+1)h
-void blkRepeat(CPU* cpu) {
+// adr is what the last cycle left on the bus - de for ldxr, hl for cpxr - and
+// the five idle ticks are contended against it
+void blkRepeat(CPU* cpu, int adr) {
 	cpu->regPC -= 2;
-	cpu->t += 5;
+	z80_wait(cpu, adr, 5);
 	cpu->regWZ = cpu->regPC + 1;
 	cpu->flgF5 = !!(cpu->regPCh & 0x20);
 	cpu->flgF3 = !!(cpu->regPCh & 0x08);
@@ -503,7 +507,7 @@ void blkRepeat(CPU* cpu) {
 void edB0(CPU* cpu) {
 	edA0(cpu);
 	if (cpu->regBC) {
-		blkRepeat(cpu);
+		blkRepeat(cpu, cpu->regDE - 1);		// de before ldi stepped it
 	}
 }
 
@@ -511,13 +515,13 @@ void edB0(CPU* cpu) {
 void edB1(CPU* cpu) {
 	edA1(cpu);
 	if (cpu->flgPV && !cpu->flgZ) {
-		blkRepeat(cpu);
+		blkRepeat(cpu, cpu->regHL - 1);		// hl before cpi stepped it
 	}
 }
 
-void blkioRepeat(CPU* cpu) {
+void blkioRepeat(CPU* cpu, int adr) {
 	cpu->regPC -= 2;
-	cpu->t += 5;
+	z80_wait(cpu, adr, 5);
 	cpu->regWZ = cpu->regPC + 1;
 	cpu->flgF5 = !!(cpu->regPCh & 0x20);
 	cpu->flgF3 = !!(cpu->regPCh & 0x08);
@@ -544,7 +548,7 @@ void blkioRepeat(CPU* cpu) {
 void edB2(CPU* cpu) {
 	edA2(cpu);
 	if (cpu->regB) {
-		blkioRepeat(cpu);
+		blkioRepeat(cpu, cpu->regHL - 1);	// hl before ini stepped it
 	}
 }
 
@@ -552,7 +556,7 @@ void edB2(CPU* cpu) {
 void edB3(CPU* cpu) {
 	edA3(cpu);
 	if (cpu->regB) {
-		blkioRepeat(cpu);
+		blkioRepeat(cpu, cpu->regBC);		// otxr idles against bc
 	}
 }
 
@@ -560,7 +564,7 @@ void edB3(CPU* cpu) {
 void edB8(CPU* cpu) {
 	edA8(cpu);
 	if (cpu->regBC) {
-		blkRepeat(cpu);
+		blkRepeat(cpu, cpu->regDE + 1);		// de before ldd stepped it
 	}
 }
 
@@ -568,7 +572,7 @@ void edB8(CPU* cpu) {
 void edB9(CPU* cpu) {
 	edA9(cpu);
 	if (cpu->flgPV && !cpu->flgZ) {
-		blkRepeat(cpu);
+		blkRepeat(cpu, cpu->regHL + 1);		// hl before cpd stepped it
 	}
 }
 
@@ -576,7 +580,7 @@ void edB9(CPU* cpu) {
 void edBA(CPU* cpu) {
 	edAA(cpu);
 	if (cpu->regB) {
-		blkioRepeat(cpu);
+		blkioRepeat(cpu, cpu->regHL + 1);	// hl before ind stepped it
 	}
 }
 
@@ -584,7 +588,7 @@ void edBA(CPU* cpu) {
 void edBB(CPU* cpu) {
 	edAB(cpu);
 	if (cpu->regB) {
-		blkioRepeat(cpu);
+		blkioRepeat(cpu, cpu->regBC);		// otxr idles against bc
 	}
 }
 
