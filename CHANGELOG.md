@@ -42,6 +42,15 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **Memory contention is accurate on the 48K, 128K, +2 and +2A/+3.** The ULA now also
+  holds the CPU during an instruction's idle ticks and during `IN`, and the screen is
+  read ahead of the beam the way the real one does. `LDIR` across the screen used to
+  run about a fifth too fast; timing tests, beam-racing demos and multicolour now match
+  a real machine.
+
+- The +2A/+3 raster and interrupt position match the documented figures, and those
+  machines no longer contend port access, which their ASIC does not do.
+
 - Pentagon, 128K, +2A/+3 and Scorpion now hold the frame interrupt for the 36 T-states
   the real machines do, instead of the 48K's 32.
 
