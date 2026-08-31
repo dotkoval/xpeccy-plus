@@ -95,6 +95,12 @@ void z80_set_regs(CPU*, xRegBunch);
 void z80_set_flag(CPU*, int);
 int z80_get_flag(CPU*);
 
+// register pairs the flags/refresh split makes awkward to touch by hand
+void z80_set_af(CPU*, int);
+int z80_get_af(CPU*);
+void z80_set_ir(CPU*, int);
+int z80_get_r(CPU*);
+
 
 // internal
 

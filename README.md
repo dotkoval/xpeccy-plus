@@ -165,6 +165,10 @@ distributed under the MIT license. The original copyright is kept intact - see
 `LICENSE_eng` (`LICENSE_rus` for the Russian text). Xpeccy+ is released under the same
 license, and is maintained by Oleksandr ".koval" Kovalchuk.
 
+The Z80 timing test under `tools/z80test/` derives from Fuse by Philip Kendall and
+carries Fuse's GNU GPL v2-or-later. It is a development tool: none of it is built into
+the emulator, which stays MIT.
+
 The original build instructions are kept as `README.upstream`, together with the links to
 the original documentation. They describe upstream's process, which already differs from
 this fork's.
