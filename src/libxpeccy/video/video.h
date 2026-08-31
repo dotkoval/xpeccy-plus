@@ -373,7 +373,7 @@ void vid_set_mode(Video*,int);
 void vid_reset_ray(Video*);
 void vid_set_ray(Video*, int);
 
-int vid_wait_dots(Video*, int);		// contention wait in dots, not ns
+int vid_wait_dots(Video*, int, int, int);	// contention wait in dots, not ns
 void vid_dark_tail(Video*);
 
 void vid_set_layout(Video*, vLayout*);

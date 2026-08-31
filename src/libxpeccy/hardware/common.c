@@ -48,17 +48,21 @@ void zx_sync(Computer* comp, int ns) {
 
 extern int res4;
 
-void zx_cont_tick(Computer* comp, int adr) {
-	// sync video before this moment
+// Memory contention. The delay for a bus cycle is read from the ULA table at
+// the tick the cycle starts on and added whole, the way fuse does it. The
+// older "step a tick at a time until the window frees" loop agrees with this
+// for the Ferranti pattern, which counts down to zero, but not for the +2A/+3
+// one (1,0,7,6,5,4,3,2), whose last slots reach past the end of the window.
+// Video is already synced to cpu->t by comp_irq before we get here.
+void zx_contend(Computer* comp, int mreq) {
+	if (!comp->flgCNTM) return;
+	MemPage* pg = mem_get_page(comp->mem, comp->cpu->adr);
+	if (pg->type != MEM_RAM) return;
+	int wdots = vid_wait_dots(comp->vid, pg->num << comp->mem->pgshift, mreq, 0);
+	if (!wdots) return;
+	comp->cpu->t += ns_fixed_to_ticks_up(comp, (long long)wdots * comp->vid->nsPerDotFixed);
 	vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 	res4 = comp->cpu->t;
-	int wdots = vid_wait_dots(comp->vid, adr);		// high memory addr
-	if (wdots) {					// if there is contention zone, wait for it ends
-		comp->cpu->t += ns_fixed_to_ticks(comp, wdots * comp->vid->nsPerDotFixed);	// add 'empty' ticks. in fact, there is no ticks at all, cpu stopped
-		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
-		res4 = comp->cpu->t;
-	}
-	// comp->cpu->t++;		// free tick
 }
 
 void zx_irq(Computer* comp, int t) {
@@ -89,21 +93,11 @@ void zx_irq(Computer* comp, int t) {
 		case IRQ_VID_IEND:			// frame int end (for tsconf see in tslab.c)
 			comp->cpu->intrq &= ~Z80_INT;
 			break;
-		case IRQ_CPU_SYNC:			// sync cpu-vid
-			// NOTE: video is already sync'ed in comp_irq
-//			vid_sync(comp->vid, (comp->cpu->t - res4) * comp->nsPerTick);
-//			res4 = comp->cpu->t;
-			// TODO: collect wait from devices
-			if (comp->flgCNTM) {
-				xAdr xa = mem_get_xadr(comp->mem, comp->cpu->adr);
-				if (xa.type == MEM_RAM) {
-					comp->cpu->flgWAIT = !!vid_wait_dots(comp->vid, xa.abs);
-				} else {
-					comp->cpu->flgWAIT = 0;
-				}
-			} else {
-				comp->cpu->flgWAIT = 0;
-			}
+		case IRQ_CPU_CONT:			// memory cycle: contend it
+			zx_contend(comp, 1);
+			break;
+		case IRQ_CPU_CONTNM:			// internal cycle, address on the bus
+			zx_contend(comp, 0);
 			break;
 		case IRQ_CPU_ACK:
 			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));

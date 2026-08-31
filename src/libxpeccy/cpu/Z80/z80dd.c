@@ -88,7 +88,7 @@ void dd2E(CPU* cpu) {
 void dd34(CPU* cpu) {
 	RDSHIFT(cpu->regIX);
 	cpu->tmp = z80_mrd(cpu, cpu->regWZ);
-	cpu->t++;
+	z80_wait(cpu, cpu->regWZ, 1);
 	cpu->tmp = z80_inc8(cpu, cpu->tmp);
 	z80_mwr(cpu, cpu->regWZ, cpu->tmp);
 }
@@ -97,15 +97,16 @@ void dd34(CPU* cpu) {
 void dd35(CPU* cpu) {
 	RDSHIFT(cpu->regIX);
 	cpu->tmp = z80_mrd(cpu, cpu->regWZ);
-	cpu->t++;
+	z80_wait(cpu, cpu->regWZ, 1);
 	cpu->tmp = z80_dec8(cpu, cpu->tmp);
 	z80_mwr(cpu, cpu->regWZ, cpu->tmp);
 }
 
 // 36	ld (ix+e),n	4 3rd {5add 3rd} 3wr	wz = ix+e
 void dd36(CPU* cpu) {
-	RDSHIFT(cpu->regIX);
-	cpu->tmp = z80_mrd(cpu, cpu->regPC++); cpu->t -= 3;
+	RDSHIFT0(cpu->regIX);
+	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
+	z80_wait(cpu, cpu->regPC - 1, 2);
 	z80_mwr(cpu, cpu->regWZ, cpu->tmp);
 }
 
@@ -195,7 +196,7 @@ void ddBE(CPU* cpu) {RDSHIFT(cpu->regIX); cpu->tmpb = z80_mrd(cpu, cpu->regWZ); 
 void ddCB(CPU* cpu) {
 	cpu->opTab = ddcbTab;
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);		// shift
-	cpu->com = z80_mrd(cpu, cpu->regPC++); cpu->t-=3;	// not M1, reading opcode & adding ix+e in parallel?
+	cpu->com = z80_mrd(cpu, cpu->regPC++);	// not M1, reading opcode & adding ix+e in parallel?
 	cpu->op = &ddcbTab[cpu->com];
 	cpu->op->exec(cpu);
 }
@@ -207,8 +208,8 @@ void ddE1(CPU* cpu) {
 
 // e3	ex (sp),ix	4 3rd 4rd 3wr 5wr	wz = ix
 void ddE3(CPU* cpu) {
-	cpu->tmpw = z80_pop(cpu); cpu->t++;
-	z80_push(cpu, cpu->regIX); cpu->t += 2;
+	cpu->tmpw = z80_pop(cpu); z80_wait(cpu, cpu->regSP - 1, 1);
+	z80_push(cpu, cpu->regIX); z80_wait(cpu, cpu->regSP, 2);
 	cpu->regIX = cpu->tmpw;
 	cpu->regWZ = cpu->regIX;
 }

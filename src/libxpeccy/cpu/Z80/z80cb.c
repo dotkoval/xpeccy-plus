@@ -9,7 +9,7 @@ void cb02(CPU* cpu) {cpu->regD = z80_rlc(cpu, cpu->regD);}
 void cb03(CPU* cpu) {cpu->regE = z80_rlc(cpu, cpu->regE);}
 void cb04(CPU* cpu) {cpu->regH = z80_rlc(cpu, cpu->regH);}
 void cb05(CPU* cpu) {cpu->regL = z80_rlc(cpu, cpu->regL);}
-void cb06(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_rlc(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
+void cb06(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_rlc(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
 void cb07(CPU* cpu) {cpu->regA = z80_rlc(cpu, cpu->regA);}
 // 08..0f	rrc
 void cb08(CPU* cpu) {cpu->regB = z80_rrc(cpu, cpu->regB);}
@@ -18,7 +18,7 @@ void cb0A(CPU* cpu) {cpu->regD = z80_rrc(cpu, cpu->regD);}
 void cb0B(CPU* cpu) {cpu->regE = z80_rrc(cpu, cpu->regE);}
 void cb0C(CPU* cpu) {cpu->regH = z80_rrc(cpu, cpu->regH);}
 void cb0D(CPU* cpu) {cpu->regL = z80_rrc(cpu, cpu->regL);}
-void cb0E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_rrc(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
+void cb0E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_rrc(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
 void cb0F(CPU* cpu) {cpu->regA = z80_rrc(cpu, cpu->regA);}
 // 10..17	rl
 void cb10(CPU* cpu) {cpu->regB = z80_rl(cpu, cpu->regB);}
@@ -27,7 +27,7 @@ void cb12(CPU* cpu) {cpu->regD = z80_rl(cpu, cpu->regD);}
 void cb13(CPU* cpu) {cpu->regE = z80_rl(cpu, cpu->regE);}
 void cb14(CPU* cpu) {cpu->regH = z80_rl(cpu, cpu->regH);}
 void cb15(CPU* cpu) {cpu->regL = z80_rl(cpu, cpu->regL);}
-void cb16(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_rl(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
+void cb16(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_rl(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
 void cb17(CPU* cpu) {cpu->regA = z80_rl(cpu, cpu->regA);}
 // 18..1f	rr
 void cb18(CPU* cpu) {cpu->regB = z80_rr(cpu, cpu->regB);}
@@ -36,7 +36,7 @@ void cb1A(CPU* cpu) {cpu->regD = z80_rr(cpu, cpu->regD);}
 void cb1B(CPU* cpu) {cpu->regE = z80_rr(cpu, cpu->regE);}
 void cb1C(CPU* cpu) {cpu->regH = z80_rr(cpu, cpu->regH);}
 void cb1D(CPU* cpu) {cpu->regL = z80_rr(cpu, cpu->regL);}
-void cb1E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_rr(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
+void cb1E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_rr(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL,cpu->tmpb);}
 void cb1F(CPU* cpu) {cpu->regA = z80_rr(cpu, cpu->regA);}
 // 20..27	sla
 void cb20(CPU* cpu) {cpu->regB = z80_sla(cpu, cpu->regB);}
@@ -45,7 +45,7 @@ void cb22(CPU* cpu) {cpu->regD = z80_sla(cpu, cpu->regD);}
 void cb23(CPU* cpu) {cpu->regE = z80_sla(cpu, cpu->regE);}
 void cb24(CPU* cpu) {cpu->regH = z80_sla(cpu, cpu->regH);}
 void cb25(CPU* cpu) {cpu->regL = z80_sla(cpu, cpu->regL);}
-void cb26(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_sla(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
+void cb26(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_sla(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
 void cb27(CPU* cpu) {cpu->regA = z80_sla(cpu, cpu->regA);}
 // 28..2f	sra
 void cb28(CPU* cpu) {cpu->regB = z80_sra(cpu, cpu->regB);}
@@ -54,7 +54,7 @@ void cb2A(CPU* cpu) {cpu->regD = z80_sra(cpu, cpu->regD);}
 void cb2B(CPU* cpu) {cpu->regE = z80_sra(cpu, cpu->regE);}
 void cb2C(CPU* cpu) {cpu->regH = z80_sra(cpu, cpu->regH);}
 void cb2D(CPU* cpu) {cpu->regL = z80_sra(cpu, cpu->regL);}
-void cb2E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_sra(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
+void cb2E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_sra(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
 void cb2F(CPU* cpu) {cpu->regA = z80_sra(cpu, cpu->regA);}
 // 30..37	sll
 void cb30(CPU* cpu) {cpu->regB = z80_sll(cpu, cpu->regB);}
@@ -63,7 +63,7 @@ void cb32(CPU* cpu) {cpu->regD = z80_sll(cpu, cpu->regD);}
 void cb33(CPU* cpu) {cpu->regE = z80_sll(cpu, cpu->regE);}
 void cb34(CPU* cpu) {cpu->regH = z80_sll(cpu, cpu->regH);}
 void cb35(CPU* cpu) {cpu->regL = z80_sll(cpu, cpu->regL);}
-void cb36(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_sll(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
+void cb36(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_sll(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
 void cb37(CPU* cpu) {cpu->regA = z80_sll(cpu, cpu->regA);}
 // 38..3f	srl
 void cb38(CPU* cpu) {cpu->regB = z80_srl(cpu, cpu->regB);}
@@ -72,7 +72,7 @@ void cb3A(CPU* cpu) {cpu->regD = z80_srl(cpu, cpu->regD);}
 void cb3B(CPU* cpu) {cpu->regE = z80_srl(cpu, cpu->regE);}
 void cb3C(CPU* cpu) {cpu->regH = z80_srl(cpu, cpu->regH);}
 void cb3D(CPU* cpu) {cpu->regL = z80_srl(cpu, cpu->regL);}
-void cb3E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); cpu->t++; cpu->tmpb = z80_srl(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
+void cb3E(CPU* cpu) {cpu->tmpb = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); cpu->tmpb = z80_srl(cpu, cpu->tmpb); z80_mwr(cpu, cpu->regHL, cpu->tmpb);}
 void cb3F(CPU* cpu) {cpu->regA = z80_srl(cpu, cpu->regA);}
 
 // 40..47	bit 0,r		4 [4rd]
@@ -82,7 +82,7 @@ void cb42(CPU* cpu) {BIT(0,cpu->regD);}
 void cb43(CPU* cpu) {BIT(0,cpu->regE);}
 void cb44(CPU* cpu) {BIT(0,cpu->regH);}
 void cb45(CPU* cpu) {BIT(0,cpu->regL);}
-void cb46(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(0,cpu->tmp);}
+void cb46(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(0,cpu->tmp);}
 void cb47(CPU* cpu) {BIT(0,cpu->regA);}
 // 48..4f	bit 1,r
 void cb48(CPU* cpu) {BIT(1,cpu->regB);}
@@ -91,7 +91,7 @@ void cb4A(CPU* cpu) {BIT(1,cpu->regD);}
 void cb4B(CPU* cpu) {BIT(1,cpu->regE);}
 void cb4C(CPU* cpu) {BIT(1,cpu->regH);}
 void cb4D(CPU* cpu) {BIT(1,cpu->regL);}
-void cb4E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(1,cpu->tmp);}
+void cb4E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(1,cpu->tmp);}
 void cb4F(CPU* cpu) {BIT(1,cpu->regA);}
 // 50..57	bit 2,r
 void cb50(CPU* cpu) {BIT(2,cpu->regB);}
@@ -100,7 +100,7 @@ void cb52(CPU* cpu) {BIT(2,cpu->regD);}
 void cb53(CPU* cpu) {BIT(2,cpu->regE);}
 void cb54(CPU* cpu) {BIT(2,cpu->regH);}
 void cb55(CPU* cpu) {BIT(2,cpu->regL);}
-void cb56(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(2,cpu->tmp);}
+void cb56(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(2,cpu->tmp);}
 void cb57(CPU* cpu) {BIT(2,cpu->regA);}
 // 58..5f	bit 3,r
 void cb58(CPU* cpu) {BIT(3,cpu->regB);}
@@ -109,7 +109,7 @@ void cb5A(CPU* cpu) {BIT(3,cpu->regD);}
 void cb5B(CPU* cpu) {BIT(3,cpu->regE);}
 void cb5C(CPU* cpu) {BIT(3,cpu->regH);}
 void cb5D(CPU* cpu) {BIT(3,cpu->regL);}
-void cb5E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(3,cpu->tmp);}
+void cb5E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(3,cpu->tmp);}
 void cb5F(CPU* cpu) {BIT(3,cpu->regA);}
 // 60..67	bit 4,r
 void cb60(CPU* cpu) {BIT(4,cpu->regB);}
@@ -118,7 +118,7 @@ void cb62(CPU* cpu) {BIT(4,cpu->regD);}
 void cb63(CPU* cpu) {BIT(4,cpu->regE);}
 void cb64(CPU* cpu) {BIT(4,cpu->regH);}
 void cb65(CPU* cpu) {BIT(4,cpu->regL);}
-void cb66(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(4,cpu->tmp);}
+void cb66(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(4,cpu->tmp);}
 void cb67(CPU* cpu) {BIT(4,cpu->regA);}
 // 68..6f	bit 5,r
 void cb68(CPU* cpu) {BIT(5,cpu->regB);}
@@ -127,7 +127,7 @@ void cb6A(CPU* cpu) {BIT(5,cpu->regD);}
 void cb6B(CPU* cpu) {BIT(5,cpu->regE);}
 void cb6C(CPU* cpu) {BIT(5,cpu->regH);}
 void cb6D(CPU* cpu) {BIT(5,cpu->regL);}
-void cb6E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(5,cpu->tmp);}
+void cb6E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(5,cpu->tmp);}
 void cb6F(CPU* cpu) {BIT(5,cpu->regA);}
 // 70..77	bit 6,r
 void cb70(CPU* cpu) {BIT(6,cpu->regB);}
@@ -136,7 +136,7 @@ void cb72(CPU* cpu) {BIT(6,cpu->regD);}
 void cb73(CPU* cpu) {BIT(6,cpu->regE);}
 void cb74(CPU* cpu) {BIT(6,cpu->regH);}
 void cb75(CPU* cpu) {BIT(6,cpu->regL);}
-void cb76(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(6,cpu->tmp);}
+void cb76(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(6,cpu->tmp);}
 void cb77(CPU* cpu) {BIT(6,cpu->regA);}
 // 78..7f	bit 7,r
 void cb78(CPU* cpu) {BIT(7,cpu->regB);}
@@ -145,7 +145,7 @@ void cb7A(CPU* cpu) {BIT(7,cpu->regD);}
 void cb7B(CPU* cpu) {BIT(7,cpu->regE);}
 void cb7C(CPU* cpu) {BIT(7,cpu->regH);}
 void cb7D(CPU* cpu) {BIT(7,cpu->regL);}
-void cb7E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; BITM(7,cpu->tmp);}
+void cb7E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); BITM(7,cpu->tmp);}
 void cb7F(CPU* cpu) {BIT(7,cpu->regA);}
 
 // 80..87	res 0,r		4 [4rd 3wr]
@@ -155,7 +155,7 @@ void cb82(CPU* cpu) {cpu->regD &= ~0x01;}
 void cb83(CPU* cpu) {cpu->regE &= ~0x01;}
 void cb84(CPU* cpu) {cpu->regH &= ~0x01;}
 void cb85(CPU* cpu) {cpu->regL &= ~0x01;}
-void cb86(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x01);}
+void cb86(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x01);}
 void cb87(CPU* cpu) {cpu->regA &= ~0x01;}
 // 88..8f	res 1,r
 void cb88(CPU* cpu) {cpu->regB &= ~0x02;}
@@ -164,7 +164,7 @@ void cb8A(CPU* cpu) {cpu->regD &= ~0x02;}
 void cb8B(CPU* cpu) {cpu->regE &= ~0x02;}
 void cb8C(CPU* cpu) {cpu->regH &= ~0x02;}
 void cb8D(CPU* cpu) {cpu->regL &= ~0x02;}
-void cb8E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x02);}
+void cb8E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x02);}
 void cb8F(CPU* cpu) {cpu->regA &= ~0x02;}
 // 90..97	res 2,r
 void cb90(CPU* cpu) {cpu->regB &= ~0x04;}
@@ -173,7 +173,7 @@ void cb92(CPU* cpu) {cpu->regD &= ~0x04;}
 void cb93(CPU* cpu) {cpu->regE &= ~0x04;}
 void cb94(CPU* cpu) {cpu->regH &= ~0x04;}
 void cb95(CPU* cpu) {cpu->regL &= ~0x04;}
-void cb96(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x04);}
+void cb96(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x04);}
 void cb97(CPU* cpu) {cpu->regA &= ~0x04;}
 // 98..9f	res 3,r
 void cb98(CPU* cpu) {cpu->regB &= ~0x08;}
@@ -182,7 +182,7 @@ void cb9A(CPU* cpu) {cpu->regD &= ~0x08;}
 void cb9B(CPU* cpu) {cpu->regE &= ~0x08;}
 void cb9C(CPU* cpu) {cpu->regH &= ~0x08;}
 void cb9D(CPU* cpu) {cpu->regL &= ~0x08;}
-void cb9E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x08);}
+void cb9E(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x08);}
 void cb9F(CPU* cpu) {cpu->regA &= ~0x08;}
 // a0..a7	res 4,r
 void cbA0(CPU* cpu) {cpu->regB &= ~0x10;}
@@ -191,7 +191,7 @@ void cbA2(CPU* cpu) {cpu->regD &= ~0x10;}
 void cbA3(CPU* cpu) {cpu->regE &= ~0x10;}
 void cbA4(CPU* cpu) {cpu->regH &= ~0x10;}
 void cbA5(CPU* cpu) {cpu->regL &= ~0x10;}
-void cbA6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x10);}
+void cbA6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x10);}
 void cbA7(CPU* cpu) {cpu->regA &= ~0x10;}
 // a8..af	res 5,r
 void cbA8(CPU* cpu) {cpu->regB &= ~0x20;}
@@ -200,7 +200,7 @@ void cbAA(CPU* cpu) {cpu->regD &= ~0x20;}
 void cbAB(CPU* cpu) {cpu->regE &= ~0x20;}
 void cbAC(CPU* cpu) {cpu->regH &= ~0x20;}
 void cbAD(CPU* cpu) {cpu->regL &= ~0x20;}
-void cbAE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x20);}
+void cbAE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x20);}
 void cbAF(CPU* cpu) {cpu->regA &= ~0x20;}
 // b0..b7	res 6,r
 void cbB0(CPU* cpu) {cpu->regB &= ~0x40;}
@@ -209,7 +209,7 @@ void cbB2(CPU* cpu) {cpu->regD &= ~0x40;}
 void cbB3(CPU* cpu) {cpu->regE &= ~0x40;}
 void cbB4(CPU* cpu) {cpu->regH &= ~0x40;}
 void cbB5(CPU* cpu) {cpu->regL &= ~0x40;}
-void cbB6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x40);}
+void cbB6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x40);}
 void cbB7(CPU* cpu) {cpu->regA &= ~0x40;}
 // b8..bf	res 7,r
 void cbB8(CPU* cpu) {cpu->regB &= ~0x80;}
@@ -218,7 +218,7 @@ void cbBA(CPU* cpu) {cpu->regD &= ~0x80;}
 void cbBB(CPU* cpu) {cpu->regE &= ~0x80;}
 void cbBC(CPU* cpu) {cpu->regH &= ~0x80;}
 void cbBD(CPU* cpu) {cpu->regL &= ~0x80;}
-void cbBE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x80);}
+void cbBE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL, cpu->tmp & ~0x80);}
 void cbBF(CPU* cpu) {cpu->regA &= ~0x80;}
 
 // c0..c7	set 0,r		4 [4rd 3wr]
@@ -228,7 +228,7 @@ void cbC2(CPU* cpu) {cpu->regD |= 0x01;}
 void cbC3(CPU* cpu) {cpu->regE |= 0x01;}
 void cbC4(CPU* cpu) {cpu->regH |= 0x01;}
 void cbC5(CPU* cpu) {cpu->regL |= 0x01;}
-void cbC6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 1);}
+void cbC6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 1);}
 void cbC7(CPU* cpu) {cpu->regA |= 0x01;}
 // c8..cf	set 1,r
 void cbC8(CPU* cpu) {cpu->regB |= 0x02;}
@@ -237,7 +237,7 @@ void cbCA(CPU* cpu) {cpu->regD |= 0x02;}
 void cbCB(CPU* cpu) {cpu->regE |= 0x02;}
 void cbCC(CPU* cpu) {cpu->regH |= 0x02;}
 void cbCD(CPU* cpu) {cpu->regL |= 0x02;}
-void cbCE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 2);}
+void cbCE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 2);}
 void cbCF(CPU* cpu) {cpu->regA |= 0x02;}
 // d0..d7	set 2,r
 void cbD0(CPU* cpu) {cpu->regB |= 0x04;}
@@ -246,7 +246,7 @@ void cbD2(CPU* cpu) {cpu->regD |= 0x04;}
 void cbD3(CPU* cpu) {cpu->regE |= 0x04;}
 void cbD4(CPU* cpu) {cpu->regH |= 0x04;}
 void cbD5(CPU* cpu) {cpu->regL |= 0x04;}
-void cbD6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 4);}
+void cbD6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 4);}
 void cbD7(CPU* cpu) {cpu->regA |= 0x04;}
 // d8..df	set 3,r
 void cbD8(CPU* cpu) {cpu->regB |= 0x08;}
@@ -255,7 +255,7 @@ void cbDA(CPU* cpu) {cpu->regD |= 0x08;}
 void cbDB(CPU* cpu) {cpu->regE |= 0x08;}
 void cbDC(CPU* cpu) {cpu->regH |= 0x08;}
 void cbDD(CPU* cpu) {cpu->regL |= 0x08;}
-void cbDE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 8);}
+void cbDE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 8);}
 void cbDF(CPU* cpu) {cpu->regA |= 0x08;}
 // e0..e7	set 4,r
 void cbE0(CPU* cpu) {cpu->regB |= 0x10;}
@@ -264,7 +264,7 @@ void cbE2(CPU* cpu) {cpu->regD |= 0x10;}
 void cbE3(CPU* cpu) {cpu->regE |= 0x10;}
 void cbE4(CPU* cpu) {cpu->regH |= 0x10;}
 void cbE5(CPU* cpu) {cpu->regL |= 0x10;}
-void cbE6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x10);}
+void cbE6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x10);}
 void cbE7(CPU* cpu) {cpu->regA |= 0x10;}
 // e8..ef	set 5,r
 void cbE8(CPU* cpu) {cpu->regB |= 0x20;}
@@ -273,7 +273,7 @@ void cbEA(CPU* cpu) {cpu->regD |= 0x20;}
 void cbEB(CPU* cpu) {cpu->regE |= 0x20;}
 void cbEC(CPU* cpu) {cpu->regH |= 0x20;}
 void cbED(CPU* cpu) {cpu->regL |= 0x20;}
-void cbEE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x20);}
+void cbEE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x20);}
 void cbEF(CPU* cpu) {cpu->regA |= 0x20;}
 // f0..f7	set 6,r
 void cbF0(CPU* cpu) {cpu->regB |= 0x40;}
@@ -282,7 +282,7 @@ void cbF2(CPU* cpu) {cpu->regD |= 0x40;}
 void cbF3(CPU* cpu) {cpu->regE |= 0x40;}
 void cbF4(CPU* cpu) {cpu->regH |= 0x40;}
 void cbF5(CPU* cpu) {cpu->regL |= 0x40;}
-void cbF6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x40);}
+void cbF6(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x40);}
 void cbF7(CPU* cpu) {cpu->regA |= 0x40;}
 // f8..ff	set 7,r
 void cbF8(CPU* cpu) {cpu->regB |= 0x80;}
@@ -291,7 +291,7 @@ void cbFA(CPU* cpu) {cpu->regD |= 0x80;}
 void cbFB(CPU* cpu) {cpu->regE |= 0x80;}
 void cbFC(CPU* cpu) {cpu->regH |= 0x80;}
 void cbFD(CPU* cpu) {cpu->regL |= 0x80;}
-void cbFE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); cpu->t++; z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x80);}
+void cbFE(CPU* cpu) {cpu->tmp = z80_mrd(cpu, cpu->regHL); z80_wait(cpu, cpu->regHL, 1); z80_mwr(cpu, cpu->regHL,cpu->tmp | 0x80);}
 void cbFF(CPU* cpu) {cpu->regA |= 0x80;}
 
 // ===

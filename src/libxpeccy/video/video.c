@@ -514,10 +514,17 @@ void vid_get_screen(Video* vid, unsigned char* dst, int bank, int shift, int fla
 static int contTabA[] = {12,11,10,9,8,7,6,5,4,3,2,1,0,0,0,0};		// 48K 128K +2 (bank 1,3,5,7)
 static int contTabB[] = {2,1,0,0,14,13,12,11,10,9,8,7,6,5,4,3};		// +2A +3 (bank 4,5,6,7)
 
-// returns dots, not nanoseconds: one caller only tests it for zero, and the two
-// that want time want it in fixed point, so multiplying by the dot period here
-// would both round and be thrown away
-int vid_wait_dots(Video* vid, int adr) {
+// The delay for one bus cycle, read at the dot the cycle starts on. Returns
+// dots, not nanoseconds: the callers want time in fixed point, so multiplying
+// by the dot period here would both round and be thrown away.
+// mreq tells a real memory cycle from an internal one that only parks an
+// address on the bus. The Ferranti ULA of the 48K/128K/+2 contends both, the
+// Amstrad ASIC of the +2A/+3 only the former - same split as fuse's
+// ula_contention / ula_contention_no_mreq.
+// dotofs shifts the window for callers whose cycle is anchored differently -
+// see IO_CONT_DOTS in spectrum.c
+int vid_wait_dots(Video* vid, int adr, int mreq, int dotofs) {
+	int xscr;
 	int* contTab = NULL;
 	switch (vid->ula->conttype) {
 		case CONT_PATA:
@@ -525,6 +532,7 @@ int vid_wait_dots(Video* vid, int adr) {
 			contTab = contTabA;
 			break;
 		case CONT_PATB:				// pages 4,5,6,7
+			if (!mreq) return 0;		// asic contends mreq cycles only
 			adr &= 0x10000;
 			contTab = contTabB;
 			break;
@@ -533,7 +541,8 @@ int vid_wait_dots(Video* vid, int adr) {
 	if (!adr) return 0;				// address not in contention limits
 	if (vid->vbrd) return 0;			// border (vertical)
 	xscr = vid->ray.x - vid->bord.x;
-	xscr += vid->ula->early ? 6 : 4;		// 4 for starting @14336, 6 for @14335 (late/early timing?) -> for classic48 screen layout
+	// dots the ULA starts fetching ahead of the first displayed pixel
+	xscr += (vid->ula->early ? 10 : 8) + dotofs;
 	if (xscr < 0) return 0;				// line before contention
 	if (xscr >= vid->scrn.x) return 0;		// line after contention
 	return contTab[xscr & 0x0f];			// wait length in dots

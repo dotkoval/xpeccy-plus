@@ -184,19 +184,6 @@ HardWare* findHardware(const char* name) {
 // mem
 
 static MemPage* pg;
-extern int res4;
-static int wdots;
-
-void zx_cont_mem(Computer* comp) {
-	if (pg->type == MEM_RAM) {
-		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));	// before
-		res4 = comp->cpu->t;
-		wdots = vid_wait_dots(comp->vid, pg->num << 8);
-		comp->cpu->t += ns_fixed_to_ticks(comp, wdots * comp->vid->nsPerDotFixed);
-		vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
-		res4 = comp->cpu->t;
-	}
-}
 
 int stdMRd(Computer* comp, int adr, int m1) {
 	pg = mem_get_page(comp->mem, adr);	// = &comp->mem->map[(adr >> 8) & 0xff];

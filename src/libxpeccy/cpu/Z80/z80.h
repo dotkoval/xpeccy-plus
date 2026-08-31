@@ -100,6 +100,7 @@ int z80_get_flag(CPU*);
 
 int z80_mrd(CPU*, int);
 void z80_mwr(CPU*, int, int);
+void z80_wait(CPU*, int, int);		// n internal ticks with an address on the bus
 int z80_iord(CPU*, int);
 void z80_iowr(CPU*, int, int);
 // alu

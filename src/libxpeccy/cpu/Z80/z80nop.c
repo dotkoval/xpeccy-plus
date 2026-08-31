@@ -164,9 +164,9 @@ void npr10(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
 	cpu->regB--;
 	if (cpu->regB) {
+		z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 		cpu->regPC += (signed char)cpu->tmp;
 		cpu->regWZ = cpu->regPC;
-		cpu->t += 5;
 	}
 }
 
@@ -217,9 +217,9 @@ void npr17(CPU* cpu) {
 // 18	jr e		4 3rd 5jr
 void npr18(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
+	z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 	cpu->regPC += (signed char)cpu->tmp;
 	cpu->regWZ = cpu->regPC;
-	cpu->t += 5;
 }
 
 // 19	add hl,de	11	wz = hl+1 before adding
@@ -268,9 +268,9 @@ void npr1F(CPU* cpu) {
 void npr20(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgZ) {
+		z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 		cpu->regPC += (signed char)cpu->tmp;
 		cpu->regWZ = cpu->regPC;
-		cpu->t += 5;
 	}
 }
 
@@ -319,9 +319,9 @@ void npr27(CPU* cpu) {
 void npr28(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgZ) {
+		z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 		cpu->regPC += (signed char)cpu->tmp;
 		cpu->regWZ = cpu->regPC;
-		cpu->t += 5;
 	}
 }
 
@@ -371,9 +371,9 @@ void npr2F(CPU* cpu) {
 void npr30(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgC) {
+		z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 		cpu->regPC += (signed char)cpu->tmp;
 		cpu->regWZ = cpu->regPC;
-		cpu->t += 5;
 	}
 }
 
@@ -399,16 +399,16 @@ void npr33(CPU* cpu) {
 // 34	inc (hl)	4 3rd 4wr
 void npr34(CPU* cpu) {
 	cpu->tmpb = z80_mrd(cpu, cpu->regHL);
+	z80_wait(cpu, cpu->regHL, 1);
 	cpu->tmpb = z80_inc8(cpu, cpu->tmpb);
-	cpu->t++;
 	z80_mwr(cpu, cpu->regHL, cpu->tmpb);
 }
 
 // 35	dec (hl)	4 3rd 4wr
 void npr35(CPU* cpu) {
 	cpu->tmpb = z80_mrd(cpu, cpu->regHL);
+	z80_wait(cpu, cpu->regHL, 1);
 	cpu->tmpb = z80_dec8(cpu, cpu->tmpb);
-	cpu->t++;
 	z80_mwr(cpu, cpu->regHL, cpu->tmpb);
 }
 
@@ -431,9 +431,9 @@ void npr37(CPU* cpu) {
 void npr38(CPU* cpu) {
 	cpu->tmp = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgC) {
+		z80_wait(cpu, cpu->regPC - 1, 5);	// offset byte still on the bus
 		cpu->regPC += (signed char)cpu->tmp;
 		cpu->regWZ = cpu->regPC;
-		cpu->t += 5;
 	}
 }
 
@@ -659,7 +659,7 @@ void nprC4(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgZ) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -709,7 +709,7 @@ void nprCC(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgZ) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -720,7 +720,7 @@ void nprCC(CPU* cpu) {
 void nprCD(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
-	cpu->t++;
+	z80_wait(cpu, cpu->regPC - 1, 1);
 	z80_call(cpu, cpu->regWZ);
 	//z80_push(cpu, cpu->regPC);
 	//cpu->regPC = cpu->regWZ;
@@ -767,7 +767,7 @@ void nprD4(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgC) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -821,7 +821,7 @@ void nprDC(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgC) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -863,8 +863,8 @@ void nprE2(CPU* cpu) {
 
 // e3	ex (sp),hl	4 3rd 4rd 3wr 5wr	wz = hl
 void nprE3(CPU* cpu) {
-	cpu->tmpw = z80_pop(cpu); cpu->t++;	// 3,3+1
-	z80_push(cpu, cpu->regHL); cpu->t += 2;	// 3,3+2
+	cpu->tmpw = z80_pop(cpu); z80_wait(cpu, cpu->regSP - 1, 1);	// 3,3+1
+	z80_push(cpu, cpu->regHL); z80_wait(cpu, cpu->regSP, 2);	// 3,3+2
 	cpu->regHL = cpu->tmpw;
 	cpu->regWZ = cpu->regHL;
 }
@@ -874,7 +874,7 @@ void nprE4(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgPV) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -924,7 +924,7 @@ void nprEC(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgPV) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -978,7 +978,7 @@ void nprF4(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (!cpu->flgS) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;
@@ -1033,7 +1033,7 @@ void nprFC(CPU* cpu) {
 	cpu->regWZl = z80_mrd(cpu, cpu->regPC++);
 	cpu->regWZh = z80_mrd(cpu, cpu->regPC++);
 	if (cpu->flgS) {
-		cpu->t++;
+		z80_wait(cpu, cpu->regPC - 1, 1);
 		z80_call(cpu, cpu->regWZ);
 		//z80_push(cpu, cpu->regPC);
 		//cpu->regPC = cpu->regWZ;

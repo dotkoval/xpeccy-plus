@@ -45,6 +45,8 @@ enum {
 	IRQ_RZX_INT,
 	IRQ_DMA,
 	IRQ_CPU_SYNC,	// sync cpu ticks
+	IRQ_CPU_CONT,	// sync + wait states for the bus cycle about to start (MREQ)
+	IRQ_CPU_CONTNM,	// same, for an internal cycle that only holds an address
 	IRQ_CPU_HALT,	// enter halt cycle
 	IRQ_CPU_ACK,	// = sync + set flgACK if interrupt (Z80)
 	IRQ_FDC,	// ibm, pc98
