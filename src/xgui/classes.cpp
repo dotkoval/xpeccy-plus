@@ -103,6 +103,16 @@ void xHexSpin::setSplit(bool on) {
 	updatePal();		// the whole-field colour follows the setting too
 }
 
+// A field the caller keeps lit until it says otherwise, for a value marked for
+// a reason of its own rather than because it just moved. It always lights
+// whole: the per-byte highlight of XHS_SPLIT has nothing to say about it.
+void xHexSpin::setLit(bool on) {
+	int flg = on ? (hsflag | XHS_LIT) : (hsflag & ~XHS_LIT);
+	if (flg == hsflag) return;
+	hsflag = flg;
+	updatePal();
+}
+
 // How many bytes the field shows separately, 0 = it does not. Only hex lines
 // digits up with bytes, and only a centered field has its text where paintEvent
 // works it out to be - the two margins cancel out there.
@@ -117,6 +127,7 @@ int xHexSpin::splitBytes() {
 // moved, or this field does not show them apart. The style sheet draws that
 // case; paintEvent draws the rest.
 bool xHexSpin::wholeFieldLit() {
+	if (hsflag & XHS_LIT) return true;
 	int bytes = splitBytes();
 	return chgMask && (!bytes || (chgMask == ((1 << bytes) - 1)));
 }

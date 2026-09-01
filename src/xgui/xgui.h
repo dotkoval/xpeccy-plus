@@ -37,6 +37,7 @@ void setRFIndex(QComboBox*, QVariant, int = 0);
 #define XHS_UPD (1<<3)		// force update text, reset after using
 #define XHS_AUTOW (1<<4)	// keep width as narrow as the value needs
 #define XHS_SPLIT (1<<5)	// light the bytes that changed, not the whole value
+#define XHS_LIT (1<<6)		// keep the field lit whatever the value does
 
 class xHexSpin : public QLineEdit {
 	Q_OBJECT
@@ -49,6 +50,7 @@ class xHexSpin : public QLineEdit {
 		void updatePal();
 		void refitWidth();
 		void setSplit(bool);
+		void setLit(bool);
 		int getMax();
 	signals:
 		void valueChanged(int);
