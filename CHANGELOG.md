@@ -41,6 +41,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- **The memory map panel is gone - its controls are in the MEMMAP block** of the side panel.
+  Each of the four 16K banks is a ROM/RAM box and a page number to type in, and a bank set by
+  hand stays highlighted until the machine pages over it. Restore is on the right-click menu
+  of the block. Machines that do not page in 16K blocks keep the read-only list they had.
+
 - **A register that changed lights only the byte that changed**, not the whole field - so `IR`
   shows that `I` moved even though `R` moves on nearly every instruction. `PC` and `SP` stay
   whole, nothing touches half of an address. "Split pairs" in the menu on the CPU panel's

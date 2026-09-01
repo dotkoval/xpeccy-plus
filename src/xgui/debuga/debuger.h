@@ -122,9 +122,15 @@ class DebugWin : public QMainWindow {
 		// apu (future)
 		xCiaWidget* wid_cia;
 		xVicWidget* wid_vic;
-		xMMapWidget* wid_mmap;
 		xHeatWidget* wid_heat;
 		QList<xDockWidget*> dockWidgets;
+
+		// MEMMAP: the four 16K banks, editable on ZX and read-only labels elsewhere
+		MemPage mem_map[256];		// the map as it was on entry, for Restore
+		QComboBox* mmapType[4];
+		xHexSpin* mmapPage[4];
+		QLabel* mmapLab[4];
+		int mmapForced[4];		// (type << 16) | page the user forced, -1 = none
 
 		QList<xLabel*> dbgRegLabs;
 		QList<xHexSpin*> dbgRegEdit;
@@ -168,6 +174,7 @@ class DebugWin : public QMainWindow {
 		void fillCPU();
 		void fillFlags(const char*);
 		void fillMem();
+		void setMMapMark(int, bool);
 		void fillStack();
 		void fillPorts();
 		void setPortRow(int, QString, QString);
@@ -206,7 +213,7 @@ class DebugWin : public QMainWindow {
 		void doStep();
 
 		void saveDasm();
-		void d_remap(int, int, int);
+		void mmapEdit(int);
 		void save_mem_map();
 		void rest_mem_map();
 

@@ -24,7 +24,8 @@
 // file is refused instead of scattering panels it knows nothing about.
 // 1 = cpu, disasm, misc and stack became docks (the MISCTOOLBAR is gone)
 // 2 = empty anchor strips at the left and right edges
-#define DBG_LAYOUT_VERSION	2
+// 3 = the memory map panel is gone, its controls sit in MEMMAP
+#define DBG_LAYOUT_VERSION	3
 
 // The cpu panel's geometry. One register takes three grid columns - name, value
 // and a gap after it - so layout column k starts on grid column k * RCOL_STEP
@@ -215,24 +216,22 @@ void DebugWin::styleTabBars() {
 void DebugWin::save_mem_map() {
 	Computer* comp = conf.prof.cur->zx;
 	for (int i = 0; i < 256; i++) {
-		wid_mmap->mem_map[i] = comp->mem->map[i];
+		mem_map[i] = comp->mem->map[i];
+	}
+	for (int i = 0; i < 4; i++) {
+		mmapForced[i] = -1;
 	}
 }
 
 void DebugWin::rest_mem_map() {
 	Computer* comp = conf.prof.cur->zx;
 	for (int i = 0; i < 256; i++) {
-		 comp->mem->map[i] = wid_mmap->mem_map[i];
+		comp->mem->map[i] = mem_map[i];
+	}
+	for (int i = 0; i < 4; i++) {
+		mmapForced[i] = -1;
 	}
 	fillAll();
-}
-
-void DebugWin::d_remap(int _b, int _t, int _n) {
-	Computer* comp = conf.prof.cur->zx;
-	memSetBank(comp->mem, _b, _t, _n, MEM_16K, NULL, NULL, NULL);
-	wid_dump->draw();
-	ui_asm.dasmTable->updContent();
-	wid_mmap->draw();
 }
 
 // The whole panel tree is realized, polished and laid out on the first show,
@@ -332,6 +331,7 @@ void DebugWin::onPrfChange() {
 	foreach (xDockWidget* dw, dockWidgets) {
 		dw->setHidden(!(dw->hwList.isEmpty() || dw->hwList.contains(tabMode)));
 	}
+	setMiscBlocks();		// the bank fields are for the ZX group only
 
 	// set input line base
 	foreach(xHexSpin* xhs, dbgRegEdit) {
@@ -431,14 +431,13 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_ppu = new xPPUWidget(":/images/nespad.png","NES PPU");
 	wid_cia = new xCiaWidget("","CIA");
 	wid_vic = new xVicWidget("","VIC");
-	wid_mmap = new xMMapWidget(":/images/memory.png","Memory map");
-	wid_heat = new xHeatWidget(":/images/heatmap.png","Heat map");
+	wid_heat = new xHeatWidget(":/images/memory.png","Heat map");
 	wid_ps2 = new xPS2Widget("","PS/2");
 	wid_pal = new xPalWidget(":/images/palette.png", "Palette");
 
 	dockWidgets << wid_dump << wid_rdump << wid_disk_dump << wid_vmem_dump << wid_cmos_dump;
 	dockWidgets << wid_brk << wid_zxscr << wid_ay << wid_tape;
-	dockWidgets << wid_fdd << wid_mmap << wid_heat << wid_gb << wid_gbv << wid_ppu << wid_pal;
+	dockWidgets << wid_fdd << wid_heat << wid_gb << wid_gbv << wid_ppu << wid_pal;
 	dockWidgets << wid_cia << wid_dma << wid_pic << wid_pit << wid_vga << wid_ps2;
 
 	// misc used to be one monolithic MISCTOOLBAR pinned to the window edge.
@@ -680,8 +679,6 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	connect(ui_asm.actDisasm, SIGNAL(triggered(bool)),this,SLOT(saveDasm()));
 	connect(ui_asm.tbRefresh, SIGNAL(released()), this, SLOT(reload()));
 
-	connect(wid_mmap, SIGNAL(s_remap(int, int, int)), this, SLOT(d_remap(int,int,int)));
-	connect(wid_mmap, &xMMapWidget::s_restore, this, &DebugWin::rest_mem_map);
 	connect(wid_heat, &xHeatWidget::s_adr, ui_asm.dasmTable, &xDisasmTable::setAdrX);
 
 //	connect (ui.tbSaveVRam, SIGNAL(released()), this, SLOT(saveVRam()));
@@ -738,6 +735,42 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	setLabelMenu(ui_misc.labPorts, ":/images/bars.png", "Watched ports...", [this](){
 		editWatchPorts();
 	});
+	// MEMMAP: the four 16K banks. Only a ZX pages in 16K blocks, so the fields
+	// are for that group and the rest keep the labels they always had
+	mmapType[0] = ui_misc.cbPG0;	mmapPage[0] = ui_misc.numPG0;	mmapLab[0] = ui_misc.labPG0;
+	mmapType[1] = ui_misc.cbPG1;	mmapPage[1] = ui_misc.numPG1;	mmapLab[1] = ui_misc.labPG1;
+	mmapType[2] = ui_misc.cbPG2;	mmapPage[2] = ui_misc.numPG2;	mmapLab[2] = ui_misc.labPG2;
+	mmapType[3] = ui_misc.cbPG3;	mmapPage[3] = ui_misc.numPG3;	mmapLab[3] = ui_misc.labPG3;
+	QWidgetList mmapMenu;
+	mmapMenu << ui_misc.widMMap;
+	for (i = 0; i < 4; i++) {
+		mmapForced[i] = -1;
+		mmapType[i]->addItem("ROM", MEM_ROM);
+		mmapType[i]->addItem("RAM", MEM_RAM);
+		// no wider than the three letters and the arrow: this column is narrow
+		// and the stack panel under it lives with whatever width is set here
+		mmapType[i]->setSizeAdjustPolicy(QComboBox::AdjustToContents);
+		mmapType[i]->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+		// no XHS_BGR: this field is lit by the forced mark, not by the value moving
+		mmapPage[i]->setXFlag(XHS_FILL | XHS_AUTOW);
+		mmapPage[i]->setMax(0xff);
+		QString tip = QString("%0..%1").arg(i * 0x4000, 4, 16, QChar('0'))
+			.arg(i * 0x4000 + 0x3fff, 4, 16, QChar('0')).toUpper();
+		mmapType[i]->setToolTip(tip);
+		mmapPage[i]->setToolTip(tip);
+		mmapLab[i]->setToolTip(tip);
+		connect(mmapType[i], QOverload<int>::of(&QComboBox::currentIndexChanged), this, [this, i](int){mmapEdit(i);});
+		connect(mmapPage[i], &xHexSpin::valueChanged, this, [this, i](int){mmapEdit(i);});
+		mmapMenu << mmapType[i] << mmapPage[i] << mmapLab[i];
+	}
+	// anywhere in the block answers the right button, the way FRAME does
+	foreach (QWidget* wid, mmapMenu) {
+		setLabelMenu(wid, ":/images/refresh.png", "Restore mapping", [this](){rest_mem_map();});
+	}
+	// the rows keep their own width and sit centered, like the labels around
+	// them: stretched to the dock they would drag the whole column wider
+	ui_misc.verticalLayout->setAlignment(ui_misc.widMMap, Qt::AlignHCenter);
+
 	setLabelMenu(ui_misc.labHeadFrame, ":/images/refresh.png", "Reset counter", [this](){
 		conf.prof.cur->zx->frmCount = 0;
 		fillNotCPU();
@@ -1626,7 +1659,6 @@ void DebugWin::setDefaultLayout() {
 	tabifyDockWidget(wid_brk, wid_ay);
 	tabifyDockWidget(wid_brk, wid_tape);
 	tabifyDockWidget(wid_brk, wid_fdd);
-	tabifyDockWidget(wid_brk, wid_mmap);
 	tabifyDockWidget(wid_brk, wid_heat);
 	tabifyDockWidget(wid_brk, wid_gb);
 	tabifyDockWidget(wid_brk, wid_gbv);
@@ -1915,12 +1947,54 @@ QString getPageName(MemPage& pg) {
 	return res;
 }
 
+// A bank the user forced is marked the way a changed register is. The type
+// beside it goes bold instead: a style sheet on a combo box makes Qt draw the
+// whole widget through the sheet, and its arrow changes shape with it.
+void DebugWin::setMMapMark(int idx, bool on) {
+	mmapPage[idx]->setLit(on);
+	QFont fnt = mmapType[idx]->font();
+	if (fnt.bold() == on) return;
+	fnt.setBold(on);
+	mmapType[idx]->setFont(fnt);
+}
+
 void DebugWin::fillMem() {
 	Computer* comp = conf.prof.cur->zx;
-	ui_misc.labPG0->setText(getPageName(comp->mem->map[0x00]));
-	ui_misc.labPG1->setText(getPageName(comp->mem->map[0x40]));
-	ui_misc.labPG2->setText(getPageName(comp->mem->map[0x80]));
-	ui_misc.labPG3->setText(getPageName(comp->mem->map[0xc0]));
+	// each field costs a style pass, so fill them only while they are up - the
+	// same rule the docks are refreshed by. The labels stand in for them where
+	// the fields are hidden, so those are written either way
+	bool edit = ui_misc.widMMap->isVisible();
+	MemPage pg;
+	int page;
+	block = 1;
+	for (int i = 0; i < 4; i++) {
+		pg = comp->mem->map[i << 6];
+		page = pg.num >> 6;
+		mmapLab[i]->setText(getPageName(pg));
+		if (!edit) continue;
+		// the machine pages whenever it likes and says nothing: a bank stays
+		// marked as forced only while the value put there is still in the map
+		if (mmapForced[i] != ((pg.type << 16) | page)) mmapForced[i] = -1;
+		setRFIndex(mmapType[i], pg.type);
+		mmapPage[i]->setValue(page);
+		setMMapMark(i, mmapForced[i] >= 0);
+	}
+	block = 0;
+}
+
+// Forcing a bank in: this writes into the map behind the machine's back, so it
+// holds only until the machine pages that bank itself. Restore puts back the
+// whole map as it was when the debugger opened.
+void DebugWin::mmapEdit(int bank) {
+	if (block) return;
+	Computer* comp = conf.prof.cur->zx;
+	int type = getRFIData(mmapType[bank]);
+	int page = mmapPage[bank]->getValue();
+	memSetBank(comp->mem, bank << 6, type, page, MEM_16K, NULL, NULL, NULL);
+	mmapForced[bank] = (type << 16) | page;
+	wid_dump->draw();
+	ui_asm.dasmTable->updContent();
+	fillMem();
 }
 
 void DebugWin::loadMap() {
@@ -2143,10 +2217,13 @@ void DebugWin::editWatchPorts() {
 // PORTS is left to fillPorts: it is the only one that can be empty by itself
 
 void DebugWin::setMiscBlocks() {
-	ui_misc.labPG0->setVisible(conf.dbg.showmmap);
-	ui_misc.labPG1->setVisible(conf.dbg.showmmap);
-	ui_misc.labPG2->setVisible(conf.dbg.showmmap);
-	ui_misc.labPG3->setVisible(conf.dbg.showmmap);
+	xProfile* prf = conf.prof.cur;
+	bool zx = prf && (prf->zx->hw->grp == HWG_ZX);
+	ui_misc.widMMap->setVisible(conf.dbg.showmmap && zx);
+	ui_misc.labPG0->setVisible(conf.dbg.showmmap && !zx);
+	ui_misc.labPG1->setVisible(conf.dbg.showmmap && !zx);
+	ui_misc.labPG2->setVisible(conf.dbg.showmmap && !zx);
+	ui_misc.labPG3->setVisible(conf.dbg.showmmap && !zx);
 	ui_misc.labHeadSignal->setVisible(conf.dbg.showsig);
 	ui_misc.labDOS->setVisible(conf.dbg.showsig);
 	ui_misc.labROM->setVisible(conf.dbg.showsig);

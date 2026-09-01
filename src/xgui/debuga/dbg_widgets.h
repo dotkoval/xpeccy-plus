@@ -127,29 +127,6 @@ class xGBVideoWidget : public xDockWidget {
 		Ui::TableWidget ui;
 };
 
-// memmap
-
-#include "ui_form_mem.h"
-
-class xMMapWidget : public xDockWidget {
-	Q_OBJECT
-	public:
-		xMMapWidget(QString, QString, QWidget* = nullptr);
-		MemPage mem_map[256];
-	signals:
-		void s_restore();
-		void s_remap(int, int, int);
-	public slots:
-		void draw();
-	private slots:
-		void remap_b0();
-		void remap_b1();
-		void remap_b2();
-		void remap_b3();
-	private:
-		Ui::MMapWidget ui;
-};
-
 // nesapu
 
 // nesppu
