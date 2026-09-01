@@ -154,8 +154,11 @@ void DebugWin::updateStyle() {
 	// A style sheet gives every widget a font of its own, which stops the
 	// propagation from this window: the panels would fall back to the
 	// interface font. Hand the font over one by one.
+	// Menus keep the interface font: the debugger one is a monospace picked for
+	// the listings and it reads as a different program in a popup
+	QFont uiFont = QApplication::font();
 	foreach(QWidget* wid, findChildren<QWidget*>()) {
-		wid->setFont(conf.dbg.font);
+		wid->setFont(qobject_cast<QMenu*>(wid) ? uiFont : conf.dbg.font);
 	}
 	foreach(xHexSpin* xhs, dbgRegEdit) {
 		xhs->updatePal();	// takes the new font from the parent
