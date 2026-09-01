@@ -231,6 +231,7 @@ void saveConfig() {
 	fprintf(cfile, "stack.offset = %i\n", conf.dbg.stackofs);
 	fprintf(cfile, "scr.zoom = %i\n", conf.dbg.scrzoom);
 	fprintf(cfile, "regs.layout = %i\n", conf.dbg.reglayout);
+	fprintf(cfile, "regs.split = %s\n", YESNO(conf.dbg.regsplit));
 	fprintf(cfile, "dim.address = %s\n", YESNO(conf.dbg.dimadr));
 	fprintf(cfile, "dim.opcodes = %s\n", YESNO(conf.dbg.dimops));
 	fprintf(cfile, "syntax.colors = %s\n", YESNO(conf.dbg.synhl));
@@ -435,6 +436,7 @@ void loadConfig() {
 	conf.dbg.stackofs = -2;
 	conf.dbg.scrzoom = 1;
 	conf.dbg.reglayout = DBG_REGS_AUTO;
+	conf.dbg.regsplit = 1;
 	conf.dbg.dimadr = 0;
 	conf.dbg.dimops = 1;
 	conf.dbg.synhl = 1;
@@ -518,6 +520,7 @@ void loadConfig() {
 					if ((pnam == "regs.layout") && ((arg.i == DBG_REGS_AUTO) || (arg.i == DBG_REGS_1COL)
 							|| (arg.i == DBG_REGS_2COL) || (arg.i == DBG_REGS_WIDE)))
 						conf.dbg.reglayout = arg.i;
+					if (pnam == "regs.split") conf.dbg.regsplit = arg.b;
 					if (pnam == "dim.address") conf.dbg.dimadr = arg.b;
 					if (pnam == "dim.opcodes") conf.dbg.dimops = arg.b;
 					if (pnam == "syntax.colors") conf.dbg.synhl = arg.b;

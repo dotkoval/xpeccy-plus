@@ -29,6 +29,7 @@ xHexSpin::xHexSpin(QWidget* p):QLineEdit(p) {
 	max = 0xffff;
 	value = 0x0000;
 	hsflag = XHS_DEC;
+	chgMask = 0;
 	len = 6;
 	vtxt = "0000";
 	// setValidator(&vldtr);
@@ -93,6 +94,33 @@ void xHexSpin::setXFlag(int xf) {
 	hsflag = xf;
 }
 
+// The one flag that is switched while the field is alive, so it takes a setter
+// of its own rather than having the caller restate the whole set.
+void xHexSpin::setSplit(bool on) {
+	int flg = on ? (hsflag | XHS_SPLIT) : (hsflag & ~XHS_SPLIT);
+	if (flg == hsflag) return;
+	hsflag = flg;
+	updatePal();		// the whole-field colour follows the setting too
+}
+
+// How many bytes the field shows separately, 0 = it does not. Only hex lines
+// digits up with bytes, and only a centered field has its text where paintEvent
+// works it out to be - the two margins cancel out there.
+int xHexSpin::splitBytes() {
+	if (!(hsflag & XHS_SPLIT)) return 0;
+	if ((base != 16) || (len < 4) || (len & 1)) return 0;
+	if (!(alignment() & Qt::AlignHCenter)) return 0;
+	return len / 2;
+}
+
+// Something changed and it is the whole field that says so - either every byte
+// moved, or this field does not show them apart. The style sheet draws that
+// case; paintEvent draws the rest.
+bool xHexSpin::wholeFieldLit() {
+	int bytes = splitBytes();
+	return chgMask && (!bytes || (chgMask == ((1 << bytes) - 1)));
+}
+
 int minMaxCorrect(int val, int min, int max) {
 	if (val < min) return min;
 	if (val > max) return max;
@@ -121,8 +149,10 @@ void xHexSpin::updatePal() {
 #if 1
 	QString str;
 	QWidget* p = parentWidget();
-	if (changed) {
-		str = getStyleString("dbg.changed.bg", "dbg.changed.txt");
+	// a field lit byte by byte keeps its normal colours here - paintEvent puts
+	// the changed ones on top of them
+	if (wholeFieldLit()) {
+		str = getStyleString(DBG_PAL_CHG_BG, DBG_PAL_CHG_TXT);
 		// scope the rule to the field: a bare property list would leak
 		// into child widgets, e.g. the standard context menu
 		if (!str.isEmpty()) str = QString("xHexSpin{%0}").arg(str);
@@ -133,9 +163,9 @@ void xHexSpin::updatePal() {
 	setStyleSheet(str);
 #else
 	QPalette pal;
-	if (changed) {
-		pal.setColor(QPalette::Base, conf.pal["dbg.changed.bg"].isValid() ? conf.pal["dbg.changed.bg"] : pal.toolTipBase().color());
-		pal.setColor(QPalette::Text, conf.pal["dbg.changed.txt"].isValid() ? conf.pal["dbg.changed.txt"] : pal.toolTipText().color());
+	if (chgMask) {
+		pal.setColor(QPalette::Base, conf.pal[DBG_PAL_CHG_BG].isValid() ? conf.pal[DBG_PAL_CHG_BG] : pal.toolTipBase().color());
+		pal.setColor(QPalette::Text, conf.pal[DBG_PAL_CHG_TXT].isValid() ? conf.pal[DBG_PAL_CHG_TXT] : pal.toolTipText().color());
 	} else {
 		pal.setColor(QPalette::Base, conf.pal["dbg.input.bg"].isValid() ? conf.pal["dbg.input.bg"] : pal.base().color());
 		pal.setColor(QPalette::Text, conf.pal["dbg.input.txt"].isValid() ? conf.pal["dbg.input.txt"] : pal.text().color());
@@ -146,15 +176,59 @@ void xHexSpin::updatePal() {
 
 void xHexSpin::setValue(int nval) {
 	nval = minMaxCorrect(nval, min, max);
+	int oldMask = chgMask;
 	if ((value == nval) && !(hsflag & XHS_UPD)) {
-		changed = 0;
+		chgMask = 0;
 	} else {
+		unsigned diff = value ^ nval;
+		if (!diff) diff = ~0u;		// forced update: light the whole value
 		value = nval;
-		changed = (hsflag & XHS_BGR) ? 1 : 0;
+		chgMask = 0;
+		if (hsflag & XHS_BGR) {
+			for (int i = 0; i < 4; i++) {
+				if (diff & (0xffu << (i * 8))) chgMask |= 1 << i;
+			}
+		}
 		emit valueChanged(nval);
 		onChange(value);
 	}
+	// A field lit byte by byte keeps the style sheet it had, so updatePal()
+	// below schedules no repaint of its own and the bytes painted last time
+	// would stay on screen. Ask for one whenever the mask moved.
+	if (chgMask != oldMask) update();
 	updatePal();
+}
+
+// The whole field lit means the whole value changed; one byte of it means only
+// that byte did. The base class has drawn the text in its normal colours by
+// now, so the changed bytes go on top of it, background and digits both.
+void xHexSpin::paintEvent(QPaintEvent* ev) {
+	QLineEdit::paintEvent(ev);
+	int bytes = splitBytes();
+	if (!chgMask || !bytes || wholeFieldLit()) return;
+	QColor bg = conf.pal.value(DBG_PAL_CHG_BG);
+	QColor fg = conf.pal.value(DBG_PAL_CHG_TXT);
+	if (!bg.isValid() && !fg.isValid()) return;
+	QString txt = text();
+	if (txt.size() != bytes * 2) return;		// mid-edit: nothing lines up
+	// inside the frame, so a lit byte does not paint over the field's border
+	QRect cr = contentsRect();
+	QFontMetrics fm = fontMetrics();
+	int x = cr.x() + (cr.width() - fm.horizontalAdvance(txt)) / 2;
+	QPainter pnt(this);
+	if (fg.isValid()) pnt.setPen(fg);
+	// left to right, so each byte's width is measured once and carries the
+	// next one's position with it. Byte 0 is the last two digits
+	for (int i = bytes - 1; i >= 0; i--) {
+		QString dig = txt.mid((bytes - 1 - i) * 2, 2);
+		int w = fm.horizontalAdvance(dig);
+		if (chgMask & (1 << i)) {
+			QRect r(x, cr.y(), w, cr.height());
+			if (bg.isValid()) pnt.fillRect(r, bg);
+			pnt.drawText(r, Qt::AlignCenter, dig);
+		}
+		x += w;
+	}
 }
 
 void xHexSpin::onChange(int val) {

@@ -41,6 +41,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- **A register that changed lights only the byte that changed**, not the whole field - so `IR`
+  shows that `I` moved even though `R` moves on nearly every instruction. `PC` and `SP` stay
+  whole, nothing touches half of an address. "Split pairs" in the menu on the CPU panel's
+  header turns it back into the whole-field highlight.
+
 - **The stack panel fills its whole height** instead of always showing nine entries, and the
   offset it starts from is set in Setup - Xpeccy+ - Debugger. The entries are centered now,
   and the row at SP itself is highlighted and shows its own address instead of an offset.

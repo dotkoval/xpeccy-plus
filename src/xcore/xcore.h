@@ -547,6 +547,7 @@ struct xConfig {
 		unsigned showsig:1;
 		unsigned showray:1;
 		unsigned showfrm:1;
+		unsigned regsplit:1;	// light a changed byte on its own, not the whole register
 		QFont font;
 		int dbsize;
 		int dwsize;
@@ -562,6 +563,11 @@ struct xConfig {
 // constants in the disasm listing (labels go bold instead of coloured)
 
 #define DBG_PAL_CONST	"dbg.asm.const.txt"
+
+// what a register field that changed is drawn in
+
+#define DBG_PAL_CHG_BG	"dbg.changed.bg"
+#define DBG_PAL_CHG_TXT	"dbg.changed.txt"
 
 // how far either way the stack panel may start from SP
 

@@ -532,6 +532,9 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		act->setCheckable(true);
 		act->setData(regLayTab[i].lay);
 	}
+	regMenu->addSeparator();
+	regSplitAct = regMenu->addAction("Split pairs");
+	regSplitAct->setCheckable(true);
 	connect(regMenu, &QMenu::triggered, this, &DebugWin::setRegLayout);
 	wid_cpu_dock->titleBarWidget()->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(wid_cpu_dock->titleBarWidget(), &QWidget::customContextMenuRequested,
@@ -1316,6 +1319,10 @@ void DebugWin::reFormFlags(int width) {
 
 // put one register into the grid, at the grid column a layout column starts on
 void DebugWin::placeReg(xRegBunch* b, int i, int row, int col) {
+	// A register with a type of its own - the counter, the stack pointer, the
+	// flags, a segment - is one number. The rest are bytes that move on their
+	// own, so a changed one can light just the byte that moved.
+	dbgRegEdit[i]->setSplit(conf.dbg.regsplit && !(b->regs[i].flag & REG_TYPE_M));
 	ui_cpu.formRegs->addWidget(dbgRegLabs[i], row, col);
 	dbgRegLabs[i]->setVisible(true);
 	if (b->regs[i].size == REG_BIT) {
@@ -1744,12 +1751,22 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 }
 
 void DebugWin::regLayoutMenu(const QPoint& pos) {
-	foreach (QAction* act, regMenu->actions())
-		act->setChecked(act->isCheckable() && (act->data().toInt() == conf.dbg.reglayout));
+	foreach (QAction* act, regMenu->actions()) {
+		if (act == regSplitAct) {
+			act->setChecked(conf.dbg.regsplit);
+		} else {
+			act->setChecked(act->isCheckable() && (act->data().toInt() == conf.dbg.reglayout));
+		}
+	}
 	regMenu->popup(wid_cpu_dock->titleBarWidget()->mapToGlobal(pos));
 }
 
 void DebugWin::setRegLayout(QAction* act) {
+	if (act == regSplitAct) {
+		conf.dbg.regsplit = act->isChecked() ? 1 : 0;
+		rebuildCpuPanel();	// placeReg() hands the setting to every field
+		return;
+	}
 	int lay = act->data().toInt();
 	if (lay == conf.dbg.reglayout) return;
 	conf.dbg.reglayout = lay;

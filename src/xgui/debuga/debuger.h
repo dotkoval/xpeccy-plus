@@ -151,6 +151,7 @@ class DebugWin : public QMainWindow {
 		QMenu* labMenu;
 		QMenu* labSetMenu;
 		QMenu* regMenu;		// right click on the cpu header: pick a layout
+		QAction* regSplitAct;	// its one switch: light changed bytes on their own
 		QLabel* cpuTitleName;	// the cpu dock's title bar is two labels: the
 		QLabel* cpuTitleFlags;	// second one heads the flags column, wide layout
 
