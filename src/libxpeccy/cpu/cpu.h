@@ -41,6 +41,11 @@ typedef struct {
 #define REG_RO		1	// protect from changes in deBUGa
 #define REG_SEG		(1<<1)	// register is segment
 #define REG_RDMP	(1<<2)	// use register as line addr for regs-dump in deBUGa (new widget)
+// what a register is for (xRegDsc.group). Not a flag bit: a register has one
+#define REG_GRP_MAIN	1	// the working set (af, bc, a, x, ...)
+#define REG_GRP_SHADOW	2	// their shadow copies
+#define REG_GRP_PTR	3	// points into memory (pc, sp, ix, ...)
+#define REG_GRP_CTRL	4	// interrupt and control state
 // register type (bit 8-10 of flag)
 #define REG_TYPE_M	(7<<8)	// 8 types (to find register)
 #define REG_PC		(0<<8)	// execution pointer (pc, ip)
@@ -56,6 +61,7 @@ typedef struct {
 	int value;	// register value (selector)
 	int base;	// base address for segment register
 	int pair;	// id of register to show in the same line in deBUGa (0 = none)
+	int group;	// what the register is for, REG_GRP_* (0 = table says nothing)
 } xRegister;
 
 typedef struct {
@@ -65,7 +71,9 @@ typedef struct {
 
 typedef struct CPU CPU;
 
-// 'pair' is optional: tables that don't set it get 0 = no pair
+// 'pair' and 'group' are optional: tables that don't set them get 0. deBUGa
+// spreads a register set over columns by group; a table that names no groups
+// gets that layout folded out of the narrow one instead
 typedef struct {
 	int id;
 	char* name;
@@ -74,6 +82,7 @@ typedef struct {
 	int(*get)(CPU*);
 	void(*set)(CPU*,int);
 	int pair;
+	int group;
 } xRegDsc;
 
 // memrq rd
