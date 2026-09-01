@@ -80,6 +80,7 @@ class DebugWin : public QMainWindow {
 		unsigned reformWait:1;	// a build was asked for before the first show
 		unsigned reformPending:1;	// a reflow is already queued
 		unsigned fitPending:1;		// so is a dock refit
+		QByteArray dockLayout;	// the panel arrangement, kept over a hide/show
 		// tracer
 		unsigned trace:1;
 		int traceType;
@@ -179,6 +180,7 @@ class DebugWin : public QMainWindow {
 		void fillPorts();
 		void setPortRow(int, QString, QString);
 		void setMiscBlocks();
+		void applyDockList();
 		void editWatchPorts();
 		void setLabelMenu(QWidget*, QString, QString, std::function<void()>);
 		void reFormCPU(xRegBunch*);
@@ -266,6 +268,7 @@ class DebugWin : public QMainWindow {
 		void keyPressEvent(QKeyEvent*);
 		void keyReleaseEvent(QKeyEvent*);
 		void showEvent(QShowEvent*);
+		void hideEvent(QHideEvent*);
 		void resizeEvent(QResizeEvent*);
 		void moveEvent(QMoveEvent*);
 		void closeEvent(QCloseEvent*);
