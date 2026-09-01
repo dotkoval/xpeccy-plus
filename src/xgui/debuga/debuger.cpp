@@ -321,6 +321,13 @@ void DebugWin::resetTCount() {
 	}
 }
 
+// the panels this machine has: a dock with no machine list of its own is for all
+void DebugWin::applyDockList() {
+	foreach (xDockWidget* dw, dockWidgets) {
+		dw->setHidden(!(dw->hwList.isEmpty() || dw->hwList.contains(tabMode)));
+	}
+}
+
 void DebugWin::onPrfChange() {
 	xProfile* prf = conf.prof.cur;
 	if (!prf) return;
@@ -328,9 +335,7 @@ void DebugWin::onPrfChange() {
 	save_mem_map();
 
 	tabMode = comp->hw->grp;
-	foreach (xDockWidget* dw, dockWidgets) {
-		dw->setHidden(!(dw->hwList.isEmpty() || dw->hwList.contains(tabMode)));
-	}
+	applyDockList();
 	setMiscBlocks();		// the bank fields are for the ZX group only
 
 	// set input line base
@@ -826,13 +831,19 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		file.close();
 		// resetLayout, not setDefaultLayout: a refused restore can leave the
 		// window stretched, and only the former puts the size back too
-		if (!restoreState(state, DBG_LAYOUT_VERSION))
+		if (restoreState(state, DBG_LAYOUT_VERSION)) {
+			dockLayout = state;		// see hideEvent
+		} else {
 			resetLayout();
+		}
 	}
 }
 
 DebugWin::~DebugWin() {
-	QByteArray state = saveState(DBG_LAYOUT_VERSION);
+	// while the window is hidden the layout no longer holds the arrangement the
+	// user left (see hideEvent), so take the kept one
+	QByteArray state = isVisible() ? saveState(DBG_LAYOUT_VERSION) : dockLayout;
+	if (state.isEmpty()) state = saveState(DBG_LAYOUT_VERSION);
 	QString path = conf.path.confDir.c_str();
 	path.append("/debuga.layout");
 	QFile file(path);
@@ -1609,6 +1620,7 @@ void DebugWin::fitDockHeights(QDockWidget* top, int hgt, const QList<QDockWidget
 // dragged-apart layout had stretched it to.
 void DebugWin::resetLayout() {
 	setDefaultLayout();
+	dockLayout.clear();		// nothing to put back over it, see showEvent
 	QTimer::singleShot(0, this, [this]() {
 		// same size the config hands out on a first run, never below what fits
 		resize(QSize(960, 720).expandedTo(minimumSizeHint()));
@@ -1747,10 +1759,28 @@ void DebugWin::updateCpuDockWidth() {
 void DebugWin::showEvent(QShowEvent* ev) {
 	QMainWindow::showEvent(ev);
 	winShown = 1;
+	// the arrangement Qt is about to undo (see hideEvent) goes back in. The
+	// state also carries which panels were up, and the machine may have changed
+	// while the window was away: the list for this one wins.
+	if (!dockLayout.isEmpty()) {
+		restoreState(dockLayout, DBG_LAYOUT_VERSION);
+		applyDockList();
+		styleTabBars();
+	}
 	if (reformWait) {
 		reformWait = 0;
 		rebuildCpuPanel();
 	}
+}
+
+// Qt lays the docks out again on every show, and that pass gives each panel
+// its size hint - the stack one has none worth the name, so it comes back a
+// single line while the panel over it takes the rest. Keep the arrangement
+// here and put it back on the next show.
+void DebugWin::hideEvent(QHideEvent* ev) {
+	if (winShown)
+		dockLayout = saveState(DBG_LAYOUT_VERSION);
+	QMainWindow::hideEvent(ev);
 }
 
 // values are kept, no fillCPU after it: that would clear the 'changed' color
