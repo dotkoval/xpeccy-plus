@@ -73,13 +73,13 @@ class DebugWin : public QMainWindow {
 		cpuCore* curCpuCore;
 		QWidget* wid_cpu;
 		xDockWidget* wid_cpu_dock;
-		int regCols;		// register columns that fit now (1 or 2)
+		int regCols;		// register columns in use now (1, 2 or 4)
 		int regPairW;		// width one 'name + value' pair needs
-		int regWideW;		// panel width that fits two columns: max and switch point
 		unsigned cpuWideDock:1;	// two panels sit side by side under the cpu dock
 		unsigned winShown:1;	// window has been shown: the dock sizes are real
 		unsigned reformWait:1;	// a build was asked for before the first show
 		unsigned reformPending:1;	// a reflow is already queued
+		unsigned fitPending:1;		// so is a dock refit
 		// tracer
 		unsigned trace:1;
 		int traceType;
@@ -150,6 +150,9 @@ class DebugWin : public QMainWindow {
 
 		QMenu* labMenu;
 		QMenu* labSetMenu;
+		QMenu* regMenu;		// right click on the cpu header: pick a layout
+		QLabel* cpuTitleName;	// the cpu dock's title bar is two labels: the
+		QLabel* cpuTitleFlags;	// second one heads the flags column, wide layout
 
 		QMenu* cellMenu;
 		void doBreakPoint(unsigned short);
@@ -173,12 +176,21 @@ class DebugWin : public QMainWindow {
 		void reFormCPU(xRegBunch*);
 		void reFormFlags(int);
 		void placeReg(xRegBunch*, int, int, int);
+		int regsLayoutWidth(int);
+		void applyCpuWidthLimits();
+		void fitFlagBoxes();
+		void rebuildCpuPanel();
+		QList<QDockWidget*> docksBelowCpu();
+		void fitDockHeights(QDockWidget*, int, const QList<QDockWidget*>&);
 		bool eventFilter(QObject*, QEvent*);
 
 		void chLayout();
 
 	private slots:
 		void reformCpuLater();
+		void fitCpuDock();
+		void regLayoutMenu(const QPoint&);
+		void setRegLayout(QAction*);
 		void resetLayout();
 		void setDefaultLayout();
 		void updateCpuDockWidth();

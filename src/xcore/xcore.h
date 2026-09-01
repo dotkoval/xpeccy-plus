@@ -553,6 +553,7 @@ struct xConfig {
 		int dmsize;
 		int stackofs;		// first offset the stack panel shows, even, see DBG_STACK_OFS
 		int scrzoom;
+		int reglayout;		// register panel: columns, or DBG_REGS_AUTO
 		QPoint pos;
 		QSize siz;
 	} dbg;
@@ -565,5 +566,12 @@ struct xConfig {
 // how far either way the stack panel may start from SP
 
 #define DBG_STACK_OFS	16
+
+// register panel layout: the value is the column count, 0 = pick it by width
+
+#define DBG_REGS_AUTO	0
+#define DBG_REGS_1COL	1
+#define DBG_REGS_2COL	2
+#define DBG_REGS_WIDE	4	// 4 register columns, flags beside them
 
 extern xConfig conf;

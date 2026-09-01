@@ -11,6 +11,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **The register panel picks its shape from a menu on its header** (right click), and has a
+  third one: a wide layout with four columns of registers and the flags standing beside them,
+  which sits well above the disassembler. The panel fits itself to the chosen shape and hands
+  the freed room to the panels under it, so nothing has to be dragged.
+
 - **The memory heat map has a panel of its own** in the debugger. It draws the read, write and
   exec counters as a picture of memory - one pixel per byte, 256 bytes to a row - for the whole
   address space or for one RAM/ROM page, in the colours `tools/heatmap_png.py` uses. All three

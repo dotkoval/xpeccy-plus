@@ -27,7 +27,7 @@
     <number>0</number>
    </property>
    <property name="bottomMargin">
-    <number>2</number>
+    <number>4</number>
    </property>
    <item>
     <layout class="QGridLayout" name="formRegs">
@@ -80,7 +80,7 @@
      <property name="sizeHint" stdset="0">
       <size>
        <width>20</width>
-       <height>76</height>
+       <height>0</height>
       </size>
      </property>
     </spacer>
