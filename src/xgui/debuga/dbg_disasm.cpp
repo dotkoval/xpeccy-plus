@@ -8,6 +8,7 @@
 #include <QPainter>
 #include <QClipboard>
 #include <QHeaderView>
+#include <QVector>
 #include <QApplication>
 #include <QFontMetrics>
 
@@ -56,6 +57,12 @@ bool dasm_ends_block(const QList<dasmData>& list) {
 	foreach (drow, list)
 		if (is_block_end(drow)) return true;
 	return false;
+}
+
+// a block end is followed by a blank row, if those are turned on. the one
+// place that says so: the listing is built on it and navigation counts on it
+bool dasm_has_separator(const QList<dasmData>& list) {
+	return conf.dbg.blocksep && dasm_ends_block(list);
 }
 
 static dasmData make_separator(int adr) {
@@ -563,19 +570,16 @@ int xDisasmModel::fill() {
 	dasm.clear();
 	for(row = 0; row < rowCount(); row++) {
 		adr &= conf.prof.cur->zx->mem->busmask;
-		int blkend = 0;
 		list = getDisasm(conf.prof.cur->zx, adr);
 		foreach (drow, list) {
 			if (dasm.size() < rowCount()) {
 				dasm.append(drow);
 				res |= drow.ispc;
-				if (is_block_end(drow))
-					blkend = 1;
 			} else {
 				row = rowCount();		// it will prevent next iteration
 			}
 		}
-		if (blkend && conf.dbg.blocksep && (dasm.size() < rowCount()))
+		if (dasm_has_separator(list) && (dasm.size() < rowCount()))
 			dasm.append(make_separator(adr));
 	}
 	return res;
@@ -708,6 +712,49 @@ int asmAddr(Computer* comp, QVariant val, xAdr xadr) {
 	return adr;
 }
 
+// first address of a listing that puts 'target' on row 'row', or as close to
+// it as the code allows. disassembling backwards is guesswork, so this goes
+// forward from every byte in reach, counting rows the way fill() lays them
+// out, and keeps the deepest start that leaves the target at or above the row
+// asked for. one row lower and the target would be pushed off the listing.
+// with 'exact' only starts whose commands land on the target are taken, for
+// when the target itself has to be shown (a jump, a typed address). without
+// it a start whose last command swallows the target will do, so that paging
+// up still moves a whole page where the bytes above do not line up
+static int adr_for_row(Computer* comp, int target, int row, int exact) {
+	const int cmdmax = 8;		// bytes per row to look back for. generous for the
+					// 8-bit cores; where commands run longer the
+					// listing just starts nearer the target
+	QList<dasmData> list;
+	int back = (row + 2) * cmdmax;
+	int mask = comp->mem->busmask;
+	int start = target;
+	int adr, next, len, rows, i;
+	if (row < 1) return target;
+	QVector<int> dist(back + 1, -1);	// rows from (target - i) to target, -1 = no fit
+	dist[0] = 0;
+	for (i = 1; i <= back; i++) {
+		adr = (target - i) & mask;
+		next = adr;
+		list = getDisasm(comp, next);		// moves next to the following command
+		rows = list.size();
+		if (dasm_has_separator(list))
+			rows++;
+		len = (next - adr) & mask;
+		if (len < 1) continue;
+		if (len > i) {				// this command swallows the target
+			if (exact) continue;
+			dist[i] = rows;
+		} else if (dist[i - len] >= 0) {
+			dist[i] = dist[i - len] + rows;
+		} else {
+			continue;			// the bytes here do not line up
+		}
+		if (dist[i] <= row) start = adr;	// deepest start that still fits
+	}
+	return start;
+}
+
 bool xDisasmModel::setData(const QModelIndex& cidx, const QVariant& val, int role) {
 	if (!cidx.isValid()) return false;
 	if (role != Qt::EditRole) return false;
@@ -754,12 +801,7 @@ bool xDisasmModel::setData(const QModelIndex& cidx, const QVariant& val, int rol
 				idx = asmAddr(comp, val, xadr);
 			}
 			if (idx >= 0) {
-				while (row > 0) {
-					idx = getPrevAdr(comp, idx);
-					asmadr = idx;
-					row -= getDisasm(comp, asmadr).size();		// getDisasm will change 'adr' argument, so it must be not 'idx'
-				}
-				asmadr = idx;
+				asmadr = adr_for_row(comp, idx, row, 1);
 			}
 			emit s_adrch(oadr, asmadr);
 			break;
@@ -1086,7 +1128,7 @@ void xDisasmTable::copyToCbrd() {
 			}
 			str += "\n";
 		}
-		if (dasm_ends_block(dasm) && conf.dbg.blocksep)
+		if (dasm_has_separator(dasm))
 			str += "\n";
 	}
 	cbrd->setText(str);
@@ -1160,14 +1202,18 @@ void xDisasmTable::keyPressEvent(QKeyEvent* ev) {
 			}
 			break;
 		case Qt::Key_PageUp:
-			for (i = 0; i < rows() - 1; i++) {
-				model->asmadr = getPrevAdr(comp, model->asmadr);
-			}
+			// the top row moves to the bottom one, so nothing is stepped over
+			model->asmadr = adr_for_row(comp, model->asmadr, rows() - 1, 0);
 			updContent();
 			emit s_adrch(model->asmadr);
 			break;
 		case Qt::Key_PageDown:
-			model->asmadr = getData(rows() - 1, 0, Qt::UserRole).toInt();
+			// the bottom row becomes the top one. an EQU row is skipped: its
+			// address points inside a command, not at the start of one
+			i = model->dasm.size() - 1;
+			while ((i > 0) && model->dasm[i].isequ)
+				i--;
+			model->asmadr = model->dasm[i].adr;
 			updContent();
 			emit s_adrch(model->asmadr);
 			break;

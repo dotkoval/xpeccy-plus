@@ -67,7 +67,8 @@ before that point is upstream's history and is not repeated here.
   (the old names still work when typing code in).
 
 - Jumping to an address (F4) or returning (F5) in the disassembler now puts the cursor in the
-  right place instead of leaving it off by a row or back at the top.
+  right place instead of leaving it off by a row or back at the top. The blank lines between
+  blocks count as rows too, so the jump and Page Up no longer step over lines.
 
 - Screenshots no longer have transparent pixels, and ZX screenshots with the border kept are
   now centered correctly.

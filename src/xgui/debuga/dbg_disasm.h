@@ -132,3 +132,4 @@ class xDasmSyntax : public QStyledItemDelegate {
 QList<dasmData> getDisasm(Computer*, int&);
 bool is_block_end(const dasmData&);
 bool dasm_ends_block(const QList<dasmData>&);
+bool dasm_has_separator(const QList<dasmData>&);

@@ -1750,7 +1750,7 @@ void DebugWin::saveDasm() {
 				}
 				strm << "\n";
 			}
-			if (dasm_ends_block(list) && conf.dbg.blocksep)
+			if (dasm_has_separator(list))
 				strm << "\n";
 		}
 		file.close();
