@@ -11,6 +11,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **The register panel picks its shape from a menu on its header** (right click), and has a
+  third one: a wide layout with four columns of registers and the flags standing beside them,
+  which sits well above the disassembler. The panel fits itself to the chosen shape and hands
+  the freed room to the panels under it, so nothing has to be dragged.
+
 - **The memory heat map has a panel of its own** in the debugger. It draws the read, write and
   exec counters as a picture of memory - one pixel per byte, 256 bytes to a row - for the whole
   address space or for one RAM/ROM page, in the colours `tools/heatmap_png.py` uses. All three
@@ -35,6 +40,11 @@ before that point is upstream's history and is not repeated here.
   `ret`, not just conditional jumps and calls.
 
 ### Changed
+
+- **A register that changed lights only the byte that changed**, not the whole field - so `IR`
+  shows that `I` moved even though `R` moves on nearly every instruction. `PC` and `SP` stay
+  whole, nothing touches half of an address. "Split pairs" in the menu on the CPU panel's
+  header turns it back into the whole-field highlight.
 
 - **The stack panel fills its whole height** instead of always showing nine entries, and the
   offset it starts from is set in Setup - Xpeccy+ - Debugger. The entries are centered now,

@@ -6,6 +6,7 @@
 #include <QDebug>
 #include <QBuffer>
 #include <QPainter>
+#include <QStyleOptionButton>
 #include <QShowEvent>
 #include <QTabBar>
 #include <QVector>
@@ -24,6 +25,17 @@
 // 1 = cpu, disasm, misc and stack became docks (the MISCTOOLBAR is gone)
 // 2 = empty anchor strips at the left and right edges
 #define DBG_LAYOUT_VERSION	2
+
+// The cpu panel's geometry. One register takes three grid columns - name, value
+// and a gap after it - so layout column k starts on grid column k * RCOL_STEP
+#define RCOL_STEP	3
+#define RCOL_GAP	10
+// the flags grid: between its cells, and either side of it when it stands as a
+// column of its own. HEAD_SPLIT parts the two halves of the panel and of the
+// title bar over it, so the divider in the header lands on the same pixel
+#define FLAG_SPACING	2
+#define FLAG_MARGIN	4
+#define HEAD_SPLIT	2
 
 static QDockWidget* make_edge_anchor(const char*);
 
@@ -126,7 +138,15 @@ void DebugWin::updateStyle() {
 	setMiscBlocks();
 	QString headStr = str + headerGap;
 	foreach(xDockWidget* dw, dockWidgets) {
-		dw->titleBarWidget()->setStyleSheet(headStr);
+		if (dw == wid_cpu_dock) {
+			// its bar is a pair of labels: paint those, not the box holding
+			// them, so the gap between the two shows through as a divider
+			dw->titleBarWidget()->setStyleSheet(QStringLiteral("background:transparent;"));
+			cpuTitleName->setStyleSheet(headStr);
+			cpuTitleFlags->setStyleSheet(headStr);
+		} else {
+			dw->titleBarWidget()->setStyleSheet(headStr);
+		}
 	}
 	styleTabBars();
 
@@ -134,8 +154,11 @@ void DebugWin::updateStyle() {
 	// A style sheet gives every widget a font of its own, which stops the
 	// propagation from this window: the panels would fall back to the
 	// interface font. Hand the font over one by one.
+	// Menus keep the interface font: the debugger one is a monospace picked for
+	// the listings and it reads as a different program in a popup
+	QFont uiFont = QApplication::font();
 	foreach(QWidget* wid, findChildren<QWidget*>()) {
-		wid->setFont(conf.dbg.font);
+		wid->setFont(qobject_cast<QMenu*>(wid) ? uiFont : conf.dbg.font);
 	}
 	foreach(xHexSpin* xhs, dbgRegEdit) {
 		xhs->updatePal();	// takes the new font from the parent
@@ -342,9 +365,9 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	curCpuCore = nullptr;
 	regCols = 0;
 	regPairW = 0;
-	regWideW = 0;
 	cpuWideDock = 0;
 	reformPending = 0;
+	fitPending = 0;
 	winShown = 0;
 	reformWait = 0;
 
@@ -368,6 +391,22 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_cpu_dock = new xDockWidget("", "CPU");
 	wid_cpu_dock->setObjectName("CPU");
 	wid_cpu_dock->setWidget(wid_cpu);
+	// The title bar of this one carries two names in the wide layout - "CPU"
+	// over the registers and "Flags" over the column beside them - so it is a
+	// pair of labels instead of the single one xDockWidget makes. The right one
+	// is hidden in the other layouts and the left one spans the bar as before.
+	QWidget* cpuTitle = new QWidget;
+	QHBoxLayout* cpuTitleBox = new QHBoxLayout(cpuTitle);
+	cpuTitleBox->setContentsMargins(2, 0, 0, 0);	// same left margin as the panel
+	cpuTitleBox->setSpacing(HEAD_SPLIT);		// the gap is the divider between them
+	cpuTitleName = new QLabel("CPU");
+	cpuTitleName->setAlignment(Qt::AlignCenter);
+	cpuTitleFlags = new QLabel("Flags");
+	cpuTitleFlags->setAlignment(Qt::AlignCenter);
+	cpuTitleFlags->setVisible(false);
+	cpuTitleBox->addWidget(cpuTitleName);
+	cpuTitleBox->addWidget(cpuTitleFlags);
+	wid_cpu_dock->setTitleBarWidget(cpuTitle);
 
 	wid_dasm_dock = new xDockWidget("", "Disasm");
 	wid_dasm_dock->setObjectName("DISASM");
@@ -473,6 +512,33 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		// placed by reFormFlags(), it follows the register columns
 	}
 	connect(flagrp, SIGNAL(buttonClicked(QAbstractButton*)), this, SLOT(setFlags()));
+// register layout menu: three shapes and the automatic choice between the
+// first two. With three of them, guessing which one the width will produce is
+// no longer something a user can do, so the panel is asked instead. It hangs on
+// the dock's title bar: inside the panel the right button already means
+// something - it points the dump at a register, see regClick()
+	static const struct {const char* name; int lay;} regLayTab[] = {
+		{"Auto", DBG_REGS_AUTO},
+		{"1 column", DBG_REGS_1COL},
+		{"2 columns", DBG_REGS_2COL},
+		{"Wide", DBG_REGS_WIDE},
+		{NULL, 0}
+	};
+	regMenu = new QMenu(this);
+	regMenu->addAction("Registers layout")->setEnabled(false);
+	regMenu->addSeparator();
+	for (i = 0; regLayTab[i].name; i++) {
+		QAction* act = regMenu->addAction(regLayTab[i].name);
+		act->setCheckable(true);
+		act->setData(regLayTab[i].lay);
+	}
+	regMenu->addSeparator();
+	regSplitAct = regMenu->addAction("Split pairs");
+	regSplitAct->setCheckable(true);
+	connect(regMenu, &QMenu::triggered, this, &DebugWin::setRegLayout);
+	wid_cpu_dock->titleBarWidget()->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(wid_cpu_dock->titleBarWidget(), &QWidget::customContextMenuRequested,
+		this, &DebugWin::regLayoutMenu);
 
 	conf.dbg.labels = 1;
 	conf.dbg.segment = 0;
@@ -1199,34 +1265,64 @@ void DebugWin::fillFlags(const char* fnam) {
 	}
 }
 
-// grid columns: 0,1 = left pair (name + value), 3,4 = right pair, 2 is a gap between them
-#define RCOL_LEFT	0
-#define RCOL_RIGHT	3
-#define RCOL_GAP	10
-// items of ui_cpu.verticalLayout, see form_cpu.ui:
-// registers, gap, flags header, flags, spacer.
-// the cpu header is gone: the dock's title bar carries the name now
-#define VLI_REGS	0
-#define VLI_FLAGS	3
 
-// flags follow the registers: 8 in a row when there is room for 2 columns, 4 otherwise
-void DebugWin::reFormFlags(int per) {
-	delete ui_cpu.verticalLayout->takeAt(VLI_FLAGS);	// flags stay alive, wid_cpu owns them
-	ui_cpu.flagsGrid = new QGridLayout;
-	ui_cpu.flagsGrid->setSpacing(2);
-	ui_cpu.flagsGrid->setContentsMargins(0, 2, 0, 0);
-	ui_cpu.verticalLayout->insertLayout(VLI_FLAGS, ui_cpu.flagsGrid);
-	for (int i = 0; i < 16; i++) {
-		int p = 15 - i;				// flag 15 is the leftmost one
-		ui_cpu.flagsGrid->addWidget(dbgFlagLabs[i], (p / per) * 2, p % per, Qt::AlignCenter);
-		ui_cpu.flagsGrid->addWidget(dbgFlagBox[i], (p / per) * 2 + 1, p % per, Qt::AlignCenter);
-	}
-	for (int i = 0; i < per; i++)			// spread them over the panel width
-		ui_cpu.flagsGrid->setColumnStretch(i, 1);
+// A check box is wider than the mark it draws: the style keeps room for a label
+// that is not there, so centering the box in its cell leaves the mark off to one
+// side of the name above it. Cut the box down to the mark and the padding in
+// front of it - then centering the box centers the mark.
+void DebugWin::fitFlagBoxes() {
+	QStyleOptionButton opt;
+	opt.initFrom(dbgFlagBox[0]);
+	opt.rect = QRect(QPoint(0, 0), dbgFlagBox[0]->sizeHint());
+	QRect ir = dbgFlagBox[0]->style()->subElementRect(QStyle::SE_CheckBoxIndicator, &opt, dbgFlagBox[0]);
+	// 2 more, one either side: a mark drawn to the very edge of its box loses a
+	// pixel to the neighbouring cell. Even, so the mark stays in the middle
+	int w = ir.left() * 2 + ir.width() + 2;
+	if (w < 3) return;
+	foreach(QCheckBox* box, dbgFlagBox)
+		box->setFixedWidth(w);
 }
 
-// put one register into the grid. col is RCOL_LEFT or RCOL_RIGHT
+// Flags in a grid of their own: 8 boxes per row under two register columns, 4
+// under one and in the wide layout, where they stand as a column beside the
+// registers. width is the row the flags have to fill, 0 for that wide layout -
+// there they are centered in whatever room is left for them instead.
+void DebugWin::reFormFlags(int width) {
+	int per = (regCols == 2) ? 8 : 4;
+	ui_cpu.flagsGrid = new QGridLayout;
+	ui_cpu.flagsGrid->setSpacing(FLAG_SPACING);
+	// standing as a column of its own, the block gets an empty column either
+	// side to center it, and a margin so the marks keep clear of the neighbours
+	int ofs = (width > 0) ? 0 : 1;
+	ui_cpu.flagsGrid->setContentsMargins(ofs * FLAG_MARGIN, FLAG_SPACING, ofs * FLAG_MARGIN, 0);
+	for (int i = 0; i < 16; i++) {
+		int p = 15 - i;				// flag 15 is the leftmost one
+		ui_cpu.flagsGrid->addWidget(dbgFlagLabs[i], (p / per) * 2, p % per + ofs, Qt::AlignCenter);
+		ui_cpu.flagsGrid->addWidget(dbgFlagBox[i], (p / per) * 2 + 1, p % per + ofs, Qt::AlignCenter);
+	}
+	if (width > 0) {
+		// The row is exactly as wide as the registers above it, and no wider:
+		// spreading it over the whole panel instead would put the split between
+		// two register columns off the middle of the row as soon as the dock is
+		// wider than the registers need
+		int cells = width - FLAG_SPACING * (per - 1);
+		// hand the remainder out a pixel at a time: dropping it would leave the
+		// row short and its middle no longer under the register column split
+		for (int i = 0; i < per; i++)
+			ui_cpu.flagsGrid->setColumnMinimumWidth(i, cells / per + ((i < cells % per) ? 1 : 0));
+		ui_cpu.flagsGrid->setColumnStretch(per, 1);	// slack goes after them
+	} else {
+		ui_cpu.flagsGrid->setColumnStretch(0, 1);
+		ui_cpu.flagsGrid->setColumnStretch(per + 1, 1);
+	}
+}
+
+// put one register into the grid, at the grid column a layout column starts on
 void DebugWin::placeReg(xRegBunch* b, int i, int row, int col) {
+	// A register with a type of its own - the counter, the stack pointer, the
+	// flags, a segment - is one number. The rest are bytes that move on their
+	// own, so a changed one can light just the byte that moved.
+	dbgRegEdit[i]->setSplit(conf.dbg.regsplit && !(b->regs[i].flag & REG_TYPE_M));
 	ui_cpu.formRegs->addWidget(dbgRegLabs[i], row, col);
 	dbgRegLabs[i]->setVisible(true);
 	if (b->regs[i].size == REG_BIT) {
@@ -1250,6 +1346,42 @@ static int find_bunch_reg(xRegBunch* b, int cnt, int id) {
 		if (b->regs[i].id == id) return i;
 	}
 	return -1;
+}
+
+// the width a layout asks for: its register columns with a gap between them,
+// and the flags - under the registers, or beside them in the wide layout.
+// Needs regPairW
+int DebugWin::regsLayoutWidth(int cols) {
+	int w = regPairW * cols + RCOL_GAP * ((cols > 1) ? (cols - 1) : 1);
+	int box = dbgFlagBox[0]->minimumWidth();
+	if (cols > 2) {
+		// the flags are the column after the registers, 4 in a row with a
+		// little room either side. This width is what the whole dock column
+		// has to fit, so keep it tight
+		w += HEAD_SPLIT + box * 4 + FLAG_SPACING * 3 + FLAG_MARGIN * 2;
+	} else if (cols > 1) {
+		int flgw = box * 8 + FLAG_SPACING * 7;		// 8 in a row underneath
+		if (flgw > w) w = flgw;
+	}
+	// one column: 4 flags in a row are never wider than a name and its value
+	return w;
+}
+
+// The one writer of the panel's width limits. Two policies share them - the
+// automatic mode follows the dock arrangement, a chosen layout asks for what it
+// needs - so whatever changes an input calls this instead of picking a policy.
+void DebugWin::applyCpuWidthLimits() {
+	if (!regPairW) return;			// nothing measured yet
+	if (conf.dbg.reglayout == DBG_REGS_AUTO) {
+		// never wider than two columns: dragging further would only add empty space
+		wid_cpu->setMaximumWidth(regsLayoutWidth(2));
+		wid_cpu->setMinimumWidth(regsLayoutWidth(cpuWideDock ? 2 : 1));
+	} else {
+		// no maximum: it clamps the whole dock column, and this panel is meant
+		// to be able to sit above the disassembler
+		wid_cpu->setMaximumWidth(QWIDGETSIZE_MAX);
+		wid_cpu->setMinimumWidth(regsLayoutWidth(conf.dbg.reglayout));
+	}
 }
 
 void DebugWin::reFormCPU(xRegBunch* b) {
@@ -1285,49 +1417,158 @@ void DebugWin::reFormCPU(xRegBunch* b) {
 		cnt++;
 	}
 	regPairW = labw + fldw;
-	// two columns is as wide as the panel ever needs to be, but the flags row
-	// (8 of them side by side) may still ask for more
-	regWideW = regPairW * 2 + RCOL_GAP;
-	int flgw = dbgFlagBox[0]->sizeHint().width() * 8 + 7 * 2;
-	if (flgw > regWideW) regWideW = flgw;
-	// never allow more than two columns: dragging further would only add empty space
-	wid_cpu->setMaximumWidth(regWideW);
-	// only apply the mode here. Recomputing it would change the minimum, which
-	// resizes the panel, which lands back in this function through eventFilter
-	wid_cpu->setMinimumWidth(cpuWideDock ? regWideW : (regPairW + RCOL_GAP));
-	// same value is the switch point: sizes are only exact once the widgets are
-	// styled, two thresholds could drift apart and lock the second column out
-	regCols = (wid_cpu->width() >= regWideW) ? 2 : 1;
+	fitFlagBoxes();			// the widths below are measured off them
+	// the automatic mode reads the width it is given; only apply the limits
+	// afterwards. Recomputing the mode from them instead would resize the panel,
+	// which lands back in this function through eventFilter
+	regCols = conf.dbg.reglayout;
+	if (regCols == DBG_REGS_AUTO)
+		regCols = (wid_cpu->width() >= regsLayoutWidth(2)) ? 2 : 1;
+	applyCpuWidthLimits();
 
-	// 2nd pass: (re)build the layout
-	delete ui_cpu.verticalLayout->takeAt(VLI_REGS);	// registers stay alive, wid_cpu owns them
+	// width the registers and the flags under them share, so the two line up
+	int blockW = (regCols > 2) ? 0 : regsLayoutWidth(regCols);
+
+	// 2nd pass: (re)build the layout. Empty the panel first - the registers,
+	// flags and the flags header stay alive, wid_cpu owns them, only the
+	// layouts and spacers that held them go
+	QLayoutItem* item;
+	while ((item = ui_cpu.verticalLayout->takeAt(0)) != nullptr)
+		delete item;
 	ui_cpu.formRegs = new QGridLayout;
 	ui_cpu.formRegs->setHorizontalSpacing(0);
 	ui_cpu.formRegs->setVerticalSpacing(2);
-	ui_cpu.formRegs->setColumnMinimumWidth(2, RCOL_GAP);
-	ui_cpu.formRegs->setColumnStretch(5, 1);	// keep registers packed to the left
-	ui_cpu.verticalLayout->insertLayout(VLI_REGS, ui_cpu.formRegs);
-	QVector<char> done(dbgRegLabs.size(), 0);
-	int row = 0;
-	for (i = 0; i < cnt; i++) {
-		if (done[i]) continue;			// already taken as someone's pair
-		placeReg(b, i, row, RCOL_LEFT);
-		done[i] = 1;
-		if ((regCols > 1) && b->regs[i].pair) {
-			int p = find_bunch_reg(b, cnt, b->regs[i].pair);
-			if ((p >= 0) && !done[p]) {
-				placeReg(b, p, row, RCOL_RIGHT);
-				done[p] = 1;
-			}
+	for (i = 0; i < regCols; i++)
+		ui_cpu.formRegs->setColumnMinimumWidth(i * RCOL_STEP + 2, RCOL_GAP);
+	if ((regCols == 2) && (blockW > regPairW * 2 + RCOL_GAP)) {
+		// the flags row is the wider of the two: widen the gap between the
+		// register columns by the same amount, or the split between them would
+		// no longer sit over the middle of the row
+		ui_cpu.formRegs->setColumnMinimumWidth(2, blockW - regPairW * 2);
+	}
+	ui_cpu.formRegs->setColumnStretch(regCols * RCOL_STEP - 1, 1);	// packed to the left
+	// one column per register group, in the order the groups are numbered, but
+	// only where the table names them and there is room for that many columns
+	bool bygroup = false;
+	for (i = 0; (i < cnt) && !bygroup; i++)
+		bygroup = (regCols > 2) && (b->regs[i].group > 0);
+	if (bygroup) {
+		QVector<int> nrow(regCols, 0);
+		for (i = 0; i < cnt; i++) {
+			int c = b->regs[i].group - 1;
+			if ((c < 0) || (c >= regCols)) c = regCols - 1;	// the table forgot this one
+			placeReg(b, i, nrow[c], c * RCOL_STEP);
+			nrow[c]++;
 		}
-		row++;
+	} else {
+		// rows of the 1 and 2 column layouts: a register and the one the table
+		// pairs it with. For a cpu whose table names no groups, the wide layout
+		// is these rows cut in half, the lower half set beside the upper
+		QVector<char> done(dbgRegLabs.size(), 0);
+		QList<QPair<int, int> > rows;
+		for (i = 0; i < cnt; i++) {
+			if (done[i]) continue;		// already taken as someone's pair
+			int p = -1;
+			done[i] = 1;
+			if ((regCols > 1) && b->regs[i].pair) {
+				int j = find_bunch_reg(b, cnt, b->regs[i].pair);
+				if ((j >= 0) && !done[j]) {
+					p = j;
+					done[j] = 1;
+				}
+			}
+			rows.append(qMakePair(i, p));
+		}
+		int half = (regCols > 2) ? ((rows.size() + 1) / 2) : rows.size();
+		if (half < 1) half = 1;
+		for (int r = 0; r < rows.size(); r++) {
+			int blk = (r / half) * 2;	// which pair of columns this row goes to
+			placeReg(b, rows.at(r).first, r % half, blk * RCOL_STEP);
+			if (rows.at(r).second >= 0)
+				placeReg(b, rows.at(r).second, r % half, (blk + 1) * RCOL_STEP);
+		}
 	}
 	for (i = cnt; i < dbgRegLabs.size(); i++) {	// rest of the widgets is unused
 		dbgRegLabs[i]->setVisible(false);
 		dbgRegBits[i]->setVisible(false);
 		dbgRegEdit[i]->setVisible(false);
 	}
-	reFormFlags((regCols > 1) ? 8 : 4);
+	reFormFlags(blockW);
+	if (regCols > 2) {
+		// wide: registers on the left, the flags as one more column beside
+		// them. Their name is in the dock's title bar, over that column, so the
+		// flags start on the same line the registers do
+		ui_cpu.labHeadFlags->setVisible(false);
+		// The header splits where the registers end, and the flags take all the
+		// room after it. Any extra width the dock has then shows up as air
+		// around the flags instead of a hole between the two blocks
+		cpuTitleName->setFixedWidth(ui_cpu.formRegs->sizeHint().width());
+		cpuTitleFlags->setVisible(true);
+		QVBoxLayout* fbox = new QVBoxLayout;
+		fbox->setContentsMargins(0, 0, 0, 0);
+		fbox->setSpacing(2);
+		fbox->addLayout(ui_cpu.flagsGrid);
+		fbox->addStretch(1);
+		QHBoxLayout* hbox = new QHBoxLayout;
+		hbox->setContentsMargins(0, 0, 0, 0);
+		hbox->setSpacing(HEAD_SPLIT);	// splits where the title bar does
+		hbox->addLayout(ui_cpu.formRegs, 0);
+		hbox->addLayout(fbox, 1);
+		ui_cpu.verticalLayout->addLayout(hbox);
+		// take the minimum off the built layout: the estimate the width was set
+		// from earlier measures every register against the widest one, and the
+		// slack it leaves would go to the flags and widen the whole dock column
+		wid_cpu->setMinimumWidth(ui_cpu.verticalLayout->minimumSize().width());
+	} else {
+		cpuTitleFlags->setVisible(false);
+		cpuTitleName->setMinimumWidth(0);
+		cpuTitleName->setMaximumWidth(QWIDGETSIZE_MAX);
+		ui_cpu.labHeadFlags->setVisible(true);
+		ui_cpu.verticalLayout->addLayout(ui_cpu.formRegs);
+		ui_cpu.verticalLayout->addSpacing(8);
+		ui_cpu.verticalLayout->addWidget(ui_cpu.labHeadFlags);
+		ui_cpu.verticalLayout->addLayout(ui_cpu.flagsGrid);
+	}
+	ui_cpu.verticalLayout->addStretch(1);	// keep everything packed to the top
+	// queued: the panel has to be laid out in its new shape before the dock can
+	// be measured, and resizeDocks() must not run inside a layout pass. One per
+	// turn - a rebuild on the way in and a core change can both land in it
+	if (!fitPending) {
+		fitPending = 1;
+		QTimer::singleShot(0, this, &DebugWin::fitCpuDock);
+	}
+}
+
+// The panel is a different shape after a layout change: hand the dock what the
+// new one asks for and let the neighbours take back the rest, so no separator
+// has to be dragged by hand. Width only when the layout was chosen - in the
+// automatic mode the width is what picks the layout in the first place.
+void DebugWin::fitCpuDock() {
+	fitPending = 0;
+	if (!winShown || !regPairW) return;
+	QSize sh = wid_cpu_dock->sizeHint();
+	if (conf.dbg.reglayout != DBG_REGS_AUTO) {
+		int w = sh.width();
+		if (w < wid_cpu->minimumWidth()) w = wid_cpu->minimumWidth();
+		resizeDocks(QList<QDockWidget*>() << wid_cpu_dock, QList<int>() << w, Qt::Horizontal);
+	}
+	fitDockHeights(wid_cpu_dock, sh.height(), docksBelowCpu());
+}
+
+// Qt hands every dock in a column an equal share, which parks a short panel in
+// the middle of empty space. Give the top one the height it asks for and let
+// the ones under it swallow the rest.
+void DebugWin::fitDockHeights(QDockWidget* top, int hgt, const QList<QDockWidget*>& rest) {
+	if (rest.isEmpty()) return;
+	QList<QDockWidget*> col;
+	QList<int> hgts;
+	col << top;
+	hgts << hgt;
+	foreach (QDockWidget* dw, rest) {
+		col << dw;
+		hgts << 10000;		// relative, resizeDocks normalises them
+	}
+	resizeDocks(col, hgts, Qt::Vertical);
 }
 
 // Reset from the menu: put the panels back and take the window back to the size
@@ -1400,16 +1641,10 @@ void DebugWin::setDefaultLayout() {
 	wid_dump->raise();
 	wid_brk->raise();
 
-	// Qt hands every dock in a column an equal share, which parks a short panel
-	// like STACK in the middle of empty space. Ask for the heights the contents
-	// actually want and let the taller neighbour keep the slack.
-	QList<QDockWidget*> col;
-	QList<int> hgt;
-	col << wid_misc << wid_stack;
-	// the top one gets exactly its content, the bottom one swallows the rest,
-	// so the two sit against each other instead of being spread apart
-	hgt << wid_misc->widget()->sizeHint().height() << 10000;
-	resizeDocks(col, hgt, Qt::Vertical);
+	// MEMMAP gets exactly its content and STACK under it swallows the rest, so
+	// the two sit against each other instead of being spread apart
+	fitDockHeights(wid_misc, wid_misc->widget()->sizeHint().height(),
+		QList<QDockWidget*>() << wid_stack);
 
 	QList<QDockWidget*> row;
 	QList<int> wdt;
@@ -1428,30 +1663,41 @@ void DebugWin::setDefaultLayout() {
 	// layout pass has already handed the panel a two column width, and a
 	// smaller minimum does not shrink a widget that is already wider.
 	cpuWideDock = 0;
-	if (regPairW) wid_cpu->setMinimumWidth(regPairW + RCOL_GAP);
+	// only the automatic policy has an input here: a chosen layout took its
+	// width off the panel it built, which is tighter than the estimate
+	// applyCpuWidthLimits() would put back
+	if (conf.dbg.reglayout == DBG_REGS_AUTO)
+		applyCpuWidthLimits();
 }
 
-// Two panels sitting side by side under the cpu dock is the cue for the wide
-// (two column) register layout: demand the width that needs, so the row below
-// can split in half. A single panel under it keeps the column narrow.
-void DebugWin::updateCpuDockWidth() {
-	if (!regPairW || !regWideW) return;
+// only what sits under the cpu panel counts: a dock merely standing beside it
+// (the disassembler, say) is in another column and shares nothing with it
+QList<QDockWidget*> DebugWin::docksBelowCpu() {
+	QList<QDockWidget*> res;
 	QRect cr = wid_cpu_dock->geometry();
-	// only what sits under the cpu panel counts: a dock merely standing beside it
-	// (the disassembler, say) says nothing about how wide the column should be
-	QList<QRect> below;
 	foreach (xDockWidget* dw, dockWidgets) {
 		if ((dw == wid_cpu_dock) || dw->isHidden() || dw->isFloating()) continue;
 		QRect r = dw->geometry();
 		if (r.top() < cr.bottom()) continue;			// not below
 		if ((r.left() >= cr.right()) || (cr.left() >= r.right())) continue;	// not in this column
-		below << r;
+		res << dw;
 	}
+	return res;
+}
+
+// Two panels sitting side by side under the cpu dock is the cue for the wide
+// (two column) register layout: demand the width that needs, so the row below
+// can split in half. A single panel under it keeps the column narrow.
+// Only the automatic mode listens to this - a chosen layout sets its own width.
+void DebugWin::updateCpuDockWidth() {
+	if (!regPairW) return;
+	if (conf.dbg.reglayout != DBG_REGS_AUTO) return;
+	QList<QDockWidget*> below = docksBelowCpu();
 	bool wide = false;
 	for (int i = 0; !wide && (i < below.size()); i++) {
 		for (int j = i + 1; j < below.size(); j++) {
-			QRect a = below.at(i);
-			QRect b = below.at(j);
+			QRect a = below.at(i)->geometry();
+			QRect b = below.at(j)->geometry();
 			// overlapping vertical bands = the two are next to each other
 			if ((a.top() < b.bottom()) && (b.top() < a.bottom())) {
 				wide = true;
@@ -1461,7 +1707,7 @@ void DebugWin::updateCpuDockWidth() {
 	}
 	if (wide == !!cpuWideDock) return;
 	cpuWideDock = wide ? 1 : 0;
-	wid_cpu->setMinimumWidth(wide ? regWideW : (regPairW + RCOL_GAP));
+	applyCpuWidthLimits();
 }
 
 // the dock sizes are in place now, so the cpu panel can be built at the
@@ -1469,11 +1715,17 @@ void DebugWin::updateCpuDockWidth() {
 void DebugWin::showEvent(QShowEvent* ev) {
 	QMainWindow::showEvent(ev);
 	winShown = 1;
-	if (reformWait && conf.prof.cur && conf.prof.cur->zx) {
+	if (reformWait) {
 		reformWait = 0;
-		xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
-		reFormCPU(&bunch);
+		rebuildCpuPanel();
 	}
+}
+
+// values are kept, no fillCPU after it: that would clear the 'changed' color
+void DebugWin::rebuildCpuPanel() {
+	if (!conf.prof.cur || !conf.prof.cur->zx) return;
+	xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
+	reFormCPU(&bunch);
 }
 
 // a panel resized: the cpu one reflows its columns, the stack one refills to
@@ -1483,8 +1735,9 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 		fillStack();		// only repaints the panel: safe from inside a resize
 	// isVisible: while the window is hidden the panel is squeezed to its minimum
 	if ((obj == wid_cpu) && (ev->type() == QEvent::Resize) && isVisible()
+			&& (conf.dbg.reglayout == DBG_REGS_AUTO)
 			&& regPairW && conf.prof.cur && conf.prof.cur->zx) {
-		int cols = (wid_cpu->width() >= regWideW) ? 2 : 1;
+		int cols = (wid_cpu->width() >= regsLayoutWidth(2)) ? 2 : 1;
 		// Never rebuild from inside the resize event. reFormCPU() deletes and
 		// re-adds layout items, and a separator drag delivers a stream of
 		// resizes while Qt is walking the dock layout - mutating it underneath
@@ -1497,12 +1750,34 @@ bool DebugWin::eventFilter(QObject* obj, QEvent* ev) {
 	return QMainWindow::eventFilter(obj, ev);
 }
 
+void DebugWin::regLayoutMenu(const QPoint& pos) {
+	foreach (QAction* act, regMenu->actions()) {
+		if (act == regSplitAct) {
+			act->setChecked(conf.dbg.regsplit);
+		} else {
+			act->setChecked(act->isCheckable() && (act->data().toInt() == conf.dbg.reglayout));
+		}
+	}
+	regMenu->popup(wid_cpu_dock->titleBarWidget()->mapToGlobal(pos));
+}
+
+void DebugWin::setRegLayout(QAction* act) {
+	if (act == regSplitAct) {
+		conf.dbg.regsplit = act->isChecked() ? 1 : 0;
+		rebuildCpuPanel();	// placeReg() hands the setting to every field
+		return;
+	}
+	int lay = act->data().toInt();
+	if (lay == conf.dbg.reglayout) return;
+	conf.dbg.reglayout = lay;
+	rebuildCpuPanel();
+}
+
 void DebugWin::reformCpuLater() {
 	reformPending = 0;
-	if (!conf.prof.cur || !conf.prof.cur->zx) return;
-	if (((wid_cpu->width() >= regWideW) ? 2 : 1) == regCols) return;	// settled meanwhile
-	xRegBunch bunch = cpuGetRegs(conf.prof.cur->zx->cpu);
-	reFormCPU(&bunch);	// values are kept, no fillCPU: it would clear the 'changed' color
+	if (!regPairW) return;
+	if (((wid_cpu->width() >= regsLayoutWidth(2)) ? 2 : 1) == regCols) return;	// settled meanwhile
+	rebuildCpuPanel();
 }
 
 void DebugWin::fillCPU() {

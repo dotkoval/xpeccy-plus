@@ -36,6 +36,7 @@ void setRFIndex(QComboBox*, QVariant, int = 0);
 #define XHS_FILL (1<<2)		// leading zeros
 #define XHS_UPD (1<<3)		// force update text, reset after using
 #define XHS_AUTOW (1<<4)	// keep width as narrow as the value needs
+#define XHS_SPLIT (1<<5)	// light the bytes that changed, not the whole value
 
 class xHexSpin : public QLineEdit {
 	Q_OBJECT
@@ -47,6 +48,7 @@ class xHexSpin : public QLineEdit {
 		void setBase(int);
 		void updatePal();
 		void refitWidth();
+		void setSplit(bool);
 		int getMax();
 	signals:
 		void valueChanged(int);
@@ -57,7 +59,7 @@ class xHexSpin : public QLineEdit {
 		void onChange(int);
 		void onTextChange(QString);
 	private:
-		unsigned changed:1;
+		int chgMask;		// bytes changed by the last setValue, bit 0 = the lowest
 		int hsflag;
 		int base;
 		int value;
@@ -67,9 +69,12 @@ class xHexSpin : public QLineEdit {
 		QString vtxt;
 		QRegExpValidator vldtr;
 		void updateMask();
+		int splitBytes();
+		bool wholeFieldLit();
 	protected:
 		void keyPressEvent(QKeyEvent*);
 		void wheelEvent(QWheelEvent*);
+		void paintEvent(QPaintEvent*);
 };
 
 class xLabel : public QLabel {

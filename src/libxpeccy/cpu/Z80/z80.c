@@ -468,24 +468,25 @@ int z80_get_fa(CPU* cpu) {return cpu->regFa;}
 
 // table order is the one-column order of deBUGa. last field is the register to put
 // beside this one when deBUGa has room for two columns (main | alternative).
-// note: PC must stay first, find_reg_type() matches REG_PC (=0) on the first typeless entry
 // REG_EMPTY items are hidden in deBUGa, but still can be used by name in watcher expressions
 xRegDsc z80RegTab[] = {
-	{Z80_REG_PC, "PC", REG_WORD, REG_RDMP | REG_PC, z80_get_pc, z80_set_pc, Z80_REG_SP},
-	{Z80_REG_AF, "AF", REG_WORD, 0, z80_get_af, z80_set_af, Z80_REG_AFA},
-	{Z80_REG_BC, "BC", REG_WORD, REG_RDMP, z80_get_bc, z80_set_bc, Z80_REG_BCA},
-	{Z80_REG_DE, "DE", REG_WORD, REG_RDMP, z80_get_de, z80_set_de, Z80_REG_DEA},
-	{Z80_REG_HL, "HL", REG_WORD, REG_RDMP, z80_get_hl, z80_set_hl, Z80_REG_HLA},
+	// last two fields are what deBUGa lays the panel out by: pair sits on the
+	// same line as this one, group is what the register is for
+	{Z80_REG_PC, "PC", REG_WORD, REG_RDMP | REG_PC, z80_get_pc, z80_set_pc, Z80_REG_SP, REG_GRP_PTR},
+	{Z80_REG_AF, "AF", REG_WORD, 0, z80_get_af, z80_set_af, Z80_REG_AFA, REG_GRP_MAIN},
+	{Z80_REG_BC, "BC", REG_WORD, REG_RDMP, z80_get_bc, z80_set_bc, Z80_REG_BCA, REG_GRP_MAIN},
+	{Z80_REG_DE, "DE", REG_WORD, REG_RDMP, z80_get_de, z80_set_de, Z80_REG_DEA, REG_GRP_MAIN},
+	{Z80_REG_HL, "HL", REG_WORD, REG_RDMP, z80_get_hl, z80_set_hl, Z80_REG_HLA, REG_GRP_MAIN},
 
-	{Z80_REG_SP, "SP", REG_WORD, REG_RDMP | REG_SP, z80_get_sp, z80_set_sp},
-	{Z80_REG_AFA, "AF'", REG_WORD, 0, z80_get_afa, z80_set_afa},
-	{Z80_REG_BCA, "BC'", REG_WORD, REG_RDMP, z80_get_abc, z80_set_abc},
-	{Z80_REG_DEA, "DE'", REG_WORD, REG_RDMP, z80_get_ade, z80_set_ade},
-	{Z80_REG_HLA, "HL'", REG_WORD, REG_RDMP, z80_get_ahl, z80_set_ahl},
+	{Z80_REG_SP, "SP", REG_WORD, REG_RDMP | REG_SP, z80_get_sp, z80_set_sp, 0, REG_GRP_PTR},
+	{Z80_REG_AFA, "AF'", REG_WORD, 0, z80_get_afa, z80_set_afa, 0, REG_GRP_SHADOW},
+	{Z80_REG_BCA, "BC'", REG_WORD, REG_RDMP, z80_get_abc, z80_set_abc, 0, REG_GRP_SHADOW},
+	{Z80_REG_DEA, "DE'", REG_WORD, REG_RDMP, z80_get_ade, z80_set_ade, 0, REG_GRP_SHADOW},
+	{Z80_REG_HLA, "HL'", REG_WORD, REG_RDMP, z80_get_ahl, z80_set_ahl, 0, REG_GRP_SHADOW},
 
-	{Z80_REG_IX, "IX", REG_WORD, REG_RDMP, z80_get_ix, z80_set_ix, Z80_REG_IY},
-	{Z80_REG_IY, "IY", REG_WORD, REG_RDMP, z80_get_iy, z80_set_iy},
-	{Z80_REG_IR, "IR", REG_WORD, 0, z80_get_ir, z80_set_ir, Z80_REG_IM},
+	{Z80_REG_IX, "IX", REG_WORD, REG_RDMP, z80_get_ix, z80_set_ix, Z80_REG_IY, REG_GRP_PTR},
+	{Z80_REG_IY, "IY", REG_WORD, REG_RDMP, z80_get_iy, z80_set_iy, 0, REG_GRP_PTR},
+	{Z80_REG_IR, "IR", REG_WORD, 0, z80_get_ir, z80_set_ir, Z80_REG_IM, REG_GRP_CTRL},
 	{REG_EMPTY, "I", REG_BYTE, 0, z80_get_i, z80_set_i},
 	{REG_EMPTY, "R", REG_BYTE, 0, z80_get_r, z80_set_r},
 	{REG_EMPTY, "A", REG_BYTE, 0, z80_get_a, z80_set_a},
@@ -510,11 +511,11 @@ xRegDsc z80RegTab[] = {
 	{REG_EMPTY, "IYH", REG_BYTE, 0, z80_get_iyh, z80_set_iyh},
 	{REG_EMPTY, "IYL", REG_BYTE, 0, z80_get_iyl, z80_set_iyl},
 #ifdef ISDEBUG
-	{Z80_REG_WZ, "WZ", REG_WORD, REG_RDMP, z80_get_wz, z80_set_wz},
+	{Z80_REG_WZ, "WZ", REG_WORD, REG_RDMP, z80_get_wz, z80_set_wz, 0, REG_GRP_PTR},
 #endif
-	{Z80_REG_IM, "IM", REG_2, 0, z80_get_im, z80_set_im},
-	{Z80_FLG_IFF1, "IFF1", REG_BIT, 0, z80_get_iff1, z80_set_iff1, Z80_FLG_IFF2},
-	{Z80_FLG_IFF2, "IFF2", REG_BIT, 0, z80_get_iff2, z80_set_iff2},
+	{Z80_REG_IM, "IM", REG_2, 0, z80_get_im, z80_set_im, 0, REG_GRP_CTRL},
+	{Z80_FLG_IFF1, "IFF1", REG_BIT, 0, z80_get_iff1, z80_set_iff1, Z80_FLG_IFF2, REG_GRP_CTRL},
+	{Z80_FLG_IFF2, "IFF2", REG_BIT, 0, z80_get_iff2, z80_set_iff2, 0, REG_GRP_CTRL},
 	{REG_EOT, "SZ5H3PNC", 0, 0, NULL, NULL}				// name of REG_EOT element is flag names
 };
 

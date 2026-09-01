@@ -547,12 +547,14 @@ struct xConfig {
 		unsigned showsig:1;
 		unsigned showray:1;
 		unsigned showfrm:1;
+		unsigned regsplit:1;	// light a changed byte on its own, not the whole register
 		QFont font;
 		int dbsize;
 		int dwsize;
 		int dmsize;
 		int stackofs;		// first offset the stack panel shows, even, see DBG_STACK_OFS
 		int scrzoom;
+		int reglayout;		// register panel: columns, or DBG_REGS_AUTO
 		QPoint pos;
 		QSize siz;
 	} dbg;
@@ -562,8 +564,20 @@ struct xConfig {
 
 #define DBG_PAL_CONST	"dbg.asm.const.txt"
 
+// what a register field that changed is drawn in
+
+#define DBG_PAL_CHG_BG	"dbg.changed.bg"
+#define DBG_PAL_CHG_TXT	"dbg.changed.txt"
+
 // how far either way the stack panel may start from SP
 
 #define DBG_STACK_OFS	16
+
+// register panel layout: the value is the column count, 0 = pick it by width
+
+#define DBG_REGS_AUTO	0
+#define DBG_REGS_1COL	1
+#define DBG_REGS_2COL	2
+#define DBG_REGS_WIDE	4	// 4 register columns, flags beside them
 
 extern xConfig conf;
