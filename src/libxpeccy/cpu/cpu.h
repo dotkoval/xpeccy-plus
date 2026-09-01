@@ -46,9 +46,10 @@ typedef struct {
 #define REG_GRP_SHADOW	2	// their shadow copies
 #define REG_GRP_PTR	3	// points into memory (pc, sp, ix, ...)
 #define REG_GRP_CTRL	4	// interrupt and control state
-// register type (bit 8-10 of flag)
+// register type (bit 8-10 of flag). 0 is 'no type of its own', so a register
+// that names none is not mistaken for the one the code is looking for
 #define REG_TYPE_M	(7<<8)	// 8 types (to find register)
-#define REG_PC		(0<<8)	// execution pointer (pc, ip)
+#define REG_PC		(3<<8)	// execution pointer (pc, ip)
 #define REG_SP		(1<<8)	// stack (sp)
 #define REG_FLG		(2<<8)	// is flag
 #define REG_CS		(4<<8)	// code segment (base)

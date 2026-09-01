@@ -468,7 +468,6 @@ int z80_get_fa(CPU* cpu) {return cpu->regFa;}
 
 // table order is the one-column order of deBUGa. last field is the register to put
 // beside this one when deBUGa has room for two columns (main | alternative).
-// note: PC must stay first, find_reg_type() matches REG_PC (=0) on the first typeless entry
 // REG_EMPTY items are hidden in deBUGa, but still can be used by name in watcher expressions
 xRegDsc z80RegTab[] = {
 	// last two fields are what deBUGa lays the panel out by: pair sits on the
