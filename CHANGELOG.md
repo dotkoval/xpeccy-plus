@@ -91,8 +91,13 @@ before that point is upstream's history and is not repeated here.
 
 ### From upstream
 
-Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260824`, by SAM style.
+Taken from [Xpeccy](https://github.com/samstyle/Xpeccy) builds `20260824` to `20260830`, by
+SAM style.
 
+- **The NMI key works on ZX Evo (BaseConf)**: it opens the Magic Service and comes back to the
+  running program cleanly. Its text mode sits in the right place on screen too, and the paging
+  ports, palette and font read back the way the firmware expects.
+- The Z80 takes an NMI ahead of a pending interrupt, as the real chip does.
 - A new hardware profile, `PentEvo21` ("Evo Baseconf, after 2021"), alongside the existing
   PentEvo. Marked unstable by upstream.
 - Jumping to an address in the disassembler (F4) or returning (F5) no longer leaves a duplicate
