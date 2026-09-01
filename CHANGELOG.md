@@ -52,6 +52,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- The checkboxes in the breakpoint list follow the chosen interface style, sit centred under
+  their headings, and no longer leave a stray outline on the empty half of a cell. Flags a
+  breakpoint has no use for - the F/R/W of an IRQ or of a global condition - are left blank
+  instead of quietly taking clicks.
+
 - **Memory contention is accurate on the 48K, 128K, +2 and +2A/+3.** The ULA now also
   holds the CPU during an instruction's idle ticks and during `IN`, and the screen is
   read ahead of the beam the way the real one does. `LDIR` across the screen used to

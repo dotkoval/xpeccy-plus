@@ -1,4 +1,6 @@
+#include <QApplication>
 #include <QFileDialog>
+#include <QStyleOptionButton>
 #include <QTextBrowser>
 #include <QVBoxLayout>
 
@@ -74,9 +76,9 @@ QVariant xBreakListModel::data(const QModelIndex& idx, int role) const {
 		case Qt::CheckStateRole:
 			switch(col) {
 				case 0: res = brk.off ? Qt::Unchecked : Qt::Checked; break;
-				case 1: if ((brk.type != BRK_IRQ) && (brk.type != BRK_IOPORT)) res = brk.fetch ? Qt::Checked : Qt::Unchecked; break;
-				case 2: if (brk.type != BRK_IRQ) res = brk.read ? Qt::Checked : Qt::Unchecked; break;
-				case 3: if (brk.type != BRK_IRQ) res = brk.write ? Qt::Checked : Qt::Unchecked; break;
+				case 1: if ((brk.type != BRK_IRQ) && (brk.type != BRK_IOPORT) && (brk.type != BRK_COND)) res = brk.fetch ? Qt::Checked : Qt::Unchecked; break;
+				case 2: if ((brk.type != BRK_IRQ) && (brk.type != BRK_COND)) res = brk.read ? Qt::Checked : Qt::Unchecked; break;
+				case 3: if ((brk.type != BRK_IRQ) && (brk.type != BRK_COND)) res = brk.write ? Qt::Checked : Qt::Unchecked; break;
 			}
 			break;
 		case Qt::TextAlignmentRole:
@@ -158,11 +160,41 @@ void xBreakListModel::update() {
 	}
 }
 
+// Check columns
+
+// the option the view hands over already carries the row's selection, hover and
+// palette, and these columns have nothing else in them, so there is no call for
+// QStyledItemDelegate::initStyleOption() and the model lookups it does
+
+void xBrkCheckItem::paint(QPainter* pnt, const QStyleOptionViewItem& opt, const QModelIndex& idx) const {
+	QStyleOptionViewItem iop(opt);
+	iop.state &= ~QStyle::State_HasFocus;		// most of the cell is empty, a focus rect there says nothing
+	const QWidget* wid = iop.widget;
+	QStyle* stl = wid ? wid->style() : QApplication::style();
+	stl->drawControl(QStyle::CE_ItemViewItem, &iop, pnt, wid);
+	QVariant chk = idx.data(Qt::CheckStateRole);
+	if (!chk.isValid()) return;			// this flag means nothing for this breakpoint
+	QStyleOptionButton bop;
+	bop.state = QStyle::State_Enabled;
+	if (iop.state & QStyle::State_MouseOver) bop.state |= QStyle::State_MouseOver;
+	bop.state |= (chk.toInt() == Qt::Unchecked) ? QStyle::State_Off : QStyle::State_On;
+	// ask the style about tmpl, not about the view: a check box is what the
+	// style sheets have a rule for
+	int w = stl->pixelMetric(QStyle::PM_IndicatorWidth, &bop, &tmpl);
+	int h = stl->pixelMetric(QStyle::PM_IndicatorHeight, &bop, &tmpl);
+	bop.rect = QRect(opt.rect.x() + (opt.rect.width() - w) / 2,
+			opt.rect.y() + (opt.rect.height() - h) / 2, w, h);
+	stl->drawPrimitive(QStyle::PE_IndicatorCheckBox, &bop, pnt, &tmpl);
+}
+
 // Widget
 
 xBreakTable::xBreakTable(QWidget* p):QTableView(p) {
 	model = new xBreakListModel();
 	setModel(model);
+	xBrkCheckItem* chk = new xBrkCheckItem(this);
+	for (int i = 0; i < 4; i++)
+		setItemDelegateForColumn(i, chk);
 	addrWidth = 150;
 	setcol = 0;
 	applyColumns();
@@ -227,7 +259,8 @@ void xBreakTable::onCellClick(QModelIndex idx) {
 	int col = idx.column();
 	xProfile* prf = conf.prof.cur;
 	xBrkPoint* brk = &prf->brk.list[row];
-	if ((col > 0) && (brk->type == BRK_COND)) return;
+	// no checkbox means the flag doesn't apply here (or the column isn't one) - a click does nothing
+	if (!idx.data(Qt::CheckStateRole).isValid()) return;
 	switch(col) {
 		case 0: brk->off ^= 1; break;
 		case 1: brk->fetch ^= 1; break;
