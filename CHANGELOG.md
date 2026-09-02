@@ -70,6 +70,9 @@ before that point is upstream's history and is not repeated here.
 - **The Leds page of Setup is now Indicators**, a row per indicator: the icon it draws on
   screen, its name and a line saying what it shows.
 
+- **The bundled profiles were gone over machine by machine** and now match the real hardware
+  more closely. Profiles you already have are left alone; update them by hand to pick this up.
+
 - The debugger headers that react to a mouse click - CPU, MEMMAP, PORTS and FRAME - are
   marked with a dot in the corner.
 
