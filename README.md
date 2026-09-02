@@ -5,7 +5,7 @@ A ZX Spectrum emulator with a built-in debugger.
 Xpeccy+ is a fork of [Xpeccy](https://github.com/samstyle/Xpeccy) by SAM style. All the
 emulation code comes from that project. This fork does not claim authorship of it.
 
-Current version: **2026.2**. Forked from upstream build `20260807`.
+Current version: **2026.3**. Forked from upstream build `20260807`.
 
 Windows, Linux and macOS are built by CI on every nightly and off every release tag. The
 macOS build is arm64 only and carries no developer signature, so a downloaded dmg has to be
@@ -43,10 +43,12 @@ and keeps doing its job; the work here goes into everything around it.
 
 ## What is already different
 
-On top of upstream build `20260807`: lower input lag, a release bundled with rom sets and
-machine profiles, macOS builds, eight interface styles, a debugger with movable panels,
-conditional breakpoints and a listing that reads like one, a memory heat map and AF/AF' in
-it, a working ZX Evo (TSConf), and tape loading fixes.
+On top of upstream build `20260807`: accurate memory contention on the Sinclair machines,
+lower input lag, a tape or disk that starts by itself when opened, a host folder standing in
+for an SD card or a hard disk, a release bundled with rom sets and machine profiles, macOS
+builds, eight interface styles, a debugger with movable panels, conditional breakpoints and a
+listing that reads like one, a memory heat map and AF/AF' in it, a working ZX Evo (TSConf),
+and tape loading fixes.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list.
 

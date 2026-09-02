@@ -7,7 +7,7 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
-## Unreleased
+## 2026.3 - 2026-09-02
 
 ### Added
 
@@ -134,6 +134,11 @@ before that point is upstream's history and is not repeated here.
   hardware, affecting audio pitch and frame rate.
 
 - The FPS indicator now shows a more accurate frame rate, including right after unpausing.
+
+- **Smaller interface fixes**: the toolbar icons read on dark styles, the debugger's context
+  menus use the interface font, the breakpoint list keeps its column widths and no longer
+  wastes room on the address column, the stack panel comes back its own size after a restart,
+  and a constant in the listing goes bold instead of changing colour under the cursor.
 
 ### From upstream
 
