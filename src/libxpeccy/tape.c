@@ -17,6 +17,7 @@ Tape* tape_create(cbirq cb, void* p) {
 	tap->xptr = p;
 	tap->volPlay = 0x80;
 	tap->speed = 100;
+	tap->autorew = 1;
 	blkClear(&tap->tmpBlock);
 	return tap;
 }
@@ -359,6 +360,16 @@ int tapPlay(Tape* tap) {
 	}
 	tap->detectReads = 0;
 	return tap->on;
+}
+
+// Play, as a person pressing the button: a tape sitting at its end starts over,
+// else play would do nothing until it is rewound by hand. Only for that - the
+// loader detector below must not come through here, or a stray pattern during
+// a game would replay a tape nobody asked for.
+int tapUserPlay(Tape* tap) {
+	if (tap->autorew && !tap->on && (tap->block >= tap->blkCount))
+		tapRewind(tap, 0);
+	return tapPlay(tap);
 }
 
 // Detect loaders that bypass the ROM (custom in-game loaders): a tight loop reading
