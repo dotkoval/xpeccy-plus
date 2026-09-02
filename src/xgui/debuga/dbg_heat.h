@@ -4,13 +4,23 @@
 #include "ui_form_heat.h"
 
 #include <QImage>
+#include <QRgb>
 
 // bytes per raster row: one 16K page is then 64 rows, the 64K cpu space 256
 #define HEAT_BPR	256
 
-// which counter the raster shows
+// block view: the 64K cpu space as four square 16K slots side by side, one
+// cell per group of bytes. 64 * 64 * 4 is exactly one 16K slot
+#define HEAT_GROUP	4	// bytes one cell stands for
+#define HEAT_BLKDIM	64	// cells along one side of a block
+#define HEAT_BLOCKS	4	// 16K slots the cpu space is made of
+
+static_assert(HEAT_BLKDIM * HEAT_BLKDIM * HEAT_GROUP == MEM_16K, "a block must be exactly one 16K slot");
+static_assert(HEAT_BLOCKS * MEM_16K == 0x10000, "the blocks must cover the whole 64K cpu space");
+
+// which counter the view shows
 enum {
-	HEATCH_RGB = 0,		// all three at once: red=write, green=read, blue=exec
+	HEATCH_ALL = 0,		// all three at once, each cell taking the strongest
 	HEATCH_RD,
 	HEATCH_WR,
 	HEATCH_EX
@@ -18,20 +28,21 @@ enum {
 
 // The heat raster. Painted, not laid out: one byte is a square of 1..8 px,
 // sized so that the whole source fits the panel when it can, and scrolled by
-// whole rows when it cannot.
+// whole rows when it cannot. The cpu view instead uses the block layout, which
+// always fits and so never scrolls.
 class xHeatView : public QWidget {
 	Q_OBJECT
 	public:
 		xHeatView(QWidget* = nullptr);
 		void setSource(int mode, int page);
 		void setChannel(int);
-		void setLevels(int);
-		void setLogScale(bool);
 		void setTop(int);
 		int getTop() const;
 		int rowsTotal() const;		// rows the whole source takes
 		int rowsFit() const;		// rows the panel shows now
 		int maxTop() const;		// last row the panel can start at
+		bool blockView() const;		// cpu space drawn as four square blocks
+		bool fits(int extra) const;	// nothing to scroll, given that much more width
 		QSize minimumSizeHint() const;
 	signals:
 		void s_adr(int);		// double click on a cell visible to the cpu
@@ -49,15 +60,29 @@ class xHeatView : public QWidget {
 		int mode;			// XVIEW_CPU / XVIEW_RAM / XVIEW_ROM
 		int page;			// 16K page for XVIEW_RAM / XVIEW_ROM
 		int chan;
-		int levels;
-		bool logscale;
 		int top;			// first row shown
+		// the block layout, worked out in one go: every piece of it comes
+		// from the cell size, and each one used to re-derive that for itself
+		struct xBlkGeom {
+			QRect all;		// the cells of all four blocks, headings not counted
+			int cs;			// side of one cell
+			int hh;			// height of a heading
+			int span;		// from one block's left edge to the next
+		};
+		int cellWFor(int wid) const;
+		int cellHFor(int cw) const;
+		int rowsFitFor(int ch) const;
 		int cellW() const;
 		int cellH() const;
 		int cellAt(const QPoint&) const;	// offset inside the source, -1 outside
 		xHeatCell cellData(int off) const;
 		void rowSource(int row, int* type, int* base) const;
-		QImage raster(int rows) const;
+		QImage raster(int rows, QRgb none) const;
+		int blkHead() const;			// height of a block's address heading
+		xBlkGeom blkGeom() const;
+		int blkAt(const QPoint&) const;		// cpu address of the group under the point
+		void paintBlocks(QPainter&, QRgb none);
+		void paintOffHint(QPainter&, const QRect&) const;
 };
 
 // The legend under the raster, which doubles as the readout: one swatch per

@@ -7,35 +7,70 @@
 #include <QWheelEvent>
 #include <QFileDialog>
 
-#include <math.h>
-
 #define	HEAT_PAD	2	// margin around the raster
 #define	HEAT_CELLMAX	8	// biggest square one byte is drawn as
 #define	HEAT_GRIDMIN	3	// tile size the separator grid starts being drawn at
 #define	HEAT_SWATCH	9	// legend swatch, in pixels
 #define	HEAT_LEGGAP	8	// between two legend entries
 
-// the ground and the quantized steps are the ones tools/heatmap_png.py draws
-// with --style detail. the three counter colours are that tool's named palette
-// (COL_READ/COL_WRITE/COL_EXEC), which it only uses for --style sectors: they
-// are what a cell of one counter alone, at full intensity, comes out as here.
-// pure #00ff00 - what the tool's own blend gives - glares on the light ground
-#define	HEAT_BG		qRgb(248, 248, 248)
-#define	HEAT_EMPTY	qRgb(214, 214, 214)	// in the bank, never touched
-// a plainer grey than the viewer's own #e8e8e8, which is so close to the
-// ground that untouched cells and the empty frame read as one
+// one set of counter colours for every theme - they read on a light ground and
+// on a dark one alike. only the grey of an untouched cell has to follow the
+// theme, and the yellow between the 16K slots is the memory map panel's own
 #define	HEAT_COL_RD	qRgb(46, 207, 46)
 #define	HEAT_COL_WR	qRgb(255, 57, 57)
-#define	HEAT_COL_EX	qRgb(36, 159, 159)
-// marks drawn over the raster, so they belong to its palette rather than the
-// interface style
-#define	HEAT_COL_GRID	QColor(255, 255, 255)	// tile separators
+#define	HEAT_COL_EX	qRgb(79, 150, 237)
+#define	HEAT_COL_SEP	QColor(224, 224, 0)
+#define	HEAT_NONE_LT	qRgb(214, 214, 214)	// untouched, on a light ground
+#define	HEAT_NONE_DK	qRgb(72, 72, 72)	// and on a dark one
 #define	HEAT_COL_BOUND	QColor(0x60, 0x60, 0x60)	// 16K window boundaries
 #define	HEAT_COL_HINT	QColor(0x80, 0x80, 0x80)	// "collecting is off"
 
-// HEATCH_RGB shows all three counters; any other setting shows only itself
+#define	HEAT_BLKGAP	1	// separator between two blocks, in pixels
+#define	HEAT_BLKMAX	8	// biggest square one group is drawn as
+#define	HEAT_HDRPAD	2	// above and below the address heading of a block
+
+// the grey an untouched cell is drawn in, by how light the ground under the
+// panel is. the style sheet reaches the palette, so that is where it comes
+// from - xStackView reads its own ground the same way
+static QRgb heat_none_for(const QColor& gnd) {
+	return (gnd.lightness() < 128) ? HEAT_NONE_DK : HEAT_NONE_LT;
+}
+
+// counters of one group of bytes, summed. the page is already resolved, so the
+// whole group is one bank lookup - a group never straddles a page
+static xHeatCell heat_sum(Computer* comp, int type, int base) {
+	xHeatCell sum = {0, 0, 0, 0};
+	xHeatCell one;
+	for (int i = 0; i < HEAT_GROUP; i++) {
+		one = comp_heat_phys(comp, type, base + i);
+		sum.rd += one.rd;
+		sum.wr += one.wr;
+		sum.ex += one.ex;
+		sum.valid |= one.valid;
+	}
+	return sum;
+}
+
+// which colour one cell gets. counters are summed over whatever the cell
+// stands for: exec outweighs everything else, then write against read, and any
+// read left over makes it green. no mixing - the strongest one wins outright.
+// a cell nothing touched is grey, as is one the single channel on show never
+// touched
+static QRgb heat_cell_colour(const xHeatCell& c, int chan, QRgb none) {
+	if (chan != HEATCH_ALL) {
+		unsigned int val = (chan == HEATCH_RD) ? c.rd : (chan == HEATCH_WR) ? c.wr : c.ex;
+		if (!val) return none;
+		return (chan == HEATCH_RD) ? HEAT_COL_RD : (chan == HEATCH_WR) ? HEAT_COL_WR : HEAT_COL_EX;
+	}
+	if (!c.rd && !c.wr && !c.ex) return none;
+	if (c.ex > c.wr + c.rd) return HEAT_COL_EX;
+	if (c.wr > c.rd) return HEAT_COL_WR;
+	return HEAT_COL_RD;
+}
+
+// HEATCH_ALL shows all three counters; any other setting shows only itself
 static bool heat_shown(int chan, int which) {
-	return (chan == HEATCH_RGB) || (chan == which);
+	return (chan == HEATCH_ALL) || (chan == which);
 }
 
 // VIEW
@@ -43,15 +78,22 @@ static bool heat_shown(int chan, int which) {
 xHeatView::xHeatView(QWidget* par):QWidget(par) {
 	mode = XVIEW_CPU;
 	page = 0;
-	chan = HEATCH_RGB;
-	levels = 4;
-	logscale = true;
+	chan = HEATCH_ALL;
 	top = 0;
 	setMouseTracking(true);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 }
 
+// the cpu space is shown as blocks when it really is four 16K slots: a machine
+// with a wider bus keeps the plain raster
+bool xHeatView::blockView() const {
+	return (mode == XVIEW_CPU) && (conf.prof.cur->zx->mem->busmask == 0xffff);
+}
+
 QSize xHeatView::minimumSizeHint() const {
+	if (blockView())
+		return QSize(HEAT_BLOCKS * HEAT_BLKDIM + (HEAT_BLOCKS - 1) * HEAT_BLKGAP + 2 * HEAT_PAD,
+			HEAT_BLKDIM + blkHead() + 2 * HEAT_PAD);
 	return QSize(HEAT_BPR / 2, 64);
 }
 
@@ -59,22 +101,12 @@ void xHeatView::setSource(int md, int pg) {
 	mode = md;
 	page = pg;
 	top = 0;
+	updateGeometry();		// the block view asks for a different minimum
 	update();
 }
 
 void xHeatView::setChannel(int c) {
 	chan = c;
-	update();
-}
-
-void xHeatView::setLevels(int l) {
-	if (l < 1) l = 1;
-	levels = l;
-	update();
-}
-
-void xHeatView::setLogScale(bool f) {
-	logscale = f;
 	update();
 }
 
@@ -98,14 +130,16 @@ int xHeatView::rowsTotal() const {
 }
 
 int xHeatView::maxTop() const {
+	if (blockView()) return 0;		// the blocks always fit
 	int max = rowsTotal() - rowsFit();
 	return (max < 0) ? 0 : max;
 }
 
 // a byte is one cell wide, as wide as the panel allows: 256 of them fit in a
-// dock 512 px across, and 1 px each below that
-int xHeatView::cellW() const {
-	int cw = (width() - 2 * HEAT_PAD) / HEAT_BPR;
+// dock 512 px across, and 1 px each below that. taken for a given width, not
+// only the current one - see fits()
+int xHeatView::cellWFor(int wid) const {
+	int cw = (wid - 2 * HEAT_PAD) / HEAT_BPR;
 	if (cw < 1) cw = 1;
 	if (cw > HEAT_CELLMAX) cw = HEAT_CELLMAX;
 	return cw;
@@ -114,8 +148,7 @@ int xHeatView::cellW() const {
 // a cell may be taller than it is wide, up to 4:1: a 16K page is 64 rows and
 // would otherwise sit as a thin strip in an empty panel. never shorter, and
 // never taller than the source needs
-int xHeatView::cellH() const {
-	int cw = cellW();
+int xHeatView::cellHFor(int cw) const {
 	int total = rowsTotal();
 	int ch = total ? ((height() - 2 * HEAT_PAD) / total) : cw;
 	if (ch < cw) ch = cw;
@@ -123,16 +156,43 @@ int xHeatView::cellH() const {
 	return ch;
 }
 
-int xHeatView::rowsFit() const {
-	int rows = (height() - 2 * HEAT_PAD) / cellH();
+int xHeatView::cellW() const {
+	return cellWFor(width());
+}
+
+int xHeatView::cellH() const {
+	return cellHFor(cellW());
+}
+
+int xHeatView::rowsFitFor(int ch) const {
+	int rows = (height() - 2 * HEAT_PAD) / ch;
 	if (rows < 1) rows = 1;
 	int total = rowsTotal();
 	return (rows > total) ? total : rows;
 }
 
-// counters of one cell, by its offset inside the current source
+int xHeatView::rowsFit() const {
+	return rowsFitFor(cellH());
+}
+
+// does the whole source fit with no scrolling, measured as if the view were
+// `extra` pixels wider - the width it takes back when the scrollbar goes. the
+// answer has to be free of the scrollbar, or hiding one would widen the view,
+// flip the answer, and set the layout swinging
+bool xHeatView::fits(int extra) const {
+	if (blockView()) return true;		// the blocks are laid out to fit
+	int ch = cellHFor(cellWFor(width() + extra));
+	return ((height() - 2 * HEAT_PAD) / ch) >= rowsTotal();
+}
+
+// counters of one cell, by its offset inside the current source. a block cell
+// stands for a group of bytes and answers with their sum
 xHeatCell xHeatView::cellData(int off) const {
 	Computer* comp = conf.prof.cur->zx;
+	if (blockView()) {
+		xAdr xadr = mem_get_xadr(comp->mem, off);
+		return heat_sum(comp, xadr.type, xadr.abs);
+	}
 	if (mode == XVIEW_CPU) return comp_heat_cpu(comp, off);
 	return comp_heat_phys(comp, (mode == XVIEW_ROM) ? MEM_ROM : MEM_RAM, (page << 14) | (off & 0x3fff));
 }
@@ -154,109 +214,153 @@ void xHeatView::rowSource(int row, int* type, int* base) const {
 	}
 }
 
-// the divisor a channel's counts are scaled by, worked out once per raster
-static double heat_denom(unsigned int max, bool logscale) {
-	if (max == 0) return 0.0;
-	return logscale ? log(1.0 + max) : (double)max;
-}
-
-// bucket a count into 0..levels against that channel's own maximum. 0 is
-// untouched, and a single hit already lands on step 1 rather than sharing a
-// bucket with it - between a byte read twice and one read a million times there
-// are six decades, and a smooth ramp puts all but the hottest loop in the dark
-static int heat_level(unsigned int val, double denom, int levels, bool logscale) {
-	if ((val == 0) || (denom <= 0.0)) return 0;
-	double f = (logscale ? log(1.0 + val) : (double)val) / denom;
-	int lvl = (int)ceil(f * levels);
-	if (lvl < 1) lvl = 1;
-	if (lvl > levels) lvl = levels;
-	return lvl;
-}
-
-// subtractive blend, each amount 0..1. a counter takes away as much of each
-// component as its own colour is missing, so at full intensity alone it lands
-// exactly on that colour, and mixtures darken the way overlaid inks do
-static int heat_sub(double a, double w, double e, int cr, int cw, int ce) {
-	double sum = a * (255 - cr) + w * (255 - cw) + e * (255 - ce);
-	if (sum > 255.0) sum = 255.0;
-	return 255 - (int)(sum + 0.5);
-}
-
-static QRgb heat_blend(double r, double w, double e) {
-	return qRgb(heat_sub(r, w, e, qRed(HEAT_COL_RD), qRed(HEAT_COL_WR), qRed(HEAT_COL_EX)),
-		heat_sub(r, w, e, qGreen(HEAT_COL_RD), qGreen(HEAT_COL_WR), qGreen(HEAT_COL_EX)),
-		heat_sub(r, w, e, qBlue(HEAT_COL_RD), qBlue(HEAT_COL_WR), qBlue(HEAT_COL_EX)));
-}
-
-QImage xHeatView::raster(int rows) const {
+// one cell per byte, coloured the same way the block view colours a group
+QImage xHeatView::raster(int rows, QRgb none) const {
 	Computer* comp = conf.prof.cur->zx;
 	QImage img(HEAT_BPR, rows, QImage::Format_RGB32);
-	// scale against the whole source, not the visible part, so scrolling does
-	// not repaint the same cells in different colours
-	unsigned int mrd = 0, mwr = 0, mex = 0;
-	int total = rowsTotal();
 	int type, base, x, y;
 	xHeatCell cell;
-	for (y = 0; y < total; y++) {
-		rowSource(y, &type, &base);
-		for (x = 0; x < HEAT_BPR; x++) {
-			cell = comp_heat_phys(comp, type, base + x);
-			if (cell.rd > mrd) mrd = cell.rd;
-			if (cell.wr > mwr) mwr = cell.wr;
-			if (cell.ex > mex) mex = cell.ex;
-		}
-	}
-	double drd = heat_denom(mrd, logscale);
-	double dwr = heat_denom(mwr, logscale);
-	double dex = heat_denom(mex, logscale);
-	double ar, aw, ae;
 	QRgb* line;
 	for (y = 0; y < rows; y++) {
 		line = (QRgb*)img.scanLine(y);
 		rowSource(top + y, &type, &base);
 		for (x = 0; x < HEAT_BPR; x++) {
 			cell = comp_heat_phys(comp, type, base + x);
-			if (!cell.valid) {
-				line[x] = HEAT_BG;		// not ram/rom: nothing is counted here
-				continue;
-			}
-			if (!cell.rd && !cell.wr && !cell.ex) {
-				line[x] = HEAT_EMPTY;		// in the bank, never touched
-				continue;
-			}
-			// a channel the view is not showing contributes nothing, which
-			// leaves the single-channel views in that channel's own colour
-			ar = heat_shown(chan, HEATCH_RD) ? (heat_level(cell.rd, drd, levels, logscale) / (double)levels) : 0.0;
-			aw = heat_shown(chan, HEATCH_WR) ? (heat_level(cell.wr, dwr, levels, logscale) / (double)levels) : 0.0;
-			ae = heat_shown(chan, HEATCH_EX) ? (heat_level(cell.ex, dex, levels, logscale) / (double)levels) : 0.0;
-			line[x] = heat_blend(ar, aw, ae);
+			line[x] = heat_cell_colour(cell, chan, none);
 		}
 	}
 	return img;
 }
 
-// the raster keeps its own near-white ground whatever the interface style is,
-// so it gets a frame to say where it ends: a 16K page at one pixel per byte is
-// a narrow strip in a wide panel
+// BLOCK VIEW
+
+// the heading each block carries: the range of cpu addresses it covers
+static QString heat_blk_name(int blk) {
+	return QString("#%0-#%1").arg(gethexword(blk * MEM_16K)).arg(gethexword((blk + 1) * MEM_16K - 1));
+}
+
+// the heading is a strip of the same colour the dock titles use
+int xHeatView::blkHead() const {
+	return fontMetrics().height() + 2 * HEAT_HDRPAD;
+}
+
+// blocks stay square, so the shorter side of the panel sets the cell, and
+// everything else follows from it
+xHeatView::xBlkGeom xHeatView::blkGeom() const {
+	xBlkGeom g;
+	g.hh = blkHead();
+	int w = (width() - 2 * HEAT_PAD - (HEAT_BLOCKS - 1) * HEAT_BLKGAP) / (HEAT_BLOCKS * HEAT_BLKDIM);
+	int h = (height() - 2 * HEAT_PAD - g.hh) / HEAT_BLKDIM;
+	g.cs = (w < h) ? w : h;
+	if (g.cs < 1) g.cs = 1;
+	if (g.cs > HEAT_BLKMAX) g.cs = HEAT_BLKMAX;
+	g.span = HEAT_BLKDIM * g.cs + HEAT_BLKGAP;
+	int wid = HEAT_BLOCKS * g.span - HEAT_BLKGAP;		// no gap after the last block
+	int hei = HEAT_BLKDIM * g.cs;
+	// a panel too short to hold the whole thing loses the bottom, not the
+	// headings: the cells stay readable without them, the other way round not
+	int y = (height() - hei - g.hh) / 2 + g.hh;
+	if (y < g.hh + HEAT_PAD) y = g.hh + HEAT_PAD;
+	g.all = QRect((width() - wid) / 2, y, wid, hei);
+	return g;
+}
+
+// cpu address of the group under the point, -1 outside the blocks or in a gap
+int xHeatView::blkAt(const QPoint& pos) const {
+	xBlkGeom g = blkGeom();
+	if (!g.all.contains(pos)) return -1;
+	int x = pos.x() - g.all.left();
+	int blk = x / g.span;
+	int inx = (x % g.span) / g.cs;
+	int iny = (pos.y() - g.all.top()) / g.cs;
+	if ((blk >= HEAT_BLOCKS) || (inx >= HEAT_BLKDIM) || (iny >= HEAT_BLKDIM)) return -1;
+	return (blk * MEM_16K) + (iny * HEAT_BLKDIM + inx) * HEAT_GROUP;
+}
+
+void xHeatView::paintBlocks(QPainter& pnt, QRgb none) {
+	Computer* comp = conf.prof.cur->zx;
+	xBlkGeom g = blkGeom();
+	int bw = HEAT_BLKDIM * g.cs;
+	// once a cell is big enough to have an inside, leave a gap along its right
+	// and bottom: the style ground shows through it and is the grid
+	int fill = (g.cs >= HEAT_GRIDMIN) ? (g.cs - 1) : g.cs;
+	QColor hbg = conf.pal.value("dbg.header.bg");
+	QColor htx = conf.pal.value("dbg.header.txt");
+	QFontMetrics fm = fontMetrics();
+	int blk, bx, x, y, type, base;
+	QString name;
+	for (blk = 0; blk < HEAT_BLOCKS; blk++) {
+		bx = g.all.left() + blk * g.span;
+		// the heading, in the dock titles' own colours. a narrow block gets
+		// the start of its range, or nothing at all rather than a clipped word
+		QRect head(bx, g.all.top() - g.hh, bw, g.hh);
+		pnt.fillRect(head, hbg);
+		name = heat_blk_name(blk);
+		if (fm.horizontalAdvance(name) > bw)
+			name = QString("#%0").arg(gethexword(blk * MEM_16K));
+		if (fm.horizontalAdvance(name) <= bw) {
+			pnt.setPen(htx);
+			pnt.drawText(head, Qt::AlignCenter, name);
+		}
+		for (y = 0; y < HEAT_BLKDIM; y++) {
+			// one row is 256 bytes and never straddles a page, so the map is
+			// looked up once for the whole of it
+			rowSource(blk * HEAT_BLKDIM + y, &type, &base);
+			for (x = 0; x < HEAT_BLKDIM; x++) {
+				QRgb col = heat_cell_colour(heat_sum(comp, type, base + x * HEAT_GROUP), chan, none);
+				pnt.fillRect(bx + x * g.cs, g.all.top() + y * g.cs, fill, fill, QColor(col));
+			}
+		}
+	}
+	// the yellow between the 16K slots, headings included so it reads as one
+	// line all the way down
+	for (blk = 1; blk < HEAT_BLOCKS; blk++) {
+		bx = g.all.left() + blk * g.span;
+		pnt.fillRect(bx - HEAT_BLKGAP, g.all.top() - g.hh, HEAT_BLKGAP, g.all.height() + g.hh, HEAT_COL_SEP);
+	}
+	// the same frame the raster gets, around the headings and the cells alike
+	pnt.setPen(palette().color(QPalette::Mid));
+	pnt.drawRect(g.all.left() - 1, g.all.top() - g.hh - 1, g.all.width() + 1, g.all.height() + g.hh + 1);
+	paintOffHint(pnt, g.all);
+}
+
+// nothing is being counted: say so over whichever picture is up
+void xHeatView::paintOffHint(QPainter& pnt, const QRect& box) const {
+	if (conf.prof.cur->zx->flgHEAT) return;
+	pnt.setPen(HEAT_COL_HINT);
+	pnt.drawText(box, Qt::AlignCenter, "collecting is off");
+}
+
+// the raster gets a frame to say where it ends: a 16K page at one pixel per
+// byte is a narrow strip in a wide panel
 void xHeatView::paintEvent(QPaintEvent*) {
 	QStyleOption opt;
 	opt.initFrom(this);
 	QPainter pnt(this);
 	// a custom widget gets the style sheet background only by asking for it
 	style()->drawPrimitive(QStyle::PE_Widget, &opt, &pnt, this);
-	int cw = cellW();
-	int ch = cellH();
-	int rows = rowsFit();
-	QImage img = raster(rows);
+	// the ground the style paints: the untouched grey and the lines that part
+	// one cell from the next both come out of it
+	QColor gnd = opt.palette.color(QPalette::Window);
+	QRgb none = heat_none_for(gnd);
+	if (blockView()) {
+		paintBlocks(pnt, none);
+		return;
+	}
+	int cw = cellWFor(width());
+	int ch = cellHFor(cw);
+	int rows = rowsFitFor(ch);
+	QImage img = raster(rows, none);
 	int wid = HEAT_BPR * cw;
 	QRect dst((width() - wid) / 2, HEAT_PAD, wid, rows * ch);
 	pnt.setPen(palette().color(QPalette::Mid));
 	pnt.drawRect(dst.adjusted(-1, -1, 0, 0));
 	pnt.drawImage(dst, img);
 	// once a tile is big enough to have an inside, separate the tiles the way
-	// the export tool does: a light line along the top and left of each
+	// the block view does: a line of the style's own ground along the top and
+	// left of each
 	if ((cw >= HEAT_GRIDMIN) && (ch >= HEAT_GRIDMIN)) {
-		pnt.setPen(HEAT_COL_GRID);
+		pnt.setPen(gnd);
 		for (int x = dst.left(); x < dst.right(); x += cw)
 			pnt.drawLine(x, dst.top(), x, dst.bottom());
 		for (int y = dst.top(); y < dst.bottom(); y += ch)
@@ -271,10 +375,7 @@ void xHeatView::paintEvent(QPaintEvent*) {
 			pnt.drawLine(dst.left(), y, dst.right(), y);
 		}
 	}
-	if (!conf.prof.cur->zx->flgHEAT) {
-		pnt.setPen(HEAT_COL_HINT);
-		pnt.drawText(dst, Qt::AlignCenter, "collecting is off");
-	}
+	paintOffHint(pnt, dst);
 }
 
 void xHeatView::resizeEvent(QResizeEvent*) {
@@ -285,13 +386,15 @@ void xHeatView::resizeEvent(QResizeEvent*) {
 // offset inside the current source under the cursor, -1 when the point is
 // outside the raster
 int xHeatView::cellAt(const QPoint& pos) const {
-	int cw = cellW();
+	if (blockView()) return blkAt(pos);
+	int cw = cellWFor(width());
+	int ch = cellHFor(cw);
 	int left = (width() - HEAT_BPR * cw) / 2;
 	if ((pos.x() < left) || (pos.y() < HEAT_PAD)) return -1;
 	int x = (pos.x() - left) / cw;
-	int y = (pos.y() - HEAT_PAD) / cellH();
+	int y = (pos.y() - HEAT_PAD) / ch;
 	if ((x < 0) || (x >= HEAT_BPR)) return -1;
-	if ((y < 0) || (y >= rowsFit())) return -1;
+	if ((y < 0) || (y >= rowsFitFor(ch))) return -1;
 	return (top + y) * HEAT_BPR + x;
 }
 
@@ -313,10 +416,15 @@ void xHeatView::mouseMoveEvent(QMouseEvent* ev) {
 			case MEM_SLOT: tp = "SLT"; break;
 			case MEM_IO: tp = "IO"; break;
 		}
-		str = QString("%0  %1 %2:%3").arg(gethexword(off)).arg(tp)
+		// every number in the readout carries the listing's own hash, the way
+		// the block headings do. a block cell covers a group of bytes: name
+		// the whole of it
+		QString adr = blockView() ? QString("#%0-#%1").arg(gethexword(off)).arg(gethexword(off + HEAT_GROUP - 1))
+			: QString("#%0").arg(gethexword(off));
+		str = QString("%0  %1 #%2:#%3").arg(adr).arg(tp)
 			.arg(gethexbyte((xadr.bank >> 6) & 0xff)).arg(gethexword(xadr.abs & 0x3fff));
 	} else {
-		str = QString("%0 %1:%2").arg((mode == XVIEW_ROM) ? "ROM" : "RAM")
+		str = QString("%0 #%1:#%2").arg((mode == XVIEW_ROM) ? "ROM" : "RAM")
 			.arg(gethexbyte(page)).arg(gethexword(off & 0x3fff));
 	}
 	emit s_cell(str, cellData(off));
@@ -341,6 +449,7 @@ void xHeatView::mouseDoubleClickEvent(QMouseEvent* ev) {
 }
 
 void xHeatView::wheelEvent(QWheelEvent* ev) {
+	if (blockView()) return;		// nothing to scroll
 	int delta = ev->angleDelta().y();
 	if (delta == 0) return;
 	emit s_scroll((delta > 0) ? -4 : 4);
@@ -350,7 +459,7 @@ void xHeatView::wheelEvent(QWheelEvent* ev) {
 // LEGEND
 
 xHeatLegend::xHeatLegend(QWidget* par):QWidget(par) {
-	chan = HEATCH_RGB;
+	chan = HEATCH_ALL;
 	cell.rd = cell.wr = cell.ex = 0;
 	cell.valid = 0;
 	setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
@@ -369,15 +478,15 @@ void xHeatLegend::setCounts(xHeatCell c) {
 	update();
 }
 
-// the swatches, in the colour a cell carrying that counter alone comes out as -
-// which is the counter's own colour, since heat_blend at full intensity lands
-// exactly there. "none" names the flat grey of a cell nothing ever touched
+// the swatches, in the colour a cell of that counter comes out as, and "None"
+// for the grey of a cell nothing ever touched - the views' own palette, so the
+// legend follows the theme with them
 QList<xHeatLegend::xHeatLegItem> xHeatLegend::build() const {
 	QList<xHeatLegItem> res;
-	if (heat_shown(chan, HEATCH_RD)) res << xHeatLegItem{HEAT_COL_RD, "read", &cell.rd};
-	if (heat_shown(chan, HEATCH_WR)) res << xHeatLegItem{HEAT_COL_WR, "write", &cell.wr};
-	if (heat_shown(chan, HEATCH_EX)) res << xHeatLegItem{HEAT_COL_EX, "exec", &cell.ex};
-	res << xHeatLegItem{HEAT_EMPTY, "none", NULL};
+	if (heat_shown(chan, HEATCH_RD)) res << xHeatLegItem{HEAT_COL_RD, "Read", &cell.rd};
+	if (heat_shown(chan, HEATCH_WR)) res << xHeatLegItem{HEAT_COL_WR, "Write", &cell.wr};
+	if (heat_shown(chan, HEATCH_EX)) res << xHeatLegItem{HEAT_COL_EX, "Exec", &cell.ex};
+	res << xHeatLegItem{heat_none_for(palette().color(QPalette::Window)), "None", NULL};
 	return res;
 }
 
@@ -446,24 +555,22 @@ xHeatWidget::xHeatWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	view = new xHeatView;
 	ui.layHeatView->insertWidget(0, view);		// before the scrollbar
 	legend = new xHeatLegend;
-	ui.layHeatFoot->addWidget(legend);
-	// the legend keeps its own width whatever is beside it, so the labels never
-	// shift; the address gives way and clips instead
+	// the address has a line of its own above the legend, both against the
+	// right edge: side by side the legend took the room and the address clipped
+	ui.layHeatFoot->addWidget(legend, 0, Qt::AlignRight);
 	ui.labHeatInfo->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 
 	ui.cbHeatView->addItem("CPU", XVIEW_CPU);
 	ui.cbHeatView->addItem("RAM", XVIEW_RAM);
 	ui.cbHeatView->addItem("ROM", XVIEW_ROM);
-	ui.cbHeatChan->addItem("rgb", HEATCH_RGB);
-	ui.cbHeatChan->addItem("read", HEATCH_RD);
-	ui.cbHeatChan->addItem("write", HEATCH_WR);
-	ui.cbHeatChan->addItem("exec", HEATCH_EX);
+	ui.cbHeatChan->addItem("All", HEATCH_ALL);
+	ui.cbHeatChan->addItem("Read", HEATCH_RD);
+	ui.cbHeatChan->addItem("Write", HEATCH_WR);
+	ui.cbHeatChan->addItem("Exec", HEATCH_EX);
 
 	connect(ui.cbHeatView, SIGNAL(currentIndexChanged(int)), this, SLOT(src_changed()));
 	connect(ui.sbHeatPage, SIGNAL(valueChanged(int)), this, SLOT(src_changed()));
 	connect(ui.cbHeatChan, SIGNAL(currentIndexChanged(int)), this, SLOT(opts_changed()));
-	connect(ui.sbHeatLevels, SIGNAL(valueChanged(int)), this, SLOT(opts_changed()));
-	connect(ui.cbHeatLog, &QCheckBox::toggled, this, &xHeatWidget::opts_changed);
 	connect(ui.cbHeatOn, &QCheckBox::toggled, this, &xHeatWidget::collect_toggle);
 	connect(ui.tbHeatReset, &QToolButton::clicked, this, &xHeatWidget::counters_reset);
 	connect(ui.tbHeatExport, &QToolButton::clicked, this, &xHeatWidget::counters_export);
@@ -498,8 +605,6 @@ void xHeatWidget::src_changed() {
 void xHeatWidget::opts_changed() {
 	int chan = getRFIData(ui.cbHeatChan);
 	view->setChannel(chan);
-	view->setLevels(ui.sbHeatLevels->value());
-	view->setLogScale(ui.cbHeatLog->isChecked());
 	legend->setChannel(chan);
 }
 
@@ -535,14 +640,17 @@ void xHeatWidget::show_cell(QString adr, xHeatCell cell) {
 }
 
 // the raster shows as many rows as its height fits, so the range has to be
-// worked out again after every resize and every source change
+// worked out again after every resize and every source change. the scrollbar
+// only takes room when it can actually scroll: a full-height thumb is nothing
+// but noise, and the block view never scrolls at all
 void xHeatWidget::sync_scroll() {
+	int extra = ui.heatScroll->isVisible() ? ui.heatScroll->width() : 0;
+	ui.heatScroll->setVisible(!view->fits(extra));
 	ui.heatScroll->blockSignals(true);
 	ui.heatScroll->setMaximum(view->maxTop());
 	ui.heatScroll->setPageStep(view->rowsFit());
 	ui.heatScroll->setValue(view->getTop());
 	ui.heatScroll->blockSignals(false);
-	ui.heatScroll->setEnabled(view->maxTop() > 0);
 }
 
 void xHeatWidget::draw() {

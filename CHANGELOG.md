@@ -16,13 +16,13 @@ before that point is upstream's history and is not repeated here.
   which sits well above the disassembler. The panel fits itself to the chosen shape and hands
   the freed room to the panels under it, so nothing has to be dragged.
 
-- **The memory heat map has a panel of its own** in the debugger. It draws the read, write and
-  exec counters as a picture of memory - one pixel per byte, 256 bytes to a row - for the whole
-  address space or for one RAM/ROM page, in the colours `tools/heatmap_png.py` uses. All three
-  counters can be shown at once or one at a time, with a settable number of intensity steps, and
-  the legend under the picture doubles as the readout for the cell under the cursor. A double
-  click jumps the disassembler there. Collecting, resetting and exporting moved here from the
-  disassembler's options menu.
+- **The memory heat map has a panel of its own** in the debugger. It draws the address space as
+  its four 16K slots side by side, each headed with the range it covers, one square per four
+  bytes; a single RAM/ROM page is drawn byte by byte instead. A cell takes the colour of
+  whatever the cpu did there most - read, written or executed - and grey when nothing did. All
+  three counters can be shown at once or one at a time, and the legend under the picture doubles
+  as the readout for the cell under the cursor. A double click jumps the disassembler there.
+  Collecting, resetting and exporting moved here from the disassembler's options menu.
 
 - **A folder on the host can stand in for an SD card or a hard disk image.** Pick a folder
   instead of an image file in Setup - Storage (or pass one to `--sdcard`) and it shows up in

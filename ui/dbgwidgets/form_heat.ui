@@ -59,7 +59,7 @@
         <bool>true</bool>
        </property>
        <property name="prefix">
-        <string>pg </string>
+        <string>Pg </string>
        </property>
        <property name="maximum">
         <number>255</number>
@@ -76,48 +76,7 @@
        </property>
       </widget>
      </item>
-     <item>
-      <widget class="QSpinBox" name="sbHeatLevels">
-       <property name="maximumSize">
-        <size>
-         <width>58</width>
-         <height>16777215</height>
-        </size>
-       </property>
-       <property name="toolTip">
-        <string>Intensity steps per counter, 1 = touched or not</string>
-       </property>
-       <property name="frame">
-        <bool>true</bool>
-       </property>
-       <property name="prefix">
-        <string>lvl </string>
-       </property>
-       <property name="minimum">
-        <number>1</number>
-       </property>
-       <property name="maximum">
-        <number>8</number>
-       </property>
-       <property name="value">
-        <number>4</number>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QCheckBox" name="cbHeatLog">
-       <property name="toolTip">
-        <string>Logarithmic intensity scale</string>
-       </property>
-       <property name="text">
-        <string>log</string>
-       </property>
-       <property name="checked">
-        <bool>true</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
+<item>
       <spacer name="spacerHeatTop">
        <property name="orientation">
         <enum>Qt::Horizontal</enum>
@@ -136,7 +95,7 @@
         <string>Collect read/write/exec usage counters per memory cell</string>
        </property>
        <property name="text">
-        <string>collect</string>
+        <string>Collect</string>
        </property>
       </widget>
      </item>
@@ -179,14 +138,17 @@
     </layout>
    </item>
    <item>
-    <layout class="QHBoxLayout" name="layHeatFoot">
+    <layout class="QVBoxLayout" name="layHeatFoot">
      <property name="spacing">
-      <number>6</number>
+      <number>1</number>
      </property>
      <item>
       <widget class="QLabel" name="labHeatInfo">
        <property name="text">
         <string/>
+       </property>
+       <property name="alignment">
+        <set>Qt::AlignRight|Qt::AlignVCenter</set>
        </property>
       </widget>
      </item>
