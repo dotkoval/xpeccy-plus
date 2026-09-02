@@ -43,6 +43,10 @@ class xBrkCheckItem : public QStyledItemDelegate {
 		QCheckBox tmpl;		// never shown, only asked how the style paints a checkbox
 };
 
+#define	BRK_CHK_WIDTH	30	// the On/F/R/W columns
+#define	BRK_ADR_WIDTH	150	// Addr where the panel is too narrow to share
+#define	BRK_COND_WIDTH	60	// what Cond keeps whatever the addresses need
+
 class xBreakTable : public QTableView {
 	Q_OBJECT
 	public:
@@ -54,8 +58,9 @@ class xBreakTable : public QTableView {
 		void rqDasmDump();
 	private:
 		xBreakListModel* model;
-		int addrWidth;		// width of the Addr column, kept over model resets
+		int addrWidth;		// width of the Addr column, kept over model resets. 0: none set yet
 		unsigned setcol:1;	// we are setting the widths ourselves
+		int defaultAddrWidth();
 	private slots:
 		void applyColumns();
 		void colResized(int, int, int);
@@ -64,6 +69,7 @@ class xBreakTable : public QTableView {
 	protected:
 		void keyPressEvent(QKeyEvent*);
 		void changeEvent(QEvent*);
+		void resizeEvent(QResizeEvent*);
 };
 
 class xBrkManager : public QDialog {

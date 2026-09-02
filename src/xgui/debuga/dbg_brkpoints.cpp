@@ -195,7 +195,7 @@ xBreakTable::xBreakTable(QWidget* p):QTableView(p) {
 	xBrkCheckItem* chk = new xBrkCheckItem(this);
 	for (int i = 0; i < 4; i++)
 		setItemDelegateForColumn(i, chk);
-	addrWidth = 150;
+	addrWidth = 0;		// no width from the user yet: share the room with Cond
 	setcol = 0;
 	applyColumns();
 	connect(model, &QAbstractItemModel::modelReset, this, &xBreakTable::applyColumns);
@@ -204,8 +204,23 @@ xBreakTable::xBreakTable(QWidget* p):QTableView(p) {
 	connect(this, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(onDoubleClick(QModelIndex)));
 }
 
+// Addr and Cond start out the same width, except that Addr never falls below
+// what the addresses in it need: one added from the disasm has to fit whole,
+// and it is the longer of the two. Cond keeps a minimum whatever they ask for
+
+int xBreakTable::defaultAddrWidth() {
+	int rest = viewport()->width() - 4 * BRK_CHK_WIDTH - columnWidth(6);
+	int wid = rest / 2;
+	int need = sizeHintForColumn(4);	// the widest address in the list
+	if (wid < need) wid = need;
+	if (wid > rest - BRK_COND_WIDTH) wid = rest - BRK_COND_WIDTH;
+	if (wid < BRK_ADR_WIDTH) wid = BRK_ADR_WIDTH;	// a panel too narrow for both: Addr wins
+	return wid;
+}
+
 // checkboxes and the counter keep their width whatever happens to the model,
-// Addr keeps the width the user gave it and Cond takes the rest
+// Addr keeps the width the user gave it - or the default above until they give
+// one - and Cond takes the rest
 
 void xBreakTable::applyColumns() {
 	QHeaderView* hdr = horizontalHeader();
@@ -214,19 +229,30 @@ void xBreakTable::applyColumns() {
 	hdr->setStretchLastSection(false);	// Cond stretches instead, Cnt fits its value
 	for (i = 0; i < 4; i++) {
 		hdr->setSectionResizeMode(i, QHeaderView::Fixed);
-		setColumnWidth(i, 30);
+		setColumnWidth(i, BRK_CHK_WIDTH);
 	}
-	hdr->setSectionResizeMode(4, QHeaderView::Interactive);
-	setColumnWidth(4, addrWidth);
-	hdr->setSectionResizeMode(5, QHeaderView::Stretch);
 	hdr->setSectionResizeMode(6, QHeaderView::ResizeToContents);
+	hdr->setSectionResizeMode(4, QHeaderView::Interactive);
+	setColumnWidth(4, addrWidth ? addrWidth : defaultAddrWidth());
+	hdr->setSectionResizeMode(5, QHeaderView::Stretch);
 	setcol = 0;
 }
 
+// Qt hands every section a default width of its own accord while the view is
+// built, and that is not a width the user chose. Only a drag on the edge is, so
+// take one only while the button that does the dragging is down
+
 void xBreakTable::colResized(int col, int, int siz) {
-	if (setcol) return;
+	if (setcol || !(QApplication::mouseButtons() & Qt::LeftButton)) return;
 	if (col != 4) return;
 	if (siz > 0) addrWidth = siz;
+}
+
+// until the user sets a width of their own the two halves follow the panel
+
+void xBreakTable::resizeEvent(QResizeEvent* ev) {
+	QTableView::resizeEvent(ev);
+	if (!addrWidth) applyColumns();
 }
 
 void xBreakTable::update() {
