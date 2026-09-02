@@ -116,9 +116,13 @@ int tslMRd(Computer* comp, int adr, int m1) {
 	return memRd(comp->mem,adr);
 }
 
+static void tslRegWr(Computer* comp, int reg, int val);
+
 void tslMWr(Computer* comp, int adr, int val) {
 	if (comp->flgMEN && (((adr & 0xf000) >> 12) == comp->regMADR)) {
-		if ((adr & 0xe00) == 0x000) {				// palete
+		if ((adr & 0xf00) == 0x400) {				// ts registers
+			tslRegWr(comp, adr & 0xff, val);
+		} else if ((adr & 0xe00) == 0x000) {			// palete
 			comp->vid->tsconf.cram[adr & 0x1ff] = val & 0xff;
 			comp->vid->tsconf.palUpd = 1;
 		} else if ((adr & 0xe00) == 0x200) {			// sprites
@@ -571,6 +575,11 @@ static xPort tsPortMap[] = {
 
 	{0x0000,0x0000,2,2,2,tsInFFnd,	NULL},
 };
+
+// FMAPS register window: writing a byte there is the same as out to the matching #xxAF port
+static void tslRegWr(Computer* comp, int reg, int val) {
+	hwOut(tsPortMap, comp, (reg << 8) | 0xaf, val, 1);
+}
 
 void tslOut(Computer* comp, int port, int val) {
 	zx_dev_wr(comp, port, val);

@@ -7,6 +7,13 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
+## 2026.3.1 - 2026-09-02
+
+### Fixed
+
+- TSConf: programs that set the TS registers by writing into the FMAPS memory window
+  instead of using `out` now run. Reported by Sergei Smirnov.
+
 ## 2026.3 - 2026-09-02
 
 ### Added
