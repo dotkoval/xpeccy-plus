@@ -139,6 +139,10 @@
    </property>
   </action>
   <action name="brkActReset">
+   <property name="icon">
+    <iconset resource="../../xpeccy.qrc">
+     <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
+   </property>
    <property name="text">
     <string>Reset counter</string>
    </property>
