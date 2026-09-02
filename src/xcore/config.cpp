@@ -111,6 +111,8 @@ void conf_init(char* wpath, char* confdir) {
 	addLayout("default", vlay);
 	conf.running = 0;
 	conf.boot = 1;
+	conf.autorun = 1;
+	conf.tape.rewind = 1;
 	conf.emu.pause = 0;
 	conf.emu.fast = 0;
 	conf.gpctrl = new xGamepadController;
@@ -131,6 +133,7 @@ void saveConfig() {
 	fprintf(cfile, "savepaths = %s\n", YESNO(conf.storePaths));
 	fprintf(cfile, "fdcturbo = %s\n", YESNO(fdcFlag & FDC_FAST));
 	fprintf(cfile, "addboot = %s\n", YESNO(conf.boot));
+	fprintf(cfile, "autorun = %s\n", YESNO(conf.autorun));
 	fprintf(cfile, "exit.confirm = %s\n",YESNO(conf.confexit));
 	fprintf(cfile, "port = %i\n", conf.port);
 	fprintf(cfile, "winpos = %i,%i\n",conf.xpos,conf.ypos);
@@ -207,6 +210,7 @@ void saveConfig() {
 	fprintf(cfile, "\n[TAPE]\n\n");
 	fprintf(cfile, "autoplay = %s\n", YESNO(conf.tape.autostart));
 	fprintf(cfile, "fast = %s\n", YESNO(conf.tape.fast));
+	fprintf(cfile, "rewind = %s\n", YESNO(conf.tape.rewind));
 
 	fprintf(cfile, "\n[INPUT]\n\n");
 	fprintf(cfile, "gamepad = %s\n", conf.gpctrl->gpada->lastName().toLocal8Bit().data());
@@ -687,6 +691,7 @@ void loadConfig() {
 						}
 					}
 					if (pnam == "addboot") conf.boot = arg.b;
+					if (pnam == "autorun") conf.autorun = arg.b;
 					if (pnam == "exit.confirm") conf.confexit = arg.b;
 					if (pnam == "flpinterleave") flp_set_interleave(arg.i);
 					if (pnam == "style") conf.style = std::string(arg.s);
@@ -694,6 +699,7 @@ void loadConfig() {
 				case SECT_TAPE:
 					if (pnam=="autoplay") conf.tape.autostart = arg.b;
 					if (pnam=="fast") conf.tape.fast = arg.b;
+					if (pnam=="rewind") conf.tape.rewind = arg.b;
 					break;
 				case SECT_LEDS:
 					if (pnam=="mouse") conf.led.mouse = arg.b;

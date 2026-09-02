@@ -59,6 +59,7 @@ void help() {
 	printf("--style\t\t\tMacOSX only: use native qt style, else 'fusion' will be forced\n");
 	printf("--xmap FILE\t\tLoad *.xmap file\n");
 	printf("--confdir DIR\t\tChange config directory\n");
+	printf("--autostart\t\tstart the media given here, whatever the Auto-run option says\n");
 	printf("--no-autostart\t\tjust mount the media given here, don't start it\n");
 }
 
@@ -99,9 +100,12 @@ bool xApp::event(QEvent* ev) {
 	switch(ev->type()) {
 		case QEvent::FileOpen:
 			fev = static_cast<QFileOpenEvent*>(ev);
-			path = fev->url().path();
+			path = fev->file();		// the url's path is still percent-encoded
+			if (path.isEmpty())
+				path = fev->url().toLocalFile();
 			if (conf.prof.cur) {
 				load_file(conf.prof.cur->zx, path.toLocal8Bit().data(), FG_ALL, 0);
+				media_autorun(conf.prof.cur->zx, conf.autorun);
 			}
 			break;
 		case QEvent::User:
@@ -278,8 +282,7 @@ int main(int ac,char** av) {
 	int hlp = 0;
 	int drv = 0;
 	int lab = 1;
-	int astart = 1;
-	int askind = AS_NONE;
+	int astart = conf.autorun;	// the option is the default, the keys below override it
 	xAdr xadr;
 	int tmpi;
 #ifdef __APPLE__
@@ -294,6 +297,8 @@ int main(int ac,char** av) {
 			hlp = 1;
 		} else if (!strcmp(parg,"--panic")) {
 			compflags |= CFLG_PANIC;
+		} else if (!strcmp(parg,"--autostart")) {
+			astart = 1;
 		} else if (!strcmp(parg,"--no-autostart")) {
 			astart = 0;
 #ifdef __WIN32
@@ -388,17 +393,14 @@ int main(int ac,char** av) {
 				i++;		// handled before conf_init above
 			} else if (strlen(parg) > 0) {
 				load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
-				askind = file_autostart_kind();
 			}
 		} else if (strlen(parg) > 0) {
 			load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
-			askind = file_autostart_kind();
 		}
 	}
 	// tape or disk from the command line: mounting is not enough, so press
 	// what the user would press by hand. Here, after every option is known
-	if (astart)
-		autostart_arm(conf.prof.cur->zx, askind);
+	media_autorun(conf.prof.cur->zx, astart);
 
 	dbgw.move(conf.dbg.pos);
 	dbgw.resize(conf.dbg.siz);

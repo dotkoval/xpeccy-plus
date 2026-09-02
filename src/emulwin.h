@@ -208,6 +208,8 @@ typedef struct {
 
 		void initUserMenu();
 		void calcCoords(QMouseEvent*);
+		void dropAsk(QString);
+		void openMedia(const QString& path, int id, int drv, int run);
 
 		void xkey_press(int);
 		void xkey_release(int);

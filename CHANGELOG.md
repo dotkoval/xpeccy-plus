@@ -11,6 +11,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **A tape or a disk opened in the emulator now starts by itself** - from the Open menu, a
+  bookmark or a file dropped on the window, the same as one named on the command line. Turn it
+  off with "Auto-run opened media" in Setup - Storage, or hold Shift while dropping a file to
+  pick Run or Mount just for that one.
+
 - **The register panel picks its shape from a menu on its header** (right click), and has a
   third one: a wide layout with four columns of registers and the flags standing beside them,
   which sits well above the disassembler. The panel fits itself to the chosen shape and hands
@@ -41,6 +46,13 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- **The Storage options and the tape player say what they do.** No more "Turbo" and "Autoplay":
+  the checkboxes have real names, every icon button has hover text, and the speed slider is on
+  both pages, reading out the per cent it is set to.
+
+- **A tape played to its end starts over on Play** instead of doing nothing. "Rewind at end" on
+  the Tape page turns that off.
+
 - **The memory map panel is gone - its controls are in the MEMMAP block** of the side panel.
   Each of the four 16K banks is a ROM/RAM box and a page number to type in, and a bank set by
   hand stays highlighted until the machine pages over it. Restore is on the right-click menu
@@ -62,6 +74,11 @@ before that point is upstream's history and is not repeated here.
   marked with a dot in the corner.
 
 ### Fixed
+
+- **Files dropped on the window open again when their path has spaces in it**, and a drop is
+  never taken as a move, which could have the file manager delete the original. Dropping several
+  files at once opens the first instead of loading them over each other, and a dropped `.rzx`
+  now starts playing.
 
 - The checkboxes in the breakpoint list follow the chosen interface style, sit centred under
   their headings, and no longer leave a stray outline on the empty half of a cell. Flags a

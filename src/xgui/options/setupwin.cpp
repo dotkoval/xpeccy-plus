@@ -649,6 +649,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.blkrmtb,SIGNAL(released()),this,SLOT(tblkrm()));
 	connect(ui.actCopyToDisk,SIGNAL(triggered()),this,SLOT(copyToDisk()));
 	connect(ui.tbToDisk,SIGNAL(released()),this,SLOT(copyToDisk()));
+	connect(ui.sldTapeSpeed, &QSlider::valueChanged, this, [this](int v){
+		ui.labTapeSpeedVal->setText(QString("%0%").arg(v));
+	});
 // hdd
 	connect(ui.hm_pathtb,SIGNAL(released()),this,SLOT(hddMasterImg()));
 	connect(ui.hs_pathtb,SIGNAL(released()),this,SLOT(hddSlaveImg()));
@@ -885,6 +888,7 @@ void SetupWin::start() {
 	ui.diskTypeBox->setCurrentIndex(ui.diskTypeBox->findData(comp->dif->type));
 	ui.bdtbox->setChecked(fdcFlag & FDC_FAST);
 	ui.mempaths->setChecked(conf.storePaths);
+	ui.cbAutorun->setChecked(conf.autorun);
 	ui.cbAddBoot->setChecked(conf.boot);
 	setRFIndex(ui.cbFlpInterleave, flp_get_interleave());
 	Floppy* flp = comp->dif->flp[0];
@@ -940,6 +944,8 @@ void SetupWin::start() {
 // tape
 	ui.cbTapeAuto->setChecked(conf.tape.autostart);
 	ui.cbTapeFast->setChecked(conf.tape.fast);
+	ui.cbTapeRewind->setChecked(conf.tape.rewind);
+	ui.sldTapeSpeed->setValue(comp->tape->speed);	// the readout follows in the slot
 	ui.tpathle->setText(QString::fromLocal8Bit(comp->tape->path));
 	buildtapelist();
 // tools
@@ -1130,6 +1136,7 @@ void SetupWin::apply() {
 	setFlagBit(ui.bdtbox->isChecked(),&fdcFlag,FDC_FAST);
 	conf.boot = ui.cbAddBoot->isChecked() ? 1 : 0;
 	conf.storePaths = ui.mempaths->isChecked() ? 1 : 0;
+	conf.autorun = ui.cbAutorun->isChecked() ? 1 : 0;
 	flp_set_interleave(getRFIData(ui.cbFlpInterleave));
 
 	Floppy* flp = comp->dif->flp[0];
@@ -1171,7 +1178,10 @@ void SetupWin::apply() {
 // tape
 	conf.tape.autostart = ui.cbTapeAuto->isChecked() ? 1 : 0;
 	conf.tape.fast = ui.cbTapeFast->isChecked() ? 1 : 0;
+	conf.tape.rewind = ui.cbTapeRewind->isChecked() ? 1 : 0;
+	comp->tape->speed = ui.sldTapeSpeed->value();
 	comp->tape->detectOn = conf.tape.autostart;
+	comp->tape->autorew = conf.tape.rewind;
 // input
 	conf.prof.cur->jmapNameA = gpwid_a->getMapName();
 	conf.prof.cur->jmapNameB = gpwid_b->getMapName();

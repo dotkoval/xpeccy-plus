@@ -279,11 +279,7 @@ void MainWin::xkey_press(int xkey) {
 				pause(false,PR_FILE);
 				break;
 			case XCUT_LOAD:
-				pause(true,PR_FILE);
-				load_file(comp, NULL, FG_ALL, -1);
-				pause(false,PR_FILE);
-				checkState();
-				emit s_tape_upd(comp->tape);
+				openMedia(QString(), FG_ALL, -1, conf.autorun);
 				break;
 			case XCUT_TAPLAY:
 				if (comp->tape->on) {

@@ -59,14 +59,20 @@
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">
      <item>
-      <widget class="QLabel" name="label">
+      <widget class="QLabel" name="labSpeed">
+       <property name="toolTip">
+        <string>How fast the tape signal is played, in per cent of normal. A few images made on machines with an unusual clock load only when it is nudged either way</string>
+       </property>
        <property name="text">
-        <string>Slow</string>
+        <string>Playback speed</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QSlider" name="sldSpeed">
+       <property name="toolTip">
+        <string>How fast the tape signal is played, in per cent of normal. A few images made on machines with an unusual clock load only when it is nudged either way</string>
+       </property>
        <property name="minimum">
         <number>95</number>
        </property>
@@ -91,9 +97,15 @@
       </widget>
      </item>
      <item>
-      <widget class="QLabel" name="label_2">
+      <widget class="QLabel" name="labSpeedVal">
+       <property name="minimumSize">
+        <size>
+         <width>34</width>
+         <height>0</height>
+        </size>
+       </property>
        <property name="text">
-        <string>Fast</string>
+        <string>100%</string>
        </property>
       </widget>
      </item>
@@ -103,6 +115,9 @@
     <layout class="QHBoxLayout" name="horizontalLayout">
      <item>
       <widget class="QToolButton" name="tbRewind">
+       <property name="toolTip">
+        <string>Rewind to the start</string>
+       </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -117,6 +132,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="playBut">
+       <property name="toolTip">
+        <string>Play</string>
+       </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -131,6 +149,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="recBut">
+       <property name="toolTip">
+        <string>Record</string>
+       </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -145,6 +166,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="stopBut">
+       <property name="toolTip">
+        <string>Stop</string>
+       </property>
        <property name="enabled">
         <bool>false</bool>
        </property>
@@ -172,6 +196,9 @@
      </item>
      <item>
       <widget class="QToolButton" name="loadBut">
+       <property name="toolTip">
+        <string>Open a tape image</string>
+       </property>
        <property name="text">
         <string>...</string>
        </property>

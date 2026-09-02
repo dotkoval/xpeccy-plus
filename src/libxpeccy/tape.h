@@ -79,6 +79,7 @@ typedef struct {
 	unsigned oldRec:1;	// previous rec signal
 	unsigned char speed;	// 95 to 105
 
+	unsigned autorew:1;	// play starts the tape over once it has run to the end
 	unsigned detectOn:1;	// auto play by CPU port-0xFE polling pattern (for loaders that bypass the ROM)
 	int detectLastTick;
 	int detectLastB;
@@ -106,6 +107,7 @@ void tape_set_path(Tape*, const char*);
 
 void tapEject(Tape*);
 int tapPlay(Tape*);
+int tapUserPlay(Tape*);
 void tapRec(Tape*);
 void tapStop(Tape*);
 void tapRewind(Tape*,int);

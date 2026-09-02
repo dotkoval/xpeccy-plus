@@ -23,8 +23,7 @@ TapeWin::TapeWin(QWidget *par):QDialog(par) {
 
 void TapeWin::show() {
 	QDialog::show();
-	ui.sldSpeed->setValue(conf.prof.cur->zx->tape->speed);
-	upd(conf.prof.cur->zx->tape);
+	upd(conf.prof.cur->zx->tape);		// takes the speed slider with it
 	updList(conf.prof.cur->zx->tape);
 }
 
@@ -42,6 +41,7 @@ void TapeWin::updProgress(Tape* tape) {
 // TODO: on play state changed
 void TapeWin::upd(Tape* tape) {
 	if (isVisible()) {
+		ui.sldSpeed->setValue(tape->speed);	// Setup has the same slider
 		if (tape->blkCount > 0) {
 			ui.playBut->setEnabled(!tape->on);
 			ui.recBut->setEnabled(!tape->on);
@@ -68,8 +68,7 @@ void TapeWin::updList(Tape* tape) {
 
 void TapeWin::doPlay() {
 	Tape* tap = conf.prof.cur->zx->tape;
-	tap->rec = 0;
-	tap->on = 1;
+	tapUserPlay(tap);
 	upd(tap);
 }
 
@@ -125,4 +124,5 @@ void TapeWin::setSpeed(int s) {
 	if (s < 95) return;
 	if (s > 105) return;
 	conf.prof.cur->zx->tape->speed = s;
+	ui.labSpeedVal->setText(QString("%0%").arg(s));
 }

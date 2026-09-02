@@ -159,10 +159,11 @@ static void autostart_stop() {
 	as_comp = NULL;
 }
 
-void autostart_arm(Computer* comp, int kind) {
-	autostart_stop();
-	if (!comp) return;
-	if (comp->hw->grp != HWG_ZX) return;		// zx only for now
+// What this machine would do with that media, NULL if it can do nothing: it has
+// no key sequence for it, or no interface to read the image through.
+static const asAct* as_find(Computer* comp, int kind) {
+	if (!comp) return NULL;
+	if (comp->hw->grp != HWG_ZX) return NULL;	// zx only for now
 	const asMachine* mac = as_mtab;
 	while (mac->hwid && (mac->hwid != comp->hw->id))
 		mac++;
@@ -171,15 +172,25 @@ void autostart_arm(Computer* comp, int kind) {
 		case AS_TAPE: act = &mac->tape; break;
 		case AS_DISK: act = &mac->disk; break;
 		case AS_DISK3: act = &mac->disk3; break;
-		default: return;
+		default: return NULL;
 	}
-	if (!act->seq) return;		// an AS_NOPE row: no such media on this machine
+	if (!act->seq) return NULL;	// an AS_NOPE row: no such media on this machine
+	if ((kind == AS_DISK) && (comp->dif->type != DIF_BDI)) return NULL;
+	if ((kind == AS_DISK3) && (comp->dif->type != DIF_P3DOS)) return NULL;
+	return act;
+}
+
+int autostart_arm(Computer* comp, int kind) {
+	autostart_stop();
+	const asAct* act = as_find(comp, kind);
+	if (!act) return 0;
 	compReset(comp, act->res);
 	comp->keyb->scanmask = 0;
 	as_comp = comp;
 	as_seq = act->seq;
 	as_wait = -1;					// still waiting for the rom
 	as_life = AS_GIVEUP;
+	return 1;
 }
 
 void autostart_frame(Computer* comp) {

@@ -1,4 +1,6 @@
 #include <QMatrix4x4>
+#include <QCursor>
+#include <QTimer>
 #include <QMenu>
 #include <QMenuBar>
 #include <QMessageBox>
@@ -604,7 +606,7 @@ void MainWin::tapStateChanged(int wut, int val) {
 		case TW_STATE:
 			switch(val) {
 				case TWS_PLAY:
-					tapPlay(comp->tape);
+					tapUserPlay(comp->tape);
 					emit s_tape_upd(comp->tape);
 					break;
 				case TWS_STOP:
@@ -866,24 +868,60 @@ void MainWin::drawIcons(QPainter& pnt) {
 }
 
 
+// A copy, never a move: with shift held the file manager offers a move, and
+// would delete the original once the drop is taken.
 void MainWin::dragEnterEvent(QDragEnterEvent* ev) {
-	if (ev->mimeData()->hasUrls()) {
-		ev->acceptProposedAction();
-	}
+	if (!ev->mimeData()->hasUrls()) return;
+	ev->setDropAction(Qt::CopyAction);
+	ev->accept();
 }
 
 void MainWin::dropEvent(QDropEvent* ev) {
-	QList<QUrl> urls = ev->mimeData()->urls();
-	QString fpath;
+	if (!ev->mimeData()->hasUrls()) return;
+	ev->setDropAction(Qt::CopyAction);
+	ev->accept();
+	// one drop is one medium: a second file would only land on top of the first
+	QString fpath = ev->mimeData()->urls().first().toLocalFile();
+	if (fpath.isEmpty()) return;		// something that is not a file here
 	raise();
 	activateWindow();
-	for (int i = 0; i < urls.size(); i++) {
-		fpath = urls.at(i).path();
-#if defined(__WIN32)
-		fpath.remove(0,1);	// by some reason path will start with /
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+	bool ask = ev->modifiers() & Qt::ShiftModifier;
+#else
+	bool ask = ev->keyboardModifiers() & Qt::ShiftModifier;
 #endif
-		load_file(conf.prof.cur->zx, fpath.toLocal8Bit().data(), FG_ALL, 0);
+	if (ask) {
+		// not from here: the application the file came from is still waiting
+		// for this handler to return, and a menu holds it for as long as it is up
+		QTimer::singleShot(0, this, [this, fpath](){dropAsk(fpath);});
+	} else {
+		openMedia(fpath, FG_ALL, 0, conf.autorun);
 	}
+}
+
+// shift on a drop: this one file, run or just mounted
+void MainWin::dropAsk(QString path) {
+	QMenu menu(this);
+	QAction* run = menu.addAction(QIcon(":/images/play.png"), "Run");
+	menu.addAction(QIcon(":/images/cd.png"), "Mount");
+	QAction* act = menu.exec(QCursor::pos());
+	if (!act) return;
+	openMedia(path, FG_ALL, 0, (act == run) ? 1 : 0);
+}
+
+// One way in for "the user opened a medium", whatever pointed at it: an empty
+// path asks the file dialog. The machine is held while the file is read, and
+// started right there - arming resets it anyway, so there is nothing to gain
+// from letting it run a cycle first.
+void MainWin::openMedia(const QString& path, int id, int drv, int run) {
+	Computer* comp = conf.prof.cur->zx;
+	QByteArray loc = path.toLocal8Bit();
+	pause(true, PR_FILE);
+	load_file(comp, path.isEmpty() ? NULL : loc.data(), id, drv);
+	media_autorun(comp, run);
+	pause(false, PR_FILE);
+	checkState();
+	emit s_tape_upd(comp->tape);
 }
 
 
@@ -1246,14 +1284,14 @@ void MainWin::dbgReturn() {
 }
 
 void MainWin::bookmarkSelected(QAction* act) {
-	Computer* comp = conf.prof.cur->zx;
-	load_file(comp, act->data().toString().toLocal8Bit().data(), FG_ALL, 0);
+	openMedia(act->data().toString(), FG_ALL, 0, conf.autorun);
 	setFocus();
 }
 
 void MainWin::onPrfChange() {
 	Computer* comp = conf.prof.cur->zx;
 	comp->tape->detectOn = conf.tape.autostart;
+	comp->tape->autorew = conf.tape.rewind;
 	if (comp->flgFRN) {
 		// loadPalette(conf.prof.cur);		// already loaded for each profile
 		compReset(comp, RES_DEFAULT);
@@ -1291,10 +1329,7 @@ void MainWin::chLayout(QAction* act) {
 }
 
 void MainWin::umOpen(QAction* act) {
-	pause(true, PR_FILE);
-	Computer* comp = conf.prof.cur->zx;
-	load_file(comp, NULL, act->data().toInt(), -1);
-	pause(false, PR_FILE);
+	openMedia(QString(), act->data().toInt(), -1, conf.autorun);
 }
 
 void MainWin::keySelected(QAction* act) {
