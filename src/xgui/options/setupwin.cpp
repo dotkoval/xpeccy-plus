@@ -128,6 +128,31 @@ void fillComboBox(QComboBox* box, QString path, QStringList filt, QString def = 
 	setRFIndex(box, sel, 0);
 }
 
+// Indicators page: one checkbox carries the indicator, the icon as it is drawn
+// on screen and the name. The style sets the gap after the check itself, and
+// QCommonStyle puts the name 4px past iconSize - so pad the picture on the left
+// and make iconSize wider than it to get the same air on both sides of it.
+
+#define	LED_ICON_SIZE	16
+#define	LED_ICON_GAP	10
+#define	LED_ICON_TEXT	4	// QCommonStyle's own icon-to-text gap, which has no metric to ask for
+
+static void spaceLedIcon(QCheckBox* box) {
+	QPixmap src = box->icon().pixmap(QSize(LED_ICON_SIZE, LED_ICON_SIZE));
+	if (src.isNull()) return;
+	int pad = LED_ICON_GAP - box->style()->pixelMetric(QStyle::PM_CheckBoxLabelSpacing, NULL, box);
+	if (pad < 0) pad = 0;
+	qreal dpr = src.devicePixelRatio();
+	QPixmap pix(qRound((LED_ICON_SIZE + pad) * dpr), qRound(LED_ICON_SIZE * dpr));
+	pix.setDevicePixelRatio(dpr);
+	pix.fill(Qt::transparent);
+	QPainter pnt(&pix);
+	pnt.drawPixmap(pad, 0, src);
+	pnt.end();
+	box->setIcon(QIcon(pix));
+	box->setIconSize(QSize(LED_ICON_SIZE + pad + LED_ICON_GAP - LED_ICON_TEXT, LED_ICON_SIZE));
+}
+
 // OBJECT
 
 
@@ -371,6 +396,15 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	// is open.
 	setWindowIcon(QGuiApplication::windowIcon());
 	ui.tabz->setTabIcon(ui.tabz->indexOf(ui.tab_4), QGuiApplication::windowIcon());
+
+	spaceLedIcon(ui.cbKeysLed);
+	spaceLedIcon(ui.cbJoyLed);
+	spaceLedIcon(ui.cbMouseLed);
+	spaceLedIcon(ui.cbTapeLed);
+	spaceLedIcon(ui.cbDiskLed);
+	spaceLedIcon(ui.cbFpsLed);
+	spaceLedIcon(ui.cbHaltLed);
+	spaceLedIcon(ui.cbMessage);
 
 	umadial = new QDialog;
 	uia.setupUi(umadial);

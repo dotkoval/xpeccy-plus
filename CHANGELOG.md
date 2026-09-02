@@ -55,6 +55,9 @@ before that point is upstream's history and is not repeated here.
   offset it starts from is set in Setup - Xpeccy+ - Debugger. The entries are centered now,
   and the row at SP itself is highlighted and shows its own address instead of an offset.
 
+- **The Leds page of Setup is now Indicators**, a row per indicator: the icon it draws on
+  screen, its name and a line saying what it shows.
+
 ### Fixed
 
 - The checkboxes in the breakpoint list follow the chosen interface style, sit centred under

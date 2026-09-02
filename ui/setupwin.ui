@@ -3156,36 +3156,246 @@
               <normaloff>:/images/lamp.png</normaloff>:/images/lamp.png</iconset>
             </attribute>
             <attribute name="title">
-             <string>Leds</string>
+             <string>Indicators</string>
             </attribute>
             <layout class="QVBoxLayout" name="verticalLayout_16">
              <item>
               <layout class="QGridLayout" name="gridLayout_23">
+               <property name="horizontalSpacing">
+                <number>16</number>
+               </property>
+               <property name="verticalSpacing">
+                <number>8</number>
+               </property>
                <item row="0" column="0">
-                <widget class="QCheckBox" name="cbMouseLed">
+                <widget class="QCheckBox" name="cbKeysLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
                  <property name="text">
-                  <string>Mouse</string>
+                  <string>Keyboard</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/scanled.png</normaloff>:/images/scanled.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="QLabel" name="labKeysLed">
+                 <property name="text">
+                  <string>Rows of keys the program is reading (ZX only)</string>
                  </property>
                 </widget>
                </item>
                <item row="1" column="0">
                 <widget class="QCheckBox" name="cbJoyLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
                  <property name="text">
                   <string>Joystick</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/joystick.png</normaloff>:/images/joystick.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QLabel" name="labJoyLed">
+                 <property name="text">
+                  <string>Blinks while the joystick is read</string>
                  </property>
                 </widget>
                </item>
                <item row="2" column="0">
-                <widget class="QCheckBox" name="cbKeysLed">
+                <widget class="QCheckBox" name="cbMouseLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
                  <property name="text">
-                  <string>Keyboard</string>
+                  <string>Mouse</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/mouse.png</normaloff>:/images/mouse.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
                  </property>
                 </widget>
                </item>
-               <item row="0" column="1">
+               <item row="2" column="1">
+                <widget class="QLabel" name="labMouseLed">
+                 <property name="text">
+                  <string>Blinks while the mouse is read</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="0">
                 <widget class="QCheckBox" name="cbTapeLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
                  <property name="text">
                   <string>Tape</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/tapeYellow.png</normaloff>:/images/tapeYellow.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="3" column="1">
+                <widget class="QLabel" name="labTapeLed">
+                 <property name="text">
+                  <string>On while the tape plays, red while it records</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="0">
+                <widget class="QCheckBox" name="cbDiskLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Disk</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/diskGreen.png</normaloff>:/images/diskGreen.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="4" column="1">
+                <widget class="QLabel" name="labDiskLed">
+                 <property name="text">
+                  <string>Green on a disk read, red on a write</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="0">
+                <widget class="QCheckBox" name="cbFpsLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>FPS</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/bars.png</normaloff>:/images/bars.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="5" column="1">
+                <widget class="QLabel" name="labFpsLed">
+                 <property name="text">
+                  <string>Frames per second (top right)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="0">
+                <widget class="QCheckBox" name="cbHaltLed">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>HALT</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/pause.png</normaloff>:/images/pause.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QLabel" name="labHaltLed">
+                 <property name="text">
+                  <string>HALT count and frame count (bottom right)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="0">
+                <widget class="QCheckBox" name="cbMessage">
+                 <property name="font">
+                  <font>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Messages</string>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../xpeccy.qrc">
+                   <normaloff>:/images/label.png</normaloff>:/images/label.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>16</width>
+                   <height>16</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="1">
+                <widget class="QLabel" name="labMessage">
+                 <property name="text">
+                  <string>What the emulator has just done (bottom left)</string>
                  </property>
                 </widget>
                </item>
@@ -3201,34 +3411,6 @@
                   </size>
                  </property>
                 </spacer>
-               </item>
-               <item row="1" column="1">
-                <widget class="QCheckBox" name="cbDiskLed">
-                 <property name="text">
-                  <string>Disk</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="0">
-                <widget class="QCheckBox" name="cbMessage">
-                 <property name="text">
-                  <string>Messages</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="1">
-                <widget class="QCheckBox" name="cbFpsLed">
-                 <property name="text">
-                  <string>FPS</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="3" column="1">
-                <widget class="QCheckBox" name="cbHaltLed">
-                 <property name="text">
-                  <string>HALT</string>
-                 </property>
-                </widget>
                </item>
               </layout>
              </item>
