@@ -98,6 +98,10 @@ void initFileDialog(QWidget*);
 int load_file(Computer* comp, const char* name, int id, int drv);
 // AS_* the last loaded file would need to start, see xcore/autostart.h
 int file_autostart_kind();
+// reset the machine and start what was just opened, if run says so
+void media_autorun(Computer*, int run);
+// drop that record: media a profile puts back was not opened by the user
+void media_autorun_forget();
 int save_file(Computer* comp, const char* name, int id, int drv);
 
 int saveChangedDisk(Computer*,int);

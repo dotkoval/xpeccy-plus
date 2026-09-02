@@ -356,12 +356,40 @@ void file_errors(int err) {
 static int disk_id[] = {FG_DISK_A, FG_DISK_B, FG_DISK_C, FG_DISK_D};
 static int boot_ft[] = {FL_SCL, FL_TRD, FL_TD0, FL_FDI, FL_UDI, FL_HOBETA, 0};
 
-// what the last loaded file would need to start on its own. The caller decides
-// whether to act on it: media opened from the gui is just mounted.
+// what the last loaded file would need to start on its own, and the drive it
+// went to. The caller decides whether to act on it
 static int last_as_kind = AS_NONE;
+static int last_as_drv = 0;
 
 int file_autostart_kind() {
 	return last_as_kind;
+}
+
+void media_autorun_forget() {
+	last_as_kind = AS_NONE;
+	last_as_drv = 0;
+}
+
+static char as_no_tape[] = "This machine cannot start a tape";
+static char as_no_disk[] = "This machine cannot start that disk";
+static char as_not_a[] = "Only drive A can be started";
+
+// Media just opened from the gui: mounting is not enough when the user wants it
+// started, so do what the command line does - reset and press the keys. A
+// machine that cannot take this kind of media keeps running, the image just
+// sits in its drive.
+void media_autorun(Computer* comp, int run) {
+	int kind = file_autostart_kind();
+	if (!comp || !run || (kind == AS_NONE)) return;
+	if ((kind != AS_TAPE) && (last_as_drv != 0)) {	// booting is drive A business
+		comp->msg = as_not_a;
+		return;
+	}
+	emu_lock();		// arming resets the machine
+	int ok = autostart_arm(comp, kind);
+	emu_unlock();
+	if (!ok)
+		comp->msg = (kind == AS_TAPE) ? as_no_tape : as_no_disk;
 }
 
 static int as_kind_of(int ftype) {
@@ -435,20 +463,14 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 		inf = file_find_hw_ext(comp->hw->id, path);		// detect file type by extension
 	}
 	if (drv < 0) drv = 0;
-	if (inf) {
-		if (inf->load) {
-			if (inf->ch) {
-				if (saveChangedDisk(comp, drv) == ERR_OK) {
-					err = inf->load(comp, path.toLocal8Bit().data(), drv);
-					disk_boot(comp, drv, inf->id);
-					if (err == ERR_OK) last_as_kind = as_kind_of(inf->id);
-				} else {
-					err = ERR_OK;
-				}
-			} else {
-				err = inf->load(comp, path.toLocal8Bit().data(), drv);
-				disk_boot(comp, drv, inf->id);
-				if (err == ERR_OK) last_as_kind = as_kind_of(inf->id);
+	// a disk goes in only once the one it replaces is safe to lose
+	if (inf && inf->load) {
+		if (!inf->ch || (saveChangedDisk(comp, drv) == ERR_OK)) {
+			err = inf->load(comp, path.toLocal8Bit().data(), drv);
+			disk_boot(comp, drv, inf->id);
+			if (err == ERR_OK) {
+				last_as_kind = as_kind_of(inf->id);
+				last_as_drv = drv;
 			}
 		}
 	}

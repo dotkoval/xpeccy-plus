@@ -625,6 +625,9 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 			if (flp->path)
 				load_file(comp, flp->path, FG_DISK, flp->id);
 		}
+		// the machine is only being set up as it was left: nothing here was
+		// opened by the user, so nothing here is to be started
+		media_autorun_forget();
 	}
 	prfSetRomset(prf, prf->rsName);
 
