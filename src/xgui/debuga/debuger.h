@@ -183,6 +183,7 @@ class DebugWin : public QMainWindow {
 		void applyDockList();
 		void editWatchPorts();
 		void setLabelMenu(QWidget*, QString, QString, std::function<void()>);
+		void setHeaderMenu(QWidget*, QString, QString, std::function<void()>, int = 0);
 		void reFormCPU(xRegBunch*);
 		void reFormFlags(int);
 		void placeReg(xRegBunch*, int, int, int);

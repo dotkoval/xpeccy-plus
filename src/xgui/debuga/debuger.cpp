@@ -103,7 +103,42 @@ QString getStyleString(QString bgcn, QString txcn, int f = 0, int g = 100) {
 
 // gap from whatever's above (native titlebar, another dock or a tab bar), which
 // would otherwise touch it with no border - dbg.header.bg colours both alike
-static const QString headerGap = QStringLiteral("margin-top:2px;");
+#define	HEADER_GAP	2
+static const QString headerGap = QString("margin-top:%0px;").arg(HEADER_GAP);
+
+// A header that answers the right button says so with a dot in its corner:
+// nothing else on the panel shows a menu is there. It is a child of the header,
+// so it hides and dies with it, and it lets the click through to the header
+// underneath. dbg.header.txt keeps it visible whatever the style does.
+
+#define	MENU_DOT_SIZE	4
+#define	MENU_DOT_EDGE	3	// from the left
+#define	MENU_DOT_TOP	2	// from the top of the coloured plate
+
+class xMenuDot : public QWidget {
+	public:
+		xMenuDot(QWidget* par, int top):QWidget(par) {
+			setAttribute(Qt::WA_TransparentForMouseEvents);
+			setFixedSize(MENU_DOT_SIZE, MENU_DOT_SIZE);
+			move(MENU_DOT_EDGE, top);
+			show();
+		}
+	protected:
+		void paintEvent(QPaintEvent*) {
+			QColor col = conf.pal["dbg.header.txt"];
+			if (!col.isValid()) col = palette().color(QPalette::WindowText);
+			QPainter pnt(this);
+			pnt.setRenderHint(QPainter::Antialiasing);
+			pnt.setPen(Qt::NoPen);
+			pnt.setBrush(col);
+			pnt.drawEllipse(rect());
+		}
+};
+
+// a dock title sits below the gap its style sheet leaves, a panel label doesn't
+static void markMenuHeader(QWidget* wid, int gap = 0) {
+	new xMenuDot(wid, MENU_DOT_TOP + gap);
+}
 
 void DebugWin::updateStyle() {
 	QString str;
@@ -543,6 +578,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_cpu_dock->titleBarWidget()->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(wid_cpu_dock->titleBarWidget(), &QWidget::customContextMenuRequested,
 		this, &DebugWin::regLayoutMenu);
+	markMenuHeader(cpuTitleName, HEADER_GAP);	// the name half heads the bar
 
 	conf.dbg.labels = 1;
 	conf.dbg.segment = 0;
@@ -737,7 +773,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 // the rows are made (setPortRow); FRAME goes back to 0, so the next stop is
 // counted from here - breakpoint conditions read the same number
 
-	setLabelMenu(ui_misc.labPorts, ":/images/bars.png", "Watched ports...", [this](){
+	setHeaderMenu(ui_misc.labPorts, ":/images/bars.png", "Watched ports...", [this](){
 		editWatchPorts();
 	});
 	// MEMMAP: the four 16K banks. Only a ZX pages in 16K blocks, so the fields
@@ -768,15 +804,18 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		connect(mmapPage[i], &xHexSpin::valueChanged, this, [this, i](int){mmapEdit(i);});
 		mmapMenu << mmapType[i] << mmapPage[i] << mmapLab[i];
 	}
-	// anywhere in the block answers the right button, the way FRAME does
+	// anywhere in the block answers the right button, the way FRAME does, and
+	// so does the MEMMAP title over it - the one of the two that wears the dot
 	foreach (QWidget* wid, mmapMenu) {
 		setLabelMenu(wid, ":/images/refresh.png", "Restore mapping", [this](){rest_mem_map();});
 	}
+	setHeaderMenu(wid_misc->titleBarWidget(), ":/images/refresh.png", "Restore mapping",
+		[this](){rest_mem_map();}, HEADER_GAP);
 	// the rows keep their own width and sit centered, like the labels around
 	// them: stretched to the dock they would drag the whole column wider
 	ui_misc.verticalLayout->setAlignment(ui_misc.widMMap, Qt::AlignHCenter);
 
-	setLabelMenu(ui_misc.labHeadFrame, ":/images/refresh.png", "Reset counter", [this](){
+	setHeaderMenu(ui_misc.labHeadFrame, ":/images/refresh.png", "Reset counter", [this](){
 		conf.prof.cur->zx->frmCount = 0;
 		fillNotCPU();
 	});
@@ -2221,6 +2260,13 @@ void DebugWin::fillStack() {
 // ports
 
 // a label of the misc panel with one action behind the right click
+
+// the same, on a header: the dot says the menu is there
+
+void DebugWin::setHeaderMenu(QWidget* wid, QString icon, QString text, std::function<void()> action, int gap) {
+	setLabelMenu(wid, icon, text, action);
+	markMenuHeader(wid, gap);
+}
 
 void DebugWin::setLabelMenu(QWidget* wid, QString icon, QString text, std::function<void()> action) {
 	wid->setContextMenuPolicy(Qt::CustomContextMenu);
