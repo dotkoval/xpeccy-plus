@@ -9,6 +9,8 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+## 2026.3.1 - 2026-09-02
+
 ### Fixed
 
 - TSConf: programs that set the TS registers by writing into the FMAPS memory window
