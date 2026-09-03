@@ -9,6 +9,18 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Changed
+
+- The debugger is built when it is first opened instead of at startup, so nobody pays for
+  it who does not open it.
+
+### Fixed
+
+- The window now comes up before the machine starts running, with a picture in it from the
+  first moment. Most visible on macOS, where a file opened from Finder could be heard
+  playing before anything was seen.
+- macOS: Finder knows which files Xpeccy+ opens, so they are offered in "Open With".
+
 ## 2026.3.1 - 2026-09-02
 
 ### Fixed

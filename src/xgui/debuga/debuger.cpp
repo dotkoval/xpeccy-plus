@@ -269,22 +269,6 @@ void DebugWin::rest_mem_map() {
 	fillAll();
 }
 
-// The whole panel tree is realized, polished and laid out on the first show,
-// and painted right after - which is what the first Escape used to pay for.
-// WA_DontShowOnScreen does all of it with no window appearing. This is also
-// where the debugger gets its style: start() does not apply it any more.
-
-void DebugWin::prewarm() {
-	if (isVisible()) return;
-	setAttribute(Qt::WA_DontShowOnScreen, true);
-	updateStyle();		// before show(): it re-fonts every widget, laying out twice
-	show();
-	fillAll();		// keeps the register grid built, and gives grab() real content
-	grab();			// forces the first paint of every panel
-	hide();
-	setAttribute(Qt::WA_DontShowOnScreen, false);
-}
-
 void DebugWin::start() {
 	if (isVisible()) {
 		activateWindow();
@@ -308,8 +292,13 @@ void DebugWin::start() {
 
 	brk_clear_tmp(comp);		// clear temp breakpoints
 
-	// no updateStyle() here: prewarm() applies the style, Options re-applies it
-	// on every change, and doing it per open rebuilt the register grid for nothing
+	// Once, on the first open: Options re-applies the style on every change, and
+	// doing it per open rebuilds the register grid for nothing. Before show() -
+	// it re-fonts every widget, which would otherwise lay the window out twice.
+	if (!styleApplied) {
+		updateStyle();
+		styleApplied = 1;
+	}
 	show();
 // fillall redrawing all vivisble widgets
 	if (!fillAll()) {
@@ -409,6 +398,7 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	reformPending = 0;
 	fitPending = 0;
 	winShown = 0;
+	styleApplied = 0;
 	reformWait = 0;
 
 	// AllowNestedDocks is off by default, and without it a left/right area can

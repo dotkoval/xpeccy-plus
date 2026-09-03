@@ -151,6 +151,7 @@ typedef struct {
 		unsigned grabMice:1;
 		unsigned dumove:1;
 		unsigned block:1;
+		unsigned hasPicture:1;	// the emulation has handed over a frame
 
 		QIcon icon;
 		int timid;

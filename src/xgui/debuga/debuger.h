@@ -54,7 +54,6 @@ class DebugWin : public QMainWindow {
 
 //		void reject();
 		void stop();
-		void prewarm();
 
 	signals:
 		void closed();
@@ -77,6 +76,7 @@ class DebugWin : public QMainWindow {
 		int regPairW;		// width one 'name + value' pair needs
 		unsigned cpuWideDock:1;	// two panels sit side by side under the cpu dock
 		unsigned winShown:1;	// window has been shown: the dock sizes are real
+		unsigned styleApplied:1;	// the style sheet has been put on this window
 		unsigned reformWait:1;	// a build was asked for before the first show
 		unsigned reformPending:1;	// a reflow is already queued
 		unsigned fitPending:1;		// so is a dock refit
