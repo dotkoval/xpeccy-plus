@@ -9,13 +9,6 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
-### Changed
-
-- The emulator starts in about a third less time.
-
-- The debugger is built when it is first opened instead of at startup, so nobody pays for
-  it who does not open it.
-
 ### Fixed
 
 - TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
@@ -31,8 +24,8 @@ before that point is upstream's history and is not repeated here.
   waiting. The demo *cpir* fell apart and started over about twenty seconds in because
   of it.
 - The window now comes up before the machine starts running, with a picture in it from the
-  first moment. Most visible on macOS, where a file opened from Finder could be heard
-  playing before anything was seen.
+  first moment, and takes about a third less time to get there. Most visible on macOS,
+  where a file opened from Finder could be heard playing before anything was seen.
 - macOS: Finder knows which files Xpeccy+ opens, so they are offered in "Open With".
 
 ## 2026.3.1 - 2026-09-02
