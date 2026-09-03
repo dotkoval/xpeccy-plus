@@ -270,6 +270,12 @@ void tslUpdatePorts(Video* vid) {
 
 // HBlank start
 void vts_hblk(Video* vid) {
+	// the controller counts the line from the leading edge of the blanking, and a handler
+	// setting the border for the line about to be drawn is meant to run inside those dots
+	if (vid->inten & 2) {
+		vid->intLINE = 1;
+		vid->xirq(IRQ_VID_LINE, vid->xptr);
+	}
 }
 
 void tslUpdatePalX(void*);
@@ -290,10 +296,6 @@ void vts_line(Video* vid) {
 	// the dots the controller ate rendering the line are not part of the position: they
 	// moved the int about with the scene and lost it outright on a heavy line
 	vid->intp.x = (vid->tsconf.hsint + vid->blank.x) % vid->full.x;
-	if (vid->inten & 2) {
-		vid->intLINE = 1;
-		vid->xirq(IRQ_VID_LINE, vid->xptr);
-	}
 }
 
 // Frame start

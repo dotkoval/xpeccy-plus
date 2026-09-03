@@ -21,6 +21,9 @@ before that point is upstream's history and is not repeated here.
 - TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
   screen. The palette now starts out as the standard 16 colors, the way a loader leaves
   it.
+- TSConf: an effect that sets the border or a tile offset once per line no longer leaves a
+  20-pixel strip of the previous line's color down the left edge. The line interrupt now
+  arrives with the blanking, the way the hardware sends it.
 - TSConf: switching the line or DMA interrupt off now also drops one that is already
   waiting. The demo *cpir* fell apart and started over about twenty seconds in because
   of it.
