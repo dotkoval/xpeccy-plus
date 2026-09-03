@@ -61,7 +61,8 @@ void tslReset(Computer* comp) {
 	comp->cmos.mode = 2;
 	comp->tsconf.p21af = 0x04;
 	comp->tsconf.Page0 = 0;
-	comp->vid->nextbrd = 0xf7;
+	// #0FAF resets to 0 like every other TS register; white is a ROM's doing, not the machine's
+	comp->vid->nextbrd = 0x00;
 
 	comp->vid->tsconf.p00af = 0;
 	comp->p01AF = 0x05;
