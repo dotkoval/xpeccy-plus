@@ -9,6 +9,18 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Fixed
+
+- The sound no longer clicks every so often. The buffer ran with no headroom at all, so
+  any hiccup left the sound card with nothing to play and it repeated the last 20 ms of
+  sound instead. It now keeps a small reserve and holds it steady against the drift
+  between the sound card's clock and the computer's.
+
+### Added
+
+- Sound latency is now settable (Options -> Sound, 20 to 60 ms). Less is more responsive,
+  more is safer on a machine where the sound still clicks.
+
 ## 2026.3.2 - 2026-09-03
 
 ### Fixed

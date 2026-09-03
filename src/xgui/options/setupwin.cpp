@@ -569,6 +569,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
 	connect(ui.sldNoflic,SIGNAL(valueChanged(int)),this,SLOT(chaflc()));
 	connect(ui.sldPsgSep,SIGNAL(valueChanged(int)),this,SLOT(chapsg()));
+	connect(ui.sldSndLatency,SIGNAL(valueChanged(int)),this,SLOT(chasndlat()));
 	connect(ui.cbPsgCount,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 	connect(ui.cbPsgStereo,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 
@@ -845,6 +846,9 @@ void SetupWin::start() {
 	ui.senbox->setChecked(conf.snd.enabled);
 	ui.outbox->setCurrentIndex(ui.outbox->findText(QString::fromLocal8Bit(sndOutput->name)));
 	ui.ratbox->setCurrentIndex(ui.ratbox->findData(QVariant(conf.snd.rate)));
+	ui.sldSndLatency->setRange(SND_LATENCY_MIN, SND_LATENCY_MAX);	// the block size sets the floor, keep the two together
+	ui.sldSndLatency->setValue(conf.snd.latency);
+	chasndlat();
 
 	ui.sbMasterVol->setValue(conf.snd.vol.master);
 	ui.sbBeepVol->setValue(conf.snd.vol.beep);
@@ -1084,8 +1088,12 @@ void SetupWin::apply() {
 
 	std::string nname = getRFText(ui.outbox);
 	int rate = getRFIData(ui.ratbox);
-	if ((rate != conf.snd.rate) || (nname != sndGetName())) {
+	int latency = ui.sldSndLatency->value();
+	// reopen on a changed latency too: the pacer would creep to the new target
+	// over tens of seconds, refilling the ring gets there at once
+	if ((rate != conf.snd.rate) || (latency != conf.snd.latency) || (nname != sndGetName())) {
 		conf.snd.rate = rate;
+		conf.snd.latency = latency;
 		setOutput(nname.c_str());
 	}
 
@@ -1868,6 +1876,10 @@ void SetupWin::chapsg() {
 	ui.cbPsgStereo->setEnabled(chips > 0);
 	ui.sldPsgSep->setEnabled(split);
 	ui.labPsgSep->setEnabled(split);
+}
+
+void SetupWin::chasndlat() {
+	ui.labSndLatency->setText(QString("%0 ms").arg(ui.sldSndLatency->value()));
 }
 
 void SetupWin::selsspath() {

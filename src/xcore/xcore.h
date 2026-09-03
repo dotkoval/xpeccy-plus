@@ -493,6 +493,7 @@ struct xConfig {
 		int need;		// samples needed to be filled in buf
 		int rate;
 		int chans;
+		int latency;		// ms of sound kept in the ring buffer (see sound.h)
 		sndVolume vol;
 		FILE* wavfile;
 	} snd;
