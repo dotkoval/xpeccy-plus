@@ -3,11 +3,13 @@
 #include <QApplication>
 #include <QEvent>
 #include <QColor>
+#include <QString>
 
 class xApp : public QApplication {
 	Q_OBJECT
 	public:
 		xApp(int& ac, char** av, int iv):QApplication(ac, av, iv) {}
+		QString pendingFile;	// a document macOS sent before the machine was up
 	public slots:
 		void d_frame();
 		void d_style();

@@ -93,6 +93,13 @@ bool xApp::eventFilter(QObject* obj, QEvent* ev) {
 	return QApplication::eventFilter(obj, ev);
 }
 
+// A document the os hands over. Two ways in: the event itself, and the one kept
+// back until there was a machine to load it into.
+static void open_os_file(const QString& path) {
+	load_file(conf.prof.cur->zx, path.toLocal8Bit().data(), FG_ALL, 0);
+	media_autorun(conf.prof.cur->zx, conf.autorun);
+}
+
 // for apple users
 bool xApp::event(QEvent* ev) {
 	QFileOpenEvent* fev;
@@ -103,10 +110,10 @@ bool xApp::event(QEvent* ev) {
 			path = fev->file();		// the url's path is still percent-encoded
 			if (path.isEmpty())
 				path = fev->url().toLocalFile();
-			if (conf.prof.cur) {
-				load_file(conf.prof.cur->zx, path.toLocal8Bit().data(), FG_ALL, 0);
-				media_autorun(conf.prof.cur->zx, conf.autorun);
-			}
+			if (conf.prof.cur)
+				open_os_file(path);
+			else
+				pendingFile = path;	// no machine yet: main() picks it up
 			break;
 		case QEvent::User:
 			emit s_frame();
@@ -119,9 +126,6 @@ bool xApp::event(QEvent* ev) {
 
 int main(int ac,char** av) {
 	tClock = clock();
-// NOTE:SDL_INIT_VIDEO must be here for SDL_Joystick event processing. Joystick doesn't works without video init
-	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_TIMER);
-	atexit(SDL_Quit);
 #if defined(__WIN32)
 	// raise the Windows timer resolution to 1ms for smoother frame timing
 	// (the default step is ~15ms, which makes usleep and timers coarse)
@@ -171,6 +175,15 @@ int main(int ac,char** av) {
 	xApp app(ac,av,true);
 	app.installEventFilter(&app);	// colours each window's titlebar on its first Show
 
+// SDL comes second on purpose. Its video init builds an NSApplication of its
+// own when there is none yet, installs its own delegate on it and calls
+// finishLaunching - all before Qt exists, so the document Finder sends at
+// launch has nobody to go to and the app finishes launching with no window.
+// With Qt first, SDL finds an application already there and leaves it alone.
+// NOTE:SDL_INIT_VIDEO is needed for SDL_Joystick event processing. Joystick doesn't work without video init
+	SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_JOYSTICK | SDL_INIT_TIMER);
+	atexit(SDL_Quit);
+
 	// fallback icon for every window that doesn't set its own (options, tape,
 	// rzx, watcher). Windows takes it from the exe resource, X11 has nothing
 	// to take it from.
@@ -206,6 +219,11 @@ int main(int ac,char** av) {
 	shortcut_init();
 	loadConfig();
 
+	// The style sheet goes on before the windows are built: applying it after
+	// makes Qt walk every widget a second time, and the debugger alone is half
+	// a second of that.
+	app.d_style();
+
 	MainWin mwin;
 	xThread ethread;
 	DebugWin dbgw(&mwin);
@@ -214,8 +232,6 @@ int main(int ac,char** av) {
 	RZXWin rzxw(&mwin);
 	xWatcher wutw(&mwin);
 	keyWindow keyw(&mwin);
-
-	app.d_style();
 
 	mwin.onPrfChange();
 	dbgw.onPrfChange();
@@ -402,6 +418,12 @@ int main(int ac,char** av) {
 	// what the user would press by hand. Here, after every option is known
 	media_autorun(conf.prof.cur->zx, astart);
 
+	// a document macOS handed over before there was a machine to load it into
+	if (!app.pendingFile.isEmpty()) {
+		open_os_file(app.pendingFile);
+		app.pendingFile.clear();
+	}
+
 	dbgw.move(conf.dbg.pos);
 	dbgw.resize(conf.dbg.siz);
 #ifdef __APPLE__
@@ -412,15 +434,19 @@ int main(int ac,char** av) {
 	if (!hlp) {
 //		mwin.blockSignals(true);
 		mwin.show();		// causes an exception on resizeEvent -> emit resized()
-		mwin.raise();
-		mwin.activateWindow();
 		mwin.updateWindow();
 		mwin.checkState();
-		dbgw.prewarm();		// build the debugger now, not on the first Escape
-		if (dbg) mwin.doDebug();
 		conf.running = 1;
-		ethread.start();
-		if (!lab) shitHappens("Can't open labels file");
+		// Nothing paints the window until a frame arrives, so the event loop
+		// starts the machine before it does anything else - a window with no
+		// content is never put on screen on macOS.
+		QTimer::singleShot(0, &mwin, [&](){
+			ethread.start();
+			mwin.raise();
+			mwin.activateWindow();
+			if (dbg) mwin.doDebug();
+			if (!lab) shitHappens("Can't open labels file");
+		});
 //		mwin.blockSignals(false);
 		app.exec();
 		ethread.stop();

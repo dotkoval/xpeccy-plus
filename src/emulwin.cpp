@@ -164,6 +164,7 @@ MainWin::MainWin() {
 	scrInterval = 0;
 	grabMice = 0;
 	block = 0;
+	hasPicture = 0;
 //	relskip = 0;
 
 	msgTimer = 0;
@@ -676,6 +677,14 @@ void MainWin::presentFrame() {
 }
 
 void MainWin::frame_timer() {
+	// No frame yet, so there is nothing in the window - and a window that is
+	// never painted is not put on screen at all on macOS. Paint it anyway; no
+	// frame is coming meanwhile, so the picture holds still. Autostart is the
+	// long case: it runs the machine at full speed and draws no pixels.
+	if (!hasPicture) {
+		presentFrame();
+		return;
+	}
 	// autostart draws nothing, but vid_frame() still swaps scrimg/bufimg every
 	// frame: painting here would alternate between two stale buffers and flicker
 	if (autostart_busy()) return;
@@ -704,6 +713,7 @@ void MainWin::frame_timer() {
 
 void MainWin::d_frame() {
 	if (conf.emu.fast) return;
+	hasPicture = 1;
 #if defined(USEOPENGL) && !BLOCKGL
 	Computer* comp = conf.prof.cur->zx;
 	queue.append(texids[curtex]);

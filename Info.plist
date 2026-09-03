@@ -30,5 +30,94 @@
 	<true/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<!-- What Finder may open with this app. Without it "Open With" is a forced
+	     launch and the document arrives as an afterthought. The extensions that
+	     belong to no one in particular (rom, bin, img, wav) are marked
+	     Alternate so nothing else loses them to us. -->
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Tape image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>tap</string>
+				<string>tzx</string>
+				<string>t64</string>
+				<string>cas</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Disk image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>trd</string>
+				<string>scl</string>
+				<string>fdi</string>
+				<string>udi</string>
+				<string>td0</string>
+				<string>dsk</string>
+				<string>bkd</string>
+				<string>ima</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Snapshot</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>sna</string>
+				<string>z80</string>
+				<string>spg</string>
+				<string>prg</string>
+				<string>rzx</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Cartridge</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Default</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>gb</string>
+				<string>gbc</string>
+				<string>nes</string>
+				<string>mx1</string>
+				<string>mx2</string>
+				<string>rks</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Other image</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>CFBundleTypeExtensions</key>
+			<array>
+				<string>rom</string>
+				<string>bin</string>
+				<string>img</string>
+				<string>wav</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
