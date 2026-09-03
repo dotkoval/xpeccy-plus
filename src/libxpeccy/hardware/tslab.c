@@ -38,15 +38,31 @@ void tslMapMem(Computer* comp) {
 	}
 }
 
+// A .spg carries no palette - on hardware the loader's is still in CRAM - so seed the
+// bank PALSEL points at after reset, as unreal's load_spec_colors() does. 0RRrrrGG gggBBbbb.
+static const unsigned short tslSpecCols[16] = {
+	0x0000, 0x0010, 0x4000, 0x4010, 0x0200, 0x0210, 0x4200, 0x4210,
+	0x0000, 0x0018, 0x6000, 0x6018, 0x0300, 0x0318, 0x6300, 0x6318
+};
+
+void tslUpdatePal(Computer* comp);
+
 void tslReset(Computer* comp) {
+	unsigned char* cp = comp->vid->tsconf.cram + (0xf0 << 1);
 	comp->vid->tsconf.scrPal = 0xf0;
 	memset(comp->vid->tsconf.cram,0x00,0x200);
+	for (int i = 0; i < 16; i++) {
+		*cp++ = tslSpecCols[i] & 0xff;
+		*cp++ = tslSpecCols[i] >> 8;
+	}
+	tslUpdatePal(comp);
 	comp->flgROM = 0;
 	comp->flgDOS = 0;
 	comp->cmos.mode = 2;
 	comp->tsconf.p21af = 0x04;
 	comp->tsconf.Page0 = 0;
-	comp->vid->nextbrd = 0xf7;
+	// #0FAF resets to 0 like every other TS register; white is a ROM's doing, not the machine's
+	comp->vid->nextbrd = 0x00;
 
 	comp->vid->tsconf.p00af = 0;
 	comp->p01AF = 0x05;
@@ -64,6 +80,8 @@ void tslReset(Computer* comp) {
 	comp->vid->intp.x = 0;
 	comp->vid->intp.y = 0;
 	comp->vid->inten = 1;
+	comp->flgLINT = 0;		// the ack latches are not cleared anywhere else
+	comp->flgDINT = 0;
 	comp->flgVDOS = 0;
 	tslUpdatePorts(comp->vid);
 	tslMapMem(comp);
@@ -485,9 +503,17 @@ void tsOut29AF(Computer* comp, int port, int val) {
 
 void tsOut2AAF(Computer* comp, int port, int val) {
 	comp->vid->inten = val & 0xff;
+	// masking a source drops what it already has pending, the ack latch included: a stale
+	// flgLINT/flgDINT makes the next ack hand over the vector of an interrupt just masked
 	if (~val & 1) comp->vid->intFRAME = 0;
-	if (~val & 2) comp->vid->intLINE = 0;
-	if (~val & 4) comp->vid->intDMA = 0;
+	if (~val & 2) {
+		comp->vid->intLINE = 0;
+		comp->flgLINT = 0;
+	}
+	if (~val & 4) {
+		comp->vid->intDMA = 0;
+		comp->flgDINT = 0;
+	}
 }
 
 void tsOut40AF(Computer* comp, int port, int val) {comp->vid->tsconf.t0xl = val & 0xff;}

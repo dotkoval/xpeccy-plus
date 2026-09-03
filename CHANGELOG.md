@@ -9,18 +9,23 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
-### Changed
-
-- The emulator starts in about a third less time.
-
-- The debugger is built when it is first opened instead of at startup, so nobody pays for
-  it who does not open it.
-
 ### Fixed
 
+- TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
+  screen. The palette now starts out as the standard 16 colors, the way a loader leaves
+  it.
+- TSConf: an effect that sets the border or a tile offset once per line no longer leaves a
+  20-pixel strip of the previous line's color down the left edge. The line interrupt now
+  arrives with the blanking, the way the hardware sends it.
+- TSConf: the border starts out black instead of white, which is where the machine's own
+  register leaves it. What color it ends up is the ROM's business - TR-DOS sets black,
+  128 BASIC white - and a snapshot loaded without either now looks the same as on hardware.
+- TSConf: switching the line or DMA interrupt off now also drops one that is already
+  waiting. The demo *cpir* fell apart and started over about twenty seconds in because
+  of it.
 - The window now comes up before the machine starts running, with a picture in it from the
-  first moment. Most visible on macOS, where a file opened from Finder could be heard
-  playing before anything was seen.
+  first moment, and takes about a third less time to get there. Most visible on macOS,
+  where a file opened from Finder could be heard playing before anything was seen.
 - macOS: Finder knows which files Xpeccy+ opens, so they are offered in "Open With".
 
 ## 2026.3.1 - 2026-09-02
