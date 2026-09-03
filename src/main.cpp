@@ -219,6 +219,11 @@ int main(int ac,char** av) {
 	shortcut_init();
 	loadConfig();
 
+	// The style sheet goes on before the windows are built: applying it after
+	// makes Qt walk every widget a second time, and the debugger alone is half
+	// a second of that.
+	app.d_style();
+
 	MainWin mwin;
 	xThread ethread;
 	DebugWin dbgw(&mwin);
@@ -227,8 +232,6 @@ int main(int ac,char** av) {
 	RZXWin rzxw(&mwin);
 	xWatcher wutw(&mwin);
 	keyWindow keyw(&mwin);
-
-	app.d_style();
 
 	mwin.onPrfChange();
 	dbgw.onPrfChange();

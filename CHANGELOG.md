@@ -11,6 +11,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- The emulator starts in about a third less time.
+
 - The debugger is built when it is first opened instead of at startup, so nobody pays for
   it who does not open it.
 
