@@ -50,6 +50,19 @@ static SDL_AudioDeviceID sdldevid;
 
 #define USEKIH 0
 
+// Playback is held until the emulation has put a target's worth of sound in the
+// ring. Started the other way round - playing at once from an empty ring - the
+// whole of the app's startup went out as one held sample, and the ring stayed
+// one block short of underrunning from then on. Only a device that really plays
+// the ring is ever held; setOutput() sets this when it opens one.
+static int sndHeld = 0;
+
+static void snd_start_playback() {
+	sndHeld = 0;
+	if (sndOutput && sndOutput->play)
+		sndOutput->play();
+}
+
 // return 1 when buffer is full
 // NOTE: need sync|flush devices if debug
 int sndSync(Computer* comp) {
@@ -106,6 +119,9 @@ int sndSync(Computer* comp) {
 				posf++;
 				sbuf[posf & 0x3fff] = (sndLev.right >> 8) & 0xff;
 				posf++;
+
+				if (sndHeld && (sndGetRingDistance() >= sndGetRingTargetBytes()))
+					snd_start_playback();
 			}
 			smpCount++;
 		}
@@ -140,6 +156,7 @@ void setOutput(const char* name) {
 		printf("Can't open sound system '%s'. Reset to NULL\n",name);
 		setOutput("NULL");
 	}
+	sndHeld = sndPlaybackActive();
 	nsPerSampleFixed = ns_per_sample_fixed(conf.snd.rate);
 }
 
@@ -182,7 +199,6 @@ int null_open() {
 	return 1;
 }
 
-// void null_play() {}
 void null_close() {
 }
 
@@ -198,6 +214,15 @@ int sndGetRingDistance() {
 	while (dist < 0) dist += 0x4000;
 	while (dist > 0x3fff) dist -= 0x4000;
 	return dist;
+}
+
+// How much sound we aim to keep in the ring, in bytes (4 per frame, always
+// stereo 16 bit here). Under one callback block it clicks by definition, so the
+// setting is clamped well above that; the pacer (pacing.cpp) trims emulated
+// time to hold the ring here.
+int sndGetRingTargetBytes() {
+	int ms = toLimits(conf.snd.latency, SND_LATENCY_MIN, SND_LATENCY_MAX);
+	return ms * conf.snd.rate / 250;
 }
 
 void sdlPlayAudio(void*, Uint8* stream, int len) {
@@ -238,7 +263,7 @@ int sdlopen() {
 	asp.freq = conf.snd.rate;
 	asp.format = AUDIO_S16LSB;
 	asp.channels = conf.snd.chans;
-	asp.samples = conf.snd.rate / 50;
+	asp.samples = conf.snd.rate * SND_BLOCK_MS / 1000;
 	asp.callback = &sdlPlayAudio;
 	asp.userdata = NULL;
 	conf.snd.need = 0;
@@ -255,21 +280,21 @@ int sdlopen() {
 		printf("SDL audio device opening...success: %i %i (%i / %i)\n",dsp.freq, dsp.samples,dsp.format,AUDIO_S16LSB);
 //		sndChunks = dsp.samples * DISCRATE;
 		conf.snd.need = dsp.samples;
-#if defined(HAVESDL2)
-		SDL_PauseAudioDevice(sdldevid, 0);
-#else
-		SDL_PauseAudio(0);
-#endif
-		res = 1;
+		res = 1;			// the device stays paused: sndSync starts it once the ring is full
 	}
+	memset(sbuf, 0x00, 0x4000);
 	posp = 0x0004;
 	posf = posp;
-	//posf = 0x1000;
-	memset(sbuf, 0x00, 0x4000);
 	return res;
 }
 
-// void sdlplay() {}
+void sdlplay() {
+#if defined(HAVESDL2)
+	SDL_PauseAudioDevice(sdldevid, 0);
+#else
+	SDL_PauseAudio(0);
+#endif
+}
 
 void sdlclose() {
 #if defined(HAVESDL2)
@@ -282,11 +307,11 @@ void sdlclose() {
 // init
 
 OutSys sndTab[] = {
-	{xOutputNone,"NULL",&null_open,/*&null_play,*/&null_close},
+	{xOutputNone,"NULL",&null_open,NULL,&null_close},
 #if defined(HAVESDL1) || defined(HAVESDL2)
-	{xOutputSDL,"SDL",&sdlopen,/*&sdlplay,*/&sdlclose},
+	{xOutputSDL,"SDL",&sdlopen,&sdlplay,&sdlclose},
 #endif
-	{0,NULL,NULL,/*NULL,*/NULL}
+	{0,NULL,NULL,NULL,NULL}
 };
 
 OutSys* findOutSys(const char* name) {
@@ -327,6 +352,7 @@ void init_kih() {
 void sndInit() {
 	conf.snd.rate = 44100;
 	conf.snd.chans = 2;
+	conf.snd.latency = SND_LATENCY_DEF;
 	conf.snd.enabled = 1;
 	sndOutput = NULL;
 	conf.snd.vol.beep = 100;
