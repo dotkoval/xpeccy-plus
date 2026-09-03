@@ -21,6 +21,9 @@ before that point is upstream's history and is not repeated here.
 - TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
   screen. The palette now starts out as the standard 16 colors, the way a loader leaves
   it.
+- TSConf: switching the line or DMA interrupt off now also drops one that is already
+  waiting. The demo *cpir* fell apart and started over about twenty seconds in because
+  of it.
 - The window now comes up before the machine starts running, with a picture in it from the
   first moment. Most visible on macOS, where a file opened from Finder could be heard
   playing before anything was seen.

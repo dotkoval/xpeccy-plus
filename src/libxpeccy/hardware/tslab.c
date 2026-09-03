@@ -79,6 +79,8 @@ void tslReset(Computer* comp) {
 	comp->vid->intp.x = 0;
 	comp->vid->intp.y = 0;
 	comp->vid->inten = 1;
+	comp->flgLINT = 0;		// the ack latches are not cleared anywhere else
+	comp->flgDINT = 0;
 	comp->flgVDOS = 0;
 	tslUpdatePorts(comp->vid);
 	tslMapMem(comp);
@@ -500,9 +502,17 @@ void tsOut29AF(Computer* comp, int port, int val) {
 
 void tsOut2AAF(Computer* comp, int port, int val) {
 	comp->vid->inten = val & 0xff;
+	// masking a source drops what it already has pending, the ack latch included: a stale
+	// flgLINT/flgDINT makes the next ack hand over the vector of an interrupt just masked
 	if (~val & 1) comp->vid->intFRAME = 0;
-	if (~val & 2) comp->vid->intLINE = 0;
-	if (~val & 4) comp->vid->intDMA = 0;
+	if (~val & 2) {
+		comp->vid->intLINE = 0;
+		comp->flgLINT = 0;
+	}
+	if (~val & 4) {
+		comp->vid->intDMA = 0;
+		comp->flgDINT = 0;
+	}
 }
 
 void tsOut40AF(Computer* comp, int port, int val) {comp->vid->tsconf.t0xl = val & 0xff;}
