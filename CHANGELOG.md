@@ -18,6 +18,9 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
+  screen. The palette now starts out as the standard 16 colors, the way a loader leaves
+  it.
 - The window now comes up before the machine starts running, with a picture in it from the
   first moment. Most visible on macOS, where a file opened from Finder could be heard
   playing before anything was seen.

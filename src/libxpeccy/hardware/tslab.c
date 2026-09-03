@@ -38,9 +38,24 @@ void tslMapMem(Computer* comp) {
 	}
 }
 
+// A .spg carries no palette - on hardware the loader's is still in CRAM - so seed the
+// bank PALSEL points at after reset, as unreal's load_spec_colors() does. 0RRrrrGG gggBBbbb.
+static const unsigned short tslSpecCols[16] = {
+	0x0000, 0x0010, 0x4000, 0x4010, 0x0200, 0x0210, 0x4200, 0x4210,
+	0x0000, 0x0018, 0x6000, 0x6018, 0x0300, 0x0318, 0x6300, 0x6318
+};
+
+void tslUpdatePal(Computer* comp);
+
 void tslReset(Computer* comp) {
+	unsigned char* cp = comp->vid->tsconf.cram + (0xf0 << 1);
 	comp->vid->tsconf.scrPal = 0xf0;
 	memset(comp->vid->tsconf.cram,0x00,0x200);
+	for (int i = 0; i < 16; i++) {
+		*cp++ = tslSpecCols[i] & 0xff;
+		*cp++ = tslSpecCols[i] >> 8;
+	}
+	tslUpdatePal(comp);
 	comp->flgROM = 0;
 	comp->flgDOS = 0;
 	comp->cmos.mode = 2;
