@@ -9,6 +9,8 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+## 2026.3.2 - 2026-09-03
+
 ### Fixed
 
 - TSConf: a `.spg` opened on a machine that has not booted yet is no longer a black
