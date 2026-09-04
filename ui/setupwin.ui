@@ -984,7 +984,7 @@
                    <number>20</number>
                   </property>
                   <property name="maximum">
-                   <number>60</number>
+                   <number>150</number>
                   </property>
                   <property name="singleStep">
                    <number>5</number>
@@ -1007,12 +1007,22 @@
                  <widget class="QLabel" name="labSndLatency">
                   <property name="minimumSize">
                    <size>
-                    <width>40</width>
+                    <width>48</width>
                     <height>0</height>
                    </size>
                   </property>
                   <property name="text">
                    <string>30 ms</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QCheckBox" name="chkSndLatAuto">
+                  <property name="toolTip">
+                   <string>Find the latency by itself: raise it when the buffer runs thin, lower it again after a long clean spell.</string>
+                  </property>
+                  <property name="text">
+                   <string>Auto adjust</string>
                   </property>
                  </widget>
                 </item>

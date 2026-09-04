@@ -854,6 +854,7 @@ void SetupWin::start() {
 	ui.ratbox->setCurrentIndex(ui.ratbox->findData(QVariant(conf.snd.rate)));
 	ui.sldSndLatency->setRange(SND_LATENCY_MIN, SND_LATENCY_MAX);	// the block size sets the floor, keep the two together
 	ui.sldSndLatency->setValue(conf.snd.latency);
+	ui.chkSndLatAuto->setChecked(conf.snd.latauto);
 	chasndlat();
 
 	ui.sbMasterVol->setValue(conf.snd.vol.master);
@@ -1094,6 +1095,10 @@ void SetupWin::apply() {
 
 	std::string nname = getRFText(ui.outbox);
 	int rate = getRFIData(ui.ratbox);
+	// the auto mode writes its findings back into the same setting, so the
+	// slider shows what the emulator settled on and is still the way to nudge
+	// it by hand
+	conf.snd.latauto = ui.chkSndLatAuto->isChecked() ? 1 : 0;
 	int latency = ui.sldSndLatency->value();
 	// reopen on a changed latency too: the pacer would creep to the new target
 	// over tens of seconds, refilling the ring gets there at once

@@ -200,6 +200,7 @@ void saveConfig() {
 	fprintf(cfile, "soundsys = %s\n", sndOutput->name);
 	fprintf(cfile, "rate = %i\n", conf.snd.rate);
 	fprintf(cfile, "latency = %i\n", conf.snd.latency);
+	fprintf(cfile, "latency_auto = %s\n", YESNO(conf.snd.latauto));
 	fprintf(cfile, "volume.master = %i\n", conf.snd.vol.master);
 	fprintf(cfile, "volume.beep = %i\n", conf.snd.vol.beep);
 	fprintf(cfile, "volume.tape = %i\n", conf.snd.vol.tape);
@@ -673,6 +674,7 @@ void loadConfig() {
 					if (pnam=="soundsys") soutnam = pval;
 					if (pnam=="rate") conf.snd.rate = arg.i;
 					if (pnam=="latency") conf.snd.latency = getRanged(arg.s, SND_LATENCY_MIN, SND_LATENCY_MAX);
+					if (pnam=="latency_auto") conf.snd.latauto = arg.b;
 					if (pnam=="volume.master") conf.snd.vol.master = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.beep") conf.snd.vol.beep = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.tape") conf.snd.vol.tape = getRanged(arg.s, 0, 100);

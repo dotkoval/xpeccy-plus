@@ -494,6 +494,7 @@ struct xConfig {
 		int rate;
 		int chans;
 		int latency;		// ms of sound kept in the ring buffer (see sound.h)
+		int latauto;		// let the emulator find that number by itself
 		sndVolume vol;
 		FILE* wavfile;
 	} snd;
