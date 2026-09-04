@@ -23,6 +23,7 @@
 #include "xgui/xgui.h"
 #include "xcore/gamepad.h"
 #include "xcore/xcore.h"
+#include "xcore/vscalers.h"
 #include "xcore/sound.h"
 #include "xcore/vfilters.h"
 #include "xcore/vfat_scan.h"
@@ -457,6 +458,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbContPattern->addItem("No contention", CONT_NONE);
 	ui.cbContPattern->addItem("ULA type A", CONT_PATA);
 	ui.cbContPattern->addItem("ULA type B", CONT_PATB);
+	ui.bszsld->setMaximum(VID_BRD_OVERSCAN);	// one tick per border size
 
 #if defined(USEOPENGL)
 //	ui.cbScanlines->setVisible(false);
@@ -818,7 +820,11 @@ void SetupWin::start() {
 	ui.contIO->setChecked(comp->flgCNTI);
 	setRFIndex(ui.cbContPattern, comp->vid->ula->conttype);
 	ui.cbEarlyTiming->setChecked(comp->vid->ula->early);
-	ui.bszsld->setValue(static_cast<int>(conf.brdsize * 100));
+	// the border sizes are a ZX thing: everything else keeps its layout's own
+	// visible area, and the slider would say nothing true about it
+	ui.bszsld->setEnabled(comp->hw->grp == HWG_ZX);
+	ui.bszsld->setValue(conf.vid.border);
+	chabsz();
 	ui.pathle->setText(QString::fromLocal8Bit(conf.scrShot.dir.c_str()));
 	ui.ssfbox->setCurrentIndex(ui.ssfbox->findText(conf.scrShot.format.c_str()));
 	ui.scntbox->setValue(conf.scrShot.count);
@@ -1047,7 +1053,7 @@ void SetupWin::apply() {
 	conf.scrShot.interval = ui.sintbox->value();
 	conf.scrShot.noLeds = ui.ssNoLeds->isChecked() ? 1 : 0;
 	conf.scrShot.noBorder = ui.ssNoBord->isChecked() ? 1 : 0;
-	conf.brdsize = ui.bszsld->value()/100.0;
+	vid_set_border_mode(ui.bszsld->value());
 	comp->vid->brdstep = ui.border4T->isChecked() ? 7 : 1;
 	comp->flgCNTM = ui.contMem->isChecked();
 	comp->flgCNTI = ui.contIO->isChecked() ? 1 : 0;
@@ -1861,7 +1867,16 @@ void SetupWin::fillDiskCat() {
 
 // video
 
-void SetupWin::chabsz() {ui.bszlab->setText(QString("%0%").arg(ui.bszsld->value()));}
+// the label beside the slider says what the mode gives on this machine - the
+// fixed sizes are the same everywhere, overscan is not
+void SetupWin::chabsz() {
+	Computer* comp = conf.prof.cur->zx;
+	int mode = brd_mode_for(comp, ui.bszsld->value());
+	vCoord sze = vid_crop_size(comp->vid, mode);
+	QString nam = (mode == VID_BRD_NATIVE) ? "native" : brd_mode_name(mode);
+	ui.bszlab->setText(QString("%0 (%1x%2)").arg(nam).arg(sze.x).arg(sze.y));
+}
+
 void SetupWin::chaflc() {
 	int val = ui.sldNoflic->value() * 2;
 	ui.labNoflic->setText(val == 0 ? "0% (off)" : QString("%0%").arg(val));

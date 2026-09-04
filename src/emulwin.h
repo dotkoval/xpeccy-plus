@@ -125,6 +125,7 @@ typedef struct {
 		void updateSatellites();
 		void menuHide();
 		void menuShow();
+		void optResize();
 		void optApply();
 		void dbgReturn();
 		void rzxStateChanged(int);
@@ -152,6 +153,7 @@ typedef struct {
 		unsigned dumove:1;
 		unsigned block:1;
 		unsigned hasPicture:1;	// the emulation has handed over a frame
+		unsigned refit:1;	// geometry changed: re-read the frame before painting it
 
 		QIcon icon;
 		int timid;
@@ -182,6 +184,8 @@ typedef struct {
 		void screenShot();
 		void drawIcons(QPainter&);
 		void presentFrame();
+		void uploadFrame();
+		void renderFrame();
 
 #if USE_QT_GAMEPAD
 		QGamepadManager* gpadmgr;

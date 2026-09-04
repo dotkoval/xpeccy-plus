@@ -17,7 +17,6 @@ int greyScale = 0;
 int noflic = 0;
 int noflicMode = 0;
 float noflicGamma = 2.2f;
-int scanlines = 0;
 
 static unsigned char bufa[SCRBUF_SIZE];
 static unsigned char bufb[SCRBUF_SIZE];
@@ -26,176 +25,67 @@ unsigned char* bufimg = bufb;			// previous screen (mixed)
 static int curbuf = 0;
 int bufSize = 3;
 
-int xstep = 0x100;
-int ystep = 0x100;
-int lefSkip = 0;
-int pixSkip = 0;
-int rigSkip = 0;
-int topSkip = 0;
-int botSkip = 0;
-
 // Ring buffer is used for antiflicker to store the history of frames.
 // At least 5 frames are required to perform basic 3-Color mode detection.
 #define RING_FRAMES 5
 unsigned char pscr[SCRBUF_SIZE*RING_FRAMES] __attribute__((aligned(4)));
 
-#if !defined(USEOPENGL)
-static int xpos = 0;
-static int ypos = 0;
-#endif
-
 typedef void(*cbdot)(Video*, unsigned char);
-
-int vid_visible(Video* vid) {
-	if (vid->ray.y < vid->lcut.y) return 0;
-	if (vid->ray.y >= vid->rcut.y) return 0;
-	if (vid->ray.x < vid->lcut.x) return 0;
-	if (vid->ray.x >= vid->rcut.x) return 0;
-	return 1;
-}
 
 static int32_t outcol;
 
+// The buffer holds the whole raster at 2 pixels per dot, so a dot always lands
+// at the same place whatever part of it is on screen. Cutting to the shown
+// frame is the drawing side's job (MainWin::uploadFrame).
+
 inline void vid_dot_full(Video* vid, unsigned char idx) {
 	if (vid->nodraw) return;
-	if (vid->hvis && vid->vvis) {
-		outcol = greyScale ? vid->gpal[idx] : vid->pal[idx];
-#if defined(USEOPENGL)
-		*(int32_t*)(vid->ray.ptr) = outcol;
-		vid->ray.ptr += 4;
-		*(int32_t*)(vid->ray.ptr) = outcol;
-		vid->ray.ptr += 4;
-#else
-		xpos += xstep;
-		while (xpos > 0xff) {
-			xpos -= 0x100;
-			*(int32_t*)(vid->ray.ptr) = outcol;
-			vid->ray.ptr += 4;
-		}
-#endif
-	}
+	outcol = greyScale ? vid->gpal[idx] : vid->pal[idx];
+	*(int32_t*)(vid->ray.ptr) = outcol;
+	*(int32_t*)(vid->ray.ptr + 4) = outcol;
+	vid->ray.ptr += 8;
 }
 
 inline void vid_dot_half(Video* vid, unsigned char idx) {
 	if (vid->nodraw) return;
-	if (vid->hvis && vid->vvis) {
-		outcol = greyScale ? vid->gpal[idx] : vid->pal[idx];
-#if defined(USEOPENGL)
-		*(int32_t*)(vid->ray.ptr) = outcol;
-		vid->ray.ptr += 4;
-#else
-		xpos += xstep/2;
-		while (xpos > 0xff) {
-			xpos -= 0x100;
-			*(int32_t*)(vid->ray.ptr) = outcol;
-			vid->ray.ptr += 4;
-		}
-#endif
+	outcol = greyScale ? vid->gpal[idx] : vid->pal[idx];
+	*(int32_t*)(vid->ray.ptr) = outcol;
+	vid->ray.ptr += 4;
+}
+
+// Black out both image buffers. Wanted when the machine changes: the buffers
+// are shared by every machine and read back with the current one's row length,
+// so a frame left there by the machine before would come out skewed. Black is
+// what a machine that has drawn nothing yet should show, and that is also the
+// answer when it cannot be asked to draw - while the debugger holds it, say.
+void vid_clear_image(void) {
+	int32_t* pa = (int32_t*)scrimg;
+	int32_t* pb = (int32_t*)bufimg;
+	int cnt = bufSize / (int)sizeof(int32_t);
+	while (cnt-- > 0) {
+		*pa++ = 0xff000000;
+		*pb++ = 0xff000000;
 	}
 }
 
-static int blkcol = 0xff000000;
-
-void vid_fill_black(unsigned char* ptr, int len) {
-	while (len > 0) {
-		*(int32_t*)(ptr) = blkcol;
-		ptr += sizeof(int32_t);
-		len -= sizeof(int32_t);
-	}
-}
-
+// end of a raster line: move to the next row of the buffer
 void vid_line(Video* vid) {
-	if (rigSkip > 0)
-		vid_fill_black(vid->ray.ptr, rigSkip);
 	if (vid->linedbl) {
-		memcpy(vid->ray.lptr+bytesPerLine, vid->ray.lptr, bytesPerLine);
+		memcpy(vid->ray.lptr + bytesPerLine, vid->ray.lptr, bytesPerLine);
 		vid->ray.lptr += bytesPerLine;
 	}
 	vid->ray.lptr += bytesPerLine;
-#if !defined(USEOPENGL)
-	ypos += ystep;
-	if (vid->linedbl) ypos += ystep;
-	ypos -= 0x100;		// 1 line is already drawn
-	xpos = 0;
-	if (scanlines) {
-		int x;
-		double rs = 1.0 - 128.0 / ystep;
-		while (ypos > 0) {
-			ypos -= 0x100;
-			for (x = 0; x < bytesPerLine; x++) {
-				*(vid->ray.lptr + x) = *(vid->ray.lptr + x - bytesPerLine) * rs;
-			}
-			vid->ray.lptr += bytesPerLine;
-		}
-	} else {
-		while (ypos > 0) {
-			ypos -= 0x100;
-			memcpy(vid->ray.lptr, vid->ray.lptr - bytesPerLine, bytesPerLine);
-			vid->ray.lptr += bytesPerLine;
-		}
-	}
-#endif
-	if (lefSkip > 0)
-		vid_fill_black(vid->ray.lptr, lefSkip);
-	vid->ray.ptr = vid->ray.lptr + lefSkip;
-}
-
-void vid_line_fill(Video* vid) {
-	// TODO: apply scanlines here
-#if !defined(USEOPENGL)
-	int ytmp = ypos;
-	unsigned char* ptr = vid->ray.lptr;
-	ytmp += ystep;
-	while (ytmp > 0x100) {
-		ytmp -= 0x100;
-		memcpy(ptr + bytesPerLine, ptr, bytesPerLine);
-		ptr += bytesPerLine;
-	}
-#endif
+	vid->ray.ptr = vid->ray.lptr;
 }
 
 void vid_frame(Video* vid) {
-	if (botSkip > 0) {
-		vid_fill_black(vid->ray.lptr, botSkip * bytesPerLine);
-	}
-// scanlines TODO: bad @ fullscreen
-#if !defined(USEOPENGL)
-	ypos = 0;
-	/*
-	int x,y,ys;
-	double p, ps;
-	unsigned char* ptr;
-	if (scanlines) {
-		ptr = scrimg;
-		p = 0.0;
-		ps = 256.0 / ystep;
-		ys = 0;
-		y = 0;
-		while (y < vid->vsze.y) {
-			for (x = 0; x < bytesPerLine; x++)
-				*(ptr + x) = *(ptr + x) * (1.0 - p / 2);
-			ptr += bytesPerLine;
-			p += ps;
-			if (p >= 1.0) {
-				p = 0.0;
-				y++;
-			}
-		}
-	}
-*/
-#endif
 	if (!vid->debug) {
 		scrimg = curbuf ? bufb : bufa;
 		bufimg = curbuf ? bufa : bufb;
 		curbuf = !curbuf;
 	}
-	if (topSkip > 0) {
-		vid_fill_black(scrimg, topSkip * bytesPerLine);
-	}
-	vid->ray.lptr = scrimg + topSkip * bytesPerLine;
-	if (lefSkip > 0)
-		vid_fill_black(vid->ray.lptr, lefSkip);
-	vid->ray.ptr = vid->ray.lptr + lefSkip;
+	vid->ray.lptr = scrimg;
+	vid->ray.ptr = scrimg;
 	vid->newFrame = 1;
 	vid->xirq(IRQ_VID_FRAME, vid->xptr);
 }
@@ -218,7 +108,7 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->txt7220 = upd7220_create();
 	vid->grf7220 = upd7220_create();
 
-	vid_set_border(vid, 0.5);
+	vid_set_border(vid, VID_BRD_FULL);
 
 	vid->brdstep = 1;
 	vid->nextbrd = 0;
@@ -298,9 +188,68 @@ void vid_set_ray(Video* vid, int dots) {
 	dots += vid->full.x * vid->intp.y;
 	dots += vid->intp.x;
 	dots %= vid->dotPerFrame;
+	// C keeps the sign, and vid_reset_ray() asks for one dot before the INT:
+	// a layout with intpos 0:0 (TSConf, and the built-in default) would put the
+	// ray a dot before the buffer and the next tick would write there
+	if (dots < 0) dots += vid->dotPerFrame;
 	vid->ray.y = dots / vid->full.x;
 	vid->ray.x = dots % vid->full.x;
-	vid->ray.ptr = scrimg + (dots * 6);
+	vid->ray.lptr = scrimg + vid->ray.y * bytesPerLine;
+	vid->ray.ptr = vid->ray.lptr + vid->ray.x * 8;
+}
+
+// Border shown on each side, in dots and lines. The frame is the same size on
+// every machine (256x192 screen plus these), so the picture does not jump when
+// profiles are switched. Every ZX layout has at least 48 dots/lines of border
+// on all four sides, so nothing up to VID_BRD_FULL needs padding.
+// Overscan asks for more than any raster has, so the clamp below settles it.
+static const vCoord brdMargin[] = {
+	{0, 0},			// VID_BRD_NONE		256x192
+	{8, 8},			// VID_BRD_SMALL	272x208
+	{32, 24},		// VID_BRD_MEDIUM	320x240
+	{48, 48},		// VID_BRD_FULL		352x288
+	{0x7fff, 0x7fff}	// VID_BRD_OVERSCAN	as much as there is
+};
+
+// The shown frame, without changing anything: the screen in the middle, that
+// mode's border around it, clamped to what the raster holds. A layout with
+// less border than the mode asks for (a hand-made one - no shipped machine is
+// like that) gets a smaller frame rather than black bars.
+static void vid_crop_rect(Video* vid, int mode, vCoord* lcut, vCoord* rcut) {
+	int mx, my;
+	if (mode == VID_BRD_NATIVE) {				// whole visible area, as-is
+		lcut->x = 0;
+		lcut->y = 0;
+		*rcut = vid->vend;
+		return;
+	}
+	mx = vid->bord.x;					// border left of the screen
+	my = vid->bord.y;					// ...and above it
+	if (vid->full.x - vid->send.x < mx)			// ...right of it
+		mx = vid->full.x - vid->send.x;
+	if (vid->full.y - vid->send.y < my)			// ...below it
+		my = vid->full.y - vid->send.y;
+	if (brdMargin[mode].x < mx) mx = brdMargin[mode].x;
+	if (brdMargin[mode].y < my) my = brdMargin[mode].y;
+	lcut->x = vid->bord.x - mx;
+	lcut->y = vid->bord.y - my;
+	rcut->x = vid->send.x + mx;
+	rcut->y = vid->send.y + my;
+}
+
+// size of the frame a mode gives on this machine
+vCoord vid_crop_size(Video* vid, int mode) {
+	vCoord lcut, rcut, sze;
+	vid_crop_rect(vid, mode, &lcut, &rcut);
+	sze.x = rcut.x - lcut.x;
+	sze.y = rcut.y - lcut.y;
+	return sze;
+}
+
+void vid_upd_crop(Video* vid) {
+	vid_crop_rect(vid, vid->brdmode, &vid->lcut, &vid->rcut);
+	vid->vsze.x = vid->rcut.x - vid->lcut.x;
+	vid->vsze.y = vid->rcut.y - vid->lcut.y;
 }
 
 // new layout:
@@ -308,20 +257,11 @@ void vid_set_ray(Video* vid, int dots) {
 // [ <--------- full --------> ]
 // ? = brdr = full - bord - scr - blank
 void vid_upd_layout(Video* vid) {
-	vCoord brdr;	// size of right/bottom border parts
 	vid->vend.x = vid->full.x - vid->blank.x;		// visible right dot
 	vid->vend.y = vid->full.y - vid->blank.y;		// visible bottom line
-	brdr.x = vid->vend.x - vid->bord.x - vid->scrn.x;	// border right
-	brdr.y = vid->vend.y - vid->bord.y - vid->scrn.y;	// border bottom
-	vid->lcut.x = vid->bord.x * (1.0 - vid->brdsize);	// cut border left
-	vid->lcut.y = vid->bord.y * (1.0 - vid->brdsize);	// cut border top
-	vid->rcut.x = vid->bord.x + vid->scrn.x + brdr.x * vid->brdsize;	// cut border right
-	vid->rcut.y = vid->bord.y + vid->scrn.y + brdr.y * vid->brdsize;	// cut border bottom
-	vid->vsze.x = vid->rcut.x - vid->lcut.x;		// visible area size
-	vid->vsze.y = vid->rcut.y - vid->lcut.y;
 	vid->send.x = vid->bord.x + vid->scrn.x;		// screen end column
 	vid->send.y = vid->bord.y + vid->scrn.y;		// screen end line
-	vid->vBytes = vid->vsze.x * vid->vsze.y * 8;		// real size of image buffer (4 bytes/dot x2:x1)
+	vid_upd_crop(vid);
 	vid->dotPerFrame = vid->full.y * vid->full.x;
 	vid_upd_timings(vid, vid->nsPerDotExact);
 }
@@ -351,11 +291,11 @@ void vid_set_resolution(Video* vid, int w, int h) {
 	vid->upd = 1;
 }
 
-void vid_set_border(Video* vid, double brd) {
-	if (brd < 0.0) brd = 0.0;
-	else if (brd > 1.0) brd = 1.0;
-	vid->brdsize = brd;
-	vid_upd_layout(vid);
+void vid_set_border(Video* vid, int brd) {
+	if (brd < VID_BRD_NONE) brd = VID_BRD_NONE;
+	else if (brd > VID_BRD_NATIVE) brd = VID_BRD_NATIVE;
+	vid->brdmode = brd;
+	vid_upd_crop(vid);
 }
 
 // font
@@ -418,19 +358,6 @@ void vid_dark_tail(Video* vid) {
 		zptr++;
 		ptr++;
 	}
-#if !defined(USEOPENGL)
-	// copy current line
-	vid_line_fill(vid);				// copy filled line due zoom value
-	int ytmp = ypos + ystep;
-	// ptr = vid->ray.lptr;				// move ptr to start of next real line
-	while(ytmp > 0x100) {
-		ytmp -= 0x100;
-		ptr += bytesPerLine;
-		zptr += bytesPerLine;
-	}
-#else
-	//ptr = vid->ray.lptr + bytesPerLine;		// already
-#endif
 // fill all till end
 	while (ptr - btr < bufSize) {
 		*ptr = ((*zptr - 0x80) >> 2) + 0x80;
@@ -1054,14 +981,12 @@ void vid_tick(Video* vid) {
 
 	if (vid->cb->dot)
 		vid->cb->dot(vid);
-	// if debug, fill all line
-	if (vid->debug)
-		vid_line_fill(vid);
 	// move ray to next dot, update counters
 	vid->ray.x++;
 	vid->ray.xb++;
 	vid->ray.xs++;
 	if (vid->ray.x >= vid->full.x) {			// new line
+		vid_line(vid);					// next row of the image buffer
 		vid->hblank = 0;
 		vid->ray.x = 0;
 		vid->ray.y++;
@@ -1086,7 +1011,6 @@ void vid_tick(Video* vid) {
 		}
 		if (vid->cb->line)
 			vid->cb->line(vid);
-		vid->vvis = (vid->ray.y >= vid->lcut.y) && (vid->ray.y < vid->rcut.y);
 		vid->vbrd = (vid->ray.y < vid->bord.y) || (vid->ray.y >= vid->send.y);
 	}
 	if (vid->ray.x == vid->bord.x) {
@@ -1095,7 +1019,6 @@ void vid_tick(Video* vid) {
 		if (vid->ray.y == vid->bord.y) vid->ray.ys = 0;
 	}
 	if (vid->ray.x == vid->vend.x) {			// hblank
-		if ((vid->ray.y >= vid->lcut.y) && (vid->ray.y < vid->rcut.y)) vid_line(vid);	// complete line image
 		vid->ray.xb = 0;
 		vid->ray.yb++;
 		if (vid->ray.y == vid->vend.y - 1) {
@@ -1106,7 +1029,6 @@ void vid_tick(Video* vid) {
 		if (vid->cb->hbl)
 			vid->cb->hbl(vid);
 	}
-	vid->hvis = (vid->ray.x >= vid->lcut.x) && (vid->ray.x < vid->rcut.x);
 	vid->hbrd = (vid->ray.x < vid->bord.x) || (vid->ray.x >= vid->send.x);
 	// generate int
 	if (vid->intFRAME) {

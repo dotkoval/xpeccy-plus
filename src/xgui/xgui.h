@@ -7,6 +7,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
+#include <QSlider>
 #include <QTreeView>
 #include <QWheelEvent>
 
@@ -76,6 +77,16 @@ class xHexSpin : public QLineEdit {
 	protected:
 		void keyPressEvent(QKeyEvent*);
 		void wheelEvent(QWheelEvent*);
+		void paintEvent(QPaintEvent*);
+};
+
+// A style sheet takes the whole slider over, tick marks included: Qt draws none
+// once QSlider::groove or ::handle is styled, so every theme but the system one
+// loses them. Draw them here in that case.
+class xSlider : public QSlider {
+	public:
+		xSlider(QWidget* p = NULL);
+	protected:
 		void paintEvent(QPaintEvent*);
 };
 

@@ -3,6 +3,9 @@
 
 #include <QPalette>
 #include <QPainter>
+#include <QStyle>
+#include <QStyleOptionSlider>
+#include <QApplication>
 #include <QSet>
 #include <QTabBar>
 #include <QFontMetrics>
@@ -331,6 +334,35 @@ void xHexSpin::wheelEvent(QWheelEvent* ev) {
 		setValue(minMaxCorrect(value - 1, min, max));
 	}
 	ev->accept();
+}
+
+// xSlider
+
+xSlider::xSlider(QWidget* p):QSlider(p) {}
+
+// The style sheet themes all draw the groove and the handle themselves, and a
+// styled slider gets no tick marks from Qt at all - they only show under the
+// system style. Draw them here when a sheet is on, over the same travel the
+// handle has, so they stay under it.
+void xSlider::paintEvent(QPaintEvent* ev) {
+	QSlider::paintEvent(ev);
+	if (tickPosition() == QSlider::NoTicks) return;
+	if (qApp->styleSheet().isEmpty()) return;	// the style drew its own
+	int step = tickInterval() ? tickInterval() : pageStep();
+	if ((step < 1) || (maximum() <= minimum())) return;
+	QStyleOptionSlider opt;
+	initStyleOption(&opt);
+	int hnd = style()->subControlRect(QStyle::CC_Slider, &opt, QStyle::SC_SliderHandle, this).width();
+	if (hnd < 1) hnd = 10;
+	int span = width() - hnd;
+	QPainter pnt(this);
+	QColor col = palette().color(QPalette::WindowText);
+	col.setAlpha(0x80);
+	pnt.setPen(col);
+	for (int val = minimum(); val <= maximum(); val += step) {
+		int x = QStyle::sliderPositionFromValue(minimum(), maximum(), val, span) + hnd / 2;
+		pnt.drawLine(x, height() - 4, x, height() - 1);
+	}
 }
 
 // xLabel

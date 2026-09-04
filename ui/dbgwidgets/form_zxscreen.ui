@@ -38,7 +38,7 @@
         </widget>
        </item>
        <item>
-        <widget class="QSlider" name="sldScale">
+        <widget class="xSlider" name="sldScale">
          <property name="minimum">
           <number>1</number>
          </property>
@@ -222,6 +222,11 @@
   <customwidget>
    <class>xHexSpin</class>
    <extends>QLineEdit</extends>
+   <header location="global">stdlib.h</header>
+  </customwidget>
+  <customwidget>
+   <class>xSlider</class>
+   <extends>QSlider</extends>
    <header location="global">stdlib.h</header>
   </customwidget>
  </customwidgets>

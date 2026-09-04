@@ -64,36 +64,27 @@ void MainWin::updateHead() {
 
 void MainWin::updateWindow() {
 	block = 1;
-//	vidSetBorder(comp->vid, conf.brdsize);		// to call vidUpdateLayout???
-	int szw;
-	int szh;
+	// the texture still holds the frame cut to the old bounds, and painting it
+	// into the resized window would stretch it until the next frame arrives
+	refit = 1;
 	QSize wsz;
 	Computer* comp = conf.prof.cur->zx;
+	vid_set_zoom(conf.vid.scale);		// where the picture goes, and how big
 	blockSignals(true);
 	if (conf.vid.fullScreen) {
 		wsz = SCREENSIZE;
-		szw = wsz.width();
-		szh = wsz.height();
-		szw &= ~3;
-		setFixedSize(szw, szh);
 		setWindowState(windowState() | Qt::WindowFullScreen);
 	} else {
-		szw = comp->vid->vsze.x * conf.vid.scale;
-		szh = comp->vid->vsze.y * conf.vid.scale;
-		szw *= conf.prof.cur->zx->hw->xscale;
-		szw &= ~3;
+		// the window is the picture: a whole number of pixels per dot, or it
+		// would be resampled and some columns come out a pixel wider than others
+		wsz = QSize(drawW, drawH);
 		setWindowState(windowState() & ~Qt::WindowFullScreen);
-		setFixedSize(szw, szh);
 	}
+	setFixedSize(wsz);
 	blockSignals(false);
-	vid_set_zoom(conf.vid.scale);
-#ifdef USEOPENGL
-	bytesPerLine = (lefSkip + comp->vid->vsze.x * 8 + rigSkip);
-	bufSize = bytesPerLine * comp->vid->vsze.y;
-#else
-	bytesPerLine = szw << 2;
-	bufSize = bytesPerLine * ((comp->vid->vsze.y * ystep) >> 8);
-#endif
+	// the buffer holds the whole raster, whatever part of it is shown
+	bytesPerLine = comp->vid->full.x * 8;
+	bufSize = bytesPerLine * comp->vid->full.y * (comp->vid->linedbl ? 2 : 1);
 	updateHead();
 	block = 0;
 }
@@ -165,6 +156,7 @@ MainWin::MainWin() {
 	grabMice = 0;
 	block = 0;
 	hasPicture = 0;
+	refit = 0;
 //	relskip = 0;
 
 	msgTimer = 0;
@@ -666,6 +658,28 @@ void MainWin::rzxStateChanged(int state) {
 #endif
 }
 
+// Hand the shown part of the raster to the texture. The rest of the buffer is
+// skipped by the unpack settings, so the frame stays whole in memory and can be
+// read out again with new bounds - that is what makes a border change take
+// effect at once, even while the machine is paused.
+void MainWin::uploadFrame() {
+#if defined(USEOPENGL) && !BLOCKGL
+	Computer* comp = conf.prof.cur->zx;
+	Video* vid = comp->vid;
+	// GL_UNPACK_ROW_LENGTH and friends are core in GL 3.3 and GLES 3.0, which
+	// is what the shaders here ask for anyway ("#version 330" / "300 es"), so
+	// a context that has no unpack settings could not draw the picture either
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, vid->full.x * 2);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, vid->lcut.x * 2);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, vid->lcut.y);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, vid->vsze.x * 2, vid->vsze.y, 0,
+		GL_RGBA, GL_UNSIGNED_BYTE, comp->flgDBG ? scrimg : bufimg);
+	glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
+#endif
+}
+
 // Redraw now. blockSignals/setUpdatesEnabled avoids the QOpenGLWidget
 // repaint recursion (see paintEvent).
 void MainWin::presentFrame() {
@@ -703,7 +717,7 @@ void MainWin::frame_timer() {
 #if defined(USEOPENGL) && !BLOCKGL
 	if (conf.emu.fast || conf.emu.pause) {
 		glBindTexture(GL_TEXTURE_2D, texids[curtex]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bytesPerLine / 4, comp->vid->vsze.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, comp->flgDBG ? scrimg : bufimg);
+		uploadFrame();
 		queue.clear();
 		queue.append(texids[curtex]);
 	}
@@ -715,14 +729,13 @@ void MainWin::d_frame() {
 	if (conf.emu.fast) return;
 	hasPicture = 1;
 #if defined(USEOPENGL) && !BLOCKGL
-	Computer* comp = conf.prof.cur->zx;
 	queue.append(texids[curtex]);
 	// Low latency keeps only the newest frame; buffered keeps a couple to
 	// smooth jitter (see paintEvent).
 	if (queue.size() > (conf.vid.lowLatency ? 1 : 2))
 		queue.takeFirst();
 	glBindTexture(GL_TEXTURE_2D, texids[curtex]);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, bytesPerLine / 4, comp->vid->vsze.y, 0, GL_RGBA, GL_UNSIGNED_BYTE, comp->flgDBG ? scrimg : bufimg);
+	uploadFrame();
 	curtex++;
 #endif
 	// Low latency: show the frame now. Buffered: let the timer show it.
@@ -762,6 +775,18 @@ void MainWin::paintEvent(QPaintEvent*) {
 		}
 	}
 
+	// The window (or the border) has just changed. Read the frame out of the
+	// buffer again with the new bounds instead of stretching the old texture
+	// over the new window - and while the machine is paused, no new frame is
+	// coming to do it later.
+	if (refit && prg.isLinked()) {		// isLinked: initializeGL has run, texids are real
+		refit = 0;
+		glBindTexture(GL_TEXTURE_2D, texids[curtex]);
+		uploadFrame();
+		curtxid = texids[curtex];
+		queue.clear();
+	}
+
 	// curtxid stays 0 until the emulation thread hands over its first frame,
 	// and the window is painted before that happens. Binding a texture name
 	// that was never generated is undefined - macOS says so out loud, other
@@ -769,8 +794,13 @@ void MainWin::paintEvent(QPaintEvent*) {
 	if (prg.isLinked() && curtxid) {
 		const qreal r = widgetDpr(this);
 		Computer* comp = conf.prof.cur->zx;
-		const GLfloat tex_w = GLfloat(bytesPerLine / 4.0);
+		const GLfloat tex_w = GLfloat(comp->vid->vsze.x * 2);
 		const GLfloat tex_h = GLfloat(comp->vid->vsze.y);
+		// the quad covers the viewport, and the viewport is the picture: in
+		// fullscreen it is a whole-zoom rectangle in the middle of the screen,
+		// with the cleared black around it
+		glViewport(int(drawX * r + 0.5), int(drawY * r + 0.5),
+			int(drawW * r + 0.5), int(drawH * r + 0.5));
 		static const QMatrix4x4 legacyMvp = []{
 			QMatrix4x4 m;
 			m.ortho(0.0f, 1.0f, 1.0f, 0.0f, -1.0f, 1.0f);
@@ -782,7 +812,7 @@ void MainWin::paintEvent(QPaintEvent*) {
 		prg.setUniformValue("u_mvp_", legacyMvp);
 		prg.setUniformValue("rubyInputSize",   tex_w, tex_h);
 		prg.setUniformValue("rubyTextureSize", tex_w, tex_h);
-		prg.setUniformValue("rubyOutputSize",  GLfloat(width() * r), GLfloat(height() * r));
+		prg.setUniformValue("rubyOutputSize",  GLfloat(drawW * r), GLfloat(drawH * r));
 
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, curtxid);
@@ -796,8 +826,13 @@ void MainWin::paintEvent(QPaintEvent*) {
 	glFlush();
 	pnt.endNativePainting();
 #else
+	// same buffer as the GL path, scaled here instead. No smooth transform, so
+	// a dot stays a block of whole pixels.
 	Computer* comp = conf.prof.cur->zx;
-	pnt.drawImage(0, 0, QImage(comp->flgDBG ? scrimg : bufimg, width(), height(), QImage::Format_RGBA8888));
+	Video* vid = comp->vid;
+	QImage img(comp->flgDBG ? scrimg : bufimg, vid->full.x * 2, bufSize / bytesPerLine, bytesPerLine, QImage::Format_RGBA8888);
+	pnt.drawImage(QRect(drawX, drawY, drawW, drawH), img,
+		QRect(vid->lcut.x * 2, vid->lcut.y, vid->vsze.x * 2, vid->vsze.y));
 #endif
 	drawIcons(pnt);
 	pnt.end();
@@ -1006,13 +1041,11 @@ void MainWin::screenShot() {
 	fnams.append(QString("xpeccy_%0.%1").arg(QTime::currentTime().toString("HHmmss_zzz")).arg(fext.c_str()));
 	std::string fnam(fnams.toUtf8().data());
 	std::ofstream file;
-#if defined(USEOPENGL)
-	QImage img(bufimg, bytesPerLine / 4, comp->vid->vsze.y, QImage::Format_RGBA8888);
-	img = img.scaled(width(), height());
-#else
-	QImage img(bufimg, width(), height(), QImage::Format_RGBA8888);
-#endif
-	int x,y,dx,dy;
+	Video* vid = comp->vid;
+	// the shown frame, taken out of the whole raster. The screen sits in the
+	// middle of it, so there is no lopsided border left to trim.
+	QImage img(bufimg, vid->full.x * 2, bufSize / bytesPerLine, bytesPerLine, QImage::Format_RGBA8888);
+	img = img.copy(vid->lcut.x * 2, vid->lcut.y, vid->vsze.x * 2, vid->vsze.y);
 	char* sptr = (char*)(comp->mem->ramData + (comp->vid->vidPage << 14));
 	switch (frm) {
 		case SCR_HOB:
@@ -1030,29 +1063,11 @@ void MainWin::screenShot() {
 		case SCR_JPG:
 		case SCR_PNG:
 			if (img.isNull()) break;
-			if (conf.scrShot.noBorder) {
-				x = (comp->vid->bord.x - comp->vid->lcut.x) * conf.vid.scale;
-				y = (comp->vid->bord.y - comp->vid->lcut.y) * conf.vid.scale;
-				dx = comp->vid->scrn.x * conf.vid.scale;
-				dy = comp->vid->scrn.y * conf.vid.scale;
-				img = img.copy(x, y, dx, dy);
-			} else if (comp->hw->grp == HWG_ZX) {
-				// ZX raster border is rarely symmetric (Pentagon's is shifted down
-				// further than most), so keep only the smaller margin on each axis
-				// instead of the raw, lopsided full-border capture - the paper
-				// area stays centered in the saved image either way.
-				int lBrd = comp->vid->bord.x - comp->vid->lcut.x;
-				int rBrd = comp->vid->rcut.x - comp->vid->send.x;
-				int tBrd = comp->vid->bord.y - comp->vid->lcut.y;
-				int bBrd = comp->vid->rcut.y - comp->vid->send.y;
-				int hBrd = (lBrd < rBrd) ? lBrd : rBrd;
-				int vBrd = (tBrd < bBrd) ? tBrd : bBrd;
-				x = (lBrd - hBrd) * conf.vid.scale;
-				y = (tBrd - vBrd) * conf.vid.scale;
-				dx = (comp->vid->scrn.x + 2 * hBrd) * conf.vid.scale;
-				dy = (comp->vid->scrn.y + 2 * vBrd) * conf.vid.scale;
-				img = img.copy(x, y, dx, dy);
-			}
+			if (conf.scrShot.noBorder)
+				img = img.copy((vid->bord.x - vid->lcut.x) * 2, vid->bord.y - vid->lcut.y,
+					vid->scrn.x * 2, vid->scrn.y);
+			img = img.scaled(img.width() / 2 * conf.vid.scale * comp->hw->xscale,
+					img.height() * conf.vid.scale);
 			img.save(QString(fnam.c_str()),fext.c_str());
 			break;
 	}
@@ -1260,6 +1275,20 @@ void MainWin::doOptions() {
 	emit s_options();
 }
 
+// Apply in the options dialog, with the dialog still open. The border size may
+// have changed, and the window has to follow it at once - the frame is re-cut
+// out of the whole raster, so the picture stays right even though the machine
+// is paused and no new frame is coming.
+void MainWin::optResize() {
+	int bpl = bytesPerLine;			// the row length the buffer was written with
+	updateWindow();
+	// Apply can also change the machine or its layout, and the frame in the
+	// buffer would then be read back at a row length it was not drawn with
+	if (bytesPerLine != bpl)
+		renderFrame();
+	presentFrame();
+}
+
 void MainWin::optApply() {
 //	relskip = 1;
 //	comp = conf.prof.cur->zx;
@@ -1298,6 +1327,35 @@ void MainWin::bookmarkSelected(QAction* act) {
 	setFocus();
 }
 
+// One frame of the current machine, run from this thread. The image buffer is
+// shared by every machine, so after a profile switch it still holds the frame
+// the machine before drew - and the emulation may not be in a position to draw
+// over it: with the options dialog open it is paused until the dialog closes.
+//
+// This deliberately steps the cpu rather than asking xThread::emuCycle() for a
+// frame: that one is paced, fills the sound buffer and signals the frame on to
+// the display, none of which a cosmetic redraw wants, and it stops dead while
+// conf.emu.pause is set - which is exactly the case this exists for. emu_lock()
+// is what keeps the two apart, the same way the profile switch above uses it.
+void MainWin::renderFrame() {
+	Computer* comp = conf.prof.cur->zx;
+	vid_clear_image();			// whatever is in there was not drawn by this machine
+	if (!comp || comp->flgDBG) return;	// the debugger owns the machine, don't step it
+	// a frame is some 20000 opcodes. The count is only here to stop a machine
+	// that never finishes one - a profile still on "Dummy" hardware, say
+	int guard = 1 << 19;
+	emu_lock();
+	comp->flgFRM = 0;
+	while (!comp->flgFRM && !comp->flgBRK && (guard-- > 0))
+		compExec(comp);
+	comp->flgFRM = 0;			// the frame is ours, not the pacer's
+	// A breakpoint hit inside this one cosmetic frame is dropped on purpose:
+	// emuCycle() would only clear the flag without acting on it, and the
+	// machine runs into the same breakpoint again as soon as it goes on
+	comp->flgBRK = 0;
+	emu_unlock();
+}
+
 void MainWin::onPrfChange() {
 	Computer* comp = conf.prof.cur->zx;
 	comp->tape->detectOn = conf.tape.autostart;
@@ -1310,6 +1368,12 @@ void MainWin::onPrfChange() {
 	emit s_keywin_upd(comp->keyb);
 	vid_upd_scale();
 	updateWindow();
+	// hasPicture: at start-up there is nothing in the buffer to clean up after,
+	// and the machine must not be stepped before the event loop is up
+	if (hasPicture) {
+		renderFrame();
+		presentFrame();
+	}
 //	saveConfig();
 //	emit s_prf_change(conf.prof.cur);
 //	conf.prof.changed = 1;

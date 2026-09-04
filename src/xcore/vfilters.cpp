@@ -112,39 +112,27 @@ static bool rgb_has_multi_component(uint32_t c) {
 // blend src into dst with weight `mass` in linear space (sRGB-correct),
 // then store original dst back to src for the next frame.
 // sRGB colorspace in Gigascreen reference: https://hype.retroscene.org/blog/graphics/808.html
-void scrMix(unsigned char* src, unsigned char* dst, int size, double ratio, float gamma, int mode) {
+// dst is the top left corner of the shown frame inside the whole raster, so
+// only that part is mixed - the ring keeps frames of exactly that size, and
+// nothing is spent on the raster around it.
+void scrMix(unsigned char* src, unsigned char* dst, int wid, int hei, int stride, double ratio, float gamma, int mode) {
 	const double ratio_x2 = ratio * 2.0;
+	int size = wid * hei;			// pixels in one frame of the ring
 
 	// Init ring buffer pointer if not set yet
 	if (ring_base == NULL) { ring_base = (uint32_t *)src; }
 	// Rebuild gamma LUTs if Gamma value has changed
 	if (last_gamma != gamma) { rebuild_gamma_lut(gamma); }
 
-#undef LEGACY_ANTIFLICK
-#ifdef LEGACY_ANTIFLICK
-	unsigned char cur;
-	const double ratio_rev = 1.0 - ratio;
-
-	while (size > 0) {
-		cur = *dst;
-		if (size %4 != 1)
-		*dst = linear_to_srgb[int(srgb_to_linear[*src] * ratio + srgb_to_linear[*dst] * ratio_rev)];
-		*src = cur;
-		src++;
-		dst++;
-		size--;
-	}
-#else
-
 	// screen is in GL_RGBA 32-bit format: Red,Green,Blue,Alpha
-	size /= 4;
-	// re-cast pointer to uint32_t* as we're going to process RGB-data at once
 	uint32_t *p0 = reinterpret_cast<uint32_t*>(dst);
 	uint32_t *p1 = ring_get_frame(0, size);
 	uint32_t *p2 = ring_get_frame(1, size);
 	uint32_t *p3 = ring_get_frame(2, size);
 	uint32_t *p4 = ring_get_frame(3, size);
 	uint32_t *p5 = ring_get_frame(4, size);
+	int rest = wid;				// pixels left in the current line
+	const int skip = stride - wid * 4;	// from a line's last pixel to the next line's first
 	ring_rotate();
 
 	while (size > 0) {
@@ -211,6 +199,9 @@ void scrMix(unsigned char* src, unsigned char* dst, int size, double ratio, floa
 		p3++;
 		p4++;
 		size--;
+		if (--rest == 0) {			// next line of the frame
+			rest = wid;
+			p0 = reinterpret_cast<uint32_t*>(reinterpret_cast<unsigned char*>(p0) + skip);
+		}
 	}
-#endif
 }
