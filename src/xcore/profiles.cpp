@@ -12,6 +12,7 @@
 #include "filer.h"
 #include "gamepad.h"
 #include "vfat_scan.h"
+#include "vscalers.h"
 
 void prf_load_cmos(xProfile* prf, std::string path) {
 	FILE* file = fopen(path.c_str(), "rb");
@@ -187,7 +188,7 @@ bool prfSetLayout(xProfile* prf, std::string nm) {
 	if (lay == NULL) return false;
 	prf->layName = nm;
 	comp_set_layout(prf->zx, &lay->lay);
-	vid_set_border(prf->zx->vid, conf.brdsize);
+	vid_set_border(prf->zx->vid, brd_mode_for(prf->zx, conf.vid.border));
 	if ((prf->zx->vid->res.x > 0) && (prf->zx->vid->res.y > 0)) {
 		vid_set_resolution(prf->zx->vid, prf->zx->vid->res.x, prf->zx->vid->res.y);
 	}

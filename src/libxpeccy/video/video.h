@@ -23,6 +23,17 @@ typedef struct Video Video;
 
 #define vid_irq(_v, _n) _v->xirq(_n, _v->xptr)
 
+// How much of the border is shown. The frame is the same size on every ZX
+// machine, with the screen in the middle of it; see vid_upd_crop.
+enum {
+	VID_BRD_NONE = 0,	// 256x192
+	VID_BRD_SMALL,		// 272x208
+	VID_BRD_MEDIUM,		// 320x240
+	VID_BRD_FULL,		// 352x288
+	VID_BRD_OVERSCAN,	// as much as the machine's raster holds
+	VID_BRD_NATIVE		// whole visible area, as the layout puts it (non-ZX)
+};
+
 // screen mode
 enum {
 	VID_UNKNOWN = -1,
@@ -90,14 +101,6 @@ extern unsigned char* scrimg;
 extern unsigned char* bufimg;
 extern unsigned char pscr[];
 
-extern int xstep;
-extern int ystep;
-extern int lefSkip;
-extern int pixSkip;
-extern int rigSkip;
-extern int topSkip;
-extern int botSkip;
-
 void vid_dot_full(Video*, unsigned char);
 void vid_dot_half(Video*, unsigned char);
 
@@ -138,9 +141,6 @@ struct Video {
 	unsigned hbrd:1;	// border.H
 	unsigned vbrd:1;	// border.V
 
-	unsigned hvis:1;
-	unsigned vvis:1;
-
 	int nsPerFrame;
 	int nsPerLine;
 	long long nsPerDotFixed;	// the dot period, 16.16, and what the ray steps by
@@ -158,7 +158,7 @@ struct Video {
 	int vidPage;
 
 	int brdstep;
-	double brdsize;
+	int brdmode;		// VID_BRD_* : how much border to show
 	unsigned char brdcol;
 	unsigned char nextbrd;
 
@@ -184,7 +184,6 @@ struct Video {
 	int lcnt;
 	unsigned char atrbyte;
 	size_t frmsz;
-	size_t vBytes;
 	vRay ray;
 	vCoord full;
 	vCoord blank;
@@ -192,9 +191,11 @@ struct Video {
 	vCoord scrn;
 	vCoord send;
 	vCoord vend;
-	vCoord lcut;
-	vCoord rcut;
-	vCoord vsze;		// visible area size (cutted)
+	// The whole raster is drawn into the buffer; these three are the part of
+	// it that is shown, not a limit on what is drawn.
+	vCoord lcut;		// top left corner of the shown frame
+	vCoord rcut;		// bottom right corner (exclusive)
+	vCoord vsze;		// shown frame size
 	vCoord intp;		// intp.y = gbc lyc = 9938 iLine
 	int intsize;
 	vCoord res;		// current resolution (-1 = from layout)
@@ -376,9 +377,12 @@ void vid_set_ray(Video*, int);
 int vid_wait_dots(Video*, int, int, int);	// contention wait in dots, not ns
 void vid_dark_tail(Video*);
 
+void vid_clear_image(void);
 void vid_set_layout(Video*, vLayout*);
 void vid_set_resolution(Video*, int, int);
-void vid_set_border(Video*, double);
+void vid_set_border(Video*, int);
+void vid_upd_crop(Video*);
+vCoord vid_crop_size(Video*, int);
 void vid_upd_layout(Video*);
 void vid_upd_timings(Video*, double);
 

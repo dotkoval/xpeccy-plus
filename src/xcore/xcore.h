@@ -457,7 +457,6 @@ struct xConfig {
 	unsigned boot:1;		// add boot to trdos floppies
 	unsigned autorun:1;		// reset and start media opened from the gui
 	unsigned confexit:1;		// confirm on exit
-	double brdsize;			// 0.0 - 1.0 : border size
 	int xpos;			// window position
 	int ypos;
 	QList<xRomset> rsList;
@@ -479,6 +478,7 @@ struct xConfig {
 		unsigned fullScreen:1;	// use fullscreen
 		unsigned keepRatio:1;	// keep ratio in fullscreen (add black borders)
 		unsigned lowLatency:1;	// show each frame at once (low input lag), else buffer for smooth motion
+		int border;		// VID_BRD_* : how much border to show
 		int scale;		// x1..x4
 		int fcount;		// frames counter (for fps showing) (= fcnt ???)
 		long long fctime;	// time of that frame, ns (see paceClockNs)

@@ -173,7 +173,7 @@ void saveConfig() {
 	fprintf(cfile, "scale = %i\n", conf.vid.scale);
 	fprintf(cfile, "greyscale = %s\n", YESNO(greyScale));
 //	fprintf(cfile, "scanlines = %s\n", YESNO(scanlines));
-	fprintf(cfile, "bordersize = %i\n", int(conf.brdsize * 100));
+	fprintf(cfile, "border = %s\n", brd_mode_name(conf.vid.border));
 	fprintf(cfile, "noflick = %i\n", noflic);
 	fprintf(cfile, "noflick.mode = %i\n", noflicMode);
 	fprintf(cfile, "noflick.gamma = %f\n", noflicGamma);
@@ -435,6 +435,7 @@ void loadConfig() {
 	shortcut_init();
 	conf.xpos = -1;
 	conf.ypos = -1;
+	conf.vid.border = VID_BRD_FULL;
 	conf.dbg.dbsize = 8;
 	conf.dbg.dwsize = 4;
 	conf.dbg.dmsize = 127;
@@ -581,7 +582,9 @@ void loadConfig() {
 					if (pnam=="fullscreen") conf.vid.fullScreen = arg.b;
 					if (pnam=="keepratio") conf.vid.keepRatio = arg.b;
 					if (pnam=="lowlatency") conf.vid.lowLatency = arg.b;
-					if (pnam=="bordersize") conf.brdsize = getRanged(arg.s, 0, 100) / 100.0;
+					if (pnam=="border") conf.vid.border = brd_mode_id(arg.s);
+					// before 2026.4 this was a percentage of the machine's own border
+					if (pnam=="bordersize") conf.vid.border = brd_mode_pcnt(getRanged(arg.s, 0, 100));
 					if (pnam=="doublesize") conf.vid.scale = arg.b ? 2 : 1;
 					if (pnam=="scale") {
 						conf.vid.scale = arg.i;

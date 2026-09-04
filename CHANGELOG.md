@@ -16,6 +16,20 @@ before that point is upstream's history and is not repeated here.
   sound instead. It now keeps a small reserve and holds it steady against the drift
   between the sound card's clock and the computer's.
 
+### Changed
+
+- The border size is now a choice of five fixed sizes - none (256x192), small (272x208),
+  medium (320x240), full (352x288) and overscan - instead of a percentage. It starts on
+  full, the whole PAL frame, which is what a TV of the day showed. Every machine
+  shows the same size picture with the screen exactly in the middle of it, so switching
+  profiles no longer moves it around. Overscan is the one that varies: it shows every dot
+  the machine puts out, which is 400x320 on a Pentagon and 360x288 on a ZX Evolution.
+- The picture is now always drawn at a whole number of pixels per dot, in a window and
+  fullscreen alike. Some border sizes used to come out with a few columns a pixel wider
+  than the rest at x3 and x5.
+- Changing the border in Options now takes effect on Apply, window and all. It used to
+  leave the picture skewed until the dialog was closed.
+
 ### Added
 
 - Sound latency is now settable (Options -> Sound, 20 to 60 ms). Less is more responsive,

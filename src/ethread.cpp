@@ -232,7 +232,9 @@ void xThread::emuCycle(Computer* comp) {
 // process noflic/scanlines (if !fast ???)
 // buffers is already switches, bufimg - just painted (greyscale, if flag is set), scrimg - new
 			if (!conf.emu.fast && (noflic > 0))
-				scrMix(pscr, bufimg, bufSize, noflic / 100.0, noflicGamma, noflicMode);
+				scrMix(pscr, bufimg + comp->vid->lcut.y * bytesPerLine + comp->vid->lcut.x * 8,
+					comp->vid->vsze.x * 2, comp->vid->vsze.y, bytesPerLine,
+					noflic / 100.0, noflicGamma, noflicMode);
 
 			// printf("s_frame\n");
 			emit s_frame();
