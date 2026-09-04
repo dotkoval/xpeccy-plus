@@ -463,7 +463,7 @@
               <item row="5" column="1" colspan="2">
                <layout class="QHBoxLayout" name="bszBox">
                 <item>
-                 <widget class="QSlider" name="bszsld">
+                 <widget class="xSlider" name="bszsld">
                   <property name="maximum">
                    <number>4</number>
                   </property>
@@ -547,7 +547,7 @@
                </widget>
               </item>
               <item row="0" column="1" colspan="3">
-               <widget class="QSlider" name="sldNoflic">
+               <widget class="xSlider" name="sldNoflic">
                 <property name="maximum">
                  <number>50</number>
                 </property>
@@ -976,7 +976,7 @@
               <item row="1" column="1" colspan="3">
                <layout class="QHBoxLayout" name="horizontalLayout_sndlat">
                 <item>
-                 <widget class="QSlider" name="sldSndLatency">
+                 <widget class="xSlider" name="sldSndLatency">
                   <property name="toolTip">
                    <string>How much sound is kept buffered ahead of playback. Less is more responsive; too little and the sound clicks.</string>
                   </property>
@@ -1410,7 +1410,7 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSlider" name="sldPsgSep">
+                   <widget class="xSlider" name="sldPsgSep">
                     <property name="toolTip">
                      <string>Stereo separation: 100% = channels kept apart, 0% = mono</string>
                     </property>
@@ -1593,7 +1593,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QSlider" name="sldSensitivity">
+               <widget class="xSlider" name="sldSensitivity">
                 <property name="minimum">
                  <number>100</number>
                 </property>
@@ -1782,7 +1782,7 @@
                     </widget>
                    </item>
                    <item>
-                    <widget class="QSlider" name="sldTapeSpeed">
+                    <widget class="xSlider" name="sldTapeSpeed">
                      <property name="toolTip">
                       <string>How fast the tape signal is played, in per cent of normal. A few images made on machines with an unusual clock load only when it is nudged either way</string>
                      </property>
@@ -4501,6 +4501,11 @@
   <customwidget>
    <class>xHotkeyTable</class>
    <extends>QTableView</extends>
+   <header location="global">stdlib.h</header>
+  </customwidget>
+  <customwidget>
+   <class>xSlider</class>
+   <extends>QSlider</extends>
    <header location="global">stdlib.h</header>
   </customwidget>
  </customwidgets>
