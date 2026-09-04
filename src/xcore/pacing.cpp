@@ -22,6 +22,12 @@ extern int sleepy;
 // through everything it missed
 #define PACE_MAX_BACKLOG_MS 100
 
+// The ring has to hold the latency ceiling and a full backlog at once, at the
+// highest rate offered. The three numbers live in two files and nothing else
+// would notice if they stopped fitting.
+static_assert(SND_LATENCY_MAX + PACE_MAX_BACKLOG_MS < SND_RING_SIZE * 250 / SND_MAX_RATE,
+	"sound ring too small for the latency ceiling plus the pacer backlog");
+
 // how far the pacer may stretch or squeeze emulated time to hold the ring at
 // its target. 0.1% covers any crystal mismatch between this clock and the sound
 // card's own, and is far too little to hear or to move the frame rate
@@ -70,6 +76,7 @@ static Uint32 pace_tick(Uint32 interval, void*) {
 		conf.snd.need = 0;
 		paceRemainderNs = 0;
 	}
+	sndAutoTick(nowNs);
 
 #if USEMUTEX
 	qwc.wakeAll();

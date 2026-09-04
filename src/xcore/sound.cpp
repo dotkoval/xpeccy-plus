@@ -13,9 +13,19 @@
 #include <SDL.h>
 
 // new
-static unsigned char sbuf[0x4000];
-static int posf = 0x1000;			// fill pos
+static unsigned char sbuf[SND_RING_SIZE];
+static int posf = 0x0004;			// fill pos
 static int posp = 0x0004;			// play pos
+
+// A frame is four bytes here, stereo 16 bit, always. That four is what the 250
+// is: a millisecond holds rate/1000 frames, so rate/250 bytes.
+static int snd_ms_to_bytes(int ms) {
+	return ms * conf.snd.rate / 250;
+}
+
+static int snd_bytes_to_ms(int bytes) {
+	return conf.snd.rate ? (bytes * 250 / conf.snd.rate) : 0;
+}
 
 static int smpCount = 0;
 OutSys *sndOutput = NULL;
@@ -57,8 +67,33 @@ static SDL_AudioDeviceID sdldevid;
 // the ring is ever held; setOutput() sets this when it opens one.
 static int sndHeld = 0;
 
+// Auto latency. What makes a click is a callback finding less than its own block
+// left in the ring, so the thing to watch is not the underrun but how close we
+// came to one: sndLowMark is the least the ring was left with after any block
+// since the last look. Raise at the first sign of that running thin, lower only
+// after a long clean spell - stepping down eagerly would walk the setting back
+// onto the edge and click there again and again. Both ways stop themselves: a
+// step down asks for two spare blocks after a callback, which no setting under
+// 30 ms can show, and a step up asks for less than one, which none over 20 ms
+// reaches unless the machine really is stuttering.
+#define SND_AUTO_WINDOW_MS	1000
+#define SND_AUTO_UP_MS		5	// a near miss: a nudge is enough
+#define SND_AUTO_UP_CLICK_MS	10	// it really did click: a whole block
+#define SND_AUTO_DOWN_MS	5	// the smallest step down
+#define SND_AUTO_DOWN_AFTER	60	// windows with room to spare before a step down
+#define SND_AUTO_GRACE		3	// windows to skip after a device starts: it takes
+									// its own fill out of the ring in one go
+#define SND_LOW_NONE		0x7fffffff	// no block was played in the window
+
+static int sndLowMark = SND_LOW_NONE;	// written by the audio callback
+static int sndAutoGood = 0;
+static int sndAutoSkip = 0;
+static long long sndAutoLastNs = 0;
+
 static void snd_start_playback() {
 	sndHeld = 0;
+	sndLowMark = SND_LOW_NONE;
+	sndAutoSkip = SND_AUTO_GRACE;
 	if (sndOutput && sndOutput->play)
 		sndOutput->play();
 }
@@ -111,13 +146,13 @@ int sndSync(Computer* comp) {
 				if (conf.snd.need > 0)
 					conf.snd.need--;
 
-				sbuf[posf & 0x3fff] = sndLev.left & 0xff;
+				sbuf[posf & SND_RING_MASK] = sndLev.left & 0xff;
 				posf++;
-				sbuf[posf & 0x3fff] = (sndLev.left >> 8) & 0xff;
+				sbuf[posf & SND_RING_MASK] = (sndLev.left >> 8) & 0xff;
 				posf++;
-				sbuf[posf & 0x3fff] = sndLev.right & 0xff;
+				sbuf[posf & SND_RING_MASK] = sndLev.right & 0xff;
 				posf++;
-				sbuf[posf & 0x3fff] = (sndLev.right >> 8) & 0xff;
+				sbuf[posf & SND_RING_MASK] = (sndLev.right >> 8) & 0xff;
 				posf++;
 
 				if (sndHeld && (sndGetRingDistance() >= sndGetRingTargetBytes()))
@@ -180,6 +215,48 @@ int sndPlaybackActive() {
 	return (sndOutput != NULL) && (sndOutput->id != xOutputNone);
 }
 
+// Called from the pacer's timer, which hands over its own reading of the clock.
+// The window is measured in time rather than in ticks so that a late or coarse
+// SDL timer cannot stretch it.
+void sndAutoTick(long long nowNs) {
+	if (nowNs - sndAutoLastNs < SND_AUTO_WINDOW_MS * 1000000LL) return;
+	sndAutoLastNs = nowNs;
+	int low = sndLowMark;
+	sndLowMark = SND_LOW_NONE;
+	if (!conf.snd.latauto || !sndPlaybackActive() || conf.emu.fast || conf.emu.pause) {
+		sndAutoSkip = SND_AUTO_GRACE;
+		return;
+	}
+	if (sndAutoSkip > 0) {
+		sndAutoSkip--;
+		return;
+	}
+	if (low == SND_LOW_NONE) return;
+	int block = snd_ms_to_bytes(SND_BLOCK_MS);	// one callback block, in bytes
+	// A step only moves the target; the pacer then walks the ring to it, and
+	// slower the closer it gets - a ten ms step takes half a minute. Judging
+	// while it is still on the way reads the walk itself as a shortage and
+	// steps again, which ran the setting from 30 to 130 ms in under a minute.
+	// So wait for the ring to arrive before looking at what it was left with.
+	if (sndGetRingDistance() + block < sndGetRingTargetBytes()) return;
+	int lat = conf.snd.latency;
+	if (low > 2 * block) {		// three blocks in hand, one to spare
+		sndAutoGood++;
+	} else {
+		sndAutoGood = 0;
+	}
+	if (low < block) {			// one late callback away from a click
+		lat += low ? SND_AUTO_UP_MS : SND_AUTO_UP_CLICK_MS;
+	} else if (sndAutoGood >= SND_AUTO_DOWN_AFTER) {
+		// give back half of what was never touched. stepping down 5 ms at a
+		// time from a hand set 100 ms would have taken a quarter of an hour.
+		int spare = snd_bytes_to_ms(low - 2 * block);
+		lat -= (spare / 2 > SND_AUTO_DOWN_MS) ? spare / 2 : SND_AUTO_DOWN_MS;
+		sndAutoGood = 0;
+	}
+	conf.snd.latency = toLimits(lat, SND_LATENCY_MIN, SND_LATENCY_MAX);
+}
+
 //------------------------
 // Sound output
 //------------------------
@@ -210,42 +287,46 @@ void null_close() {
 // position (posp). used here for overfill, and by pacing.cpp to avoid
 // running ahead of real playback.
 int sndGetRingDistance() {
-	int dist = posf - posp;
-	while (dist < 0) dist += 0x4000;
-	while (dist > 0x3fff) dist -= 0x4000;
-	return dist;
+	return (posf - posp) & SND_RING_MASK;
 }
 
-// How much sound we aim to keep in the ring, in bytes (4 per frame, always
-// stereo 16 bit here). Under one callback block it clicks by definition, so the
-// setting is clamped well above that; the pacer (pacing.cpp) trims emulated
-// time to hold the ring here.
+// How much sound we aim to keep in the ring. Under one callback block it
+// clicks by definition, so the setting is clamped well above that; the pacer
+// (pacing.cpp) trims emulated time to hold the ring here.
 int sndGetRingTargetBytes() {
-	int ms = toLimits(conf.snd.latency, SND_LATENCY_MIN, SND_LATENCY_MAX);
-	return ms * conf.snd.rate / 250;
+	return snd_ms_to_bytes(toLimits(conf.snd.latency, SND_LATENCY_MIN, SND_LATENCY_MAX));
 }
 
 void sdlPlayAudio(void*, Uint8* stream, int len) {
+	int want = len;
 //	printf("len = %i\n",len);
 	// conf.snd.need is no longer filled here - it is filled from a steady
 	// timer in pacing.cpp, so frame making does not run in audio-buffer sized
 	// bursts. See pacing.h for why. This callback only plays the ring buffer.
 	int dist = sndGetRingDistance();
-	if ((dist < len) || conf.emu.fast || conf.emu.pause) {				// overfill : fill with last sample of previous buf
+	int idle = conf.emu.fast || conf.emu.pause;
+	if ((dist < len) || idle) {				// overfill : fill with last sample of previous buf
 //		printf("overfill : %i %i\n", posf, posp);
 		while(len > 0) {
-			*(stream++) = sbuf[(posp - 4) & 0x3fff];
-			*(stream++) = sbuf[(posp - 3) & 0x3fff];
-			*(stream++) = sbuf[(posp - 2) & 0x3fff];
-			*(stream++) = sbuf[(posp - 1) & 0x3fff];
+			*(stream++) = sbuf[(posp - 4) & SND_RING_MASK];
+			*(stream++) = sbuf[(posp - 3) & SND_RING_MASK];
+			*(stream++) = sbuf[(posp - 2) & SND_RING_MASK];
+			*(stream++) = sbuf[(posp - 1) & SND_RING_MASK];
 			len -= 4;
 		}
 	} else {						// normal : play buffer
 		while(len > 0) {
-			*(stream++) = sbuf[posp & 0x3fff];
+			*(stream++) = sbuf[posp & SND_RING_MASK];
 			posp++;
 			len--;
 		}
+	}
+	// how little the ring was left with; an underrun counts as nothing left.
+	// while idle it is not drained at all, so leave the mark alone.
+	if (!idle) {
+		int left = dist - want;
+		if (left < 0) left = 0;
+		if (left < sndLowMark) sndLowMark = left;
 	}
 #if USEMUTEX
 	qwc.wakeAll();
@@ -282,7 +363,7 @@ int sdlopen() {
 		conf.snd.need = dsp.samples;
 		res = 1;			// the device stays paused: sndSync starts it once the ring is full
 	}
-	memset(sbuf, 0x00, 0x4000);
+	memset(sbuf, 0x00, SND_RING_SIZE);
 	posp = 0x0004;
 	posf = posp;
 	return res;
@@ -353,6 +434,7 @@ void sndInit() {
 	conf.snd.rate = 44100;
 	conf.snd.chans = 2;
 	conf.snd.latency = SND_LATENCY_DEF;
+	conf.snd.latauto = 1;
 	conf.snd.enabled = 1;
 	sndOutput = NULL;
 	conf.snd.vol.beep = 100;

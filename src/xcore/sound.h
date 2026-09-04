@@ -27,18 +27,26 @@ typedef struct {
 	void (*close)();
 } OutSys;
 
-// The ring is the 0x4000 byte sbuf in sound.cpp, 4 bytes to a frame - 85 ms at
-// 48kHz. Filling stops at the high water mark, past which the writer would
-// overwrite sound that has not been played yet: 74 ms at 48kHz, which leaves
-// the latency ceiling below clear of it at every rate the app offers.
-#define SND_RING_HIGH_WATER	(0x3fff * 7 / 8)
+// The ring is sbuf in sound.cpp, 4 bytes to a frame - 341 ms at 48kHz. It is
+// sized well over the latency ceiling: a bluetooth headset needs far more of a
+// buffer than a wired one, and the ring has to hold the worst of them.
+#define SND_RING_SIZE	0x10000
+#define SND_RING_MASK	(SND_RING_SIZE - 1)
+
+// Filling stops here. Past it the writer would overwrite sound that has not
+// been played yet.
+#define SND_RING_HIGH_WATER	(SND_RING_SIZE * 7 / 8)
 
 // One audio callback block, in ms. The callback asks for a whole block at once,
 // so the ring can never hold less than this without clicking: the block is the
 // floor under conf.snd.latency, and the target is at least two of them.
 #define SND_BLOCK_MS	10
 #define SND_LATENCY_MIN	(2 * SND_BLOCK_MS)
-#define SND_LATENCY_MAX	60
+#define SND_LATENCY_MAX	150
+
+// the highest rate the app offers. the ring holds fewer ms the higher this
+// goes, so it is what the size has to be checked against (see pacing.cpp)
+#define SND_MAX_RATE		48000
 #define SND_LATENCY_DEF	30
 
 extern OutSys sndTab[];
@@ -55,6 +63,7 @@ int sndSync(Computer*);
 int sndGetRingDistance();
 int sndGetRingTargetBytes();
 int sndPlaybackActive();
+void sndAutoTick(long long);
 
 int snd_wav_open(const char*);
 void snd_wav_close();

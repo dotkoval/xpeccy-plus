@@ -34,8 +34,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
-- Sound latency is now settable (Options -> Sound, 20 to 60 ms). Less is more responsive,
-  more is safer on a machine where the sound still clicks.
+- Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
+  up when the buffer starts running thin, back down after a long clean spell. The slider
+  in Options -> Sound shows where it settled and still sets it by hand, anywhere from 20 to
+  150 ms - bluetooth headphones need a good deal more of a buffer than wired ones. Untick
+  Auto adjust to keep it where you put it.
 
 ## 2026.3.2 - 2026-09-03
 
