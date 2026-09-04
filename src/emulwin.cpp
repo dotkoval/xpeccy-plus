@@ -70,6 +70,9 @@ void MainWin::updateWindow() {
 	QSize wsz;
 	Computer* comp = conf.prof.cur->zx;
 	vid_set_zoom(conf.vid.scale);		// where the picture goes, and how big
+	// a size change can switch the shader off or bring it back (wantedShader)
+	if (conf.vid.shd_support && (wantedShader() != shdLoaded))
+		loadShader();
 	blockSignals(true);
 	if (conf.vid.fullScreen) {
 		wsz = SCREENSIZE;

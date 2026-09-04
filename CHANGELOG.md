@@ -29,6 +29,8 @@ before that point is upstream's history and is not repeated here.
   than the rest at x3 and x5.
 - Changing the border in Options now takes effect on Apply, window and all. It used to
   leave the picture skewed until the dialog was closed.
+- The shader is skipped at size x1, where there is nothing for it to work on. The choice
+  is kept and comes back with the next size up.
 
 ### Added
 

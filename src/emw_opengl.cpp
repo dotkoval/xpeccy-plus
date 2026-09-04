@@ -1,4 +1,5 @@
 #include "emulwin.h"
+#include "xcore/vscalers.h"
 
 #include <QRegularExpression>
 #include <algorithm>
@@ -268,16 +269,25 @@ void MainWin::paintGL() {
 
 #endif
 
+// The shader filters a picture that has been scaled up; at 1:1 there is nothing
+// for it to work on, so the chosen one is ignored. It stays in the config, and
+// comes back as soon as the size does.
+std::string MainWin::wantedShader() {
+	if (drawZoom == 1) return std::string();
+	return conf.vid.shader;
+}
+
 void MainWin::loadShader() {
 #if defined(USEOPENGL) && !BLOCKGL
 	if (!conf.vid.shd_support) return;
+	shdLoaded = wantedShader();
 
 	QString vtx;
 	QString frg;
 	bool user_shader = false;
 
-	if (!conf.vid.shader.empty()) {
-		QString path(std::string(conf.path.shdDir + SLASH + conf.vid.shader).c_str());
+	if (!shdLoaded.empty()) {
+		QString path(std::string(conf.path.shdDir + SLASH + shdLoaded).c_str());
 		QFile file(path);
 		if (file.open(QFile::ReadOnly)) {
 			int mode = 0;

@@ -15,6 +15,7 @@ int drawX = 0;
 int drawY = 0;
 int drawW = 0;
 int drawH = 0;
+int drawZoom = 0;
 
 const char* brdModeTab[] = {
 	"no",		// VID_BRD_NONE
@@ -77,6 +78,7 @@ void vid_upd_scale() {
 		} else {
 			drawW = dwid;
 			drawH = dhei;
+			zoom = 0;	// stretched: no whole number of pixels per dot
 		}
 	} else {
 		zoom = conf.vid.scale;
@@ -85,6 +87,7 @@ void vid_upd_scale() {
 		dwid = drawW;
 		dhei = drawH;
 	}
+	drawZoom = zoom;
 	drawX = (dwid - drawW) / 2;
 	drawY = (dhei - drawH) / 2;
 }

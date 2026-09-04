@@ -155,6 +155,9 @@ typedef struct {
 		unsigned hasPicture:1;	// the emulation has handed over a frame
 		unsigned refit:1;	// geometry changed: re-read the frame before painting it
 
+		std::string shdLoaded;	// the shader the program is linked with now
+		std::string wantedShader();
+
 		QIcon icon;
 		int timid;
 		int secid;

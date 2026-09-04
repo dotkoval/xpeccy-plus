@@ -17,6 +17,8 @@ extern int drawX;
 extern int drawY;
 extern int drawW;
 extern int drawH;
+// window pixels per dot, or 0 when the picture is stretched to the screen
+extern int drawZoom;
 
 void vid_set_zoom(int);
 void vid_set_fullscreen(int);
