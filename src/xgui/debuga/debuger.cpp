@@ -7,6 +7,7 @@
 #include <QBuffer>
 #include <QPainter>
 #include <QStyleOptionButton>
+#include <QStyleOptionComboBox>
 #include <QShowEvent>
 #include <QTabBar>
 #include <QVector>
@@ -200,12 +201,34 @@ void DebugWin::updateStyle() {
 		xhs->updatePal();	// takes the new font from the parent
 		xhs->refitWidth();
 	}
+	fitMMapBoxes();
 	curCpuCore = nullptr;		// font changed: re-measure the register columns
 	fillStack();			// the font sets the row height, and the offset may be new
 	fillDisasm();
 	wid_dump->draw();
 	//ui.dumpTable->update();
 	wid_disk_dump->draw();
+}
+
+// A combo box asks for much more width than its text needs, and its hint is
+// cached until a style or font change - which is why these four came out wide
+// at startup and only shrank once Options re-applied the style. Cut them down
+// to the widest item, the arrow and whatever frame the style draws, the way
+// fitFlagBoxes() does for the flags.
+void DebugWin::fitMMapBoxes() {
+	QComboBox* box = mmapType[0];
+	QStyleOptionComboBox opt;
+	opt.initFrom(box);
+	opt.subControls = QStyle::SC_All;
+	opt.rect = QRect(QPoint(0, 0), box->sizeHint());
+	int field = box->style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxEditField, box).width();
+	QFontMetrics fm(box->font());
+	int text = 0;
+	for (int i = 0; i < box->count(); i++)
+		text = qMax(text, fm.horizontalAdvance(box->itemText(i)));
+	int wid = opt.rect.width() - field + text + 4;	// 4: a pixel of air either side
+	for (int i = 0; i < 4; i++)
+		mmapType[i]->setFixedWidth(wid);
 }
 
 // A dock area's tab bar, once panels are tabified onto it. It needs the same
@@ -778,10 +801,8 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 		mmapForced[i] = -1;
 		mmapType[i]->addItem("ROM", MEM_ROM);
 		mmapType[i]->addItem("RAM", MEM_RAM);
-		// no wider than the three letters and the arrow: this column is narrow
-		// and the stack panel under it lives with whatever width is set here
-		mmapType[i]->setSizeAdjustPolicy(QComboBox::AdjustToContents);
-		mmapType[i]->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
+		// this column is narrow and the stack panel under it lives with whatever
+		// width is set here - fitMMapBoxes() pins it to the text and the arrow
 		// no XHS_BGR: this field is lit by the forced mark, not by the value moving
 		mmapPage[i]->setXFlag(XHS_FILL | XHS_AUTOW);
 		mmapPage[i]->setMax(0xff);

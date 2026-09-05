@@ -206,6 +206,7 @@ class DebugWin : public QMainWindow {
 		void setDefaultLayout();
 		void updateCpuDockWidth();
 		void styleTabBars();
+		void fitMMapBoxes();
 		void setShowLabels(bool);
 		void setShowSegment(bool);
 		void setRomWriteable(bool);
