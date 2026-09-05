@@ -980,12 +980,6 @@
                   <property name="toolTip">
                    <string>How much sound is kept buffered ahead of playback. Less is more responsive; too little and the sound clicks.</string>
                   </property>
-                  <property name="minimum">
-                   <number>20</number>
-                  </property>
-                  <property name="maximum">
-                   <number>150</number>
-                  </property>
                   <property name="singleStep">
                    <number>5</number>
                   </property>

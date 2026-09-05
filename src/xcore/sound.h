@@ -40,14 +40,17 @@ typedef struct {
 // One audio callback block, in ms. The callback asks for a whole block at once,
 // so the ring can never hold less than this without clicking: the block is the
 // floor under conf.snd.latency, and the target is at least two of them.
-#define SND_BLOCK_MS	10
+#define SND_BLOCK_MS	5
 #define SND_LATENCY_MIN	(2 * SND_BLOCK_MS)
 #define SND_LATENCY_MAX	150
+// where a fresh install starts. Above where the regulator comes to rest, on
+// purpose: Auto walks a too-high value quietly down, while too low a one is
+// heard before it climbs back.
+#define SND_LATENCY_DEF	30
 
 // the highest rate the app offers. the ring holds fewer ms the higher this
 // goes, so it is what the size has to be checked against (see pacing.cpp)
 #define SND_MAX_RATE		48000
-#define SND_LATENCY_DEF	30
 
 extern OutSys sndTab[];
 extern OutSys* sndOutput;
