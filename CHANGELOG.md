@@ -11,6 +11,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- The sound is now filtered on its way down to the output rate instead of being
+  averaged, so nothing above the audible range folds back into it. The difference is
+  small on the beeper, whose own model already rolls the top off; Options -> Sound ->
+  Anti-alias filter switches it off for comparison.
 - Recording to WAV writes the file at the rate and depth the emulator is really playing
   at - it always claimed 44100 Hz, 8 bit - and the grainy beat that used to ride on the
   recording is gone.

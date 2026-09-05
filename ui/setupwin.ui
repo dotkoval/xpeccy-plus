@@ -1050,7 +1050,17 @@
                 </item>
                </layout>
               </item>
-              <item row="2" column="1" colspan="3">
+              <item row="2" column="0" colspan="4">
+               <widget class="QCheckBox" name="chkSndFilter">
+                <property name="toolTip">
+                 <string>Filter the sound properly down to the output rate. Without it the highest frequencies fold back into the audible range, which is what makes beeper music crunch.</string>
+                </property>
+                <property name="text">
+                 <string>Anti-alias filter</string>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1" colspan="3">
                <spacer name="verticalSpacer_22">
                 <property name="orientation">
                  <enum>Qt::Vertical</enum>
