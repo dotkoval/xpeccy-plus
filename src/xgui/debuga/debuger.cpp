@@ -1664,7 +1664,13 @@ void DebugWin::resetLayout() {
 static QDockWidget* make_edge_anchor(const char* name) {
 	QDockWidget* dock = new QDockWidget;
 	dock->setObjectName(name);
-	dock->setTitleBarWidget(new QWidget);		// empty: no title bar at all
+	// empty: no title bar at all. It needs the layout: a bare QWidget answers
+	// sizeHint() with (-1,-1), and QDockWidgetLayout takes the title height
+	// straight from it, so the dock ends up with a minimum size of (4,-1)
+	QWidget* bar = new QWidget;
+	QHBoxLayout* barBox = new QHBoxLayout(bar);
+	barBox->setContentsMargins(0, 0, 0, 0);
+	dock->setTitleBarWidget(bar);
 	dock->setFeatures(QDockWidget::NoDockWidgetFeatures);
 	QWidget* pad = new QWidget;
 	pad->setFixedWidth(4);
