@@ -19,6 +19,7 @@ int drawZoom = 0;
 
 const char* brdModeTab[] = {
 	"no",		// VID_BRD_NONE
+	"xsmall",
 	"small",
 	"medium",
 	"full",
@@ -43,7 +44,8 @@ int brd_mode_id(const char* nam) {
 // pre-2026.4 configs kept the border as a percentage of the machine's own
 int brd_mode_pcnt(int pcnt) {
 	if (pcnt < 5) return VID_BRD_NONE;
-	if (pcnt < 35) return VID_BRD_SMALL;
+	if (pcnt < 25) return VID_BRD_XSMALL;
+	if (pcnt < 45) return VID_BRD_SMALL;
 	if (pcnt < 70) return VID_BRD_MEDIUM;
 	if (pcnt < 100) return VID_BRD_FULL;
 	return VID_BRD_OVERSCAN;

@@ -206,7 +206,8 @@ void vid_set_ray(Video* vid, int dots) {
 // Overscan asks for more than any raster has, so the clamp below settles it.
 static const vCoord brdMargin[] = {
 	{0, 0},			// VID_BRD_NONE		256x192
-	{8, 8},			// VID_BRD_SMALL	272x208
+	{8, 8},			// VID_BRD_XSMALL	272x208
+	{16, 16},		// VID_BRD_SMALL	288x224
 	{32, 24},		// VID_BRD_MEDIUM	320x240
 	{48, 48},		// VID_BRD_FULL		352x288
 	{0x7fff, 0x7fff}	// VID_BRD_OVERSCAN	as much as there is
