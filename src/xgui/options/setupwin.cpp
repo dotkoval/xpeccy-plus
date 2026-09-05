@@ -1925,7 +1925,7 @@ void SetupWin::chabsz() {
 	int mode = brd_mode_for(comp, ui.bszsld->value());
 	vCoord sze = vid_crop_size(comp->vid, mode);
 	QString nam = (mode == VID_BRD_NATIVE) ? "native" : brd_mode_name(mode);
-	ui.bszlab->setText(QString("%0 (%1x%2)").arg(nam).arg(sze.x).arg(sze.y));
+	ui.bszlab->setText(QString("%0 (%1×%2)").arg(nam).arg(sze.x).arg(sze.y));
 }
 
 void SetupWin::chaflc() {

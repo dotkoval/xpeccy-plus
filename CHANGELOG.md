@@ -18,15 +18,16 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
-- The border size is now a choice of five fixed sizes - none (256x192), small (272x208),
-  medium (320x240), full (352x288) and overscan - instead of a percentage. It starts on
-  full, the whole PAL frame, which is what a TV of the day showed. Every machine
+- The border size is now a choice of fixed sizes - none (256x192), xsmall (272x208),
+  small (288x224), medium (320x240), full (352x288) and overscan - instead of a
+  percentage. It starts on full, the whole PAL frame, which is what a TV of the day
+  showed. Every machine
   shows the same size picture with the screen exactly in the middle of it, so switching
   profiles no longer moves it around. Overscan is the one that varies: it shows every dot
   the machine puts out, which is 400x320 on a Pentagon and 360x288 on a ZX Evolution.
-- The picture is now always drawn at a whole number of pixels per dot, in a window and
-  fullscreen alike. Some border sizes used to come out with a few columns a pixel wider
-  than the rest at x3 and x5.
+- In a window the picture is now always drawn at a whole number of pixels per dot. Some
+  border sizes used to come out with a few columns a pixel wider than the rest at x3 and
+  x5. Fullscreen still fits the picture to the screen.
 - Changing the border in Options now takes effect on Apply, window and all. It used to
   leave the picture skewed until the dialog was closed.
 - The shader is skipped at size x1, where there is nothing for it to work on. The choice

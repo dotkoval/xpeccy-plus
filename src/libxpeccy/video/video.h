@@ -27,7 +27,8 @@ typedef struct Video Video;
 // machine, with the screen in the middle of it; see vid_upd_crop.
 enum {
 	VID_BRD_NONE = 0,	// 256x192
-	VID_BRD_SMALL,		// 272x208
+	VID_BRD_XSMALL,		// 272x208
+	VID_BRD_SMALL,		// 288x224
 	VID_BRD_MEDIUM,		// 320x240
 	VID_BRD_FULL,		// 352x288
 	VID_BRD_OVERSCAN,	// as much as the machine's raster holds
@@ -382,6 +383,7 @@ void vid_set_layout(Video*, vLayout*);
 void vid_set_resolution(Video*, int, int);
 void vid_set_border(Video*, int);
 void vid_upd_crop(Video*);
+void vid_widen_crop(Video*, int);
 vCoord vid_crop_size(Video*, int);
 void vid_upd_layout(Video*);
 void vid_upd_timings(Video*, double);
