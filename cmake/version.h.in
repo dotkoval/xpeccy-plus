@@ -18,7 +18,4 @@
 // (SemVer: "-dev" pre-release tail, build date as build metadata)
 #define XVERSION	"@XVERSION@"
 
-// upstream Xpeccy build this fork started from
-#define XUPSTREAM_BASE	"20260801"
-
 #endif

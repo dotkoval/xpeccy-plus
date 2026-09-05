@@ -34,6 +34,13 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- A log, for when something goes wrong and a screenshot is not enough. Turn it on in
+  Options -> Xpeccy+ -> Log, or start with `--log`, and every event lands in
+  `logs/<date>/` beside the emulator, with the version, the machine and the graphics
+  card at the top. Each line carries the time, the emulated frame and T-state, and the
+  part of the emulator it came from, so a video problem can be told apart from a sound
+  one at a glance. `--log-groups video:debug,sound:off` sets those parts one by one when
+  a bug needs it.
 - Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
   up when the buffer starts running thin, back down after a long clean spell. The slider
   in Options -> Sound shows where it settled and still sets it by hand, anywhere from 20 to

@@ -30,6 +30,8 @@ class SetupWin : public QDialog {
 		void setPadName();
 	private:
 		void fillDbgPalette();
+		void fillLogPage();
+		void applyLogPage();
 
 		Ui::SetupWin ui;
 		Ui::UmaDial uia;
@@ -100,6 +102,9 @@ class SetupWin : public QDialog {
 		void paledit();
 		void palchoosecol(QPoint);
 		void palstore();
+
+		void selLogDir();
+		void openLogDir();
 
 		void selSDCimg();
 		void selSDCdir();

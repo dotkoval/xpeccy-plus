@@ -1,4 +1,5 @@
 #include <string.h>
+#include "../xlog.h"
 #include "filetypes.h"
 
 void cutSpaces(char* name) {
@@ -46,7 +47,7 @@ int loadRaw(Computer* comp, const char* name, int drv) {
 			}
 			ptr = strrchr(fpath, '\\');		// slash there
 			if (ptr) strcpy(fpath, ptr + 1);
-			printf("%s\n",fpath);
+			xlog(XLG_FILE, XLL_DEBUG, "%s",fpath);
 			ptr = strrchr(fpath, '.');
 			if (ptr) {
 				memcpy(fnam, fpath, ptr - fpath);			// it doesn't put 0x00 at end, so unused fillnam will be filled with ' '

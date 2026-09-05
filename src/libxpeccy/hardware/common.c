@@ -1,4 +1,5 @@
 #include "hardware.h"
+#include "../xlog.h"
 #include "../filetypes/filetypes.h"
 #include "../cpu/Z80/z80.h"
 
@@ -7,14 +8,14 @@ int compflags = 0;
 // debug
 
 int brkIn(Computer* comp, int port) {
-	printf("IN %.4X (dos:rom:cpm = %i:%i:%i)\n",port,comp->flgDOS,comp->flgROM,comp->flgCPM);
+	xlog(XLG_HW, XLL_ERROR, "IN %.4X (dos:rom:cpm = %i:%i:%i)",port,comp->flgDOS,comp->flgROM,comp->flgCPM);
 	assert(0);
 	//comp->brk = 1;
 	return -1;
 }
 
 void brkOut(Computer* comp, int port, int val) {
-	printf("OUT %.4X,%.2X (dos:rom:cpm = %i:%i:%i)\n",port,val,comp->flgDOS,comp->flgROM,comp->flgCPM);
+	xlog(XLG_HW, XLL_ERROR, "OUT %.4X,%.2X (dos:rom:cpm = %i:%i:%i)",port,val,comp->flgDOS,comp->flgROM,comp->flgCPM);
 	assert(0);
 	//comp->brk = 1;
 }

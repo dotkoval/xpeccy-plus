@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 #include <string.h>
 
@@ -37,7 +38,7 @@ void loadUDITrack(Floppy* flp, FILE* file, unsigned char tr, int sd) {
 	// unsigned char trackBuf[TRKLEN_HD];
 	unsigned char* trackBuf = (unsigned char*)malloc(flp->trklen);
 	if (type != 0x00) {
-		printf("TRK %i: unknown format %.2X\n",rt,type);
+		xlog(XLG_FILE, XLL_WARN, "TRK %i: unknown format %.2X",rt,type);
 		len = freadLen(file,4);					// field len
 		fseek(file, len, SEEK_CUR);				// skip unknown field
 	} else {
@@ -56,7 +57,7 @@ void loadUDITrack(Floppy* flp, FILE* file, unsigned char tr, int sd) {
 		fseek(file, len, SEEK_CUR);
 #else
 		if (len > flp->trklen) {
-			printf("TRK %i: too long (%i)\n",rt,len);
+			xlog(XLG_FILE, XLL_WARN, "TRK %i: too long (%i)",rt,len);
 			fseek(file, len, SEEK_CUR);		// skip track image
 			len = (len >> 3) + (((len & 7) == 0) ? 0 : 1);	// and bit field
 			fseek(file, len, SEEK_CUR);
@@ -153,7 +154,7 @@ int saveUDI(Computer* comp, const char* name, int drv) {
 	putint(bptr, i);
 	j = -1;
 	j = uCrc32(j, img, i);
-	printf("crc = %X\n",j);
+	xlog(XLG_FILE, XLL_DEBUG, "crc = %X",j);
 	putint(dptr, j);
 	dptr += 4;
 

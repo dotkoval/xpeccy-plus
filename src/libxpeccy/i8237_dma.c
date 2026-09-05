@@ -1,4 +1,5 @@
 #include "i8237_dma.h"
+#include "xlog.h"
 
 #include <stdlib.h>
 #include <string.h>
@@ -139,7 +140,7 @@ void dma_wr(i8237DMA* dma, int reg, int ch, int val) {
 		case DMA_CR:
 			dma->ch[0].hold = !(~val & 3);		// mem-mem && hold address
 			dma->en = !!(val & 4);
-			printf("dma mem-mem: %i\n", val & 3);
+			xlog(XLG_HW, XLL_DEBUG, "dma mem-mem: %i", val & 3);
 			break;
 		case DMA_RR:
 			break;

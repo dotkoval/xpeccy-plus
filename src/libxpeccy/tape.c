@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "xlog.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -274,9 +275,13 @@ void tapStoreBlock(Tape* tap) {
 		siglens[3] = (siglens[3] > 350) ? SIGN0LEN : SIGN1LEN;
 		cnt++;
 	}
-	printf("size: %i\t",cnt);
-	for (i=0; i<cnt;i++) printf("\t%i",siglens[i]);
-	printf("\n");
+	if (xlog_on(XLG_TAPE, XLL_DEBUG)) {	// one record, one line
+		char lens[128];
+		int pos = 0;
+		for (i = 0; (i < cnt) && (pos < (int)sizeof(lens) - 12); i++)
+			pos += snprintf(lens + pos, sizeof(lens) - pos, " %i", siglens[i]);
+		xlog_put(XLG_TAPE, XLL_DEBUG, "signals: %i:%s", cnt, lens);
+	}
 
 	tblk->breakPoint = 0;
 	tblk->hasBytes = 0;
@@ -340,6 +345,7 @@ void tapEject(Tape* tap) {
 
 void tapStop(Tape* tap) {
 	if (tap->on) {
+		xlog(XLG_TAPE, XLL_INFO, "stop, block %i of %i", tap->block, tap->blkCount);
 		tap->on = 0;
 		if (tap->rec)
 			tapStoreBlock(tap);
@@ -352,6 +358,7 @@ void tapStop(Tape* tap) {
 
 int tapPlay(Tape* tap) {
 	if ((tap->block < tap->blkCount) && !tap->on) {
+		xlog(XLG_TAPE, XLL_INFO, "play, block %i of %i", tap->block, tap->blkCount);
 		tap->rec = 0;
 		tap->on = 1;
 		tap->blkData[tap->block].vol = 0;
@@ -399,6 +406,7 @@ void tapDetectLoader(Tape* tap, int tick, int regB) {
 }
 
 void tapRec(Tape* tap) {
+	xlog(XLG_TAPE, XLL_INFO, "record");
 	tap->on = 1;
 	tap->rec = 1;
 	tap->wait = 1;

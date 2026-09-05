@@ -92,6 +92,7 @@ long long paceClockNs() {
 
 void pacingInit() {
 	paceClock.start();
+	xlog_set_clock(paceClockNs);	// only now does it read anything sensible
 	paceLastNs = paceClock.nsecsElapsed();
 	paceRemainderNs = 0;
 	paceTimerId = SDL_AddTimer(PACE_TICK_MS, pace_tick, NULL);

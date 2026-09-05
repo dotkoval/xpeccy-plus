@@ -1,4 +1,5 @@
 #include <assert.h>
+#include "../xlog.h"
 #include <string.h>
 #include <time.h>
 
@@ -305,7 +306,7 @@ void c64_irq(Computer* comp, int t) {
 			cia_irq(comp->cia1, CIA_IRQ_FLAG);
 			break;
 		case IRQ_VIC:
-			printf("vic int\n");
+			xlogh(XLG_HW, XLL_DEBUG, "vic int");
 			comp->cpu->intrq |= MOS6502_INT_IRQ;
 			break;
 	}

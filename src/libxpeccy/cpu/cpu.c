@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "../xlog.h"
 #include <string.h>
 #include <stdio.h>
 #include <string.h>
@@ -223,7 +224,7 @@ int cpuSetLib(CPU* cpu, const char* dir, const char* fname) {
 		cpuSetCore(cpu, &tab[0]);
 		res = 1;
 	} else {
-		printf("%s\n",dlerror());
+		xlog(XLG_APP, XLL_ERROR, "cpu plugin: %s",dlerror());
 	}
 	return res;
 }

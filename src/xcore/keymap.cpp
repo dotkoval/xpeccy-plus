@@ -210,7 +210,7 @@ void loadKeys() {
 		sfnam = conf.path.confDir + SLASH + "keymaps" + SLASH + prf->kmapName;
 		file.open(sfnam);
 		if (!file.good()) {
-			printf("Can't open keyboard layout. Default one will be used\n");
+			xlog(XLG_INPUT, XLL_WARN, "can't open the keyboard layout, using the default one");
 			return;
 		}
 	}

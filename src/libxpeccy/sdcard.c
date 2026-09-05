@@ -1,4 +1,5 @@
 #include "sdcard.h"
+#include "xlog.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -186,7 +187,7 @@ void sdcExec(SDCard* sdc) {
 					sdcR1(sdc,0);
 					break;
 				default:
-					printf("undef ACMD %.2X\n",sdc->arg[0] & 0x3f);
+					xlog(XLG_DISK, XLL_WARN, "undef ACMD %.2X",sdc->arg[0] & 0x3f);
 					// assert(0);
 					break;
 			}
@@ -260,7 +261,7 @@ void sdcExec(SDCard* sdc) {
 					sdcR1(sdc,0);
 					break;
 				default:
-					printf("undef CMD %.2X\n",sdc->arg[0] & 0x3f);
+					xlog(XLG_DISK, XLL_WARN, "undef CMD %.2X",sdc->arg[0] & 0x3f);
 					// assert(0);
 					break;
 			}

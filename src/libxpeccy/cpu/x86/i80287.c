@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "../../xlog.h"
 #include <stdio.h>
 #include <math.h>
 #include <float.h>
@@ -158,7 +159,7 @@ double x87_rd_op(CPU* cpu, int t) {
 			}
 			break;
 		default:
-			printf("x87 memory format undefined\n");
+			xlog(XLG_CPU, XLL_WARN, "x87 memory format undefined");
 			break;
 	}
 	return res;

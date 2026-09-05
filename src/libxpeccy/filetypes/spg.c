@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 #include "unpackers/unpackers.h"
 #include "../cpu/Z80/z80.h"
 
@@ -67,7 +68,7 @@ int loadSPG(Computer* comp, const char* name, int drv) {
 				memcpy(comp->mem->ramData + (pg << 14) + addr, outbuf, sze);
 				break;
 			default:
-				printf("(%.2X,%.4X,%.4X) unknown compression\n",pg,addr,sze);
+				xlog(XLG_FILE, XLL_WARN, "(%.2X,%.4X,%.4X) unknown compression",pg,addr,sze);
 				break;
 		}
 

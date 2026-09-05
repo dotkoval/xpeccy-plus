@@ -401,7 +401,7 @@ void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 				// for debug
 				if ((ev->modifiers() & Qt::AltModifier) && (ev->key() == Qt::Key_PageUp)) {
 					comp->dif->fdc->debug ^= 1;
-					printf("dbg:%i\n",comp->dif->fdc->debug);
+					xlog(XLG_DISK, XLL_DEBUG, "fdc debug: %i", comp->dif->fdc->debug);
 				}
 				xkey_release(keyid);
 			}

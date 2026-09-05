@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 // msx tape signal timings
 // @ baud 1200 bps
@@ -92,7 +93,7 @@ int loadCAS(Computer* comp, const char* name, int drv) {
 			if (cas_sgn_chk(file)) {
 				blkClear(&blk);
 				t = fgetc(file) & 0xff;
-				printf("blk %.2X @ %li\n", t, ftell(file) - 1);
+				xlog(XLG_FILE, XLL_DEBUG, "blk %.2X @ %li", t, ftell(file) - 1);
 				switch (t) {
 					case 0xd3:
 						fseek(file, -1, SEEK_CUR);	// header
@@ -104,7 +105,7 @@ int loadCAS(Computer* comp, const char* name, int drv) {
 						cas_align(file);
 						if (cas_sgn_chk(file)) {
 							res = ERR_CAS_TYPE;
-							printf("block D3\n");
+							xlog(XLG_FILE, XLL_DEBUG, "block D3");
 							// read d3 block
 						} else {
 							res = ERR_CAS_SIGN;

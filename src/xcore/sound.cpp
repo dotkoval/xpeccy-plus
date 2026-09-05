@@ -185,10 +185,10 @@ void setOutput(const char* name) {
 	}
 	sndOutput = findOutSys(name);
 	if (sndOutput == NULL) {
-		printf("Can't find sound system '%s'. Reset to NULL\n",name);
+		xlog(XLG_SOUND, XLL_WARN, "no sound system '%s', falling back to none", name);
 		setOutput("NULL");
 	} else if (!sndOutput->open()) {
-		printf("Can't open sound system '%s'. Reset to NULL\n",name);
+		xlog(XLG_SOUND, XLL_WARN, "can't open sound system '%s', falling back to none", name);
 		setOutput("NULL");
 	}
 	sndHeld = sndPlaybackActive();
@@ -271,7 +271,7 @@ extern int sleepy;
 // NULL
 
 int null_open() {
-	printf("NULL device opening...\n");
+	xlog(XLG_SOUND, XLL_INFO, "no sound device");
 //	sndChunks = conf.snd.rate / 50 * DISCRATE;
 	return 1;
 }
@@ -355,10 +355,10 @@ int sdlopen() {
 	res = SDL_OpenAudio(&asp, &dsp);
 	if (res != 0) {
 #endif
-		printf("SDL audio device opening...failed (%s)\n", SDL_GetError());
+		xlog(XLG_SOUND, XLL_ERROR, "SDL audio device failed to open: %s", SDL_GetError());
 		res = 0;
 	} else {
-		printf("SDL audio device opening...success: %i %i (%i / %i)\n",dsp.freq, dsp.samples,dsp.format,AUDIO_S16LSB);
+		xlog(XLG_SOUND, XLL_INFO, "SDL audio open: %i Hz, %i samples, format %i (wanted %i)", dsp.freq, dsp.samples, dsp.format, AUDIO_S16LSB);
 //		sndChunks = dsp.samples * DISCRATE;
 		conf.snd.need = dsp.samples;
 		res = 1;			// the device stays paused: sndSync starts it once the ring is full
@@ -504,5 +504,5 @@ void snd_wav_write() {
 // debug
 
 void sndDebug() {
-	printf("%i - %i = %i\n",posf, posp, posf - posp);
+	xlog(XLG_SOUND, XLL_DEBUG, "ring: %i - %i = %i", posf, posp, posf - posp);
 }

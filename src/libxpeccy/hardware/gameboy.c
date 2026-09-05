@@ -1,4 +1,5 @@
 #include <string.h>
+#include "../xlog.h"
 
 #include "hardware.h"
 #include "../cpu/LR35902/lr35902.h"
@@ -86,7 +87,7 @@ int gbIORd(Computer* comp, int port) {
 			break;
 		default:
 #ifdef ISDEBUG
-			printf("GB: in %.4X\n",port);
+			xlog(XLG_HW, XLL_DEBUG, "GB: in %.4X",port);
 //			assert(0);
 #endif
 			break;
@@ -502,7 +503,7 @@ void gbIOWr(Computer* comp, unsigned short port, unsigned char val) {
 				comp->gbsnd->wave[dadr++] = ((val & 0xf0) | ((val & 0xf0) >> 4)) & 0xff;	// HH : high 4 bits
 				comp->gbsnd->wave[dadr] = ((val & 0x0f) | ((val & 0x0f) << 4)) & 0xff;		// LL : low 4 bits
 			} else {
-				printf("GB: out %.4X,%.2X\n",port,val);
+				xlogh(XLG_HW, XLL_DEBUG, "GB: out %.4X,%.2X",port,val);
 //				assert(0);
 			}
 			break;

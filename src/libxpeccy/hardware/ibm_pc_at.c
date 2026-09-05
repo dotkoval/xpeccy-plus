@@ -1,4 +1,5 @@
 #include <string.h>
+#include "../xlog.h"
 
 #include "hardware.h"
 #include "../video/vga.h"
@@ -249,7 +250,7 @@ int ibm_inCHP(Computer* comp, int adr) {
 
 void ibm_out80(Computer* comp, int adr, int val) {
 	if (comp->regPOST != (val & 0xff)) {
-		printf("%4X:%.4X\tPOST %.2X\n", comp->cpu->cs.idx, comp->cpu->regIP, val & 0xff);
+		xlog(XLG_HW, XLL_DEBUG, "%4X:%.4X\tPOST %.2X", comp->cpu->cs.idx, comp->cpu->regIP, val & 0xff);
 		comp->regPOST = val & 0xff;
 	}
 }
@@ -350,7 +351,7 @@ void ibm_fdc_wr(Computer* comp, int adr, int val) {
 // dma2.ch0(4) <-> dma1.ch1 : mem-mem
 
 int ibm_inDMA(Computer* comp, int adr) {
-	printf("DMA: rd %.3X\n",adr);
+	xlog(XLG_HW, XLL_DEBUG, "DMA: rd %.3X",adr);
 	return -1;
 }
 
@@ -503,14 +504,14 @@ int ibm_dumird(Computer* comp, int adr) {return -1;}
 void ibm_dumiwr(Computer* comp, int adr, int val) {}
 
 int ibm_inDBG(Computer* comp, int adr) {
-	printf("ibm %.4X:%.4X: in %.4X\n",comp->cpu->cs.idx,comp->cpu->oldpc, adr & 0xffff);
+	xlogh(XLG_HW, XLL_DEBUG, "ibm %.4X:%.4X: in %.4X",comp->cpu->cs.idx,comp->cpu->oldpc, adr & 0xffff);
 //	comp_brk(comp);
 //	assert(0);
 	return -1;
 }
 
 void ibm_outDBG(Computer* comp, int adr, int val) {
-	printf("ibm %.4X:%.4X: out %.4X,%.2X\n",comp->cpu->cs.idx,comp->cpu->oldpc, adr & 0xffff, val & 0xff);
+	xlogh(XLG_HW, XLL_DEBUG, "ibm %.4X:%.4X: out %.4X,%.2X",comp->cpu->cs.idx,comp->cpu->oldpc, adr & 0xffff, val & 0xff);
 //	comp_brk(comp);
 //	assert(0);
 }

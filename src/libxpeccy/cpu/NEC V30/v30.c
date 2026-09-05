@@ -2,6 +2,7 @@
 // uPD70116 (v30)
 
 #include "v30.h"
+#include "../../xlog.h"
 #include "v30regs.h"
 
 #include <stdio.h>
@@ -94,7 +95,7 @@ int v30_exec(CPU* cpu) {
 		} while (cpu->op->flag & OF_PREFIX);
 	}
 	if (cpu->flgEXC) {
-		printf("v30 exception (%i) @ %.4X:%.4X\n", cpu->regExcCode, cpu->regPS, cpu->oldpc);
+		xlog(XLG_CPU, XLL_WARN, "v30 exception (%i) @ %.4X:%.4X", cpu->regExcCode, cpu->regPS, cpu->oldpc);
 		cpu->regPC = cpu->oldpc;
 		v30_int(cpu, cpu->regExcCode);
 	}
