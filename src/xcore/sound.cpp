@@ -72,16 +72,17 @@ static int sndHeld = 0;
 // came to one: sndLowMark is the least the ring was left with after any block
 // since the last look. Raise at the first sign of that running thin, lower only
 // after a long clean spell - stepping down eagerly would walk the setting back
-// onto the edge and click there again and again. Both ways stop themselves: a
-// step down asks for two spare blocks after a callback, which no setting under
-// three blocks can show, and a step up asks for less than one, which none over
-// two blocks reaches unless the machine really is stuttering.
+// onto the edge and click there again and again. A step down asks for two spare
+// blocks after a callback and a step up for less than one, so both stop of their
+// own accord - but not at the setting the arithmetic suggests: the ring swings
+// well below its target, so the mark reads lower than that and it rests higher.
 #define SND_AUTO_WINDOW_MS	1000
 #define SND_AUTO_HALF_BLOCK	((SND_BLOCK_MS + 1) / 2)	// rounded up: never nothing
 #define SND_AUTO_UP_MS		SND_AUTO_HALF_BLOCK	// a near miss: a nudge
 #define SND_AUTO_UP_CLICK_MS	SND_BLOCK_MS		// it clicked: a whole block
 #define SND_AUTO_DOWN_MS	SND_AUTO_HALF_BLOCK	// the smallest step down
 #define SND_AUTO_DOWN_AFTER	60	// windows with room to spare before a step down
+#define SND_AUTO_DRY_HOLD	15	// windows before another dry one is answered
 #define SND_AUTO_GRACE		3	// windows to skip after a device starts: it takes
 									// its own fill out of the ring in one go
 #define SND_LOW_NONE		0x7fffffff	// no block was played in the window
@@ -93,6 +94,7 @@ static int sndLowMark = SND_LOW_NONE;	// written by the audio callback
 static int sndUnderruns = 0;		// blocks it found short, this window
 static int sndAutoGood = 0;
 static int sndAutoSkip = 0;
+static int sndAutoDryHold = 0;	// windows to sit out after answering a dry one
 static long long sndAutoLastNs = 0;
 // what the log was last told, so a change can be spotted whoever made it.
 // no setting can hold -1, so the first look states where the run starts.
@@ -103,6 +105,7 @@ static void snd_start_playback() {
 	sndHeld = 0;
 	sndLowMark = SND_LOW_NONE;
 	sndAutoSkip = SND_AUTO_GRACE;
+	sndAutoDryHold = 0;
 	if (sndOutput && sndOutput->play)
 		sndOutput->play();
 }
@@ -227,6 +230,7 @@ int sndPlaybackActive() {
 static void snd_auto_step(int low) {
 	if (!conf.snd.latauto || !sndPlaybackActive() || conf.emu.fast || conf.emu.pause) {
 		sndAutoSkip = SND_AUTO_GRACE;
+		sndAutoDryHold = 0;
 		return;
 	}
 	if (sndAutoSkip > 0) {
@@ -236,20 +240,35 @@ static void snd_auto_step(int low) {
 	if (low == SND_LOW_NONE) return;
 	int block = snd_ms_to_bytes(SND_BLOCK_MS);	// one callback block, in bytes
 	// A step only moves the target; the pacer then walks the ring to it, and
-	// slower the closer it gets, so arriving takes tens of seconds. Judging
-	// while it is still on the way reads the walk itself as a shortage and
-	// steps again, which ran the setting from 30 to 130 ms in under a minute.
-	// So wait for the ring to arrive before looking at what it was left with.
-	if (sndGetRingDistance() + block < sndGetRingTargetBytes()) return;
+	// slower the closer it gets, so arriving takes tens of seconds. Reading the
+	// walk itself as a shortage and stepping again ran the setting from 30 to
+	// 130 ms in under a minute, so the near miss below waits for the ring.
+	//
+	// Running out is different: that is a fact about the machine, not about the
+	// walk, and waiting swallowed it - the ring sits under its target exactly
+	// when a machine is in trouble, so the wait was shut for most of the
+	// emergencies on the machines that need this most. So answer at once, but
+	// not on every one: a tall step leaves the ring thin for a while, and
+	// answering that would climb to the ceiling on its own. So hold off until
+	// the ring has arrived, or a few seconds have passed - whichever is sooner,
+	// since a machine that never lets it arrive still has to be answered.
+	int arrived = (sndGetRingDistance() + block >= sndGetRingTargetBytes());
+	if (arrived) sndAutoDryHold = 0;
+	else if (sndAutoDryHold > 0) sndAutoDryHold--;
 	int lat = conf.snd.latency;
-	if (low > 2 * block) {		// three blocks in hand, one to spare
-		sndAutoGood++;
-	} else {
+	if (low < 0) {			// it ran out: the click was heard
+		if (sndAutoDryHold) return;
+		sndAutoDryHold = SND_AUTO_DRY_HOLD;
 		sndAutoGood = 0;
-	}
-	if (low < block) {			// one late callback away from a click
-		lat += (low > 0) ? SND_AUTO_UP_MS : SND_AUTO_UP_CLICK_MS;
-	} else if (sndAutoGood >= SND_AUTO_DOWN_AFTER) {
+		lat += SND_AUTO_UP_CLICK_MS;
+	} else if (!arrived) {
+		return;
+	} else if (low < block) {		// one late callback away from a click
+		sndAutoGood = 0;
+		lat += SND_AUTO_UP_MS;
+	} else if (low <= 2 * block) {	// no spare block: hold where it is
+		sndAutoGood = 0;
+	} else if (++sndAutoGood >= SND_AUTO_DOWN_AFTER) {
 		// give back half of what was never touched. creeping down by the
 		// smallest step from a hand set 100 ms took a quarter of an hour.
 		int spare = snd_bytes_to_ms(low - 2 * block);
