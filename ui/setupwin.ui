@@ -398,15 +398,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_24">
            <item>
             <widget class="QGroupBox" name="vidViewGBox">
-             <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
+             <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0" columnminimumwidth="55,0,0">
               <item row="1" column="0">
                <widget class="QLabel" name="label_8">
-                <property name="minimumSize">
-                 <size>
-                  <width>55</width>
-                  <height>0</height>
-                 </size>
-                </property>
                 <property name="text">
                  <string>Layout</string>
                 </property>
@@ -464,12 +458,6 @@
               </item>
               <item row="3" column="0">
                <widget class="QLabel" name="labShader">
-                <property name="minimumSize">
-                 <size>
-                  <width>55</width>
-                  <height>0</height>
-                 </size>
-                </property>
                 <property name="text">
                  <string>Shader</string>
                 </property>
@@ -480,12 +468,6 @@
               </item>
               <item row="4" column="0">
                <widget class="QLabel" name="label_3">
-                <property name="minimumSize">
-                 <size>
-                  <width>55</width>
-                  <height>0</height>
-                 </size>
-                </property>
                 <property name="text">
                  <string>Border</string>
                 </property>
@@ -534,12 +516,6 @@
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="labPalPreset">
-                <property name="minimumSize">
-                 <size>
-                  <width>55</width>
-                  <height>0</height>
-                 </size>
-                </property>
                 <property name="text">
                  <string>Palette</string>
                 </property>

@@ -82,18 +82,19 @@ void vid_upd_scale() {
 				fit = dhei / (double)vid->vsze.y;
 			drawW = (int)(picw * fit + 0.5);
 			drawH = (int)(vid->vsze.y * fit + 0.5);
+			drawZoom = (fit == 1.0) ? 1 : 0;
 		} else {
 			drawW = dwid;
 			drawH = dhei;
+			drawZoom = 0;				// stretched: no whole zoom
 		}
 	} else {
 		drawW = (int)(vid->vsze.x * xscale * conf.vid.scale);
 		drawH = vid->vsze.y * conf.vid.scale;
 		dwid = drawW;
 		dhei = drawH;
+		drawZoom = conf.vid.scale;
 	}
-	// only an exact 1:1 leaves the shader nothing to filter (MainWin::wantedShader)
-	drawZoom = ((drawW == (int)(vid->vsze.x * xscale)) && (drawH == vid->vsze.y)) ? 1 : 0;
 	drawX = (dwid - drawW) / 2;
 	drawY = (dhei - drawH) / 2;
 }

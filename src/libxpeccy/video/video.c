@@ -225,32 +225,37 @@ static int brd_max_x(Video* vid) {
 	return mx;
 }
 
-static void vid_crop_rect(Video* vid, int mode, vCoord* lcut, vCoord* rcut) {
-	int mx, my;
-	if (mode == VID_BRD_NATIVE) {				// whole visible area, as-is
-		lcut->x = 0;
-		lcut->y = 0;
-		*rcut = vid->vend;
-		return;
-	}
-	mx = brd_max_x(vid);
-	my = vid->bord.y;					// border above the screen
-	if (vid->full.y - vid->send.y < my)			// ...and below it
-		my = vid->full.y - vid->send.y;
-	if (brdMargin[mode].x < mx) mx = brdMargin[mode].x;
-	if (brdMargin[mode].y < my) my = brdMargin[mode].y;
-	lcut->x = vid->bord.x - mx;
-	lcut->y = vid->bord.y - my;
-	rcut->x = vid->send.x + mx;
-	rcut->y = vid->send.y + my;
+// The border a mode asks for on this machine, clamped to what the raster has.
+// A layout with less border than the mode wants (a hand-made one - no shipped
+// machine is like that) gets a smaller frame rather than black bars.
+static vCoord brd_margin(Video* vid, int mode) {
+	vCoord mrg;
+	mrg.x = brd_max_x(vid);
+	mrg.y = vid->bord.y;					// border above the screen
+	if (vid->full.y - vid->send.y < mrg.y)			// ...and below it
+		mrg.y = vid->full.y - vid->send.y;
+	if (brdMargin[mode].x < mrg.x) mrg.x = brdMargin[mode].x;
+	if (brdMargin[mode].y < mrg.y) mrg.y = brdMargin[mode].y;
+	return mrg;
 }
 
-// size of the frame a mode gives on this machine
+// the shown frame: the screen with that much border around it
+static void vid_crop_margin(Video* vid, vCoord mrg) {
+	vid->lcut.x = vid->bord.x - mrg.x;
+	vid->lcut.y = vid->bord.y - mrg.y;
+	vid->rcut.x = vid->send.x + mrg.x;
+	vid->rcut.y = vid->send.y + mrg.y;
+	vid->vsze.x = vid->rcut.x - vid->lcut.x;
+	vid->vsze.y = vid->rcut.y - vid->lcut.y;
+}
+
+// size of the frame a mode gives on this machine, changing nothing
 vCoord vid_crop_size(Video* vid, int mode) {
-	vCoord lcut, rcut, sze;
-	vid_crop_rect(vid, mode, &lcut, &rcut);
-	sze.x = rcut.x - lcut.x;
-	sze.y = rcut.y - lcut.y;
+	vCoord sze, mrg;
+	if (mode == VID_BRD_NATIVE) return vid->vend;
+	mrg = brd_margin(vid, mode);
+	sze.x = vid->scrn.x + 2 * mrg.x;
+	sze.y = vid->scrn.y + 2 * mrg.y;
 	return sze;
 }
 
@@ -260,20 +265,26 @@ vCoord vid_crop_size(Video* vid, int mode) {
 // keeps its shape, there is simply more border on show. Never narrower than
 // the border size asks for.
 void vid_widen_crop(Video* vid, int wid) {
+	vCoord mrg;
 	int mx;
 	if (vid->brdmode == VID_BRD_NATIVE) return;	// not a screen with a border around it
+	mrg = brd_margin(vid, vid->brdmode);
 	mx = (wid - vid->scrn.x) / 2;
 	if (mx > brd_max_x(vid)) mx = brd_max_x(vid);
-	if (mx <= vid->bord.x - vid->lcut.x) return;
-	vid->lcut.x = vid->bord.x - mx;
-	vid->rcut.x = vid->send.x + mx;
-	vid->vsze.x = vid->rcut.x - vid->lcut.x;
+	if (mx <= mrg.x) return;
+	mrg.x = mx;
+	vid_crop_margin(vid, mrg);
 }
 
 void vid_upd_crop(Video* vid) {
-	vid_crop_rect(vid, vid->brdmode, &vid->lcut, &vid->rcut);
-	vid->vsze.x = vid->rcut.x - vid->lcut.x;
-	vid->vsze.y = vid->rcut.y - vid->lcut.y;
+	if (vid->brdmode == VID_BRD_NATIVE) {		// whole visible area, as-is
+		vid->lcut.x = 0;
+		vid->lcut.y = 0;
+		vid->rcut = vid->vend;
+		vid->vsze = vid->vend;
+		return;
+	}
+	vid_crop_margin(vid, brd_margin(vid, vid->brdmode));
 }
 
 // new layout:
