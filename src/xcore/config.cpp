@@ -218,9 +218,11 @@ void saveConfig() {
 	fprintf(cfile, "rewind = %s\n", YESNO(conf.tape.rewind));
 
 	fprintf(cfile, "\n[INPUT]\n\n");
-	fprintf(cfile, "gamepad = %s\n", conf.gpctrl->gpada->lastName().toLocal8Bit().data());
+	// What each slot remembers, whether or not that pad is plugged in now.
+	// A sleeping wireless pad must read the same here as an awake one.
+	fprintf(cfile, "gamepad = %s\n", conf.gpctrl->gpada->padId().toConfig().toUtf8().data());
 	fprintf(cfile, "deadzone = %i\n", conf.gpctrl->gpada->deadZone());
-	fprintf(cfile, "gamepad2 = %s\n", conf.gpctrl->gpadb->lastName().toLocal8Bit().data());
+	fprintf(cfile, "gamepad2 = %s\n", conf.gpctrl->gpadb->padId().toConfig().toUtf8().data());
 	fprintf(cfile, "deadzone2 = %i\n", conf.gpctrl->gpadb->deadZone());
 
 	fprintf(cfile, "\n[LEDS]\n\n");
@@ -561,8 +563,8 @@ void loadConfig() {
 				case SECT_INPUT:
 					if (pnam=="deadzone") conf.gpctrl->gpada->setDeadZone(arg.i);
 					if (pnam=="deadzone2") conf.gpctrl->gpadb->setDeadZone(arg.i);
-					if (pnam=="gamepad") conf.gpctrl->gpada->setName(arg.s);
-					if (pnam=="gamepad2") conf.gpctrl->gpadb->setName(arg.s);
+					if (pnam=="gamepad") conf.gpctrl->gpada->setPadId(xPadId::fromConfig(arg.s));
+					if (pnam=="gamepad2") conf.gpctrl->gpadb->setPadId(xPadId::fromConfig(arg.s));
 					break;
 				case SECT_VIDEO:
 					if (pnam=="layout") {
@@ -731,8 +733,8 @@ void loadConfig() {
 			}
 		}
 	}
-	conf.gpctrl->gpada->open();
-	conf.gpctrl->gpadb->open();
+	padLoadControllerDb();		// before the pads open, it decides their layout
+	conf.gpctrl->rescan();
 	foreach(xRomset rs, rsListist) addRomset(rs);
 //	prfLoadAll();
 	setOutput(soutnam.c_str());

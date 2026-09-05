@@ -138,6 +138,10 @@ void MainWin::pause(bool p, int msk) {
 		setWindowIcon(icon);
 		if (grabMice)
 			grabMouse(QCursor(Qt::BlankCursor));
+		// input was ignored while paused: read the pads afresh, or a
+		// direction held across the pause stays dead until it is let go
+		conf.gpctrl->gpada->resync();
+		conf.gpctrl->gpadb->resync();
 	}
 }
 
@@ -183,10 +187,8 @@ MainWin::MainWin() {
 
 //	conf.joy.gpad->open(); // conf.joy.curName);
 
-	connect(conf.gpctrl->gpada, SIGNAL(buttonChanged(int,bool)), this, SLOT(gpButtonChanged(int,bool)));
-	connect(conf.gpctrl->gpada, SIGNAL(axisChanged(int,double)), this, SLOT(gpAxisChanged(int,double)));
-	connect(conf.gpctrl->gpadb, SIGNAL(buttonChanged(int,bool)), this, SLOT(gpButtonChanged(int,bool)));
-	connect(conf.gpctrl->gpadb, SIGNAL(axisChanged(int,double)), this, SLOT(gpAxisChanged(int,double)));
+	connect(conf.gpctrl->gpada, SIGNAL(inputChanged(int,int,int)), this, SLOT(gpInputChanged(int,int,int)));
+	connect(conf.gpctrl->gpadb, SIGNAL(inputChanged(int,int,int)), this, SLOT(gpInputChanged(int,int,int)));
 
 	initFileDialog(this);
 	initUserMenu();
@@ -334,62 +336,17 @@ void MainWin::mapPress(Computer* comp, xJoyMapEntry ent) {
 // TODO: choose gamepad (gpad/gpadb)
 void MainWin::mapJoystick(xGamepad* gp, Computer* comp, int type, int num, int st) {
 	QList<xJoyMapEntry> presslist = gp->scanMap(type, num, st);
-#if 0
-	int state;
-	int hst;
-	if (type == JOY_HAT) {
-		state = st;
-		hst = jState[type][num] ^ st;		// changed only
-	} else {
-		state = sign(st);
-		hst = 0;
+	// what each slot really delivers: the first half of "the pad does
+	// nothing" is usually that its map has nothing to say about that button
+	if (xlog_on(XLG_INPUT, XLL_DEBUG)) {
+		xJoyMapEntry ev;
+		ev.type = type;
+		ev.num = num;
+		ev.state = st;
+		xlog_put(XLG_INPUT, XLL_DEBUG, "pad %c: %s -> %i binding(s)",
+			(gp == conf.gpctrl->gpada) ? 'A' : 'B',
+			xGamepad::getEntryName(ev).toUtf8().data(), (int)presslist.size());
 	}
-	if (jState[type][num] == state) return;
-	jState[type][num] = state;
-	// xJoyMapEntry xjm;
-	QList<xJoyMapEntry> presslist;
-	// QList<xJoyMapEntry>::iterator it;
-	for (int i = 0; i < gp->map.size(); i++) {
-		xJoyMapEntry& xjm = gp->map[i];
-		if ((type == xjm.type) && (num == xjm.num)) {
-			if ((state == 0) && (type != JOY_HAT)) {
-				mapRelease(comp, xjm);
-				xjm.cnt = 0;
-			} else {
-				switch(type) {
-					case JOY_AXIS:
-						if (sign(state) == sign(xjm.state)) {
-							xjm.state = st;
-							xjm.cnt = xjm.rpt;
-							xjm.rps = 1;
-							presslist.append(xjm);
-						} else {
-							xjm.cnt = 0;
-							mapRelease(comp, xjm);
-						}
-						break;
-					case JOY_HAT:
-						if (hst & xjm.state) {			// state changed
-							if (state & xjm.state) {	// pressed
-								xjm.cnt = xjm.rpt;
-								xjm.rps = 1;
-								presslist.append(xjm);
-							} else {			// released
-								xjm.cnt = 0;
-								mapRelease(comp, xjm);
-							}
-						}
-						break;
-					case JOY_BUTTON:
-						xjm.cnt = xjm.rpt;
-						xjm.rps = 1;
-						presslist.append(xjm);
-						break;
-				}
-			}
-		}
-	}
-#endif
 	foreach(xJoyMapEntry xjm, presslist) {
 		if (xjm.rps) {
 			mapPress(comp, xjm);
@@ -401,19 +358,15 @@ void MainWin::mapJoystick(xGamepad* gp, Computer* comp, int type, int num, int s
 
 // for xGamepad
 
-// A,B,X,Y,L1,L3,R1,R3,Up,Down,Left,Right,Start,Select,Center,Guide
-void MainWin::gpButtonChanged(int n, bool v) {
+void MainWin::gpInputChanged(int type, int num, int state) {
 	if (conf.emu.pause) return;
 	if (!isActiveWindow()) return;
 	xGamepad* gp = (xGamepad*)sender();
-	mapJoystick(gp, conf.prof.cur->zx, JOY_BUTTON, n, v);
-}
-// LX,LY,Rx,RY,L2,R2
-void MainWin::gpAxisChanged(int n, double v) {
-	if (conf.emu.pause) return;
-	if (!isActiveWindow()) return;
-	xGamepad* gp = (xGamepad*)sender();
-	mapJoystick(gp, conf.prof.cur->zx, JOY_AXIS, n, v * 32767);
+	// an axis reaches the map at full deflection, the way it always did -
+	// mouse bindings take their step from the size of it
+	if ((type == JOY_AXIS) || (type == JOY_CAXIS))
+		state *= 32767;
+	mapJoystick(gp, conf.prof.cur->zx, type, num, state);
 }
 
 // calling on timer every 20ms
@@ -569,6 +522,8 @@ void MainWin::focusOutEvent(QFocusEvent*) {
 }
 
 void MainWin::focusInEvent(QFocusEvent*) {
+	conf.gpctrl->gpada->resync();		// same as leaving a pause
+	conf.gpctrl->gpadb->resync();
 	if (conf.emu.pause & PR_DEBUG)
 		emit s_debug();
 	if (grabMice) {

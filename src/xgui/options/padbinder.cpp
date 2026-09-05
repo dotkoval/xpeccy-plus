@@ -78,8 +78,7 @@ void xPadBinder::start(xGamepad* gp, xJoyMapEntry e) {
 	}
 
 	ui.pbRepSlider->setValue(ent.rpt);
-	connect(gpad, SIGNAL(buttonChanged(int,bool)), this, SLOT(gpButtonChanged(int,bool)));
-	connect(gpad, SIGNAL(axisChanged(int,double)), this, SLOT(gpAxisChanged(int,double)));
+	connect(gpad, SIGNAL(inputChanged(int,int,int)), this, SLOT(gpInputChanged(int,int,int)), Qt::UniqueConnection);
 	show();
 }
 
@@ -115,29 +114,12 @@ void xPadBinder::setKeyButtonText() {
 }
 
 void xPadBinder::setPadButtonText() {
-	QString dir;
-	switch (ent.type) {
-		case JOY_HAT:
-			switch(ent.state) {
-				case SDL_HAT_UP: dir = "up"; break;
-				case SDL_HAT_DOWN: dir = "down"; break;
-				case SDL_HAT_LEFT: dir = "left"; break;
-				case SDL_HAT_RIGHT: dir = "right"; break;
-			}
-			ui.pbPadBind->setText(QString("Hat %0 %1").arg(ent.num).arg(dir));
-			break;
-		case JOY_BUTTON:
-			//ui.pbPadBind->setText(QString("Button %0").arg(ent.num));
-			ui.pbPadBind->setText(xGamepad::getButtonName(ent.num));
-			break;
-		case JOY_AXIS:
-			ui.pbPadBind->setText(QString("Axis %0 %1").arg(ent.num).arg((ent.state < 0) ? "-" : "+"));
-			break;
-		default:
-			ent.type = JOY_NONE;
-			ui.pbPadBind->setText("Push to bind");
-			break;
+	QString nm = xGamepad::getEntryName(ent);
+	if (nm.isEmpty()) {
+		ent.type = JOY_NONE;
+		nm = "Push to bind";
 	}
+	ui.pbPadBind->setText(nm);
 	ui.pbOk->setEnabled((ent.type != JOY_NONE) && (ent.dev != JMAP_NONE));
 }
 
@@ -269,29 +251,20 @@ void xPadBinder::reject() {
 
 // scan gamepad
 
-void xPadBinder::gpButtonChanged(int n, bool v) {
-	if (v && isActiveWindow()) {
-		xGamepad* gp = (xGamepad*)sender();
-		if (gp == gpad) {
-			ent.type = JOY_BUTTON;
-			ent.num = n;
-			ent.state = 1;
-			mode = PBMODE_FREE;
-			setPadButtonText();
-		}
-	}
-}
-
-void xPadBinder::gpAxisChanged(int n, double v) {
-	xGamepad* gp = (xGamepad*)sender();
-	if ((absd(v) > gp->deadZone() / 32768.0) && isActiveWindow()) {
-		if (gp == gpad) {
-			ent.type = JOY_AXIS;
-			ent.num = n;
-			ent.state = (v < 0) ? -1 : 1;
-			mode = PBMODE_FREE;
-			setPadButtonText();
-		}
-	}
+// Bind to what the pad reports. On a pad SDL knows the layout of that is the
+// named button, not the raw number, so the map keeps working on the next
+// machine and the next platform.
+void xPadBinder::gpInputChanged(int type, int num, int state) {
+	if (!isActiveWindow()) return;
+	if ((xGamepad*)sender() != gpad) return;
+	if (state == 0) return;			// a release is not a binding
+	if (type == JOY_HAT) return;		// a hat also arrives as four buttons, bind those
+	if (gpad->isController() && ((type == JOY_BUTTON) || (type == JOY_AXIS)))
+		return;				// the same push in raw form: ignore it
+	ent.type = type;
+	ent.num = num;
+	ent.state = (state < 0) ? -1 : 1;
+	mode = PBMODE_FREE;
+	setPadButtonText();
 }
 

@@ -26,8 +26,7 @@ class xPadBinder : public QDialog {
 		void onRepSlider(int);
 		void seqFinished();
 
-		void gpButtonChanged(int, bool);
-		void gpAxisChanged(int, double);
+		void gpInputChanged(int, int, int);
 	private:
 		Ui::PadBinder ui;
 		xGamepad* gpad;
