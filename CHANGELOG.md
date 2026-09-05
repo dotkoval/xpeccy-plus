@@ -11,6 +11,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- The ROM/RAM boxes in the debugger's memory map are no longer stretched wide when the
+  debugger opens.
 - Recording to WAV writes the file at the rate and depth the emulator is really playing
   at - it always claimed 44100 Hz, 8 bit - and the grainy beat that used to ride on the
   recording is gone.
