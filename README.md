@@ -38,17 +38,24 @@ so patches, ideas and bug reports are welcome.
 - **A modern build.** Qt 6 and a current SDL, dropping the old paths behind.
 - **Documentation** that actually explains things.
 
-Accuracy is not traded away for any of this. The emulation core is inherited from Xpeccy
-and keeps doing its job; the work here goes into everything around it.
+Accuracy is not traded away for any of this. Most of the work goes into everything around
+the emulation core - but where the core itself was wrong, it was fixed.
 
 ## What is already different
 
-On top of upstream build `20260807`: accurate memory contention on the Sinclair machines,
-lower input lag, a tape or disk that starts by itself when opened, a host folder standing in
-for an SD card or a hard disk, a release bundled with rom sets and machine profiles, macOS
-builds, eight interface styles, a debugger with movable panels, conditional breakpoints and a
-listing that reads like one, a memory heat map and AF/AF' in it, a working ZX Evo (TSConf),
-and tape loading fixes.
+On top of upstream build `20260807`:
+
+- **Timing.** Memory contention on the 48K, 128K, +2 and +2A/+3 matches a real machine, and
+  frames are handed over at the machine's real rate rather than on a 20 ms timer.
+- **Input lag** on a par with Spectaculator, measured with a photosensor.
+- **Ready to use.** Releases carry rom sets and a profile per machine, so it runs straight
+  out of the archive. macOS builds included.
+- **Media that starts itself.** A tape or disk opens and runs, from the menu, a drop or the
+  command line. A host folder can stand in for an SD card or a hard disk.
+- **A debugger worth using.** Movable panels, conditional breakpoints, a listing that reads
+  like one, a memory heat map, register layouts to choose from.
+- **Looks.** Eight interface styles, five border sizes, a picture always at whole pixels.
+- **Fixes.** A working ZX Evo (TSConf), tape loading, sound that does not click.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list.
 
