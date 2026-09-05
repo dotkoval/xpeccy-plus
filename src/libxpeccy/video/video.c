@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "../xlog.h"
 #include <string.h>
 #include <math.h>
 
@@ -281,7 +282,7 @@ void vid_set_layout(Video* vid, vLayout* lay) {
 void vid_set_resolution(Video* vid, int w, int h) {
 	if ((vid->vsze.y == h) && (vid->vsze.x == w)) return;
 	if ((vid->vsze.x <= 0) || (vid->vsze.y <= 0)) return;
-	printf("vid_set_resolution %i x %i\n",w,h);
+	xlog(XLG_VIDEO, XLL_DEBUG, "vid_set_resolution %i x %i",w,h);
 	vid->res.x = w;
 	vid->res.y = h;
 	vid->scrn = vid->res;
@@ -871,7 +872,7 @@ void vidC64Fram(Video*);
 // debug
 
 void vidBreak(Video* vid) {
-	printf("vid->mode = 0x%.2X\n",vid->vmode);
+	xlog(XLG_VIDEO, XLL_DEBUG, "vid->mode = 0x%.2X",vid->vmode);
 	// assert(0);
 }
 

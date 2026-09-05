@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 #include <string.h>
 
@@ -136,10 +137,10 @@ int loadT64(Computer* comp, const char* fname, int drv) {
 			fgetw(file);			// not used
 			fread(buf, 24, 1, file);	// description
 			buf[24] = 0x00;
-			printf("ver: %.4X\n",ver);
-			printf("max ent: %i\n",maxent);
-			printf("tot ent: %i\n",totent);
-			printf("container: %s\n",buf);
+			xlog(XLG_FILE, XLL_DEBUG, "ver: %.4X",ver);
+			xlog(XLG_FILE, XLL_DEBUG, "max ent: %i",maxent);
+			xlog(XLG_FILE, XLL_DEBUG, "tot ent: %i",totent);
+			xlog(XLG_FILE, XLL_DEBUG, "container: %s",buf);
 			for(i = 0; i < totent; i++) {
 				filetype = fgetc(file) & 0xff;		// 00:free entry(skip), 01:normal tape file, 02:block with header, 03:snapshot, 04:tape block, 05:digitize
 				ft_1541 = fgetc(file) & 0xff;		// C64 file type (82:prg)
@@ -237,11 +238,11 @@ int loadC64RawTap(Computer* comp, const char* name, int dsk) {
 				tap_add_block(comp->tape, blk);
 				blkClear(&blk);
 			} else {
-				printf("2:err\n");
+				xlog(XLG_FILE, XLL_WARN, "2:err");
 				err = ERR_C64T_SIGN;	// version 2+
 			}
 		} else {
-			printf("1:err\n");
+			xlog(XLG_FILE, XLL_WARN, "1:err");
 			err = ERR_C64T_SIGN;
 		}
 		fclose(file);

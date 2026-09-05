@@ -1,4 +1,5 @@
 #include "1801vm1.h"
+#include "../../xlog.h"
 
 #include <assert.h>
 #include <stdio.h>
@@ -262,7 +263,7 @@ static unsigned short twdst;
 static int twres;
 
 void pdp_undef(CPU* cpu) {
-	printf("undef command %.4X : %.4X\n", cpu->regRN(7) - 2, cpu->com);
+	xlog(XLG_CPU, XLL_WARN, "undef command %.4X : %.4X", cpu->regRN(7) - 2, cpu->com);
 //	cpu->xirq(IRQ_BRK, cpu->xptr);
 	cpu->regMCIR = 5;
 	cpu->regVCEL = 2;

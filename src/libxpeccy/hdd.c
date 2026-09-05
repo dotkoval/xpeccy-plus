@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include "xlog.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -341,7 +342,7 @@ void ataExec(ATADev* dev, unsigned char cm) {
 						break;
 					default:
 						ataAbort(dev);
-						printf("HDD exec: command %.2X isn't emulated\n",cm);
+						xlog(XLG_DISK, XLL_WARN, "HDD exec: command %.2X isn't emulated",cm);
 						break;
 				}
 				break;
@@ -406,7 +407,7 @@ unsigned short ataRd(ATADev* dev,int prt) {
 			// this register doesn't reset interrupt line
 			break;
 		default:
-			printf("HDD in: port %.3X isn't emulated\n",prt);
+			xlogh(XLG_DISK, XLL_DEBUG, "HDD in: port %.3X isn't emulated",prt);
 //			throw(0);
 	}
 	return res;
@@ -476,7 +477,7 @@ void ataWr(ATADev* dev, int prt, unsigned short val) {
 		case HDD_FEAT:
 			break;
 		default:
-			printf("HDD out: port %.3X isn't emulated\n",prt);
+			xlogh(XLG_DISK, XLL_DEBUG, "HDD out: port %.3X isn't emulated",prt);
 //			throw(0);
 	}
 }
@@ -940,7 +941,7 @@ void ide_pc98_exec(IDE* ide) {
 		} else {
 			ide->flgBSY = 0;
 			ide->regERR = 2;		// 10:succes
-			printf("pc9801 ide exec com (NULL): %.2X\n", ide->regCOM);
+			xlog(XLG_DISK, XLL_DEBUG, "pc9801 ide exec com (NULL): %.2X", ide->regCOM);
 		}
 	}
 }

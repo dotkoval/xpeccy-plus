@@ -19,6 +19,7 @@
 #include <QMap>
 
 #include "../libxpeccy/spectrum.h"
+#include "../libxpeccy/xlog.h"
 #include "../libxpeccy/filetypes/filetypes.h"
 #include "gamepad.h"
 #include "xexpr.h"
@@ -526,6 +527,13 @@ struct xConfig {
 		unsigned fps:1;
 		unsigned halt:1;
 	} led;
+	struct {
+		unsigned enabled:1;	// write the log file
+		unsigned console:1;	// mirror the log to stdout
+		int level;		// the level a group follows unless set apart
+		signed char grp[XLG_COUNT];	// XLOG_FOLLOW, or a level of its own
+		std::string dir;	// holds logs/; empty = beside the binary
+	} log;
 	struct {
 		std::string confDir;
 		std::string confFile;

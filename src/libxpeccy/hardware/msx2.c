@@ -1,4 +1,5 @@
 #include "hardware.h"
+#include "../xlog.h"
 
 #define pFFFF	reg[17]
 #define pF5	reg[18]
@@ -71,7 +72,7 @@ int msx2mrd(Computer* comp, int adr, int m1) {
 	int res = -1;
 #if 0
 	if (0 & ((adr & 0xfff8) == 0x7ff8)) {					// fdc io
-		printf("rd %X\n",adr & 7);
+		xlog(XLG_HW, XLL_DEBUG, "rd %X",adr & 7);
 		comp->brk = 1;
 		switch(adr & 7) {
 			case 0: difIn(comp->dif, FDC_COM, &res, 1); break;

@@ -1,6 +1,7 @@
 #ifdef HAVEZLIB
 
 #include <stdio.h>
+#include "../xlog.h"
 #include <zlib.h>
 
 #include "filetypes.h"
@@ -87,7 +88,7 @@ void rzxGetFrame(Computer* comp) {
 								}
 								break;
 							default:
-								printf("unknown snapshot type\n");
+								xlog(XLG_FILE, XLL_WARN, "unknown snapshot type");
 								rzxStop(comp);
 								work = 0;
 								// fseek(comp->rzx.file, len - 1, SEEK_CUR);
@@ -167,7 +168,7 @@ int loadRZX(Computer* comp, const char* name, int drv) {
 		if (strncmp(hd.sign,"RZX!",4)) {
 			err = ERR_RZX_SIGN;
 		} else {
-			printf("RZX ver %i.%i\n",hd.major,hd.minor);
+			xlog(XLG_FILE, XLL_DEBUG, "RZX ver %i.%i",hd.major,hd.minor);
 			comp->rzx.file = tmpfile(); // fopen("/home/sam/rzx.tmp","w+b");
 			if (!comp->rzx.file) {
 				err = ERR_CANT_OPEN;

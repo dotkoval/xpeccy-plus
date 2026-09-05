@@ -1,7 +1,8 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 int loadSlot(Computer* comp, const char* name, int drv) {
-	printf("loadSlot %s\n", name);
+	xlog(XLG_FILE, XLL_DEBUG, "loadSlot %s", name);
 	xCartridge* slot = comp->slot;
 	FILE* file = fopen(name, "rb");
 	if (!file) return ERR_CANT_OPEN;

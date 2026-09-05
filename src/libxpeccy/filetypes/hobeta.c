@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 #include <string.h>
 // #include <numeric>
 
@@ -19,7 +20,7 @@ int loadHobeta(Computer* comp, const char* name, int drv) {
 	unsigned char buf[0x10000];
 	TRFile nfle;
 
-	printf("drv %i : %i\n", drv, flp->insert);
+	xlog(XLG_FILE, XLL_DEBUG, "drv %i : %i", drv, flp->insert);
 	if (!flp->insert) {
 		flp_insert(flp, NULL);
 		trd_format(flp);

@@ -1,4 +1,5 @@
 #include <string.h>
+#include "../xlog.h"
 #include <stdio.h>
 
 #include "upd7220.h"
@@ -242,7 +243,7 @@ void upd7220_exec(Video* vid, upd7220* upd) {
 	if (itm->exec != NULL) {
 		itm->exec(vid, upd);	// execute command
 	} else if (itm->com != 0) {
-		printf("upd7220 command %.2X not implemented\n", upd->inbuf.data[0]);
+		xlog(XLG_VIDEO, XLL_DEBUG, "upd7220 command %.2X not implemented", upd->inbuf.data[0]);
 		vid_irq(vid, IRQ_BRK);
 	}
 }

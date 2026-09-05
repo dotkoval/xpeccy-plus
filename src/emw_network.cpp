@@ -13,7 +13,7 @@ void MainWin::openServer() {
 	if (!srv.isListening()) {
 		shitHappens("Listen server can't start");
 	} else {
-		printf("Listening port %i\n", (conf.port + i) & 0xffff);
+		xlog(XLG_NET, XLL_INFO, "listening on port %i", (conf.port + i) & 0xffff);
 	}
 }
 

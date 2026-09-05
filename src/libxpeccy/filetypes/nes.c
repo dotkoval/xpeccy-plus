@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 #pragma pack(push, 1)
 
@@ -69,7 +70,7 @@ int loadNes(Computer* comp, const char* name, int drv) {
 				break;
 		}
 
-		printf("\nMapper #%.3X\n", maper);
+		xlog(XLG_FILE, XLL_DEBUG, "Mapper #%.3X", maper);
 		xCardCallback* core = sltFindMaper(MAPER_NES, maper);
 		if (core->id == MAP_UNKNOWN) {
 			res = ERR_NES_MAPPER;
@@ -84,7 +85,7 @@ int loadNes(Computer* comp, const char* name, int drv) {
 			memset(slot->brkMap, 0x00, tsiz);		// init
 			slot->memMask = tsiz - 1;
 			slot->prglast = slot->memMask >> 14;		// last 16K page number
-			printf("PRGROM:%i x 16K, mask %X\n", hd.nprg, slot->memMask);
+			xlog(XLG_FILE, XLL_DEBUG, "PRGROM:%i x 16K, mask %X", hd.nprg, slot->memMask);
 			fread(slot->data, hd.nprg << 14, 1, file);
 
 			if (hd.nchr == 0) {				// no CHR-ROM
@@ -99,16 +100,16 @@ int loadNes(Computer* comp, const char* name, int drv) {
 				slot->chrMask = tsiz - 1;
 				fread(slot->chrrom, hd.nchr << 13, 1, file);
 			}
-			printf("CHRROM:%i x  8K, mask %X\n",hd.nchr, slot->chrMask);
+			xlog(XLG_FILE, XLL_DEBUG, "CHRROM:%i x  8K, mask %X",hd.nchr, slot->chrMask);
 
 			if (hd.flag6 & 8) {
-				printf("Mirroring : quatro\n");
+				xlog(XLG_FILE, XLL_DEBUG, "Mirroring : quatro");
 				slot->mirror = NES_NT_QUATRO;		// full 4-screen nametable
 			} else if (hd.flag6 & 1) {
-				printf("Mirroring : vert\n");
+				xlog(XLG_FILE, XLL_DEBUG, "Mirroring : vert");
 				slot->mirror = NES_NT_VERT;		// down screens (2800, 2c00) = upper screens (2000, 2400) : CIRAM A10 = VA10
 			} else {
-				printf("Mirroring : horiz\n");
+				xlog(XLG_FILE, XLL_DEBUG, "Mirroring : horiz");
 				slot->mirror = NES_NT_HORIZ;		// right sceens (2400, 2c00) = left sceens (2000, 2800) : CIRAM A10 = VA11
 			}
 			slot->ramMask = 0x1fff;		// TODO: ram bankswitches

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "xlog.h"
 #include <string.h>
 
 #include "fdc.h"
@@ -12,7 +13,7 @@
 #define F_SR1_NW	0x02	// write protect
 
 #ifdef ISDEBUG
-#define DBGOUT(args...) printf(args)
+#define DBGOUT(args...) xlog(XLG_DISK, XLL_DEBUG, args)
 #else
 #define DBGOUT(args...)
 #endif
@@ -913,7 +914,7 @@ void uWrite(FDC* fdc, int adr, unsigned char val) {
 		fdc->data = val;
 		fdc->drq = 0;
 	} else if (val == 0x04) {
-		printf("sense drive status\n");
+		xlog(XLG_DISK, XLL_DEBUG, "sense drive status");
 	}
 }
 

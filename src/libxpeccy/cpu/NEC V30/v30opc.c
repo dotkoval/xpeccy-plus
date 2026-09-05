@@ -1,4 +1,5 @@
 #include "v30.h"
+#include "../../xlog.h"
 #include "v30regs.h"
 
 #include <stdio.h>
@@ -195,7 +196,7 @@ void v30_wr_ea(CPU* cpu, int v, int w) {
 }
 
 void v30_undef(CPU* cpu) {
-	printf("v30: undef opcode @ %X:%X\n", cpu->regPS, cpu->oldpc);
+	xlog(XLG_CPU, XLL_WARN, "v30: undef opcode @ %X:%X", cpu->regPS, cpu->oldpc);
 	cpu_irq(cpu, IRQ_PANIC);
 //	THROW(V30_INT_UD);		// no #UD exception before 286
 }

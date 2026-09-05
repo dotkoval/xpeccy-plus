@@ -1,5 +1,6 @@
 #include "emulwin.h"
 #include "xcore/vscalers.h"
+#include "xcore/log.h"
 
 #include <QRegularExpression>
 #include <algorithm>
@@ -180,17 +181,21 @@ void MainWin::initializeGL() {
 	// what the driver actually gave us, not what was asked for: the shaders are
 	// written against #version 330, and a context older than that explains a
 	// black window better than any guess
+	conf.vid.shd_support = QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Vertex) && QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Fragment);
 	if (QOpenGLContext* ctx = QOpenGLContext::currentContext()) {
 		const QSurfaceFormat f = ctx->format();
 		const char* prof =
 			(f.profile() == QSurfaceFormat::CoreProfile) ? "core" :
 			(f.profile() == QSurfaceFormat::CompatibilityProfile) ? "compatibility" : "no";
-		qDebug() << "GL context:" << f.majorVersion() << "." << f.minorVersion() << prof << "profile,"
-			 << (ctx->isOpenGLES() ? "ES" : "desktop")
-			 << "| GL_VERSION" << (const char*)glGetString(GL_VERSION)
-			 << "| GLSL" << (const char*)glGetString(GL_SHADING_LANGUAGE_VERSION);
+		xlog(XLG_GL, XLL_INFO, "context %d.%d %s profile, %s | vendor %s | renderer %s | version %s | glsl %s | shaders %s",
+			f.majorVersion(), f.minorVersion(), prof,
+			ctx->isOpenGLES() ? "ES" : "desktop",
+			(const char*)glGetString(GL_VENDOR),
+			(const char*)glGetString(GL_RENDERER),
+			(const char*)glGetString(GL_VERSION),
+			(const char*)glGetString(GL_SHADING_LANGUAGE_VERSION),
+			conf.vid.shd_support ? "yes" : "no");
 	}
-	conf.vid.shd_support = QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Vertex) && QOpenGLShader::hasOpenGLShaders(QOpenGLShader::Fragment);
 	curtex = 0;
 	// nothing has been rendered yet, see paintEvent
 	curtxid = 0;
@@ -240,7 +245,7 @@ void MainWin::initializeGL() {
 #endif
 
 	loadShader();
-	if (!conf.vid.shd_support) qDebug() << "WARNING: Shaders not supported";
+	if (!conf.vid.shd_support) xlog(XLG_GL, XLL_WARN, "shaders are not supported");
 	qDebug() << "end:" << __FUNCTION__;
 }
 
@@ -341,7 +346,7 @@ void MainWin::loadShader() {
 		conf.vid.shader.clear();
 		loadShader();
 	} else {
-		qDebug() << "FATAL: default shader failed to compile/link";
+		xlog(XLG_GL, XLL_ERROR, "the default shader failed to compile or link");
 	}
 #endif
 }

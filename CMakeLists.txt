@@ -23,6 +23,19 @@ option(XRELEASE "build as a release version" OFF)
 # (see cmake/windeploy.cmake.in for the list and why each one goes)
 option(TRIMDEPLOY "trim unused Qt plugins from the installed folder" ON)
 
+# Build the xlogh() calls: the ones that would fire per port access, per dot or
+# per sample. Off, they are not in the binary at all (see libxpeccy/xlog.h).
+option(XLOGHOT "build the hot-path log calls" OFF)
+if(XLOGHOT)
+	add_definitions(-DXLOG_HOT)
+endif()
+
+# The log locks with a plain pthread mutex, the first thing in libxpeccy that
+# needs the threads library by name rather than through Qt
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+set(LIBRARIES ${LIBRARIES} Threads::Threads)
+
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 include(${CMAKE_ROOT}/Modules/FindPackageHandleStandardArgs.cmake)
 

@@ -1,4 +1,5 @@
 #include "video.h"
+#include "../xlog.h"
 #include "vidcommon.h"
 
 #include <stdio.h>
@@ -733,8 +734,8 @@ xVDPArgs vdp_get_hcom(Video* vid, vCoord crd, vCoord rect) {
 // TODO: block commands executed line by line
 
 void vdp_com_info(Video* vid) {
-	printf("vdp9938 command %.2X, arg %.2X\n",vid->com, vid->arg);
-	printf("src:%i %i\ndst:%i %i\nrct:%i %i\n", vid->src.x, vid->src.y, vid->dst.x, vid->dst.y, vid->rct.x, vid->rct.y);
+	xlog(XLG_VIDEO, XLL_DEBUG, "vdp9938 command %.2X, arg %.2X",vid->com, vid->arg);
+	xlog(XLG_VIDEO, XLL_DEBUG, "src:%i %i dst:%i %i rct:%i %i", vid->src.x, vid->src.y, vid->dst.x, vid->dst.y, vid->rct.x, vid->rct.y);
 }
 
 // static unsigned char cbuf[512];
@@ -866,7 +867,7 @@ void vdpExec(Video* vid) {
 			vid->sr[2] &= ~0x81;
 			break;
 		default:
-			printf("vdp9938 command %.2X, arg %.2X\n",vid->com, vid->arg);
+			xlog(XLG_VIDEO, XLL_ERROR, "vdp9938 command %.2X, arg %.2X",vid->com, vid->arg);
 			vid->sr[2] &= ~0x81;
 			assert(0);
 			break;
@@ -896,7 +897,7 @@ void vdpRegWr(Video* vid, int reg, unsigned char val) {
 				case 0x14: vdpSetMode(vid, VDP_GRA6); break;	// 512x212,4bpp
 				case 0x1c: vdpSetMode(vid, VDP_GRA7); break;	// 256x212,8bpp
 				default:
-					printf("v9938 mode %.2X\n",vmode);
+					xlog(XLG_VIDEO, XLL_DEBUG, "v9938 mode %.2X",vmode);
 					// assert(0);
 					vdpSetMode(vid, VID_UNKNOWN);
 					break;
@@ -988,7 +989,7 @@ void vdpRegWr(Video* vid, int reg, unsigned char val) {
 		case 0x2f:			// WUT???
 			break;
 		default:
-			printf("v9938 register : wr #%.2X,#%.2X\n",reg,val);
+			xlog(XLG_VIDEO, XLL_DEBUG, "v9938 register : wr #%.2X,#%.2X",reg,val);
 			// assert(0);
 			break;
 	}

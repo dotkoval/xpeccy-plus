@@ -9,6 +9,7 @@
 // font.rom in Font
 
 #include "../video/upd7220.h"
+#include "../xlog.h"
 
 #define regCol	reg[49]		// current color (16col mode)
 
@@ -63,7 +64,7 @@ int pc98xx_vid_rd(int adr, void* p) {
 		case 0x03fe6:
 		case 0x03ff2:
 		case 0x03ff6:
-			printf("%X : rd SWx: %X = %.2X\n", comp->cpu->cs.base + comp->cpu->oldpc, adr, r);
+			xlog(XLG_HW, XLL_DEBUG, "%X : rd SWx: %X = %.2X", comp->cpu->cs.base + comp->cpu->oldpc, adr, r);
 			break;
 		case 0x03fea:
 			r = 0x4c;	// b6:initial screen black, b3:x86, b0..2:640Kb
@@ -86,7 +87,7 @@ void pc98xx_vid_wr(int adr, int val, void* p) {
 		case 0x03fee:
 		case 0x03ff2:
 		case 0x03ff6:
-			printf("wr SWx: %X,%.2X\n", adr, val);
+			xlog(XLG_HW, XLL_DEBUG, "wr SWx: %X,%.2X", adr, val);
 			break;
 	}
 	comp->vid->ram[adr] = val;
@@ -579,7 +580,7 @@ void pc98xx_gdc_wr(Computer* comp, int adr, int val) {
 		case 4: switch((val >> 1) & 7) {
 				case 0: break;						// atr sel
 				case 1: break;						// graphic mode (mono/color)
-				case 2: printf("40/80 chars: %i\n", val & 1);
+				case 2: xlog(XLG_HW, XLL_DEBUG, "40/80 chars: %i", val & 1);
 					comp->vid->vga.cpl = (val & 1) ? 40 : 80;
 					break;
 				case 3: break;						// font size
@@ -967,7 +968,7 @@ void pc98xx_hdd_wr(Computer* comp, int adr, int val) {
 	} else {
 		// wr data. TODO: to scsi controller
 	}
-	printf("ide wr %i,%.2X\n",(adr >> 1) & 1,val);
+	xlog(XLG_HW, XLL_DEBUG, "ide wr %i,%.2X",(adr >> 1) & 1,val);
 }
 
 int pc98xx_hdd_rd(Computer* comp, int adr) {
@@ -988,7 +989,7 @@ int pc98xx_hdd_rd(Computer* comp, int adr) {
 	} else {
 		// rd data from scsi controller
 	}
-	printf("ide rd %i\n", (adr >> 1) & 1);
+	xlog(XLG_HW, XLL_DEBUG, "ide rd %i", (adr >> 1) & 1);
 	return res;
 }
 
@@ -1039,7 +1040,7 @@ void pc98xx_43d_wr(Computer* comp, int adr, int val) {
 
 // deBUG
 int pc98xx_dbg_rd(Computer* comp, int adr) {
-	printf("pc98xx: ird %X\n", adr);
+	xlogh(XLG_HW, XLL_DEBUG, "pc98xx: ird %X", adr);
 #if ISDEBUG
 	comp_irq(IRQ_PANIC, comp);
 #endif
@@ -1047,7 +1048,7 @@ int pc98xx_dbg_rd(Computer* comp, int adr) {
 }
 
 void pc98xx_dbg_wr(Computer* comp, int adr, int val) {
-	printf("pc98xx: iwr %X, %X\n", adr, val);
+	xlogh(XLG_HW, XLL_DEBUG, "pc98xx: iwr %X, %X", adr, val);
 #if ISDEBUG
 	comp_irq(IRQ_PANIC, comp);
 #endif

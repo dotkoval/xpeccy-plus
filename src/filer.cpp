@@ -383,6 +383,7 @@ void media_autorun(Computer* comp, int run) {
 	if (!comp || !run || (kind == AS_NONE)) return;
 	if ((kind != AS_TAPE) && (last_as_drv != 0)) {	// booting is drive A business
 		comp->msg = as_not_a;
+		xlog(XLG_FILE, XLL_INFO, "autostart: only drive A can be started");
 		return;
 	}
 	emu_lock();		// arming resets the machine
@@ -390,6 +391,8 @@ void media_autorun(Computer* comp, int run) {
 	emu_unlock();
 	if (!ok)
 		comp->msg = (kind == AS_TAPE) ? as_no_tape : as_no_disk;
+	xlog(XLG_FILE, XLL_INFO, "autostart %s: %s", ok ? "armed" : "refused",
+		comp->hw->name);
 }
 
 static int as_kind_of(int ftype) {
@@ -474,6 +477,19 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 			}
 		}
 	}
+	if (err == ERR_OK) {
+		// the drive only means anything for a disk (inf->ch marks one)
+		if (inf && inf->ch) {
+			xlog(XLG_FILE, XLL_INFO, "open %s into drive %c: %s", inf->name,
+				'A' + (drv & 3), path.toLocal8Bit().constData());
+		} else {
+			xlog(XLG_FILE, XLL_INFO, "open %s: %s", inf ? inf->name : "?",
+				path.toLocal8Bit().constData());
+		}
+	} else {
+		xlog(XLG_FILE, XLL_WARN, "open %s failed, error %i",
+			path.toLocal8Bit().constData(), err);
+	}
 	file_errors(err);
 	return err;
 }
@@ -545,7 +561,7 @@ int save_file(Computer* comp, const char* name, int id, int drv) {
 		// inf = file_ext_type(path);
 		inf = file_find_hw_ext(comp->hw->id, path);
 	if (inf) {
-		printf("filetype: %s\n", inf->name);
+		xlog(XLG_FILE, XLL_INFO, "filetype: %s", inf->name);
 		if (inf->save) {
 			err = inf->save(comp, path.toLocal8Bit().data(), drv);
 		} else {

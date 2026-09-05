@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include "xlog.h"
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -335,7 +336,7 @@ int iord(int port, void* ptr) {
 			return res;
 		} else {
 			rzxStop(comp);
-			printf("overIO\n");
+			xlog(XLG_CORE, XLL_DEBUG, "overIO");
 			comp->rzx.overio = 1;
 			return 0xff;
 		}
@@ -614,6 +615,7 @@ void compReset(Computer* comp,int res) {
 
 	if (res == RES_DEFAULT)
 		res = comp->resbank;
+	xlog(XLG_CORE, XLL_INFO, "reset %s, bank %i", comp->hw->name, res);
 	comp->p7FFD = ((res == RES_DOS) || (res == RES_48)) ? 0x10 : 0x00;
 	comp->flgDOS = ((res == RES_DOS) || (res == RES_SHADOW)) ? 1 : 0;
 	comp->flgROM = (comp->p7FFD & 0x10) ? 1 : 0;

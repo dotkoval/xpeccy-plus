@@ -1,10 +1,11 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 void detectType(xCartridge* slot) {
 	int test, radr, adr;
 	sltSetMaper(slot, MAPER_MSX, slot->mapType);
 	if (slot->memMask < 0x8000) {
-		printf("nomapper\n");
+		xlog(XLG_FILE, XLL_DEBUG, "nomapper");
 		sltSetMaper(slot, MAPER_MSX, MAP_MSX_NOMAPPER);		// 16/32K : no mapper
 	} else {
 		for (adr = 0; adr < 0x4000; adr++) {
@@ -13,15 +14,15 @@ void detectType(xCartridge* slot) {
 			test |= slot->data[radr++] << 8;
 			test |= slot->data[radr];
 			if ((test == 0x320050) || (test == 0x3200b0)) {			// ld (5000/b000),a
-				printf("konami 5\n");
+				xlog(XLG_FILE, XLL_DEBUG, "konami 5");
 				sltSetMaper(slot, MAPER_MSX, MAP_MSX_KONAMI5);
 				break;
 			} else if ((test == 0x320068) || (test == 0x320078)) {		// ld (6800/7800),a
-				printf("ascii 8\n");
+				xlog(XLG_FILE, XLL_DEBUG, "ascii 8");
 				sltSetMaper(slot, MAPER_MSX, MAP_MSX_ASCII8);
 				break;
 			} else if (test == 0x3200a0) {					// ld (a000),a
-				printf("konami 4\n");
+				xlog(XLG_FILE, XLL_DEBUG, "konami 4");
 				sltSetMaper(slot, MAPER_MSX, MAP_MSX_KONAMI4);
 				break;
 			}

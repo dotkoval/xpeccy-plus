@@ -13,6 +13,8 @@
 #include <QStyleOptionComboBox>
 #include <QLineEdit>
 #include <QGuiApplication>
+#include <QDesktopServices>
+#include <QUrl>
 #include <QDebug>
 #include <stdlib.h>
 
@@ -25,6 +27,7 @@
 #include "xcore/xcore.h"
 #include "xcore/vscalers.h"
 #include "xcore/sound.h"
+#include "xcore/log.h"
 #include "xcore/vfilters.h"
 #include "xcore/vfat_scan.h"
 #include "libxpeccy/spectrum.h"
@@ -580,6 +583,11 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.layDel,SIGNAL(released()),this,SLOT(delLayout()));
 
 	connect(ui.tbPalEdit,SIGNAL(released()),this,SLOT(paledit()));
+
+	for (int i = 0; i < XLL_COUNT; i++)
+		ui.cbxLogLevel->addItem(QString(xlog_level_name(i)).toLower(), i);
+	connect(ui.tbLogDir,SIGNAL(released()),this,SLOT(selLogDir()));
+	connect(ui.tbLogOpen,SIGNAL(released()),this,SLOT(openLogDir()));
 	connect(paleditor, SIGNAL(ready()), this, SLOT(palstore()));
 
 	connect(layUi.layName,SIGNAL(textChanged(QString)),this,SLOT(layNameCheck(QString)));
@@ -778,6 +786,7 @@ void SetupWin::setPadName() {
 void SetupWin::start() {
 	xProfile* prof = conf.prof.cur;
 	Computer* comp = prof->zx;
+	fillLogPage();
 // machine
 	int idx;
 	fill_romset_list(ui.rsetbox);
@@ -1245,11 +1254,48 @@ void SetupWin::apply() {
 	}
 // profiles
 	conf.defProfile = ui.defstart->isChecked() ? 1 : 0;
+	applyLogPage();
 
 	emit s_apply();
 
 	saveConfig();
 	prfSave();
+}
+
+// LOG
+
+// The page sets the log going and picks one level for the lot. Per-group levels
+// are a bug-hunting tool and stay where the bug hunter already is: --log-groups
+// and the groups line in config.conf.
+void SetupWin::fillLogPage() {
+	ui.cbLogEnable->setChecked(conf.log.enabled);
+	ui.cbLogConsole->setChecked(conf.log.console);
+	setRFIndex(ui.cbxLogLevel, conf.log.level);
+	ui.leLogDir->setText(QString::fromStdString(conf.log.dir));
+	ui.leLogFile->setText(log_file());
+}
+
+void SetupWin::applyLogPage() {
+	// the page has spoken, so whatever the command line asked for stops
+	// standing on top of it - and a group set apart stays where it was put
+	log_args_clear();
+	conf.log.enabled = ui.cbLogEnable->isChecked() ? 1 : 0;
+	conf.log.console = ui.cbLogConsole->isChecked() ? 1 : 0;
+	conf.log.level = getRFIData(ui.cbxLogLevel);
+	conf.log.dir = ui.leLogDir->text().toStdString();
+	log_apply();
+	ui.leLogFile->setText(log_file());
+}
+
+void SetupWin::selLogDir() {
+	QString dir = QFileDialog::getExistingDirectory(this, "Where logs/ goes", ui.leLogDir->text());
+	if (!dir.isEmpty()) ui.leLogDir->setText(dir);
+}
+
+void SetupWin::openLogDir() {
+	QString dir = log_dir();
+	if (dir.isEmpty()) return;
+	QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
 }
 
 void SetupWin::reject() {

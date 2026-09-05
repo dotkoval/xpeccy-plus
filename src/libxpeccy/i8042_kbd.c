@@ -1,4 +1,5 @@
 #include <string.h>
+#include "xlog.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -242,7 +243,7 @@ void ps2c_wr(PS2Ctrl* ctrl, int adr, int val) {
 									}
 									*/
 									// val &= ~0x40;
-									printf("ps/2 control byte = %.2X\n",val);
+									xlog(XLG_INPUT, XLL_DEBUG, "ps/2 control byte = %.2X",val);
 								}
 								ctrl->ram[ctrl->cmd & 0x1f] = val & 0xff;
 								// if (!(ctrl->cmd & 0x1f)) printf("i8042 conf = %.2X\n",val & 0xff);

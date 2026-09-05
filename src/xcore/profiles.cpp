@@ -171,6 +171,8 @@ bool prfSetCurrent(std::string nm) {
 	loadKeys();
 	prfSetHardware(nprf, "");
 	emu_unlock();
+	xlog(XLG_CONF, XLL_INFO, "profile: %s (%s, romset %s)", nprf->name.c_str(),
+		nprf->zx->hw->name, nprf->rsName.c_str());
 	return true;
 }
 
@@ -315,7 +317,7 @@ void prfSetRomset(xProfile* prf, std::string rnm) {
 				}
 				fclose(file);
 			} else {
-				printf("Can't load rom file '%s'\n",fpath.c_str());
+				xlog(XLG_CONF, XLL_WARN, "can't load rom file '%s'", fpath.c_str());
 			}
 		}
 		memSetSize(prf->zx->mem, -1, romsz);
@@ -328,7 +330,7 @@ void prfSetRomset(xProfile* prf, std::string rnm) {
 				fread(prf->zx->gs->mem->romData, MEM_32K, 1, file);
 				fclose(file);
 			} else {
-				printf("Can't load gs rom '%s' (profile %s)\n", fpath.c_str(), prf->name.c_str());
+				xlog(XLG_CONF, XLL_WARN, "can't load gs rom '%s' (profile %s)", fpath.c_str(), prf->name.c_str());
 				memset((char*)prf->zx->gs->mem->romData, 0xff, MEM_32K);
 			}
 		}
@@ -366,7 +368,7 @@ void prfSetRomset(xProfile* prf, std::string rnm) {
 			tsLoadRom(prf->zx->ts, fpath.c_str());
 		}
 	} else {
-		printf("Can't find romset %s\n", rnm.c_str());
+		xlog(XLG_CONF, XLL_WARN, "can't find romset %s", rnm.c_str());
 	}
 	emu_unlock();
 }
@@ -391,12 +393,12 @@ int prf_load_conf(xProfile* prf, std::string cfname, int flag) {
 	double tmpd;
 	int section = PS_NONE;
 	if (!file.good() && flag) {
-		printf("Profile config is missing. Default one will be created\n");
+		xlog(XLG_CONF, XLL_INFO, "profile config is missing, making a default one");
 		copyFile(":/res/fallback/xpeccy.conf", cfname.c_str());
 		file.open(cfname, std::ifstream::in);
 	}
 	if (!file.good()) {
-		if (flag) printf("Damn! I can't open config file");
+		if (flag) xlog(XLG_CONF, XLL_ERROR, "can't open the profile config file");
 		return PLOAD_OF;
 	}
 #if defined(__WIN32)
@@ -722,7 +724,7 @@ int prfSave(std::string nm) {
 
 	FILE* file = fopen(cfname.c_str(), "wb");
 	if (!file) {
-		printf("Can't write settings\n");
+		xlog(XLG_CONF, XLL_ERROR, "can't write the profile settings");
 		return PSAVE_OF;
 	}
 

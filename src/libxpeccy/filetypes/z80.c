@@ -1,4 +1,5 @@
 #include "filetypes.h"
+#include "../xlog.h"
 #include "../cpu/Z80/z80.h"
 
 #pragma pack (push, 1)
@@ -139,9 +140,9 @@ int loadZ80_f(Computer* comp, FILE* file) {
 	comp->vid->brdcol = (hd.flag12 >> 1) & 7;
 	comp->vid->nextbrd = comp->vid->brdcol;
 // unsupported things list
-	if (hd.flag12 & 0x10) printf("...flag 12.bit 4.Basic SamRom switched in\n");
-	if (hd.flag29 & 0x04) printf("...flag 29.bit 2.Issue 2 emulation\n");
-	if (hd.flag29 & 0x08) printf("...flag 29.bit 3.Double interrupt frequency\n");
+	if (hd.flag12 & 0x10) xlog(XLG_FILE, XLL_DEBUG, "...flag 12.bit 4.Basic SamRom switched in");
+	if (hd.flag29 & 0x04) xlog(XLG_FILE, XLL_DEBUG, "...flag 29.bit 2.Issue 2 emulation");
+	if (hd.flag29 & 0x08) xlog(XLG_FILE, XLL_DEBUG, "...flag 29.bit 3.Double interrupt frequency");
 // continued
 	if (comp->cpu->regPC == 0) {
 		adr = fgetw(file);
@@ -163,8 +164,8 @@ int loadZ80_f(Computer* comp, FILE* file) {
 		comp->hw->out(comp, 0xfffd, reg);
 
 		if (adr > 23) {
-printf(".z80 version 3\n");
-			if (lst < 16) printf("Hardware: %s\n",v3hardware[lst]);
+xlog(XLG_FILE, XLL_DEBUG, ".z80 version 3");
+			if (lst < 16) xlog(XLG_FILE, XLL_DEBUG, "Hardware: %s",v3hardware[lst]);
 			switch (lst) {
 				case 0:
 				case 1:
@@ -178,8 +179,8 @@ printf(".z80 version 3\n");
 			}
 			fseek(file, adr-23, SEEK_CUR);		// skip all other bytes
 		} else {
-printf(".z80 version 2\n");
-			if (lst < 16) printf("Hardware: %s\n",v2hardware[lst]);
+xlog(XLG_FILE, XLL_DEBUG, ".z80 version 2");
+			if (lst < 16) xlog(XLG_FILE, XLL_DEBUG, "Hardware: %s",v2hardware[lst]);
 			switch (lst) {
 				case 0:
 				case 1: lst = 1; break;
@@ -226,21 +227,21 @@ printf(".z80 version 2\n");
 				} while (btm && !feof(file));
 				break;
 			default:
-				printf("Hardware mode not supported. reset\n");
+				xlog(XLG_FILE, XLL_WARN, "Hardware mode not supported. reset");
 				compReset(comp, RES_DEFAULT);
 				err = ERR_Z80_HW;
 				break;
 		}
 	} else {			// version 1
-printf(".z80 version 1\n");
+xlog(XLG_FILE, XLL_DEBUG, ".z80 version 1");
 		if (hd.flag12 & 0x20) {
-			printf("data is compressed\n");
+			xlog(XLG_FILE, XLL_DEBUG, "data is compressed");
 			z80uncompress(file,pageBuf,0xc000);
 			memPutData(comp->mem,MEM_RAM,5,MEM_16K,pageBuf);
 			memPutData(comp->mem,MEM_RAM,2,MEM_16K,pageBuf + MEM_16K);
 			memPutData(comp->mem,MEM_RAM,0,MEM_16K,pageBuf + MEM_32K);
 		} else {
-			printf("data is not compressed\n");
+			xlog(XLG_FILE, XLL_DEBUG, "data is not compressed");
 			fread(pageBuf, 0x4000, 1, file);
 			memPutData(comp->mem,MEM_RAM,5,MEM_16K,pageBuf);
 			fread(pageBuf, 0x4000, 1, file);

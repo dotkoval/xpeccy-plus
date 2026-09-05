@@ -1,6 +1,7 @@
 // modes: https://osdev.fandom.com/ru/wiki/VGA_режимы
 
 #include <stdio.h>
+#include "../xlog.h"
 #include <string.h>
 
 #include "vga.h"
@@ -49,7 +50,7 @@ void vga_upd_mode(Video* vid) {
 	} else {
 		mod = (SEQ_REG(1) & 8) | (GRF_REG(6) & 1);
 	}
-	printf("ega mode = %i\n",mod);
+	xlog(XLG_VIDEO, XLL_DEBUG, "ega mode = %i",mod);
 	switch(mod) {
 		case 0: vid_set_mode(vid, CGA_TXT_H); break;	// T80
 		case 1: vid_set_mode(vid, VGA_GRF_H); break;	// G640
@@ -179,7 +180,7 @@ int vga_rd(Video* vid, int port) {
 			vid->vga.atrig = 0;
 			break;
 		default:
-			printf("EGA/VGA rd %.3X\n",port);
+			xlogh(XLG_VIDEO, XLL_DEBUG, "EGA/VGA rd %.3X",port);
 			break;
 	}
 	return res;
@@ -330,7 +331,7 @@ void vga_wr(Video* vid, int port, int val) {
 			vid->reg[CGA_3DA] = val & 0xff;
 			break;
 		default:
-			printf("EGA/VGA wr %.3X,%.2X\n",port,val);
+			xlogh(XLG_VIDEO, XLL_DEBUG, "EGA/VGA wr %.3X,%.2X",port,val);
 			break;
 	}
 }

@@ -1,4 +1,5 @@
 #include "i80286.h"
+#include "../../xlog.h"
 #include <stdio.h>
 
 // TODO: protected mode
@@ -714,7 +715,7 @@ void i286_wr_ea(CPU* cpu, int val, int wrd) {
 }
 
 void i8086_nodef(CPU* cpu) {
-	printf("undef opcode @ %X : %.2X\n", cpu->cs.base + cpu->regIP, cpu->com);
+	xlog(XLG_CPU, XLL_WARN, "undef opcode @ %X : %.2X", cpu->cs.base + cpu->regIP, cpu->com);
 	cpu_irq(cpu, IRQ_PANIC);
 	if (cpu->gen > 1) {		// #UD only 286+
 		x86_exception(cpu, I286_INT_UD, 0);

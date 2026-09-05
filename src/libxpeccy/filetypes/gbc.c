@@ -1,10 +1,11 @@
 #include "filetypes.h"
+#include "../xlog.h"
 
 int loadGB(Computer* comp, const char* name, int drv) {
 	int res = loadSlot(comp, name, drv);
 	if (comp->slot->data) {
 		unsigned char type = comp->slot->data[0x147];		// slot type
-		printf("Cartrige type %.2X\n",type);
+		xlog(XLG_FILE, XLL_DEBUG, "Cartrige type %.2X",type);
 		comp->slot->haveram = 1;
 		switch (type) {
 			case 0x00:
@@ -35,7 +36,7 @@ int loadGB(Computer* comp, const char* name, int drv) {
 				sltSetMaper(comp->slot, MAPER_GB, MAP_GB_MBC5);		// mbc5
 				break;
 			default:
-				printf("unknown maper\n");
+				xlog(XLG_FILE, XLL_WARN, "unknown maper");
 				sltSetMaper(comp->slot, MAPER_GB, MAP_UNKNOWN);
 				break;
 		}

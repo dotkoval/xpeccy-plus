@@ -1,4 +1,5 @@
 #include "hardware.h"
+#include "../xlog.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -471,7 +472,7 @@ void tsOut27AF(Computer* comp, int port, int val) {
 			if (~val & 1) comp->vid->tsconf.palUpd = 1;
 			break;
 		default:
-			printf("0x27AF: unsupported src-dst: %.2X\n",val & 0x87);
+			xlog(XLG_HW, XLL_DEBUG, "0x27AF: unsupported src-dst: %.2X",val & 0x87);
 			// comp->brk = 1;
 			break;
 	}
