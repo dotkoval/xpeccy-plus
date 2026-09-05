@@ -217,6 +217,14 @@ static const vCoord brdMargin[] = {
 // mode's border around it, clamped to what the raster holds. A layout with
 // less border than the mode asks for (a hand-made one - no shipped machine is
 // like that) gets a smaller frame rather than black bars.
+// the border the raster has beside the screen, whichever side has less of it
+static int brd_max_x(Video* vid) {
+	int mx = vid->bord.x;					// border left of the screen
+	if (vid->full.x - vid->send.x < mx)			// ...and right of it
+		mx = vid->full.x - vid->send.x;
+	return mx;
+}
+
 static void vid_crop_rect(Video* vid, int mode, vCoord* lcut, vCoord* rcut) {
 	int mx, my;
 	if (mode == VID_BRD_NATIVE) {				// whole visible area, as-is
@@ -225,11 +233,9 @@ static void vid_crop_rect(Video* vid, int mode, vCoord* lcut, vCoord* rcut) {
 		*rcut = vid->vend;
 		return;
 	}
-	mx = vid->bord.x;					// border left of the screen
-	my = vid->bord.y;					// ...and above it
-	if (vid->full.x - vid->send.x < mx)			// ...right of it
-		mx = vid->full.x - vid->send.x;
-	if (vid->full.y - vid->send.y < my)			// ...below it
+	mx = brd_max_x(vid);
+	my = vid->bord.y;					// border above the screen
+	if (vid->full.y - vid->send.y < my)			// ...and below it
 		my = vid->full.y - vid->send.y;
 	if (brdMargin[mode].x < mx) mx = brdMargin[mode].x;
 	if (brdMargin[mode].y < my) my = brdMargin[mode].y;
@@ -246,6 +252,22 @@ vCoord vid_crop_size(Video* vid, int mode) {
 	sze.x = rcut.x - lcut.x;
 	sze.y = rcut.y - lcut.y;
 	return sze;
+}
+
+// A fullscreen picture rarely fills a 16:9 screen: the scale comes out of the
+// height and there is room to spare on the sides. Show border there instead of
+// black, as far as the raster goes - the screen stays in the middle and a dot
+// keeps its shape, there is simply more border on show. Never narrower than
+// the border size asks for.
+void vid_widen_crop(Video* vid, int wid) {
+	int mx;
+	if (vid->brdmode == VID_BRD_NATIVE) return;	// not a screen with a border around it
+	mx = (wid - vid->scrn.x) / 2;
+	if (mx > brd_max_x(vid)) mx = brd_max_x(vid);
+	if (mx <= vid->bord.x - vid->lcut.x) return;
+	vid->lcut.x = vid->bord.x - mx;
+	vid->rcut.x = vid->send.x + mx;
+	vid->vsze.x = vid->rcut.x - vid->lcut.x;
 }
 
 void vid_upd_crop(Video* vid) {
