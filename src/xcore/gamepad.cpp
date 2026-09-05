@@ -539,16 +539,21 @@ int xGamepad::deadZone() {return dead;}
 
 // controller
 
+// Pad poll period. The pads are read on the gui thread, so this is also the
+// delay a press can sit for before the emulation sees it. Polling at all is
+// the stopgap: see the TODO on update().
+#define GP_POLL_MS	2
+
 xGamepadController::xGamepadController(QObject* p):QObject(p) {
 	gpada = new xGamepad;
 	gpadb = new xGamepad;
-	startTimer(20);
+	startTimer(GP_POLL_MS, Qt::PreciseTimer);
 }
 
 void xGamepadController::timerEvent(QTimerEvent* e) {
-	gpada->update();
-	gpadb->update();
 #ifdef HAVESDL2
+	// Pump the events first: SDL fills the pad state from the pump, so reading
+	// it before would hand out the values of the previous tick.
 	SDL_Event ev;
 	QString nm;
 	int idx;
@@ -575,4 +580,6 @@ void xGamepadController::timerEvent(QTimerEvent* e) {
 		}
 	}
 #endif
+	gpada->update();
+	gpadb->update();
 }

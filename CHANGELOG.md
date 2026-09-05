@@ -11,6 +11,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- The gamepad responds right away now. A press used to sit for up to 40 ms before the
+  emulated machine saw it.
 - The ROM/RAM boxes in the debugger's memory map are no longer stretched wide when the
   debugger opens.
 - Recording to WAV writes the file at the rate and depth the emulator is really playing
