@@ -398,9 +398,15 @@
           <layout class="QVBoxLayout" name="verticalLayout_24">
            <item>
             <widget class="QGroupBox" name="vidViewGBox">
-             <layout class="QGridLayout" name="gridLayout_2">
+             <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0">
               <item row="1" column="0">
                <widget class="QLabel" name="label_8">
+                <property name="minimumSize">
+                 <size>
+                  <width>55</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Layout</string>
                 </property>
@@ -441,10 +447,29 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <spacer name="spacerLayBtn">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
                </layout>
               </item>
-              <item row="4" column="0">
+              <item row="3" column="0">
                <widget class="QLabel" name="labShader">
+                <property name="minimumSize">
+                 <size>
+                  <width>55</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Shader</string>
                 </property>
@@ -453,16 +478,20 @@
               <item row="1" column="1">
                <widget class="QComboBox" name="geombox"/>
               </item>
-              <item row="5" column="0">
+              <item row="4" column="0">
                <widget class="QLabel" name="label_3">
+                <property name="minimumSize">
+                 <size>
+                  <width>55</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Border</string>
                 </property>
                </widget>
               </item>
-              <item row="5" column="1" colspan="2">
-               <layout class="QHBoxLayout" name="bszBox">
-                <item>
+              <item row="4" column="1">
                  <widget class="xSlider" name="bszsld">
                   <property name="maximum">
                    <number>4</number>
@@ -480,27 +509,37 @@
                    <number>1</number>
                   </property>
                  </widget>
-                </item>
-                <item>
-                 <widget class="QLabel" name="bszlab">
-                  <property name="minimumSize">
-                   <size>
-                    <width>130</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                  <property name="text">
-                   <string/>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
               </item>
-              <item row="4" column="1">
+              <item row="4" column="2">
+               <widget class="QLabel" name="bszlab">
+                <property name="minimumSize">
+                 <size>
+                  <width>104</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>104</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string/>
+                </property>
+               </widget>
+              </item>
+              <item row="3" column="1">
                <widget class="QComboBox" name="cbShader"/>
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="labPalPreset">
+                <property name="minimumSize">
+                 <size>
+                  <width>55</width>
+                  <height>0</height>
+                 </size>
+                </property>
                 <property name="text">
                  <string>Palette</string>
                 </property>
@@ -521,6 +560,19 @@
                     <normaloff>:/images/edit.png</normaloff>:/images/edit.png</iconset>
                   </property>
                  </widget>
+                </item>
+                <item>
+                 <spacer name="spacerPalBtn">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                 </spacer>
                 </item>
                </layout>
               </item>
