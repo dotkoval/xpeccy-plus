@@ -40,6 +40,7 @@ static long long ns_per_sample_fixed(int rate) {
 }
 
 long long nsPerSampleFixed = ns_per_sample_fixed(44100);
+static int wavRate = 0;			// rate the open recording's header says
 // static int disCount = 0;
 static sndPair tmpLev = {0, 0};
 static sndPair sndLev;
@@ -158,6 +159,12 @@ int sndSync(Computer* comp) {
 				if (conf.snd.need > 0)
 					conf.snd.need--;
 
+				// the wav takes the sample here, where it is made. The old
+				// accumulator in ethread.cpp ran off its own 44100 Hz clock, a
+				// few ns per sample away from this one, and the two beat audibly.
+				if (conf.snd.wavout)
+					snd_wav_write();
+
 				sbuf[posf & SND_RING_MASK] = sndLev.left & 0xff;
 				posf++;
 				sbuf[posf & SND_RING_MASK] = (sndLev.left >> 8) & 0xff;
@@ -205,6 +212,12 @@ void setOutput(const char* name) {
 	}
 	sndHeld = sndPlaybackActive();
 	nsPerSampleFixed = ns_per_sample_fixed(conf.snd.rate);
+	// a recording's rate is in its header and cannot change, so it ends here
+	// rather than play back at the wrong speed from this point on
+	if (conf.snd.wavfile && (conf.snd.rate != wavRate)) {
+		xlog(XLG_SOUND, XLL_INFO, "wav output stopped: rate is now %i Hz", conf.snd.rate);
+		snd_wav_close();
+	}
 }
 
 void sndClose() {
@@ -513,9 +526,9 @@ wavHead wav_prepare(unsigned int rate, unsigned short chans) {
 	hd.audioFormat = 1;
 	hd.numChannels = chans;
 	hd.sampleRate = rate;
-	hd.byteRate = rate * chans;
-	hd.blockAlign = chans;
-	hd.bitsPerSample = 8;
+	hd.byteRate = rate * chans * 2;
+	hd.blockAlign = chans * 2;
+	hd.bitsPerSample = 16;
 	memcpy(hd.subchunk2Id, "data", 4);
 	hd.subchunk2Size = 0;				// later
 	return hd;
@@ -536,12 +549,13 @@ void snd_wav_close() {
 
 int snd_wav_open(const char* path) {
 	int res = ERR_OK;
-	wavHead hd = wav_prepare(44100, 2);
+	wavHead hd = wav_prepare(conf.snd.rate, 2);
 	snd_wav_close();
 	conf.snd.wavfile = fopen(path, "wb");
 	if (conf.snd.wavfile) {
 		fwrite(&hd, sizeof(wavHead), 1, conf.snd.wavfile);
 		conf.snd.wavout = 1;
+		wavRate = conf.snd.rate;
 	} else {
 		res = ERR_CANT_OPEN;
 	}
@@ -550,8 +564,9 @@ int snd_wav_open(const char* path) {
 
 void snd_wav_write() {
 	if (conf.snd.wavfile) {
-		fputc(sndLev.left >> 8, conf.snd.wavfile);
-		fputc(sndLev.right >> 8, conf.snd.wavfile);
+		// the same S16LE the live output gets, not just the top byte
+		fputw(sndLev.left & 0xffff, conf.snd.wavfile);
+		fputw(sndLev.right & 0xffff, conf.snd.wavfile);
 	}
 }
 

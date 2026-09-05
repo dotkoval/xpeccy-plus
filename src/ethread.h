@@ -11,7 +11,6 @@ class xThread : public QThread {
 		xThread();
 		unsigned finish:1;
 		long long sndNsFixed;
-		int wavNs;
 	public slots:
 		void stop();
 	signals:

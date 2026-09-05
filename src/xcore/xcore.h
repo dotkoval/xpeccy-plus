@@ -489,7 +489,7 @@ struct xConfig {
 	} vid;
 	struct {
 		unsigned enabled:1;
-		unsigned wavout:1;	// output to wav, rate 44100
+		unsigned wavout:1;	// recording to wav, at the output rate
 		unsigned fill:1;	// 1 while snd buffer not filled, 0 at end of snd buffer
 		int need;		// samples needed to be filled in buf
 		int rate;

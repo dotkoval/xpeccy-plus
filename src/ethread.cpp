@@ -178,7 +178,6 @@ void xThread::emuCycle(Computer* comp) {
 	// sndNsFixed is deliberately not cleared here: it holds the part of a sample
 	// not yet made, and a cycle can end anywhere. Clearing it dropped that
 	// remainder on every wake-up, and wake-ups come every 2ms.
-	wavNs = 0;
 	conf.snd.fill = 1;
 	while (!comp->flgBRK && conf.snd.fill && !finish && !conf.emu.pause) {
 		// exec 1 opcode (or handle INT, NMI)
@@ -195,7 +194,6 @@ void xThread::emuCycle(Computer* comp) {
 				tm = compExec(comp);			// TODO: it exits when fetch-brk is occured, pc doesn't changed
 			}
 			sndNsFixed += NS_TO_FIXED(tm);
-			wavNs += tm;
 			// tape trap	TODO: rework it as a system breakpoint
 			int pc = cpu_get_pc(comp->cpu);
 			if ((comp->hw->grp == HWG_ZX) && (comp->mem->map[0].type == MEM_ROM) && comp->flgROM && !comp->flgDOS && !comp->flgEXT) {
@@ -210,12 +208,6 @@ void xThread::emuCycle(Computer* comp) {
 					tapStop(comp->tape);
 					emit tapeSignal(TW_STATE,TWS_STOP);
 				}
-			}
-			// write wav sample
-			if (wavNs > 22675) {		// ns per sample @ 44100Hz
-				wavNs -= 22675;
-				if (conf.snd.wavout)
-					snd_wav_write();
 			}
 		}
 		// sound buffer update

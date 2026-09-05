@@ -11,6 +11,9 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Recording to WAV writes the file at the rate and depth the emulator is really playing
+  at - it always claimed 44100 Hz, 8 bit - and the grainy beat that used to ride on the
+  recording is gone.
 - The sound no longer clicks every so often. The buffer ran with no headroom at all, so
   any hiccup left the sound card with nothing to play and it repeated the last 20 ms of
   sound instead. It now keeps a small reserve and holds it steady against the drift
