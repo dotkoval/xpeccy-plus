@@ -74,21 +74,30 @@ static int sndHeld = 0;
 // after a long clean spell - stepping down eagerly would walk the setting back
 // onto the edge and click there again and again. Both ways stop themselves: a
 // step down asks for two spare blocks after a callback, which no setting under
-// 30 ms can show, and a step up asks for less than one, which none over 20 ms
-// reaches unless the machine really is stuttering.
+// three blocks can show, and a step up asks for less than one, which none over
+// two blocks reaches unless the machine really is stuttering.
 #define SND_AUTO_WINDOW_MS	1000
-#define SND_AUTO_UP_MS		5	// a near miss: a nudge is enough
-#define SND_AUTO_UP_CLICK_MS	10	// it really did click: a whole block
-#define SND_AUTO_DOWN_MS	5	// the smallest step down
+#define SND_AUTO_HALF_BLOCK	((SND_BLOCK_MS + 1) / 2)	// rounded up: never nothing
+#define SND_AUTO_UP_MS		SND_AUTO_HALF_BLOCK	// a near miss: a nudge
+#define SND_AUTO_UP_CLICK_MS	SND_BLOCK_MS		// it clicked: a whole block
+#define SND_AUTO_DOWN_MS	SND_AUTO_HALF_BLOCK	// the smallest step down
 #define SND_AUTO_DOWN_AFTER	60	// windows with room to spare before a step down
 #define SND_AUTO_GRACE		3	// windows to skip after a device starts: it takes
 									// its own fill out of the ring in one go
 #define SND_LOW_NONE		0x7fffffff	// no block was played in the window
 
+// The low water mark is what the ring was left with after the emptiest block
+// of the window, and it is kept unclamped on purpose: below zero says the
+// block ran out and by how much, which is all the underrun line needs.
 static int sndLowMark = SND_LOW_NONE;	// written by the audio callback
+static int sndUnderruns = 0;		// blocks it found short, this window
 static int sndAutoGood = 0;
 static int sndAutoSkip = 0;
 static long long sndAutoLastNs = 0;
+// what the log was last told, so a change can be spotted whoever made it.
+// no setting can hold -1, so the first look states where the run starts.
+static int sndLogLat = 0;
+static int sndLogAuto = -1;
 
 static void snd_start_playback() {
 	sndHeld = 0;
@@ -215,14 +224,7 @@ int sndPlaybackActive() {
 	return (sndOutput != NULL) && (sndOutput->id != xOutputNone);
 }
 
-// Called from the pacer's timer, which hands over its own reading of the clock.
-// The window is measured in time rather than in ticks so that a late or coarse
-// SDL timer cannot stretch it.
-void sndAutoTick(long long nowNs) {
-	if (nowNs - sndAutoLastNs < SND_AUTO_WINDOW_MS * 1000000LL) return;
-	sndAutoLastNs = nowNs;
-	int low = sndLowMark;
-	sndLowMark = SND_LOW_NONE;
+static void snd_auto_step(int low) {
 	if (!conf.snd.latauto || !sndPlaybackActive() || conf.emu.fast || conf.emu.pause) {
 		sndAutoSkip = SND_AUTO_GRACE;
 		return;
@@ -234,7 +236,7 @@ void sndAutoTick(long long nowNs) {
 	if (low == SND_LOW_NONE) return;
 	int block = snd_ms_to_bytes(SND_BLOCK_MS);	// one callback block, in bytes
 	// A step only moves the target; the pacer then walks the ring to it, and
-	// slower the closer it gets - a ten ms step takes half a minute. Judging
+	// slower the closer it gets, so arriving takes tens of seconds. Judging
 	// while it is still on the way reads the walk itself as a shortage and
 	// steps again, which ran the setting from 30 to 130 ms in under a minute.
 	// So wait for the ring to arrive before looking at what it was left with.
@@ -246,15 +248,48 @@ void sndAutoTick(long long nowNs) {
 		sndAutoGood = 0;
 	}
 	if (low < block) {			// one late callback away from a click
-		lat += low ? SND_AUTO_UP_MS : SND_AUTO_UP_CLICK_MS;
+		lat += (low > 0) ? SND_AUTO_UP_MS : SND_AUTO_UP_CLICK_MS;
 	} else if (sndAutoGood >= SND_AUTO_DOWN_AFTER) {
-		// give back half of what was never touched. stepping down 5 ms at a
-		// time from a hand set 100 ms would have taken a quarter of an hour.
+		// give back half of what was never touched. creeping down by the
+		// smallest step from a hand set 100 ms took a quarter of an hour.
 		int spare = snd_bytes_to_ms(low - 2 * block);
 		lat -= (spare / 2 > SND_AUTO_DOWN_MS) ? spare / 2 : SND_AUTO_DOWN_MS;
 		sndAutoGood = 0;
 	}
 	conf.snd.latency = toLimits(lat, SND_LATENCY_MIN, SND_LATENCY_MAX);
+}
+
+// The setting moves under Auto and by hand from the options dialog. Comparing
+// against what the log was last told catches both without hooking either.
+static void snd_log_setting() {
+	if ((conf.snd.latency == sndLogLat) && (conf.snd.latauto == sndLogAuto)) return;
+	xlog(XLG_SOUND, XLL_INFO, "latency %i ms, auto %s", conf.snd.latency,
+		conf.snd.latauto ? "on" : "off");
+	sndLogLat = conf.snd.latency;
+	sndLogAuto = conf.snd.latauto;
+}
+
+// Called from the pacer, which hands over its own reading of the clock. The
+// window is measured in time rather than in ticks so that a late or coarse SDL
+// timer cannot stretch it.
+void sndAutoTick(long long nowNs) {
+	if (nowNs - sndAutoLastNs < SND_AUTO_WINDOW_MS * 1000000LL) return;
+	sndAutoLastNs = nowNs;
+	int low = sndLowMark;
+	int under = sndUnderruns;
+	sndLowMark = SND_LOW_NONE;
+	sndUnderruns = 0;
+	// the audio thread only counts; the line is put together here, where a
+	// lock and a flush cost nothing that anybody hears
+	if (under > 0) {
+		// low went below zero to get here, so put the block back to say what
+		// the ring actually held
+		int had = low + snd_ms_to_bytes(SND_BLOCK_MS);
+		xlog(XLG_SOUND, XLL_WARN, "buffer ran out %i time%s: %i ms left, target %i ms",
+			under, (under == 1) ? "" : "s", snd_bytes_to_ms(had), conf.snd.latency);
+	}
+	snd_auto_step(low);
+	snd_log_setting();
 }
 
 //------------------------
@@ -321,11 +356,11 @@ void sdlPlayAudio(void*, Uint8* stream, int len) {
 			len--;
 		}
 	}
-	// how little the ring was left with; an underrun counts as nothing left.
-	// while idle it is not drained at all, so leave the mark alone.
+	// how little the ring was left with. while idle it is not drained at all,
+	// so leave the mark alone.
 	if (!idle) {
 		int left = dist - want;
-		if (left < 0) left = 0;
+		if (left < 0) sndUnderruns++;	// nothing to play: this is the click
 		if (left < sndLowMark) sndLowMark = left;
 	}
 #if USEMUTEX
