@@ -41,6 +41,7 @@ class xGamepadWidget : public QWidget {
 		int bindidx;
 		xGamepad* gpad;
 		xPadMapModel* padmodel;
+		void setDevFromCombo();
 	private slots:
 		void devChanged(int);
 		void mapChanged(int);

@@ -31,8 +31,6 @@ int xPadMapModel::columnCount(const QModelIndex& par) const {
 	return 3;
 }
 
-static QString hatDirs[4] = {"Up","Down","Left","Right"};
-
 QVariant xPadMapModel::data(const QModelIndex& idx, int role) const {
 	QVariant res;
 	if (!idx.isValid()) return res;
@@ -46,29 +44,7 @@ QVariant xPadMapModel::data(const QModelIndex& idx, int role) const {
 		case Qt::DisplayRole:
 			switch(col) {
 				case 0:
-					if (jent.type == JOY_AXIS) str = "Axis";
-					else if (jent.type == JOY_BUTTON) str = "Button";
-					else if (jent.type == JOY_HAT) str = "Hat";
-					else str = "???";
-					str.append(QString(" %0").arg(jent.num));
-					switch (jent.type) {
-						case JOY_AXIS:
-							str.append((jent.state < 0) ? " -" : " +");
-							break;
-						case JOY_HAT:
-							switch(jent.state) {
-								case SDL_HAT_UP: str.append(" up"); break;
-								case SDL_HAT_LEFT: str.append(" left"); break;
-								case SDL_HAT_DOWN: str.append(" down"); break;
-								case SDL_HAT_RIGHT: str.append(" right"); break;
-								default: str.append(" ??"); break;
-							}
-							break;
-					}
-					if ((jent.type == JOY_BUTTON) && (jent.num > 11)) {
-						str = xGamepad::getButtonName(jent.num); // QString("Hat ") + hatDirs[jent.num & 3];
-					}
-					res = str;
+					res = xGamepad::getEntryName(jent);
 					break;
 				case 1:
 					switch(jent.dev) {
@@ -142,25 +118,27 @@ xGamepadWidget::xGamepadWidget(xGamepad* gp, QWidget* p):QWidget(p) {
 	connect(ui.tvMapView, SIGNAL(doubleClicked(QModelIndex)), this, SLOT(editEntry()));
 }
 
+// Every connected pad, and - when the one this slot remembers is not among
+// them - that one too, marked as away. A pad asleep in a drawer must still
+// be the selected item, or closing this page would throw it away.
 void xGamepadWidget::updateList() {
-	QStringList lst;
-	QString str;
-	int i;
-	lst = gpad->getList();
-	lst.prepend("none");
+	QList<xPadDev> devs = xGamepad::devList();
+	xPadId want = gpad->padId();
+	int sel = 0;
 	ui.cbGPName->blockSignals(true);			// don't call devChanged automaticly
 	ui.cbGPName->clear();
-	ui.cbGPName->addItems(lst);
-	ui.cbGPName->setEnabled(lst.size() > 1);
-	str = gpad->lastName();
-	if (str.isEmpty()) {
-		ui.cbGPName->setCurrentIndex(0);
-	} else {
-		i = ui.cbGPName->findText(str);
-		if (i < 0) i = 0;			// no such gamepad, reset to 'none'
-		ui.cbGPName->setCurrentIndex(i);
+	ui.cbGPName->addItem("none");
+	for (int i = 0; i < devs.size(); i++) {
+		ui.cbGPName->addItem(devs.at(i).label, devs.at(i).id.toConfig());
+		if (devs.at(i).id.sameAs(want))
+			sel = ui.cbGPName->count() - 1;
 	}
-	// devChanged(cbGPName->currentIndex());		// update current gamepad
+	if (!sel && !want.isEmpty()) {
+		ui.cbGPName->addItem(QString("%0 (not connected)").arg(want.title()), want.toConfig());
+		sel = ui.cbGPName->count() - 1;
+	}
+	ui.cbGPName->setEnabled(true);
+	ui.cbGPName->setCurrentIndex(sel);
 	ui.cbGPName->blockSignals(false);
 }
 
@@ -185,13 +163,22 @@ void xGamepadWidget::update(std::string mapname) {
 	padmodel->update();
 }
 
-void xGamepadWidget::apply() {
-	gpad->setDeadZone(ui.sldDeadZone->value());
+// Only an explicit 'none' clears the slot. Anything else is a device the
+// user named, connected or not, and the controller works out which pad each
+// slot ends up on.
+void xGamepadWidget::setDevFromCombo() {
 	if (ui.cbGPName->currentIndex() < 1) {
 		gpad->close();
+		gpad->setPadId(xPadId());
 	} else {
-		gpad->open(ui.cbGPName->currentText());
+		gpad->setPadId(xPadId::fromConfig(ui.cbGPName->currentData().toString()));
 	}
+	conf.gpctrl->rescan();
+}
+
+void xGamepadWidget::apply() {
+	gpad->setDeadZone(ui.sldDeadZone->value());
+	setDevFromCombo();
 }
 
 std::string xGamepadWidget::getMapName() {
@@ -201,13 +188,9 @@ std::string xGamepadWidget::getMapName() {
 	return str;
 }
 
+// take effect at once, so the pad can be tried out without leaving the page
 void xGamepadWidget::devChanged(int idx) {
-	if (idx > 0) {			// 0 is 'none'
-		gpad->open(idx-1);
-	} else {
-		gpad->close();
-		gpad->setName("");
-	}
+	setDevFromCombo();
 }
 
 void xGamepadWidget::mapChanged(int idx) {

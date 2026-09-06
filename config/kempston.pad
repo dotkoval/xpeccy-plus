@@ -10,3 +10,15 @@ H0U:JU
 H0D:JD
 H0L:JL
 H0R:JR
+Cdpup:JU
+Cdpdown:JD
+Cdpleft:JL
+Cdpright:JR
+Xlefty-:JU
+Xlefty+:JD
+Xleftx-:JL
+Xleftx+:JR
+Cb:JF
+Ca:J2
+Cx:J3
+Cy:J4

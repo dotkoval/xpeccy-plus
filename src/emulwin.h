@@ -137,8 +137,7 @@ typedef struct {
 		void reset(QAction*);
 		void chLayout(QAction*);
 		void umOpen(QAction*);
-		void gpButtonChanged(int, bool);
-		void gpAxisChanged(int, double);
+		void gpInputChanged(int, int, int);
 		void connected();
 		void disconnected();
 		void socketRead();
