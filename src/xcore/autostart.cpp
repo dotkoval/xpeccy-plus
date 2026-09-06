@@ -27,6 +27,8 @@
 // What a machine boots into is romset business, so the table below matches the
 // romsets shipped in config/. A machine that is not in it is left alone.
 
+#include <string.h>
+
 #include "xcore.h"
 #include "autostart.h"
 
@@ -36,65 +38,77 @@
 #define AS_MENU_GAP	100	// after a menu pick: the rom has an editor to set up
 #define AS_GIVEUP	1500	// frames to wait for a rom that never scans the keyboard
 
+// The keys are named the way the zx keyboard itself sees them, not as host
+// keys: a host key is turned into these by the user's keymap, and a layout that
+// moves a key would take the typing apart - "ZX Spectrum 48K.map" puts symbol
+// shift on the right-hand keys, which is enough to break the tr-dos line below.
+// The strings are the ones a keymap file is written in (keyTab in
+// libxpeccy/input/keyboard.c): a letter is that key, "C" is caps shift, "S" is
+// symbol shift, "E" is enter, and two of them together are pressed together.
+#define ZK_ENTER	"E"
+#define ZK_UP		"C7"
+#define ZK_DOWN		"C6"
+#define ZK_QUOTE	"Sp"	// "
+#define ZK_COLON	"Sz"	// :
+#define ZK_EXT		"CS"	// extended mode
+
 typedef struct {
-	int key;		// XKEY_*, ENDKEY ends the list
-	int key2;		// pressed together with key, ENDKEY if none
-	int gap;		// frames to wait after the keys are released
+	const char* keys;	// keys pressed together, NULL ends the list
+	int gap;		// frames to wait after they are released
 } asKey;
 
-// 48 basic: LOAD is a keyword on J, " is symbol-shift + P
+// 48 basic: LOAD is a keyword on J
 static const asKey as_keyword[] = {
-	{XKEY_J, ENDKEY, AS_KEY_GAP}, {XKEY_APOS, ENDKEY, AS_KEY_GAP},
-	{XKEY_APOS, ENDKEY, AS_KEY_GAP}, {XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{"j", AS_KEY_GAP}, {ZK_QUOTE, AS_KEY_GAP},
+	{ZK_QUOTE, AS_KEY_GAP}, {ZK_ENTER, 0}, {NULL, 0}
 };
 // boot menu: the item wanted is the first one
 static const asKey as_menu[] = {
-	{XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{ZK_ENTER, 0}, {NULL, 0}
 };
 // ... the second one
 static const asKey as_menu2[] = {
-	{XKEY_DOWN, ENDKEY, AS_KEY_GAP}, {XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{ZK_DOWN, AS_KEY_GAP}, {ZK_ENTER, 0}, {NULL, 0}
 };
 // ... the last one: one step up beats walking down the whole list. Picking
 // tr-dos this way only reaches its command line, so RUN has to follow - with no
 // name it is the shortcut for the boot file
 static const asKey as_menu_last_run[] = {
-	{XKEY_UP, ENDKEY, AS_KEY_GAP}, {XKEY_ENTER, ENDKEY, AS_MENU_GAP},
-	{XKEY_R, ENDKEY, AS_KEY_GAP}, {XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{ZK_UP, AS_KEY_GAP}, {ZK_ENTER, AS_MENU_GAP},
+	{"r", AS_KEY_GAP}, {ZK_ENTER, 0}, {NULL, 0}
 };
 // scorpion has no tape entry at all: go to 128 basic and type it out letter by
 // letter - the 128 editor has no keywords
 static const asKey as_scorpion[] = {
-	{XKEY_DOWN, ENDKEY, AS_KEY_GAP}, {XKEY_ENTER, ENDKEY, AS_MENU_GAP},
-	{XKEY_L, ENDKEY, AS_KEY_GAP}, {XKEY_O, ENDKEY, AS_KEY_GAP},
-	{XKEY_A, ENDKEY, AS_KEY_GAP}, {XKEY_D, ENDKEY, AS_KEY_GAP},
-	{XKEY_APOS, ENDKEY, AS_KEY_GAP}, {XKEY_APOS, ENDKEY, AS_KEY_GAP},
-	{XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{ZK_DOWN, AS_KEY_GAP}, {ZK_ENTER, AS_MENU_GAP},
+	{"l", AS_KEY_GAP}, {"o", AS_KEY_GAP},
+	{"a", AS_KEY_GAP}, {"d", AS_KEY_GAP},
+	{ZK_QUOTE, AS_KEY_GAP}, {ZK_QUOTE, AS_KEY_GAP},
+	{ZK_ENTER, 0}, {NULL, 0}
 };
 // RANDOMIZE USR 15619: REM: RUN - the beta disk entry that takes its command
 // from the REM, so it lands in tr-dos and runs "boot" in one line. Typed in 48
-// basic: RANDOMIZE is on T, USR needs extended mode (caps + symbol shift), and
-// ":" is symbol shift + Z.
+// basic: RANDOMIZE is on T, USR needs extended mode.
 static const asKey as_trdos_basic[] = {
-	{XKEY_T, ENDKEY, AS_KEY_GAP},				// RANDOMIZE
-	{XKEY_LSHIFT, XKEY_LCTRL, AS_KEY_GAP},			// extended mode
-	{XKEY_L, ENDKEY, AS_KEY_GAP},				// USR
-	{XKEY_1, ENDKEY, AS_KEY_GAP}, {XKEY_5, ENDKEY, AS_KEY_GAP},
-	{XKEY_6, ENDKEY, AS_KEY_GAP}, {XKEY_1, ENDKEY, AS_KEY_GAP},
-	{XKEY_9, ENDKEY, AS_KEY_GAP},
-	{XKEY_LCTRL, XKEY_Z, AS_KEY_GAP},			// :
-	{XKEY_E, ENDKEY, AS_KEY_GAP},				// REM
-	{XKEY_LCTRL, XKEY_Z, AS_KEY_GAP},			// :
-	{XKEY_R, ENDKEY, AS_KEY_GAP},				// RUN: a colon puts the editor back
+	{"t", AS_KEY_GAP},				// RANDOMIZE
+	{ZK_EXT, AS_KEY_GAP},
+	{"l", AS_KEY_GAP},				// USR
+	{"1", AS_KEY_GAP}, {"5", AS_KEY_GAP},
+	{"6", AS_KEY_GAP}, {"1", AS_KEY_GAP},
+	{"9", AS_KEY_GAP},
+	{ZK_COLON, AS_KEY_GAP},
+	{"e", AS_KEY_GAP},				// REM
+	{ZK_COLON, AS_KEY_GAP},
+	{"r", AS_KEY_GAP},				// RUN: a colon puts the editor back
 							// into keyword mode, so this is the token
-	{XKEY_ENTER, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{ZK_ENTER, 0}, {NULL, 0}
 };
 // evo reset service: the items are picked by letter
 static const asKey as_evo_tape[] = {
-	{XKEY_T, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{"t", 0}, {NULL, 0}
 };
 static const asKey as_evo_disk[] = {
-	{XKEY_S, ENDKEY, 0}, {ENDKEY, ENDKEY, 0}
+	{"s", 0}, {NULL, 0}
 };
 
 #define AS_NOPE	(-1)		// this machine takes no such media
@@ -136,9 +150,9 @@ static int as_held = 0;		// fast mode and the blank screen are ours to undo
 static void as_key(Computer* comp, const asKey* k, int press) {
 	cbHwKey cb = press ? comp->hw->keyp : comp->hw->keyr;
 	if (!cb) return;
-	keyEntry ent;
-	if (k->key != ENDKEY) { ent = getKeyEntry(k->key); cb(comp, &ent); }
-	if (k->key2 != ENDKEY) { ent = getKeyEntry(k->key2); cb(comp, &ent); }
+	keyEntry ent = {};
+	strncpy((char*)ent.zxKey, k->keys, KEYSEQ_MAXLEN - 1);
+	cb(comp, &ent);
 }
 
 int autostart_busy() {
@@ -217,7 +231,7 @@ void autostart_frame(Computer* comp) {
 		as_down = 0;
 		as_wait = as_seq[as_step].gap;
 		as_step++;
-		if (as_seq[as_step].key == ENDKEY)
+		if (!as_seq[as_step].keys)
 			autostart_stop();	// the loading starts right about now
 	} else {
 		as_key(comp, &as_seq[as_step], 1);
