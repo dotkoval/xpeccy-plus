@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <string>
 #include <vector>
 #include <map>
@@ -491,7 +492,10 @@ struct xConfig {
 		unsigned enabled:1;
 		unsigned wavout:1;	// recording to wav, at the output rate
 		unsigned fill:1;	// 1 while snd buffer not filled, 0 at end of snd buffer
-		int need;		// samples needed to be filled in buf
+		// samples the emulation still owes. Filled by the pacer's timer thread
+		// (pacing.cpp), drained by the emulation thread, so it has to be atomic -
+		// as a plain int a decrement landing inside an addition wiped it out.
+		std::atomic<int> need;
 		int rate;
 		int chans;
 		int latency;		// ms of sound kept in the ring buffer (see sound.h)
