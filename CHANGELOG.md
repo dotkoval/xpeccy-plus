@@ -11,6 +11,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Sound no longer clicks away steadily on the machines it happened to. Part of the sound
+  was never being made at all, so the buffer could not fill and no latency setting helped.
+  Whether a machine was hit came down to how it happened to schedule two threads, which is
+  why it plagued some people and never showed up for others.
 - Opening a tape or a disk starts it now whatever keyboard layout is picked.
 - The emulator no longer crashes on some Intel graphics a moment after the options
   dialog is closed.
