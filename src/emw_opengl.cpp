@@ -282,9 +282,36 @@ std::string MainWin::wantedShader() {
 	return conf.vid.shader;
 }
 
+#if defined(USEOPENGL) && !BLOCKGL
+// Holds the widget's context current while it is in scope, and only takes it
+// when it is not current already: initializeGL() and paintEvent() are handed
+// it by Qt, and releasing it under them would leave Qt drawing into nothing.
+namespace {
+	struct glHold {
+		MainWin* win;
+		bool taken;
+		glHold(MainWin* w) : win(w) {
+#if !ISLEGACYGL
+			taken = (QOpenGLContext::currentContext() != w->context());
+#else
+			taken = (QGLContext::currentContext() != w->context());
+#endif
+			if (taken) win->makeCurrent();
+		}
+		~glHold() { if (taken) win->doneCurrent(); }
+	};
+}
+#endif
+
+// Compiling and linking needs the context current on this thread, and the
+// options dialog, the shader menu and the reload hotkey all get here from
+// outside a paint event. Calling GL with no current context is undefined, and
+// the Intel Gen9.5 driver crashes on it from its shader compiler thread a
+// couple of seconds later.
 void MainWin::loadShader() {
 #if defined(USEOPENGL) && !BLOCKGL
 	if (!conf.vid.shd_support) return;
+	glHold hold(this);
 	shdLoaded = wantedShader();
 
 	QString vtx;
@@ -344,7 +371,7 @@ void MainWin::loadShader() {
 	if (user_shader) {
 		setMessage(" Shader compile error ");
 		conf.vid.shader.clear();
-		loadShader();
+		loadShader();			// the hold above keeps the context
 	} else {
 		xlog(XLG_GL, XLL_ERROR, "the default shader failed to compile or link");
 	}
