@@ -188,6 +188,7 @@ typedef struct {
 		void drawIcons(QPainter&);
 		void presentFrame();
 		void uploadFrame();
+		void uploadOffPaint();
 		void renderFrame();
 
 #if USE_QT_GAMEPAD

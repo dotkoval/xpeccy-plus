@@ -683,6 +683,18 @@ void MainWin::uploadFrame() {
 #endif
 }
 
+// Same upload, but from a timer or the emulation thread's frame signal rather
+// than from paintEvent, so the context has to be taken first - calling GL
+// without it is undefined and crashes some drivers.
+void MainWin::uploadOffPaint() {
+#if defined(USEOPENGL) && !BLOCKGL
+	makeCurrent();
+	glBindTexture(GL_TEXTURE_2D, texids[curtex]);
+	uploadFrame();
+	doneCurrent();
+#endif
+}
+
 // Redraw now. blockSignals/setUpdatesEnabled avoids the QOpenGLWidget
 // repaint recursion (see paintEvent).
 void MainWin::presentFrame() {
@@ -719,8 +731,7 @@ void MainWin::frame_timer() {
 	if (conf.vid.lowLatency && !conf.emu.fast && !conf.emu.pause) return;
 #if defined(USEOPENGL) && !BLOCKGL
 	if (conf.emu.fast || conf.emu.pause) {
-		glBindTexture(GL_TEXTURE_2D, texids[curtex]);
-		uploadFrame();
+		uploadOffPaint();
 		queue.clear();
 		queue.append(texids[curtex]);
 	}
@@ -737,8 +748,7 @@ void MainWin::d_frame() {
 	// smooth jitter (see paintEvent).
 	if (queue.size() > (conf.vid.lowLatency ? 1 : 2))
 		queue.takeFirst();
-	glBindTexture(GL_TEXTURE_2D, texids[curtex]);
-	uploadFrame();
+	uploadOffPaint();
 	curtex++;
 #endif
 	// Low latency: show the frame now. Buffered: let the timer show it.
@@ -1305,9 +1315,6 @@ void MainWin::optApply() {
 		openServer();
 
 	}
-#endif
-#if defined(USEOPENGL) && !BLOCKGL
-	loadShader();
 #endif
 	emit s_tape_upd(comp->tape);
 	pause(false, PR_OPTS);
