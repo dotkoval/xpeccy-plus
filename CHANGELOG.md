@@ -11,6 +11,7 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Opening a tape or a disk starts it now whatever keyboard layout is picked.
 - The emulator no longer crashes on some Intel graphics a moment after the options
   dialog is closed.
 - The gamepad responds right away now. A press used to sit for up to 40 ms before the
