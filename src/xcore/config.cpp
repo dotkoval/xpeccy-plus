@@ -140,6 +140,8 @@ void saveConfig() {
 	fprintf(cfile, "exit.confirm = %s\n",YESNO(conf.confexit));
 	fprintf(cfile, "port = %i\n", conf.port);
 	fprintf(cfile, "winpos = %i,%i\n",conf.xpos,conf.ypos);
+	fprintf(cfile, "keywin.dock = %s\n", YESNO(conf.keywin.dock));
+	fprintf(cfile, "keywin.width = %i\n", conf.keywin.width);
 	fprintf(cfile, "flpinterleave = %i\n", flp_get_interleave());
 	fprintf(cfile, "style = %s\n", conf.style.c_str());
 
@@ -444,6 +446,8 @@ void loadConfig() {
 	shortcut_init();
 	conf.xpos = -1;
 	conf.ypos = -1;
+	conf.keywin.dock = 0;
+	conf.keywin.width = 0;
 	conf.vid.border = VID_BRD_FULL;
 	conf.dbg.dbsize = 8;
 	conf.dbg.dwsize = 4;
@@ -709,6 +713,8 @@ void loadConfig() {
 							conf.ypos = strtol(vect[1].c_str(), NULL, 10);
 						}
 					}
+					if (pnam == "keywin.dock") conf.keywin.dock = arg.b;
+					if (pnam == "keywin.width") conf.keywin.width = arg.i;
 					if (pnam == "addboot") conf.boot = arg.b;
 					if (pnam == "autorun") conf.autorun = arg.b;
 					if (pnam == "exit.confirm") conf.confexit = arg.b;

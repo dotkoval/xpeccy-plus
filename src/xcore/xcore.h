@@ -522,6 +522,10 @@ struct xConfig {
 		std::string dir;
 	} scrShot;
 	struct {
+		unsigned dock:1;	// glued under the emulator window
+		int width;		// window width; the height follows the picture
+	} keywin;
+	struct {
 		unsigned mouse:1;
 		unsigned joy:1;
 		unsigned keys:1;

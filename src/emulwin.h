@@ -109,6 +109,7 @@ typedef struct {
 		void s_keywin_upd(Keyboard*);
 		void s_keywin_shide();
 		void s_keywin_close();
+		void s_keywin_snap();		// the window moved or changed size
 		void s_emulwin_close();
 	public slots:
 		void d_frame();

@@ -90,6 +90,7 @@ void MainWin::updateWindow() {
 	bufSize = bytesPerLine * comp->vid->full.y * (comp->vid->linedbl ? 2 : 1);
 	updateHead();
 	block = 0;
+	emit s_keywin_snap();		// a docked keyboard follows the new size
 }
 
 bool MainWin::saveChanged() {
@@ -535,6 +536,7 @@ void MainWin::focusInEvent(QFocusEvent*) {
 void MainWin::moveEvent(QMoveEvent* ev) {
 	conf.xpos = pos().x();
 	conf.ypos = pos().y();
+	emit s_keywin_snap();
 }
 
 void MainWin::menuShow() {
