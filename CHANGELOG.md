@@ -11,6 +11,7 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Holding a key down on the on-screen keyboard with the right mouse button works again.
 - A gamepad keeps its setting while it is unplugged or asleep, and two pads of the
   same model no longer swap places. Each slot now remembers the device itself, not
   just its name.
@@ -55,6 +56,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- The on-screen keyboard can be resized, and it can sit under the emulator window at its
+  width. Right-click an empty spot on it for the size and docking choices.
 - A log, for when something goes wrong and a screenshot is not enough. Turn it on in
   Options -> Xpeccy+ -> Log, or start with `--log`, and every event lands in
   `logs/<date>/` beside the emulator, with the version, the machine and the graphics

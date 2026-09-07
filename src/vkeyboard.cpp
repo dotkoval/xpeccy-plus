@@ -5,6 +5,7 @@
 
 #include <QIcon>
 #include <QPainter>
+#include <QMenu>
 
 typedef struct {
 	int x;
@@ -19,14 +20,6 @@ typedef struct {
 	xRect rect2;
 } xVKeyMap;
 
-/*
-static unsigned char kwMap[4][10] = {
-	{'1','2','3','4','5','6','7','8','9','0'},
-	{'q','w','e','r','t','y','u','i','o','p'},
-	{'a','s','d','f','g','h','j','k','l','E'},
-	{'C','z','x','c','v','b','n','m','S',' '}
-};
-*/
 static const xVKeyMap vkZxMap[] = {
 	{'1',{2,10,46,60},{0,0,0,0}},{'2',{2 + 49,10,46,60},{0,0,0,0}},{'3',{2 + 49*2,10,46,60},{0,0,0,0}},{'4',{2 + 49*3,10,46,60},{0,0,0,0}},{'5',{2 + 49*4,10,46,60},{0,0,0,0}},
 	{'6',{2 + 49*5,10,46,60},{0,0,0,0}},{'7',{2 + 49*6,10,46,60},{0,0,0,0}},{'8',{2 + 49*7,10,46,60},{0,0,0,0}},{'9',{2 + 49*8,10,46,60},{0,0,0,0}},{'0',{2 + 49*9,10,46,60},{0,0,0,0}},
@@ -41,14 +34,115 @@ static const xVKeyMap vkZxMap[] = {
 
 keyWindow::keyWindow(QWidget* p):QDialog(p) {
 	kb = NULL;
+	dock = 0;
+	memset(&xent, 0, sizeof(xent));
 	xent.key = ENDKEY;
-	memset(xent.zxKey, 0, 8);
-	QPixmap pxm(":/images/keymap_volutar.png");
+	pxm = QPixmap(":/images/keymap_volutar.png");
 	setModal(false);
 	setWindowModality(Qt::NonModal);
-	setFixedSize(pxm.size());
+	setSizeGripEnabled(true);
+	// without a cursor of its own the window keeps the sizing arrows the frame
+	// drag left behind
+	setCursor(Qt::ArrowCursor);
+	setMinimumSize(pxm.width() / 2, pxm.height() / 2);
+	setZoom(storedZoom());
 	setWindowIcon(QIcon(":/images/keyboard.png"));
 	setWindowTitle("ZX Keyboard");
+	if (conf.keywin.dock)
+		setDock(true);
+}
+
+// window pixels per picture pixel. The picture keeps its shape, so a window of
+// another aspect gets an empty strip beside it
+double keyWindow::scale() {
+	double sx = width() / (double)pxm.width();
+	double sy = height() / (double)pxm.height();
+	return (sx < sy) ? sx : sy;
+}
+
+// the size the window was left at last time
+double keyWindow::storedZoom() {
+	return (conf.keywin.width > 0) ? (conf.keywin.width / (double)pxm.width()) : 1.0;
+}
+
+QPoint keyWindow::imgPos(QPoint pos) {
+	double sc = scale();
+	if (sc <= 0.0) return QPoint(-1, -1);
+	int x = (pos.x() - (width() - pxm.width() * sc) / 2) / sc;
+	int y = (pos.y() - (height() - pxm.height() * sc) / 2) / sc;
+	return QPoint(x, y);
+}
+
+void keyWindow::setZoom(double z) {
+	resize(qRound(pxm.width() * z), qRound(pxm.height() * z));
+}
+
+// docked: no frame of its own, the emulator window drags it around
+void keyWindow::setDock(bool d) {
+	bool vis = isVisible();
+	dock = d;
+	conf.keywin.dock = dock;
+	setWindowFlags(d ? (Qt::Tool | Qt::FramelessWindowHint) : Qt::Dialog);
+	setSizeGripEnabled(!d);
+	if (d) {
+		snap();
+	} else {
+		setZoom(storedZoom());
+	}
+	if (vis) show();		// changing the flags takes the window off screen
+}
+
+void keyWindow::snap() {
+	if (!dock) return;
+	QWidget* par = parentWidget();
+	if (!par) return;
+	QRect rc = par->frameGeometry();
+	int wid = rc.width();
+	int hig = qRound(wid * pxm.height() / (double)pxm.width());
+	int y = rc.bottom() + 1;
+	// fullscreen, or the window sits too low: lay the keyboard over the picture
+	if (par->isFullScreen() || (y + hig > SCREENSIZE.height()))
+		y = rc.bottom() - hig + 1;
+	setGeometry(rc.left(), y, wid, hig);
+}
+
+void keyWindow::showMenu(QPoint gpos) {
+	QMenu mnu(this);
+	QAction* act;
+	const double zval[] = {1.0, 1.5, 2.0, 3.0};
+	for (int i = 0; i < 4; i++) {
+		act = mnu.addAction(QString("Zoom x%1").arg(zval[i]));
+		act->setData(zval[i]);
+		act->setDisabled(dock);
+	}
+	mnu.addSeparator();
+	QAction* dck = mnu.addAction("Dock under the emulator");
+	dck->setCheckable(true);
+	dck->setChecked(dock);
+	mnu.addSeparator();
+	QAction* rall = mnu.addAction("Release all keys");
+	act = mnu.exec(gpos);
+	if (act == NULL) return;
+	if (act == dck) {
+		setDock(!dock);
+	} else if (act == rall) {
+		if (kb) kbdReleaseAll(kb);
+		xent.zxKey[0] = 0;
+		update();
+	} else if (act->data().isValid()) {
+		setZoom(act->data().toDouble());
+	}
+}
+
+void keyWindow::resizeEvent(QResizeEvent* ev) {
+	if (!dock)
+		conf.keywin.width = ev->size().width();
+	QDialog::resizeEvent(ev);
+}
+
+void keyWindow::showEvent(QShowEvent* ev) {
+	QDialog::showEvent(ev);
+	snap();
 }
 
 void keyWindow::switcher() {
@@ -73,17 +167,16 @@ void keyWindow::rall(Keyboard* k) {
 // TODO: untide from ZX-keyboard (row,pos calculation)
 void keyWindow::paintEvent(QPaintEvent*) {
 	QPainter pnt;
-/*
-//	int wid = width() / 10 + 1;
-//	int hig = (height() - 10) / 4;
-	int wid = (width() - 6) / 10 + 1;	// 49
-	int hig = (height() - 10) / 4;		// 60
-*/
 	const xRect* prct;
 	unsigned char val;
 	int row, pos;
+	double sc = scale();
 	pnt.begin(this);
-	pnt.fillRect(0, 0, width(), height(), qRgba(0,0,0,0));
+	pnt.fillRect(rect(), palette().window());
+	// everything below is in the picture's own pixels, the painter sizes it
+	pnt.translate((width() - pxm.width() * sc) / 2, (height() - pxm.height() * sc) / 2);
+	pnt.scale(sc, sc);
+	pnt.setRenderHint(QPainter::SmoothPixmapTransform, true);
 	if (kb) {
 		for(int i = 0; i < 8; i++) {
 			pos = (i & 4) ? 0 : 9;
@@ -91,8 +184,6 @@ void keyWindow::paintEvent(QPaintEvent*) {
 			val = ~kb->map[i] & 0x1f;
 			while(val) {
 				if (val & 1) {
-					//pnt.fillRect(pos * wid, 10 + row * hig, wid, hig, qRgb(0, 200, 255));
-					//pnt.fillRect(3 + pos * wid, 10 + row * hig, wid, hig, qRgb(0, 200, 255));
 					prct = &vkZxMap[row * 10 + pos].rect;
 					pnt.fillRect(prct->x, prct->y, prct->dx, prct->dy, qRgb(0,200,255));
 				}
@@ -101,7 +192,7 @@ void keyWindow::paintEvent(QPaintEvent*) {
 			}
 		}
 	}
-	pnt.drawPixmap(0, 0, QPixmap(":/images/keymap_volutar.png"));
+	pnt.drawPixmap(0, 0, pxm);
 	pnt.end();
 }
 
@@ -111,8 +202,9 @@ void keyWindow::mousePressEvent(QMouseEvent* ev) {
 	const xRect* prct = NULL;
 	const xRect* rctp;
 	int idx = 0;
-	int x = ev->xEventX;
-	int y = ev->xEventY;
+	QPoint ipos = imgPos(QPoint(ev->xEventX, ev->xEventY));
+	int x = ipos.x();
+	int y = ipos.y();
 	int dx,dy;
 	while(vkZxMap[idx].ch != 0) {
 		rctp = &vkZxMap[idx].rect;
@@ -132,18 +224,13 @@ void keyWindow::mousePressEvent(QMouseEvent* ev) {
 		}
 		idx++;
 	}
-	if (prct == NULL) return;		// no hit
-/*
-	int row;
-	int col;
-	row = (ev->xEventY - 10) * 4 / (height() - 10);
-	if (row < 0) row = 0;
-	if (row > 3) row = 3;
-	col = (ev->xEventX - 3) * 10 / (width() - 3);
-	if (col < 0) col = 0;
-	if (col > 9) col = 9;
-	xent.zxKey[0] = kwMap[row][col];
-*/
+	if (prct == NULL) {			// no hit: nothing to release on mouse up either
+		xent.zxKey[0] = 0;
+		// the right button holds a key down, so the menu is on a miss
+		if (ev->button() == Qt::RightButton)
+			showMenu(mapToGlobal(QPoint(ev->xEventX, ev->xEventY)));
+		return;
+	}
 	xent.zxKey[1] = 0;
 	switch(ev->button()) {
 		case Qt::LeftButton:

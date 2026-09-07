@@ -67,9 +67,9 @@ void key_trigger(Keyboard* kbd, keyScan* tab, int* mtrx, unsigned char ch) {
 	mtrx[key.row] ^= key.mask;
 	for (int i = 0; i < 16; i++) {
 		if (key.mask & (1 << i)) {
-			if (mtrx[key.row] & key.mask) {		// is pressed now
+			if (!(mtrx[key.row] & (1 << i))) {	// 0 = pressed now
 				kbd->matrix[key.row][i]++;
-			} else {
+			} else if (kbd->matrix[key.row][i] > 0) {
 				kbd->matrix[key.row][i]--;
 			}
 		}
@@ -702,7 +702,8 @@ void kbdReleaseAll(Keyboard* kbd) {
 // trigger is using by kbd-window only
 
 void kbdTrigger(Keyboard* kbd, keyEntry* ent) {
-	switch(kbd->mode) {
+	if (!kbd->core) return;
+	switch(kbd->core->id) {
 		case KBD_SPECTRUM:
 			key_trigger_seq(kbd, keyTab, kbd->map, ent->zxKey);
 			break;
