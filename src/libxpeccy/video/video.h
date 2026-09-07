@@ -396,6 +396,7 @@ void vid_set_col(Video*, int, xColor);
 void vid_set_red(Video*, int, int);
 void vid_set_green(Video*, int, int);
 void vid_set_blue(Video*, int, int);
+int vid_zx_palette(Video*);
 void vid_set_bcol(Video*, int, xColor);
 void vid_reset_col(Video*, int);
 

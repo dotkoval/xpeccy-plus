@@ -61,9 +61,8 @@ int saveColors(std::string fname, QList<QColor> pal) {
 void loadPalette(xProfile* prf) {
 //	printf("Loading palette: %s\n", prf->palette.c_str());
 	Computer* comp = prf->zx;
-	bool updateCurrentPallete = comp->vid->vmode == VID_NORMAL ? true : false;		// not necessary (VID_ALCO, VID_HWMC)
-	updateCurrentPallete |= !!(comp->vid->vmode == VID_ALCO);
-	updateCurrentPallete |= !!(comp->vid->vmode == VID_HWMC);
+	// the preset is always kept as the base palette
+	bool updateCurrentPallete = !!vid_zx_palette(comp->vid);
 	QList<QColor> pal = loadColors(prf->palette);
 	xColor xcol;
 	int i;

@@ -552,6 +552,20 @@ void vid_set_blue(Video* vid, int i, int v) {
 	vid_set_col(vid, i, col);
 }
 
+// A preset palette only reaches the screen in the modes that show the plain 16
+// zx colors. A machine running a palette of its own keeps it and takes the
+// preset at its next reset.
+int vid_zx_palette(Video* vid) {
+	switch (vid->vmode) {
+		case VID_NORMAL:
+		case VID_ULA_SCR:
+		case VID_ALCO:
+		case VID_HWMC:
+			return 1;
+	}
+	return 0;
+}
+
 // set base color palette (used for preset loading)
 void vid_set_bcol(Video* vid, int i, xColor xcol) {
 	vid->bpal[i & 0xff] = xcol.r | (xcol.g << 8) | (xcol.b << 16) | (0xff << 24);

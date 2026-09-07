@@ -1967,9 +1967,7 @@ void SetupWin::palchoosecol(QPoint p) {
 void SetupWin::palstore() {
 	int i;
 	xColor xcol;
-	bool upd = !!(conf.prof.cur->zx->vid->vmode == VID_NORMAL);
-	upd |= !!(conf.prof.cur->zx->vid->vmode == VID_ALCO);
-	upd |= !!(conf.prof.cur->zx->vid->vmode == VID_HWMC);
+	bool upd = !!vid_zx_palette(conf.prof.cur->zx->vid);
 	for (i = 0; (i < editpal.size()) && (i < 16); i++) {
 		qDebug() << editpal[i];
 		xcol.r = editpal[i].red();

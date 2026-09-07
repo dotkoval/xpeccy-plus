@@ -11,6 +11,9 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Picking a palette preset changes the colors right away again on the ZX Spectrum
+  48K and 128K, where they only changed after a reset. The palette editor had the
+  same problem.
 - Holding a key down on the on-screen keyboard with the right mouse button works again.
 - A gamepad keeps its setting while it is unplugged or asleep, and two pads of the
   same model no longer swap places. Each slot now remembers the device itself, not
