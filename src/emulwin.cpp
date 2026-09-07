@@ -1129,7 +1129,7 @@ void MainWin::initUserMenu() {
 	userMenu->addSeparator();
 	pckAct = userMenu->addAction(QIcon(":/images/keyboard.png"),"Grab keyboard");
 	pckAct->setCheckable(true);
-	userMenu->addAction(QIcon(":/images/keyboardzx.png"),"ZX Keyboard",this,SIGNAL(s_keywin_shide()));
+	userMenu->addAction(QIcon(":/images/keyboardzx.png"),"Virtual keyboard",this,SIGNAL(s_keywin_shide()));
 	userMenu->addAction(QIcon(":/images/objective.png"),"Watcher", this, SIGNAL(s_watch_show()));
 	userMenu->addAction(QIcon(":/images/bug.png"), "Debugger", this, SLOT(doDebug()));
 	userMenu->addAction(QIcon(":/images/other.png"),"Options",this,SLOT(doOptions()));

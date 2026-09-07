@@ -121,6 +121,10 @@ elseif(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
 	# OpenGL is deprecated on macOS since 10.14 and says so on every include
 	add_definitions(-DGL_SILENCE_DEPRECATION)
 
+	# for vkeyboard_mac.mm
+	find_library(APPKIT_LIBRARY AppKit)
+	set(LIBRARIES ${LIBRARIES} ${APPKIT_LIBRARY})
+
 	if(CMAKE_OSX_ARCHITECTURES)
 		string(REPLACE ";" "-" XARCH "${CMAKE_OSX_ARCHITECTURES}")
 	else()
@@ -193,6 +197,14 @@ file(GLOB_RECURSE SOURCES
 	./src/*.cpp
 	./src/*.c
 )
+
+# Objective-C++ is not in the glob: it only builds on macOS
+if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+	if(NOT CMAKE_VERSION VERSION_LESS 3.16)
+		enable_language(OBJCXX)
+	endif()
+	set(SOURCES ${SOURCES} ./src/vkeyboard_mac.mm)
+endif()
 
 # headers
 file(GLOB_RECURSE HEADERS

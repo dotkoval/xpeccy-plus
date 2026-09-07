@@ -421,7 +421,7 @@ static xShortcut short_tab[] = {
 	{SCG_MAIN, XCUT_FASTSAVE, "key.fastsave", "Fast saving", QKeySequence(), QKeySequence(Qt::Key_F9)},
 	{SCG_MAIN, XCUT_MOUSE, "key.mouse.grab", "Grab mouse", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_M)},
 	{SCG_MAIN, XCUT_GRABKBD, "key.keyboard.grab","Grab keyboard", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_G)},
-	{SCG_MAIN | SCG_DEBUGA, XCUT_KEYBOARD, "key.keywin", "Show keyboard", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_K)},
+	{SCG_MAIN | SCG_DEBUGA, XCUT_KEYBOARD, "key.keywin", "Show virtual keyboard", QKeySequence(), QKeySequence(Qt::ALT | Qt::Key_K)},
 	{SCG_MAIN, XCUT_TAPWIN, "key.tapewin", "Show tape player", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_RZXWIN, "key.rzxwin", "Show rzx player", QKeySequence(), QKeySequence()},
 	{SCG_MAIN, XCUT_TAPLAY, "key.tape.play", "Tape play", QKeySequence(), QKeySequence(Qt::Key_F4)},

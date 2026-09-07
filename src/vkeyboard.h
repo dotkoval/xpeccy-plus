@@ -6,10 +6,17 @@
 #include <QMouseEvent>
 #include <QKeyEvent>
 #include <QPixmap>
+#include <QColor>
 #include <QResizeEvent>
 #include <QShowEvent>
+#include <QMoveEvent>
 
 #include "libxpeccy/input/input.h"
+
+#if defined(__APPLE__)
+// vkeyboard_mac.mm: let the window keep its shape by itself
+void vkbd_set_aspect(QWidget*, int, int);
+#endif
 
 class keyWindow : public QDialog {
 	Q_OBJECT
@@ -27,9 +34,12 @@ class keyWindow : public QDialog {
 		Keyboard* kb;
 		keyEntry xent;
 		QPixmap pxm;
+		QColor ground;		// what the picture is drawn to sit on
 		unsigned dock:1;	// glued under the emulator window
 		double scale();
 		double storedZoom();
+		int higFor(int);
+		int widFor(int);
 		QPoint imgPos(QPoint);
 		void setZoom(double);
 		void setDock(bool);
@@ -40,5 +50,13 @@ class keyWindow : public QDialog {
 		void keyPressEvent(QKeyEvent*);
 		void keyReleaseEvent(QKeyEvent*);
 		void resizeEvent(QResizeEvent*);
+		void moveEvent(QMoveEvent*);
 		void showEvent(QShowEvent*);
+#if defined(_WIN32)
+	#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+		bool nativeEvent(const QByteArray&, void*, qintptr*);
+	#else
+		bool nativeEvent(const QByteArray&, void*, long*);
+	#endif
+#endif
 };

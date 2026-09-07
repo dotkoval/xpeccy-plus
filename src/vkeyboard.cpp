@@ -6,6 +6,11 @@
 #include <QIcon>
 #include <QPainter>
 #include <QMenu>
+#include <QTimer>
+
+#if defined(_WIN32)
+#include <windows.h>
+#endif
 
 typedef struct {
 	int x;
@@ -38,6 +43,13 @@ keyWindow::keyWindow(QWidget* p):QDialog(p) {
 	memset(&xent, 0, sizeof(xent));
 	xent.key = ENDKEY;
 	pxm = QPixmap(":/images/keymap_volutar.png");
+	// The picture is drawn to sit on a ground of its own: the keys are opaque and
+	// only a thin rim around each one is clear, so what shows through it is the
+	// pressed colour. Take that ground from the picture's own corner - under a
+	// light theme the window colour would outline every key all the time.
+	ground = pxm.toImage().pixelColor(0, 0);
+	if (ground.alpha() < 255)
+		ground = QColor(Qt::black);
 	setModal(false);
 	setWindowModality(Qt::NonModal);
 	setSizeGripEnabled(true);
@@ -47,7 +59,7 @@ keyWindow::keyWindow(QWidget* p):QDialog(p) {
 	setMinimumSize(pxm.width() / 2, pxm.height() / 2);
 	setZoom(storedZoom());
 	setWindowIcon(QIcon(":/images/keyboard.png"));
-	setWindowTitle("ZX Keyboard");
+	setWindowTitle("Virtual keyboard - ZX Spectrum");
 	if (conf.keywin.dock)
 		setDock(true);
 }
@@ -58,6 +70,15 @@ double keyWindow::scale() {
 	double sx = width() / (double)pxm.width();
 	double sy = height() / (double)pxm.height();
 	return (sx < sy) ? sx : sy;
+}
+
+// the picture's shape, from one side to the other
+int keyWindow::higFor(int wid) {
+	return qRound(wid * pxm.height() / (double)pxm.width());
+}
+
+int keyWindow::widFor(int hig) {
+	return qRound(hig * pxm.width() / (double)pxm.height());
 }
 
 // the size the window was left at last time
@@ -84,26 +105,43 @@ void keyWindow::setDock(bool d) {
 	conf.keywin.dock = dock;
 	setWindowFlags(d ? (Qt::Tool | Qt::FramelessWindowHint) : Qt::Dialog);
 	setSizeGripEnabled(!d);
-	if (d) {
-		snap();
-	} else {
-		setZoom(storedZoom());
-	}
+	// the geometry is set before the window comes up as well as after: set
+	// beforehand it goes to the window manager as the position asked for, which
+	// is the one thing that can stop it placing the window somewhere of its own
+	snap();
 	if (vis) show();		// changing the flags takes the window off screen
+	if (!d)
+		setZoom(storedZoom());
 }
 
 void keyWindow::snap() {
 	if (!dock) return;
 	QWidget* par = parentWidget();
-	if (!par) return;
+	// A window that is not on screen yet has no geometry worth reading: this
+	// window is built before the emulator window is shown, and taking its size
+	// then put the keyboard off the screen entirely. Whatever is missed here
+	// comes back from showEvent and from every move of the emulator window.
+	if (!par || !par->isVisible()) return;
 	QRect rc = par->frameGeometry();
 	int wid = rc.width();
-	int hig = qRound(wid * pxm.height() / (double)pxm.width());
+	int hig = higFor(wid);
 	int y = rc.bottom() + 1;
 	// fullscreen, or the window sits too low: lay the keyboard over the picture
 	if (par->isFullScreen() || (y + hig > SCREENSIZE.height()))
 		y = rc.bottom() - hig + 1;
-	setGeometry(rc.left(), y, wid, hig);
+	QRect want(rc.left(), y, wid, hig);
+	if (geometry() != want)
+		setGeometry(want);
+}
+
+// A window manager puts the window where it wants when it maps it, and that
+// happens after show() has returned - so while docked, every move it makes is
+// answered by putting the window back. snap() does nothing once the geometry
+// is right, which is what stops this from bouncing.
+void keyWindow::moveEvent(QMoveEvent* ev) {
+	QDialog::moveEvent(ev);
+	if (dock)
+		snap();
 }
 
 void keyWindow::showMenu(QPoint gpos) {
@@ -134,16 +172,80 @@ void keyWindow::showMenu(QPoint gpos) {
 	}
 }
 
+// The window is free to take any shape here; the picture keeps its own and sits
+// in the middle of its ground. Only Windows squares the window itself, in
+// nativeEvent below, where it can be done before anything is drawn - putting the
+// size back afterwards means fighting the window manager for the frame, and the
+// manager wins: the picture ends up drawn for one size while the frame is
+// another, so the keyboard is cut off or a stale one is left behind.
 void keyWindow::resizeEvent(QResizeEvent* ev) {
+	QDialog::resizeEvent(ev);
 	if (!dock)
 		conf.keywin.width = ev->size().width();
-	QDialog::resizeEvent(ev);
 }
 
 void keyWindow::showEvent(QShowEvent* ev) {
 	QDialog::showEvent(ev);
+#if defined(__APPLE__)
+	// the shape has to be told to the window itself, and a new one is made
+	// whenever the flags change, so it is set every time it comes up
+	vkbd_set_aspect(this, pxm.width(), pxm.height());
+#endif
 	snap();
+	// see moveEvent: a window manager can also map the window in its own place
+	// without a move worth reporting, so the geometry is put back a few times
+	// while the mapping settles - how long that takes is the manager's business
+	if (dock) {
+		QTimer::singleShot(0, this, SLOT(snap()));
+		QTimer::singleShot(150, this, SLOT(snap()));
+		QTimer::singleShot(400, this, SLOT(snap()));
+	}
 }
+
+#if defined(_WIN32)
+// Windows asks what size the window may take while the frame is still being
+// dragged, so the shape is fixed here, before anything is drawn. Correcting it
+// afterwards in resizeEvent works too, but the window then flickers between the
+// size the mouse asked for and the one it is put back to for the whole drag.
+// The rectangle is in real pixels and Qt's own sizes are not, so the frame is
+// measured off the window itself.
+#if QT_VERSION >= QT_VERSION_CHECK(6,0,0)
+bool keyWindow::nativeEvent(const QByteArray& type, void* msg, qintptr* res) {
+#else
+bool keyWindow::nativeEvent(const QByteArray& type, void* msg, long* res) {
+#endif
+	MSG* wmsg = (MSG*)msg;
+	if (wmsg->message == WM_SIZING) {
+		RECT* rct = (RECT*)wmsg->lParam;
+		RECT wrc, crc;
+		GetWindowRect(wmsg->hwnd, &wrc);
+		GetClientRect(wmsg->hwnd, &crc);
+		int fw = (wrc.right - wrc.left) - crc.right;	// frame around the picture
+		int fh = (wrc.bottom - wrc.top) - crc.bottom;
+		int wid = (rct->right - rct->left) - fw;
+		int hig = (rct->bottom - rct->top) - fh;
+		// the side being dragged stays where the mouse is, the other one follows
+		switch(wmsg->wParam) {
+			case WMSZ_TOP:
+			case WMSZ_BOTTOM:
+				wid = widFor(hig);
+				rct->right = rct->left + wid + fw;
+				break;
+			default:
+				hig = higFor(wid);
+				if ((wmsg->wParam == WMSZ_TOPLEFT) || (wmsg->wParam == WMSZ_TOPRIGHT)) {
+					rct->top = rct->bottom - hig - fh;
+				} else {
+					rct->bottom = rct->top + hig + fh;
+				}
+				break;
+		}
+		if (res) *res = TRUE;
+		return true;
+	}
+	return QDialog::nativeEvent(type, msg, res);
+}
+#endif
 
 void keyWindow::switcher() {
 	if (isVisible())
@@ -172,7 +274,7 @@ void keyWindow::paintEvent(QPaintEvent*) {
 	int row, pos;
 	double sc = scale();
 	pnt.begin(this);
-	pnt.fillRect(rect(), palette().window());
+	pnt.fillRect(rect(), ground);
 	// everything below is in the picture's own pixels, the painter sizes it
 	pnt.translate((width() - pxm.width() * sc) / 2, (height() - pxm.height() * sc) / 2);
 	pnt.scale(sc, sc);
