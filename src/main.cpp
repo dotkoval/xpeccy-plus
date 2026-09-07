@@ -133,7 +133,6 @@ bool xApp::event(QEvent* ev) {
 
 int main(int ac,char** av) {
 	log_init();			// before anything that could have something to say
-	tClock = clock();
 #if defined(__WIN32)
 	// raise the Windows timer resolution to 1ms for smoother frame timing
 	// (the default step is ~15ms, which makes usleep and timers coarse)

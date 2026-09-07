@@ -17,6 +17,7 @@ param(
 	[switch]$Zip,
 	[switch]$Release,
 	[switch]$Full,		# keep everything windeployqt copied, skip the trim step
+	[switch]$AllMachines,	# build the non-ZX platforms too (see ZXONLY in CMakeLists)
 	[int]$Jobs = 16,
 	# a build agent installs Qt and MinGW wherever it likes, and has cmake in
 	# PATH already; locally the table below is right and none of this is needed
@@ -105,6 +106,7 @@ $cmakeArgs = @(
 	'-DUSEQTNETWORK=1'
 	'-DSDL1BUILD=0'
 	'-DIBM=0'
+	"-DZXONLY=$(if ($AllMachines) { 'OFF' } else { 'ON' })"
 	"-DTRIMDEPLOY=$(if ($Full) { 'OFF' } else { 'ON' })"
 	"-DZLIB_LIBRARY=$mingwFwd/$($tc.Triple)/lib/libz.a"
 	"-DZLIB_INCLUDE_DIR=$mingwFwd/$($tc.Triple)/include"

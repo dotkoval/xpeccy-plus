@@ -162,6 +162,8 @@ void pdosSync(DiskIF* dif, int ns) {
 */
 }
 
+#ifndef XZXONLY
+
 // pc (i8272 = upd765)
 
 int dpcIn(DiskIF* dif, int port, int* rptr, int dos) {
@@ -316,15 +318,19 @@ int bkdOut(DiskIF* dif, int port, int val, int dos) {
 	return 1;
 }
 
+#endif
+
 // common
 
 static DiskHW dhwTab[] = {
 	{DIF_NONE,dumReset,dumIn,dumOut,dumSync,NULL,NULL},
 	{DIF_BDI,bdiReset,bdiIn,bdiOut,dhwSync,NULL,NULL},
 	{DIF_P3DOS,pdosReset,pdosIn,pdosOut,pdosSync,NULL,NULL},		// upd765 (+3dos)
+#ifndef XZXONLY
 	{DIF_PC,pdosReset,dpcIn,dpcOut,pdosSync,dpc_irq,dpc_term},		// i8272 = upd765
 	{DIF_PC98,pdosReset,p98in,p98out,p98sync,NULL,dpc_term},		// upd765 (pc98)
 	{DIF_SMK512,bkdReset,bkdIn,bkdOut,dhwSync,NULL,NULL},
+#endif
 	{DIF_END,NULL,NULL,NULL,NULL,NULL,NULL}
 };
 

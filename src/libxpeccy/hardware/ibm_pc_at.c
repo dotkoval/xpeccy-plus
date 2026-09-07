@@ -5,8 +5,6 @@
 #include "../video/vga.h"
 #include "../cpu/x86/i80286.h"
 
-clock_t tClock;
-
 #define regPOST	reg[17]
 #define regCRN	reg[18]		// chipset register number
 #define	reg61	reg[0x61]

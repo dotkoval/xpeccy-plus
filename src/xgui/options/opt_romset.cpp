@@ -53,7 +53,16 @@ int xRomsetModel::columnCount(const QModelIndex& idx) const {
 
 int xRomsetModel::rowCount(const QModelIndex& idx) const {
 	if (idx.isValid()) return 0;
+	// after the roms come GS, Font, VGA and SND. GS is General Sound and Font
+	// is what ATM Turbo and ZX Evo draw their text mode from, but VGA is the
+	// PC's video bios and SND the PC-9801's sound rom, and nothing else reads
+	// either - so a ZX-only build stops after Font and leaves those two rows
+	// out of reach
+#ifdef XZXONLY
+	return rset->roms.size() + 2;
+#else
 	return rset->roms.size() + 4;
+#endif
 }
 
 

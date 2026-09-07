@@ -399,7 +399,9 @@ void DebugWin::onPrfChange() {
 
 	// ui.tabDiskDump->setDrive(ui.cbDrive->currentIndex());
 	wid_disk_dump->draw();
+#ifndef XZXONLY
 	wid_vmem_dump->setVMem(conf.prof.cur->zx->vid->ram);
+#endif
 
 	wid_dump->setBase(comp->hw->base, comp->hw->id);
 	wid_brk->moved();
@@ -469,29 +471,34 @@ DebugWin::DebugWin(QWidget* par):QMainWindow(par) {
 	wid_rdump = new xRDumpWidget("","REG-DUMP");
 	wid_disk_dump = new xDiskDumpWidget(":/images/floppy.png","FDD");
 	wid_cmos_dump = new xCmosDumpWidget("","CMOS");
-	wid_vmem_dump = new xVMemDumpWidget("","VMEM");
 	wid_zxscr = new xZXScrWidget(":/images/rulers.png","Screen");
-	wid_dma = new xDmaWidget("","DMA");
-	wid_pit = new xPitWidget("","PIT");
-	wid_pic = new xPicWidget("","PIC");
-	wid_vga = new xVgaWidget(":/images/display.png","VGA");
 	wid_ay = new xAYWidget(":/images/note.png","Sound Chip");
 	wid_tape = new xTapeWidget(":/images/tape.png","Tape");
 	wid_fdd = new xFDDWidget(":/images/floppy.png","FDC");
 	wid_brk = new xBreakWidget(":/images/stop.png","Breakpoints");
+	wid_heat = new xHeatWidget(":/images/memory.png","Heat map");
+	wid_pal = new xPalWidget(":/images/palette.png", "Palette");
+#ifndef XZXONLY
+	wid_vmem_dump = new xVMemDumpWidget("","VMEM");
+	wid_dma = new xDmaWidget("","DMA");
+	wid_pit = new xPitWidget("","PIT");
+	wid_pic = new xPicWidget("","PIC");
+	wid_vga = new xVgaWidget(":/images/display.png","VGA");
 	wid_gb = new xGameboyWidget(":/images/gameboy.png","GameBoy");
 	wid_gbv = new xGBVideoWidget(":/images/gameboy.png", "GBVideo");
 	wid_ppu = new xPPUWidget(":/images/nespad.png","NES PPU");
 	wid_cia = new xCiaWidget("","CIA");
 	wid_vic = new xVicWidget("","VIC");
-	wid_heat = new xHeatWidget(":/images/memory.png","Heat map");
 	wid_ps2 = new xPS2Widget("","PS/2");
-	wid_pal = new xPalWidget(":/images/palette.png", "Palette");
+#endif
 
-	dockWidgets << wid_dump << wid_rdump << wid_disk_dump << wid_vmem_dump << wid_cmos_dump;
+	dockWidgets << wid_dump << wid_rdump << wid_disk_dump << wid_cmos_dump;
 	dockWidgets << wid_brk << wid_zxscr << wid_ay << wid_tape;
-	dockWidgets << wid_fdd << wid_heat << wid_gb << wid_gbv << wid_ppu << wid_pal;
+	dockWidgets << wid_fdd << wid_heat << wid_pal;
+#ifndef XZXONLY
+	dockWidgets << wid_vmem_dump << wid_gb << wid_gbv << wid_ppu;
 	dockWidgets << wid_cia << wid_dma << wid_pic << wid_pit << wid_vga << wid_ps2;
+#endif
 
 	// misc used to be one monolithic MISCTOOLBAR pinned to the window edge.
 	// two docks instead, so they can be dragged and split like the rest
@@ -1721,13 +1728,16 @@ void DebugWin::setDefaultLayout() {
 
 	tabifyDockWidget(wid_dump, wid_rdump);
 	tabifyDockWidget(wid_dump, wid_disk_dump);
+#ifndef XZXONLY
 	tabifyDockWidget(wid_dump, wid_vmem_dump);
+#endif
 	tabifyDockWidget(wid_dump, wid_cmos_dump);
 	tabifyDockWidget(wid_brk, wid_zxscr);
 	tabifyDockWidget(wid_brk, wid_ay);
 	tabifyDockWidget(wid_brk, wid_tape);
 	tabifyDockWidget(wid_brk, wid_fdd);
 	tabifyDockWidget(wid_brk, wid_heat);
+#ifndef XZXONLY
 	tabifyDockWidget(wid_brk, wid_gb);
 	tabifyDockWidget(wid_brk, wid_gbv);
 	tabifyDockWidget(wid_brk, wid_ppu);
@@ -1737,6 +1747,7 @@ void DebugWin::setDefaultLayout() {
 	tabifyDockWidget(wid_brk, wid_pit);
 	tabifyDockWidget(wid_brk, wid_vga);
 	tabifyDockWidget(wid_brk, wid_ps2);
+#endif
 	tabifyDockWidget(wid_brk, wid_pal);
 	wid_dump->raise();
 	wid_brk->raise();
@@ -2751,6 +2762,8 @@ void DebugWin::loadDump() {
 
 // ps/2 widget (tmp here)
 
+#ifndef XZXONLY
+
 xPS2Widget::xPS2Widget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 	QWidget* wid = new QWidget;
 	setWidget(wid);
@@ -2791,3 +2804,5 @@ void xPS2Widget::draw() {
 //	ui.lab_ps2kdata->setText(k->outbuf ? get_hex_queue_z(k->outbuf) : "-");
 //	ui.lab_ps2mdata->setText(m->queueSize ? get_hex_queue_n(m->outbuf, m->queueSize) : "-");
 }
+
+#endif
