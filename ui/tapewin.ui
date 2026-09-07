@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>337</width>
-    <height>235</height>
+    <width>460</width>
+    <height>260</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Tape</string>
+   <string>Tape player</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../xpeccy.qrc">
@@ -50,11 +50,31 @@
     </widget>
    </item>
    <item>
-    <widget class="QProgressBar" name="tapeBar">
-     <property name="value">
-      <number>0</number>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QProgressBar" name="tapeBar">
+       <property name="value">
+        <number>0</number>
+       </property>
+       <property name="textVisible">
+        <bool>false</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="labBarVal">
+       <property name="minimumSize">
+        <size>
+         <width>34</width>
+         <height>0</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>0%</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <layout class="QHBoxLayout" name="horizontalLayout_2">

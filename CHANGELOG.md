@@ -39,6 +39,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- The tape player's block list now says what is on the tape: the name in bold, the size
+  in bytes, and what a header announces - `PROGRAM LINE 10`, `CODE 32768,2786`. TZX images
+  label their own blocks, so a game's levels are named too. The loading percentage is
+  readable in every interface style, and the stop mark of a block takes a click again in
+  Options -> Storage -> Tape map, which carries the same list.
 - Gamepad buttons can be bound by name - A, B, d-pad up, left stick - instead of by
   number, so one map fits pads of different makes. Maps written the old way still
   work, and a gamecontrollerdb.txt dropped in the config folder is picked up.

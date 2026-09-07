@@ -5,6 +5,7 @@
         <file>res/fallback/config.conf</file>
         <file>res/fallback/xpeccy.conf</file>
         <file>images/cd.png</file>
+        <file>images/clock.png</file>
         <file>images/hdd.png</file>
         <file>images/add.png</file>
         <file>images/bug.png</file>
