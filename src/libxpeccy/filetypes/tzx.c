@@ -30,8 +30,10 @@ void tzxBlock10(FILE* file, Tape* tape) {
 	char buf[0x10000];
 	fread(buf, len, 1, file);
 	int brk = tape->tmpBlock.breakPoint;			// to not override previous block20 flag
+	int stp = tape->tmpBlock.stopMark;
 	tape->tmpBlock = tapDataToBlock(buf, len, sigLens);
 	tape->tmpBlock.breakPoint = brk;
+	tape->tmpBlock.stopMark = stp;
 	blkAddPause(&tape->tmpBlock, pause);
 	tap_add_block(tape, tape->tmpBlock);
 	blkClear(&tape->tmpBlock);
@@ -53,8 +55,10 @@ void tzxBlock11(FILE* file, Tape* tape) {
 	char* buf = (char*)malloc(len);
 	fread(buf, len-1, 1, file);
 	int brk = tape->tmpBlock.breakPoint;
+	int stp = tape->tmpBlock.stopMark;
 	tape->tmpBlock = tapDataToBlock(buf, len-1, altLens);
 	tape->tmpBlock.breakPoint = brk;
+	tape->tmpBlock.stopMark = stp;
 	int data = fgetc(file);		// last byte
 	if (bits > 8) bits = 8;
 	if (bits != 8) tape->isData = 0;
@@ -169,21 +173,29 @@ void tzxBlock20(FILE* file, Tape* tape) {
 		blkAddPause(&tape->tmpBlock, len);
 	} else {
 		tape->tmpBlock.breakPoint = 1;
+		tape->tmpBlock.stopMark = 1;
 	}
+}
+
+// a <len:1>,{text:len} string, and it labels the blocks that follow
+
+static void tzxGetText(FILE* file, Tape* tape) {
+	char buf[256];
+	int len = fgetc(file);
+	if (len < 0) len = 0;			// truncated file
+	fread(buf, len, 1, file);
+	buf[len] = 0;
+	tap_set_text(tape, buf);
 }
 
 // #21,<len:1>,{text:len}		group start
 void tzxBlock21(FILE* file, Tape* tape) {
-	int len = fgetc(file);
-	char* buf = (char*)malloc(len + 1);
-	fread(buf, len, 1, file);
-	buf[len] = 0;
-	// printf("%s\n", buf);
-	free(buf);
+	tzxGetText(file, tape);
 }
 
 // #22					group end
 void tzxBlock22(FILE* file, Tape* tape) {
+	tap_set_text(tape, NULL);
 }
 
 // #23,<offset:2>			TODO: jump to block
@@ -239,8 +251,7 @@ void tzxBlock2B(FILE* file, Tape* tape) {
 
 // #30,<len:1>,<text:len>		description
 void tzxBlock30(FILE* file, Tape* tape) {
-	int len = fgetc(file);
-	fseek(file, len, SEEK_CUR);
+	tzxGetText(file, tape);
 }
 
 // #31,<time:1>,<len:2>,<text:len>	show message for <time> sec
@@ -344,6 +355,7 @@ int loadTZX(Computer* comp, const char* name, int drv) {
 		}
 		if (comp->tape->tmpBlock.sigCount > 0)
 			tap_add_block(comp->tape, comp->tape->tmpBlock);
+		tap_set_text(tape, NULL);
 		tape_set_path(tape, name);
 	}
 	fclose(file);

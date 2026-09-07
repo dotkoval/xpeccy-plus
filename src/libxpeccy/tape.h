@@ -34,14 +34,30 @@ enum {
 	TFRM_BK
 };
 
+#define	TAPE_TEXT_LEN	64	// room for a block label out of a tape image
+
+// what a standard header says it carries (2nd byte of the block)
+enum {
+	TAPE_HT_NONE = -1,
+	TAPE_HT_PROG = 0,
+	TAPE_HT_NUMARR,
+	TAPE_HT_CHRARR,
+	TAPE_HT_CODE
+};
+
 typedef struct {
 	unsigned breakPoint:1;
+	unsigned stopMark:1;		// the image asks for the tape to stop here
+	unsigned hasBytes:1;		// block holds bytes, not just a signal
 
-	int type;
-	char name[32];
+	int type;			// TAPE_HEAD / TAPE_DATA
+	int htype;			// header: TAPE_HT_*
+	char name[32];			// header: the name, padding cut off
+	int dlen;			// header: length of the data block it announces
+	int par1;			// header: LINE for a program, address for code, name for an array
+	char text[TAPE_TEXT_LEN];	// what the image itself calls the block
 	int size;
 	int time;
-	int curtime;
 } TapeBlockInfo;
 
 typedef struct {
@@ -51,6 +67,7 @@ typedef struct {
 
 typedef struct {
 	unsigned breakPoint:1;
+	unsigned stopMark:1;
 	unsigned hasBytes:1;
 	unsigned isHeader:1;
 	unsigned vol:1;
@@ -65,6 +82,7 @@ typedef struct {
 	int sigCount;
 	int time;
 	int crc;
+	char text[TAPE_TEXT_LEN];
 	TapeSignal* data;
 } TapeBlock;
 
@@ -91,6 +109,7 @@ typedef struct {
 	int pos;
 	int sigLen;
 	char* path;
+	char blkText[TAPE_TEXT_LEN];	// label the next blocks read in will get
 	TapeBlock tmpBlock;
 	int blkCount;
 	TapeBlock* blkData;
@@ -122,6 +141,7 @@ int tapGetBlockData(Tape*,int,unsigned char*,int);
 int tapGetBlockTime(Tape*,int,int);
 
 void tap_add_block(Tape*,TapeBlock);
+void tap_set_text(Tape*,const char*);
 void tapDelBlock(Tape*,int);
 void tapSwapBlocks(Tape*,int,int);
 
