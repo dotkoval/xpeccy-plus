@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QCheckBox>
 #include <QComboBox>
 #include <QDialog>
 #include <QFileSystemModel>
@@ -8,6 +9,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QSlider>
+#include <QStyledItemDelegate>
 #include <QTreeView>
 #include <QWheelEvent>
 
@@ -132,6 +134,22 @@ class xItemDelegate : public QItemDelegate {
 	private:
 		QRegExpValidator vld;
 		QWidget* createEditor(QWidget*, const QStyleOptionViewItem&, const QModelIndex&) const;
+};
+
+// a check column: an item view puts its check indicator at the left edge of the
+// cell and draws it with the plain style, because the interface style sheets
+// only ever name QCheckBox::indicator. Draw it centered under the header and
+// through a real QCheckBox, so whatever the style says about checkboxes reaches
+// these too.
+
+class xCheckItem : public QStyledItemDelegate {
+	public:
+		xCheckItem(QObject* par = nullptr) : QStyledItemDelegate(par) {}
+		void paint(QPainter*, const QStyleOptionViewItem&, const QModelIndex&) const;
+		QSize sizeHint(const QStyleOptionViewItem&, const QModelIndex&) const;
+	private:
+		QSize boxSize(const QWidget*) const;
+		QCheckBox tmpl;		// never shown, only asked how the style paints a checkbox
 };
 
 // tape player
