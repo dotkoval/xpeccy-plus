@@ -516,11 +516,6 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbFlpInterleave->addItem("1:7", 7);
 	ui.cbFlpInterleave->addItem("1:8", 8);
 // tape
-	ui.tapelist->setColumnWidth(0,25);
-	ui.tapelist->setColumnWidth(1,25);
-	ui.tapelist->setColumnWidth(2,50);
-	ui.tapelist->setColumnWidth(3,50);
-	ui.tapelist->setColumnWidth(4,100);
 	ui.tapelist->addAction(ui.actCopyToDisk);
 // hdd
 	ui.hiface->addItem("None",IDE_NONE);
@@ -2090,7 +2085,7 @@ void SetupWin::tlistclick(QModelIndex idx) {
 	int col = idx.column();
 	Computer* comp = conf.prof.cur->zx;
 	if ((row < 0) || (row >= comp->tape->blkCount)) return;
-	if (col != 1) return;
+	if (col != TCC_BRK) return;
 	comp->tape->blkData[row].breakPoint ^= 1;
 	buildtapelist();
 //	ui.tapelist->selectRow(row);

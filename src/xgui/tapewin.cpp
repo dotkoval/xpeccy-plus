@@ -6,11 +6,6 @@ TapeWin::TapeWin(QWidget *par):QDialog(par) {
 	ui.setupUi(this);
 	setWindowFlags(Qt::Tool);
 	ui.stopBut->setEnabled(false);
-	//ui.tapeList->setColumnWidth(0,25);
-	ui.tapeList->setColumnWidth(0,25);
-	ui.tapeList->setColumnWidth(1,50);
-	ui.tapeList->hideColumn(2);
-	ui.tapeList->hideColumn(3);
 	connect(ui.playBut,SIGNAL(released()),this,SLOT(doPlay()));
 	connect(ui.recBut,SIGNAL(released()),this,SLOT(doRec()));
 	connect(ui.stopBut,SIGNAL(released()),this,SLOT(doStop()));
@@ -36,6 +31,9 @@ void TapeWin::updProgress(Tape* tape) {
 		ui.tapeBar->setMaximum(tape->blkData[tape->block].sigCount);
 		ui.tapeBar->setValue(tape->pos);
 	}
+	// the bar keeps no text of its own: over a bright chunk the one colour a
+	// style sheet gives it is unreadable half the time
+	ui.labBarVal->setText(ui.tapeBar->text());
 }
 
 // TODO: on play state changed
@@ -105,7 +103,7 @@ void TapeWin::doLoad() {
 void TapeWin::doDClick(QModelIndex idx) {
 	int row = idx.row();
 	int col = idx.column();
-	if (col == 0) return;
+	if (col == TCC_BRK) return;
 	tapRewind(conf.prof.cur->zx->tape, row);
 	updList(conf.prof.cur->zx->tape);
 	//ui.tapeList->fill(conf.prof.cur->zx->tape);
@@ -114,7 +112,7 @@ void TapeWin::doDClick(QModelIndex idx) {
 void TapeWin::doClick(QModelIndex idx) {
 	int row = idx.row();
 	int col = idx.column();
-	if (col != 0) return;
+	if (col != TCC_BRK) return;
 	conf.prof.cur->zx->tape->blkData[row].breakPoint ^= 1;
 	updList(conf.prof.cur->zx->tape);
 	// ui.tapeList->fill(conf.prof.cur->zx->tape);

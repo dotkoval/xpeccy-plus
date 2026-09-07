@@ -160,39 +160,12 @@ void xBreakListModel::update() {
 	}
 }
 
-// Check columns
-
-// the option the view hands over already carries the row's selection, hover and
-// palette, and these columns have nothing else in them, so there is no call for
-// QStyledItemDelegate::initStyleOption() and the model lookups it does
-
-void xBrkCheckItem::paint(QPainter* pnt, const QStyleOptionViewItem& opt, const QModelIndex& idx) const {
-	QStyleOptionViewItem iop(opt);
-	iop.state &= ~QStyle::State_HasFocus;		// most of the cell is empty, a focus rect there says nothing
-	const QWidget* wid = iop.widget;
-	QStyle* stl = wid ? wid->style() : QApplication::style();
-	stl->drawControl(QStyle::CE_ItemViewItem, &iop, pnt, wid);
-	QVariant chk = idx.data(Qt::CheckStateRole);
-	if (!chk.isValid()) return;			// this flag means nothing for this breakpoint
-	QStyleOptionButton bop;
-	bop.state = QStyle::State_Enabled;
-	if (iop.state & QStyle::State_MouseOver) bop.state |= QStyle::State_MouseOver;
-	bop.state |= (chk.toInt() == Qt::Unchecked) ? QStyle::State_Off : QStyle::State_On;
-	// ask the style about tmpl, not about the view: a check box is what the
-	// style sheets have a rule for
-	int w = stl->pixelMetric(QStyle::PM_IndicatorWidth, &bop, &tmpl);
-	int h = stl->pixelMetric(QStyle::PM_IndicatorHeight, &bop, &tmpl);
-	bop.rect = QRect(opt.rect.x() + (opt.rect.width() - w) / 2,
-			opt.rect.y() + (opt.rect.height() - h) / 2, w, h);
-	stl->drawPrimitive(QStyle::PE_IndicatorCheckBox, &bop, pnt, &tmpl);
-}
-
 // Widget
 
 xBreakTable::xBreakTable(QWidget* p):QTableView(p) {
 	model = new xBreakListModel();
 	setModel(model);
-	xBrkCheckItem* chk = new xBrkCheckItem(this);
+	xCheckItem* chk = new xCheckItem(this);
 	for (int i = 0; i < 4; i++)
 		setItemDelegateForColumn(i, chk);
 	addrWidth = 0;		// no width from the user yet: share the room with Cond

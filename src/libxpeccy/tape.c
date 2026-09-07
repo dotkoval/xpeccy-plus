@@ -49,10 +49,23 @@ void blkClear(TapeBlock *blk) {
 		blk->data = NULL;
 	}
 	blk->breakPoint = 0;
+	blk->stopMark = 0;
 	blk->isHeader = 0;
 	blk->hasBytes = 0;
 	blk->sigCount = 0;
 	blk->dataPos = -1;
+	blk->text[0] = 0;
+}
+
+// the label blocks read in from here on will carry. NULL clears it
+
+void tap_set_text(Tape* tap, const char* txt) {
+	if (txt == NULL) {
+		tap->blkText[0] = 0;
+	} else {
+		strncpy(tap->blkText, txt, TAPE_TEXT_LEN - 1);
+		tap->blkText[TAPE_TEXT_LEN - 1] = 0;
+	}
 }
 
 // add signal (1 level change)
@@ -109,12 +122,14 @@ int tapGetBlockSize(TapeBlock* block, int type) {
 	int res = 0;
 	switch (type) {
 		case TFRM_ZX:
+			if (block->dataPos < 0) break;		// pure signal, no bytes to count
 			res = ((block->sigCount - block->dataPos) >> 4) - 2;
 			break;
 		case TFRM_BK:
 			res = (block->sigCount - (4096 + 1 + 2 + 8 + 1 + 2 + 32 + 128 + 8 + 1 + 2 + 32 + 256) * 2) >> 5;
 			break;
 	}
+	if (res < 0) res = 0;
 	return res;
 }
 
@@ -146,43 +161,42 @@ int tapGetBlockData(Tape* tape, int blockNum, unsigned char* dst,int maxsize) {
 	return bytePos;
 }
 
-void tapGetBlockHeader(Tape* tap, int blk, char* dst) {
-	char res[32];
-	TapeBlock* block = &tap->blkData[blk];
+// a standard header is 19 bytes: flag, type, 10 chars of name, the length of the
+// data block that follows, and two parameters whose meaning depends on the type
+
+int tapGetBlockHeader(TapeBlock* block, TapeBlockInfo* inf) {
 	int i;
-	if (block->isHeader) {
-		if (tapGetBlockByte(block, 1)==0x00) {
-			strcpy(res,"Prog:");
-		} else {
-			strcpy(res,"Code:");
-		}
-		for(i = 2; i < 12; i++) {
-			res[i + 3] = tapGetBlockByte(block,i);
-		}
-		res[15] = 0x00;
-	} else {
-		res[0] = 0x00;
-	}
-	memcpy(dst, res, 32);
+	if (!block->isHeader) return 0;
+	if (tapGetBlockSize(block, TFRM_ZX) != 17) return 0;
+	inf->htype = tapGetBlockByte(block, 1);
+	for (i = 0; i < 10; i++)
+		inf->name[i] = tapGetBlockByte(block, i + 2);
+	i = 10;
+	while ((i > 0) && (inf->name[i - 1] == ' '))		// the name is padded with spaces
+		i--;
+	inf->name[i] = 0;
+	inf->dlen = tapGetBlockByte(block, 12) | (tapGetBlockByte(block, 13) << 8);
+	inf->par1 = tapGetBlockByte(block, 14) | (tapGetBlockByte(block, 15) << 8);
+	return 1;
 }
 
 TapeBlockInfo tapGetBlockInfo(Tape* tap, int blk, int type) {
 	TapeBlock* block = &tap->blkData[blk];
 	TapeBlockInfo inf;
+	memset(&inf, 0x00, sizeof(TapeBlockInfo));
+	inf.htype = TAPE_HT_NONE;
+	inf.type = TAPE_DATA;
 	switch(type) {
 		case TFRM_ZX:
-			tapGetBlockHeader(tap,blk,inf.name);
-			inf.type = (strlen(inf.name) == 0) ? TAPE_DATA : TAPE_HEAD;
-			break;
-		default:
-			inf.type = TAPE_DATA;
-			inf.name[0] = 0;
+			if (tapGetBlockHeader(block, &inf)) inf.type = TAPE_HEAD;
 			break;
 	}
+	strcpy(inf.text, block->text);
+	inf.hasBytes = block->hasBytes;
 	inf.size = tapGetBlockSize(block, type);
-	inf.time = block->time; // tapGetBlockTime(tap,blk,-1);
-	inf.curtime = (tap->block == blk) ? tapGetBlockTime(tap,blk,tap->pos) : -1;
+	inf.time = block->time;
 	inf.breakPoint = block->breakPoint;
+	inf.stopMark = block->stopMark;
 	return inf;
 }
 
@@ -284,6 +298,7 @@ void tapStoreBlock(Tape* tap) {
 	}
 
 	tblk->breakPoint = 0;
+	tblk->stopMark = 0;
 	tblk->hasBytes = 0;
 	tblk->isHeader = 0;
 	if (cnt == 6) {
@@ -329,6 +344,7 @@ void tapEject(Tape* tap) {
 	tap->isData = 1;
 	tap->block = 0;
 	tap->pos = 0;
+	tap_set_text(tap, NULL);
 	tape_set_path(tap, NULL);
 	if (tap->blkData) {
 		for (i = 0; i < tap->blkCount; i++) {
@@ -578,6 +594,7 @@ void tapAddFile(Tape* tap, const char* nm, int tp, unsigned short st, unsigned s
 void tap_add_block(Tape* tap, TapeBlock block) {
 	if (block.sigCount == 0) return;
 	TapeBlock blk = block;
+	strcpy(blk.text, tap->blkText);
 	blk.data = malloc(blk.sigCount * sizeof(TapeSignal));
 	memcpy(blk.data, block.data, blk.sigCount * sizeof(TapeSignal));
 

@@ -8,8 +8,6 @@
 #include <QKeyEvent>
 #include <QVariant>
 #include <QDialog>
-#include <QCheckBox>
-#include <QStyledItemDelegate>
 
 #include "xgui/xgui.h"
 #include "ui_brkmanager.h"
@@ -27,20 +25,6 @@ class xBreakListModel : public xTableModel {
 		QVariant data(const QModelIndex&, int) const;
 		QVariant headerData(int, Qt::Orientation, int = Qt::DisplayRole) const;
 		void sort(int, Qt::SortOrder);
-};
-
-// the On/F/R/W columns: an item view puts its check indicator at the left edge
-// of the cell and draws it with the plain style, because the interface style
-// sheets only ever name QCheckBox::indicator. Draw it centered under the header
-// and through a real QCheckBox, so whatever the style says about checkboxes
-// reaches these too.
-
-class xBrkCheckItem : public QStyledItemDelegate {
-	public:
-		xBrkCheckItem(QObject* par = nullptr) : QStyledItemDelegate(par) {}
-		void paint(QPainter*, const QStyleOptionViewItem&, const QModelIndex&) const;
-	private:
-		QCheckBox tmpl;		// never shown, only asked how the style paints a checkbox
 };
 
 #define	BRK_CHK_WIDTH	30	// the On/F/R/W columns

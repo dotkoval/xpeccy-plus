@@ -560,3 +560,48 @@ void xDockWidget::moved() {
 		}
 	}
 }
+
+// xCheckItem
+
+// the option the view hands over already carries the row's selection, hover and
+// palette, and these columns have nothing else in them, so there is no call for
+// QStyledItemDelegate::initStyleOption() and the model lookups it does
+
+// ask the style about tmpl, not about the view: a check box is what the style
+// sheets have a rule for
+
+QSize xCheckItem::boxSize(const QWidget* wid) const {
+	QStyleOptionButton bop;
+	QStyle* stl = wid ? wid->style() : QApplication::style();
+	return QSize(stl->pixelMetric(QStyle::PM_IndicatorWidth, &bop, &tmpl),
+			stl->pixelMetric(QStyle::PM_IndicatorHeight, &bop, &tmpl));
+}
+
+void xCheckItem::paint(QPainter* pnt, const QStyleOptionViewItem& opt, const QModelIndex& idx) const {
+	QStyleOptionViewItem iop(opt);
+	iop.state &= ~QStyle::State_HasFocus;		// most of the cell is empty, a focus rect there says nothing
+	QVariant bgr = idx.data(X_BackgroundRole);	// a row the model paints itself keeps its colour here too
+	if (bgr.isValid())
+		iop.backgroundBrush = qvariant_cast<QBrush>(bgr);
+	const QWidget* wid = iop.widget;
+	QStyle* stl = wid ? wid->style() : QApplication::style();
+	stl->drawControl(QStyle::CE_ItemViewItem, &iop, pnt, wid);
+	QVariant chk = idx.data(Qt::CheckStateRole);
+	if (!chk.isValid()) return;			// this cell has no check box
+	QStyleOptionButton bop;
+	bop.state = QStyle::State_Enabled;
+	if (iop.state & QStyle::State_MouseOver) bop.state |= QStyle::State_MouseOver;
+	bop.state |= (chk.toInt() == Qt::Unchecked) ? QStyle::State_Off : QStyle::State_On;
+	QSize box = boxSize(wid);
+	bop.rect = QRect(opt.rect.x() + (opt.rect.width() - box.width()) / 2,
+			opt.rect.y() + (opt.rect.height() - box.height()) / 2,
+			box.width(), box.height());
+	stl->drawPrimitive(QStyle::PE_IndicatorCheckBox, &bop, pnt, &tmpl);
+}
+
+// the default hint counts a text margin the cell has no text for
+
+QSize xCheckItem::sizeHint(const QStyleOptionViewItem& opt, const QModelIndex&) const {
+	QSize box = boxSize(opt.widget);
+	return QSize(box.width() + 6, box.height() + 2);
+}
