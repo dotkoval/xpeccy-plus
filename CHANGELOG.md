@@ -42,7 +42,7 @@ before that point is upstream's history and is not repeated here.
 - Gamepad buttons can be bound by name - A, B, d-pad up, left stick - instead of by
   number, so one map fits pads of different makes. Maps written the old way still
   work, and a gamecontrollerdb.txt dropped in the config folder is picked up.
-- The border size is now a choice of fixed sizes - none (256x192), xsmall (272x208),
+- The border size is now a choice of fixed sizes - none (256x192), tiny (272x208),
   small (288x224), medium (320x240), full (352x288) and overscan - instead of a
   percentage. It starts on full, the whole PAL frame, which is what a TV of the day
   showed. Every machine

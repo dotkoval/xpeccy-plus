@@ -27,7 +27,7 @@ typedef struct Video Video;
 // machine, with the screen in the middle of it; see vid_upd_crop.
 enum {
 	VID_BRD_NONE = 0,	// 256x192
-	VID_BRD_XSMALL,		// 272x208
+	VID_BRD_TINY,		// 272x208
 	VID_BRD_SMALL,		// 288x224
 	VID_BRD_MEDIUM,		// 320x240
 	VID_BRD_FULL,		// 352x288
