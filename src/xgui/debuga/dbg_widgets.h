@@ -39,6 +39,8 @@ class xAYWidget : public xDockWidget {
 
 // cia
 
+#ifndef XZXONLY
+
 #include "ui_form_cia.h"
 
 class xCiaWidget : public xDockWidget {
@@ -51,9 +53,12 @@ class xCiaWidget : public xDockWidget {
 		Ui::CIAWidget ui;
 };
 
+#endif
 
 // cmos
 #include "dbg_cmos_dump.h"
+
+#ifndef XZXONLY
 
 // dma
 
@@ -79,6 +84,8 @@ class xDmaWidget : public xDockWidget {
 		Ui::DMAWidget ui;
 };
 
+#endif
+
 // fdc
 
 #include "ui_form_fdd.h"
@@ -94,6 +101,8 @@ class xFDDWidget : public xDockWidget {
 };
 
 // gameboy
+
+#ifndef XZXONLY
 
 #include "ui_form_gameboy.h"
 #include "ui_form_vga.h"
@@ -191,6 +200,8 @@ class xPitWidget : public xDockWidget {
 		Ui::PITWidget ui;
 };
 
+#endif
+
 // tape
 
 #include "ui_form_tape.h"
@@ -204,6 +215,8 @@ class xTapeWidget : public xDockWidget {
 	private:
 		Ui::TapeWidget ui;
 };
+
+#ifndef XZXONLY
 
 // vga
 
@@ -253,6 +266,8 @@ class xVicWidget : public xDockWidget {
 		Ui::VICWidget ui;
 };
 
+#endif
+
 // zxscr
 
 #include "ui_form_zxscreen.h"
@@ -272,6 +287,8 @@ class xZXScrWidget : public xDockWidget {
 
 // ps/2
 
+#ifndef XZXONLY
+
 #include "ui_form_ps2.h"
 
 class xPS2Widget : public xDockWidget {
@@ -283,3 +300,5 @@ class xPS2Widget : public xDockWidget {
 	private:
 		Ui::PS2Widget ui;
 };
+
+#endif

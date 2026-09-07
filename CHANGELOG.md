@@ -9,6 +9,52 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Added
+
+- The virtual keyboard, on the menu and Alt+K, can be resized, and it can sit under the
+  emulator window at its width. Right-click an empty spot on it for the size and docking
+  choices.
+- A log, for when something goes wrong and a screenshot is not enough. Turn it on in
+  Options -> Xpeccy+ -> Log, or start with `--log`, and every event lands in
+  `logs/<date>/` beside the emulator, with the version, the machine and the graphics
+  card at the top. Each line carries the time, the emulated frame and T-state, and the
+  part of the emulator it came from, so a video problem can be told apart from a sound
+  one at a glance. `--log-groups video:debug,sound:off` sets those parts one by one when
+  a bug needs it.
+- Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
+  up when the buffer starts running thin, back down after a long clean spell. The slider
+  in Options -> Sound shows where it settled and still sets it by hand, anywhere from 10 to
+  150 ms - bluetooth headphones need a good deal more of a buffer than wired ones. Untick
+  Auto adjust to keep it where you put it.
+
+### Changed
+
+- Xpeccy+ is a ZX Spectrum emulator only now. MSX, Game Boy, NES, Commodore 64, BK0010,
+  IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in
+  the machine, CPU, disk and hard disk lists, in the romset editor, and in the debugger.
+- The tape player's block list now says what is on the tape: the name in bold, the size
+  in bytes, and what a header announces - `PROGRAM LINE 10`, `CODE 32768,2786`. TZX images
+  label their own blocks, so a game's levels are named too. The loading percentage is
+  readable in every interface style, and the stop mark of a block takes a click again in
+  Options -> Storage -> Tape map, which carries the same list.
+- Gamepad buttons can be bound by name - A, B, d-pad up, left stick - instead of by
+  number, so one map fits pads of different makes. Maps written the old way still
+  work, and a gamecontrollerdb.txt dropped in the config folder is picked up.
+- The border size is now a choice of fixed sizes - none (256x192), tiny (272x208),
+  small (288x224), medium (320x240), full (352x288) and overscan - instead of a
+  percentage. It starts on full, the whole PAL frame, which is what a TV of the day
+  showed. Every machine
+  shows the same size picture with the screen exactly in the middle of it, so switching
+  profiles no longer moves it around. Overscan is the one that varies: it shows every dot
+  the machine puts out, which is 400x320 on a Pentagon and 360x288 on a ZX Evolution.
+- In a window the picture is now always drawn at a whole number of pixels per dot. Some
+  border sizes used to come out with a few columns a pixel wider than the rest at x3 and
+  x5. Fullscreen still fits the picture to the screen.
+- Changing the border in Options now takes effect on Apply, window and all. It used to
+  leave the picture skewed until the dialog was closed.
+- The shader is skipped at size x1, where there is nothing for it to work on. The choice
+  is kept and comes back with the next size up.
+
 ### Fixed
 
 - Picking a palette preset changes the colors right away again on the ZX Spectrum
@@ -36,49 +82,6 @@ before that point is upstream's history and is not repeated here.
   any hiccup left the sound card with nothing to play and it repeated the last 20 ms of
   sound instead. It now keeps a small reserve and holds it steady against the drift
   between the sound card's clock and the computer's.
-
-### Changed
-
-- The tape player's block list now says what is on the tape: the name in bold, the size
-  in bytes, and what a header announces - `PROGRAM LINE 10`, `CODE 32768,2786`. TZX images
-  label their own blocks, so a game's levels are named too. The loading percentage is
-  readable in every interface style, and the stop mark of a block takes a click again in
-  Options -> Storage -> Tape map, which carries the same list.
-- Gamepad buttons can be bound by name - A, B, d-pad up, left stick - instead of by
-  number, so one map fits pads of different makes. Maps written the old way still
-  work, and a gamecontrollerdb.txt dropped in the config folder is picked up.
-- The border size is now a choice of fixed sizes - none (256x192), tiny (272x208),
-  small (288x224), medium (320x240), full (352x288) and overscan - instead of a
-  percentage. It starts on full, the whole PAL frame, which is what a TV of the day
-  showed. Every machine
-  shows the same size picture with the screen exactly in the middle of it, so switching
-  profiles no longer moves it around. Overscan is the one that varies: it shows every dot
-  the machine puts out, which is 400x320 on a Pentagon and 360x288 on a ZX Evolution.
-- In a window the picture is now always drawn at a whole number of pixels per dot. Some
-  border sizes used to come out with a few columns a pixel wider than the rest at x3 and
-  x5. Fullscreen still fits the picture to the screen.
-- Changing the border in Options now takes effect on Apply, window and all. It used to
-  leave the picture skewed until the dialog was closed.
-- The shader is skipped at size x1, where there is nothing for it to work on. The choice
-  is kept and comes back with the next size up.
-
-### Added
-
-- The virtual keyboard, on the menu and Alt+K, can be resized, and it can sit under the
-  emulator window at its width. Right-click an empty spot on it for the size and docking
-  choices.
-- A log, for when something goes wrong and a screenshot is not enough. Turn it on in
-  Options -> Xpeccy+ -> Log, or start with `--log`, and every event lands in
-  `logs/<date>/` beside the emulator, with the version, the machine and the graphics
-  card at the top. Each line carries the time, the emulated frame and T-state, and the
-  part of the emulator it came from, so a video problem can be told apart from a sound
-  one at a glance. `--log-groups video:debug,sound:off` sets those parts one by one when
-  a bug needs it.
-- Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
-  up when the buffer starts running thin, back down after a long clean spell. The slider
-  in Options -> Sound shows where it settled and still sets it by hand, anywhere from 10 to
-  150 ms - bluetooth headphones need a good deal more of a buffer than wired ones. Untick
-  Auto adjust to keep it where you put it.
 
 ## 2026.3.2 - 2026-09-03
 

@@ -118,10 +118,6 @@ typedef PAIR(w,h,l) xpair;
 typedef reg32(i,w,h,l) xreg32;
 typedef reg16(w,h,l) xreg16;
 
-// time
-extern clock_t tClock;
-#define EXECTIME (clock() - tClock)
-
 // memory size
 #define MEM_256	(1<<8)
 #define MEM_512	(1<<9)

@@ -106,8 +106,10 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->inten = 0x01;		// FRAME INT for all
 
 	vid->ula = ula_create();
+#ifndef XZXONLY
 	vid->txt7220 = upd7220_create();
 	vid->grf7220 = upd7220_create();
+#endif
 
 	vid_set_border(vid, VID_BRD_FULL);
 
@@ -130,8 +132,10 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 
 void vidDestroy(Video* vid) {
 	ula_destroy(vid->ula);
+#ifndef XZXONLY
 	upd7220_destroy(vid->txt7220);
 	upd7220_destroy(vid->grf7220);
+#endif
 	free(vid);
 }
 
@@ -910,6 +914,8 @@ void vidDrawEvoText(Video*);
 
 // c64 vic-II
 
+#ifndef XZXONLY
+
 void vidC64TDraw(Video*);
 void vidC64TMDraw(Video*);
 void vidC64BDraw(Video*);
@@ -917,12 +923,16 @@ void vidC64BMDraw(Video*);
 void vidC64Line(Video*);
 void vidC64Fram(Video*);
 
+#endif
+
 // debug
 
 void vidBreak(Video* vid) {
 	xlog(XLG_VIDEO, XLL_DEBUG, "vid->mode = 0x%.2X",vid->vmode);
 	// assert(0);
 }
+
+#ifndef XZXONLY
 
 // bk
 
@@ -951,6 +961,8 @@ void cga_t80_ini(Video*);
 void vga_glo_ini(Video*);
 void vga_ghi_ini(Video*);
 
+#endif
+
 // weiter
 
 // id,(@on),(@every_visible_dot),(@HBlank),(@LineStart),(@VBlank),(@Frame)
@@ -969,6 +981,7 @@ static xVideoMode vidModeTab[] = {
 	{VID_TSL_TEXT, NULL, vidDrawTSLText, vts_hblk, vts_line, NULL, vts_frame},
 	{VID_PRF_MC, NULL, vidProfiScr, NULL, NULL, NULL, NULL},
 
+#ifndef XZXONLY
 	{VID_GBC, NULL, gbcvDraw, NULL, gbcvLine, gbcvVBL, gbcvFram},
 	{VID_NES, NULL, ppuDraw, ppuHBL, ppuLine, ppuFram, NULL},
 
@@ -1003,6 +1016,7 @@ static xVideoMode vidModeTab[] = {
 
 
 	{VID_PC98XX, NULL, upd7220_dot, NULL, upd7220_line, NULL, upd7220_frame},
+#endif
 
 	{VID_UNKNOWN, NULL, vidDrawBorder, NULL, NULL, NULL, NULL}
 };

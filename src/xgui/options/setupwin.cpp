@@ -355,6 +355,7 @@ void opt_fill_cpu_add(QComboBox* box, cpuCore* tab, QString libname) {
 void opt_fill_cpu(QComboBox* box) {
 	box->clear();
 	opt_fill_cpu_add(box, cpuTab, "");	// buit-in
+#ifndef XZXONLY
 	// add modules to ui.cbCpu, type=filename (not number) -> all files (so/dll/dylib) from ${plgDir}/cpu
 	QDir dir(QString(conf.path.plgDir.c_str()) + SLASH + "cpu");
 	QStringList fnlst = dir.entryList(QStringList() << "*.*", QDir::Files, QDir::Name);
@@ -377,6 +378,7 @@ void opt_fill_cpu(QComboBox* box) {
 			}
 		}
 	}
+#endif
 }
 
 extern tabHwItem tabHwPtr[];
@@ -400,6 +402,24 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	// is open.
 	setWindowIcon(QGuiApplication::windowIcon());
 	ui.tabz->setTabIcon(ui.tabz->indexOf(ui.tab_4), QGuiApplication::windowIcon());
+
+#ifdef XZXONLY
+	// the z80 is the only core built, so there is nothing to pick: name the row
+	// after it and let the clock and its multiplier take the box's place, or the
+	// row keeps a gap where the box was. The cell comes from the form rather than
+	// from constants, so moving the row in Designer cannot silently break this
+	ui.label_37->setText("Z80");
+	ui.sbFreq->setSuffix(" MHz");
+	ui.cbCpu->hide();
+	int cpurow, cpucol, rspan, cspan;
+	ui.gridLayout->getItemPosition(ui.gridLayout->indexOf(ui.cbCpu), &cpurow, &cpucol, &rspan, &cspan);
+	QLayoutItem* frq = ui.gridLayout->itemAtPosition(cpurow, cpucol + 1);
+	if (frq) {
+		ui.gridLayout->removeItem(frq);
+		ui.gridLayout->addItem(frq, cpurow, cpucol, 1, 2);
+		ui.horizontalLayout_18->addStretch(1);	// keep the boxes their own size in the wider cell
+	}
+#endif
 
 	spaceLedIcon(ui.cbKeysLed);
 	spaceLedIcon(ui.cbJoyLed);
@@ -499,11 +519,13 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 // flp
 	ui.disklist->horizontalHeader()->setVisible(true);
 	ui.diskTypeBox->addItem("None",DIF_NONE);
-	ui.diskTypeBox->addItem("Beta disk (VG93)",DIF_BDI);
+	ui.diskTypeBox->addItem("Beta Disk (VG93)",DIF_BDI);
 	ui.diskTypeBox->addItem("+3 DOS (uPD765)",DIF_P3DOS);
+#ifndef XZXONLY
 	ui.diskTypeBox->addItem("PC FDC (i8272)", DIF_PC);
 	ui.diskTypeBox->addItem("PC98xx (uPD765)", DIF_PC98);
 	ui.diskTypeBox->addItem("SMK512 (VP1-128)",DIF_SMK512);
+#endif
 	ui.disklist->addAction(ui.actCopyToTape);
 	ui.disklist->addAction(ui.actSaveHobeta);
 	ui.disklist->addAction(ui.actSaveRaw);
@@ -525,17 +547,25 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.hiface->addItem("SMUC",IDE_SMUC);
 	ui.hiface->addItem("ATM",IDE_ATM);
 	ui.hiface->addItem("Profi",IDE_PROFI);
+#ifndef XZXONLY
 	ui.hiface->addItem("SMK512",IDE_SMK);
+#endif
 	ui.hm_type->addItem(QIcon(":/images/cancel.png"),"Not connected",IDE_NONE);
 	ui.hm_type->addItem(QIcon(":/images/hdd.png"),"HDD (ATA)",IDE_ATA);
 	ui.hs_type->addItem(QIcon(":/images/cancel.png"),"Not connected",IDE_NONE);
 	ui.hs_type->addItem(QIcon(":/images/hdd.png"),"HDD (ATA)",IDE_ATA);
 // others
 	ui.cSlotType->addItem("No mapper",MAP_MSX_NOMAPPER);
+#ifdef XZXONLY
+	// the slot is Interface II here, which has no mapper to pick
+	ui.cSlotType->hide();
+	ui.label_27->hide();
+#else
 	ui.cSlotType->addItem("Konami 4",MAP_MSX_KONAMI4);
 	ui.cSlotType->addItem("Konami 5",MAP_MSX_KONAMI5);
 	ui.cSlotType->addItem("ASCII 8K",MAP_MSX_ASCII8);
 	ui.cSlotType->addItem("ASCII 16K",MAP_MSX_ASCII16);
+#endif
 // input
 //	padModel = new xPadMapModel();
 //	ui.tvPadTable->setModel(padModel);

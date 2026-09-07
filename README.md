@@ -25,9 +25,8 @@ so patches, ideas and bug reports are welcome.
 
 ## Goals
 
-- **ZX Spectrum first.** The other machines still work, but they are not the target, and
-  support for them will likely be given up where it stands in the way of a better ZX
-  experience.
+- **ZX Spectrum only.** Since 2026.4 the other machines are not built. Their code is still
+  in the tree and `-DZXONLY=0` brings them back, but nothing is maintained there.
 - **Works out of the box.** Releases come as a bundle with configuration and rom sets, so
   the emulator is ready to use right after unpacking.
 - **Comfortable to play with.** Better gamepad support, rewind, and a smoother way to work
@@ -150,8 +149,7 @@ the version in brackets in the window title - `Xpeccy+ (2026.4-dev+20260902)`, a
 
 Releases ship with `config/`, so the emulator works right after unpacking: rom images for
 the ZX-compatible machines (`config/roms/`), a romset for each of them and a ready profile
-per machine. Machines outside the ZX line are still supported by the code, but their roms
-are not bundled.
+per machine.
 
 The images are firmware of the emulated machines and are **not** covered by the MIT license
 of this project - they stay under the terms of their own copyright holders. Details:

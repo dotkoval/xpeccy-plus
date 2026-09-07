@@ -10,7 +10,9 @@ int hwflags = 0;
 
 extern HardWare dum_hw_core;
 extern HardWare z48_hw_core;
+#ifndef XZXONLY
 extern HardWare alf_hw_core;
+#endif
 extern HardWare pnt_hw_core;
 extern HardWare p1m_hw_core;
 extern HardWare sco_hw_core;
@@ -22,6 +24,7 @@ extern HardWare evo_v2_core;
 extern HardWare tsl_hw_core;
 extern HardWare pl2_hw_core;
 extern HardWare pl3_hw_core;
+#ifndef XZXONLY
 extern HardWare mx1_hw_core;
 extern HardWare mx2_hw_core;
 extern HardWare gbc_hw_core;
@@ -32,11 +35,14 @@ extern HardWare b11_hw_core;
 extern HardWare spc_hw_core;
 extern HardWare ibm_hw_core;
 extern HardWare p98_hw_core;
+#endif
 
 tabHwItem tabHwPtr[] = {
 	{HW_DUMMY, &dum_hw_core},
 	{HW_ZX48, &z48_hw_core},
+#ifndef XZXONLY
 	{HW_ALF, &alf_hw_core},
+#endif
 	{HW_PENT, &pnt_hw_core},
 	{HW_P1024, &p1m_hw_core},
 	{HW_SCORP, &sco_hw_core},
@@ -49,6 +55,7 @@ tabHwItem tabHwPtr[] = {
 	{HW_DUMMY, NULL},
 	{HW_PLUS2, &pl2_hw_core},
 	{HW_PLUS3, &pl3_hw_core},
+#ifndef XZXONLY
 	{HW_DUMMY, NULL},
 	{HW_MSX, &mx1_hw_core},
 	{HW_MSX2, &mx2_hw_core},
@@ -62,6 +69,7 @@ tabHwItem tabHwPtr[] = {
 	{HW_SPCLST, &spc_hw_core},
 	{HW_IBM_PC, &ibm_hw_core},
 	{HW_PC9801, &p98_hw_core},
+#endif
 	{HW_NULL, NULL},
 };
 
