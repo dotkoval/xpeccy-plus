@@ -11,6 +11,7 @@
 #include "xcore/autostart.h"
 #include "xcore/vfilters.h"
 #include "libxpeccy/cpu/Z80/z80.h"
+#include "libxpeccy/xstate.h"
 
 #if USEMUTEX
 QMutex emutex;
@@ -172,6 +173,85 @@ void xThread::brkAction(Computer* comp, xBrkPoint* ptr, int* brkskip) {
 	if (ptr->fetch && (ptr->type != BRK_COND)) *brkskip = 1;
 }
 
+// Run-ahead.
+//
+// A Spectrum reads the keyboard early in a frame and has drawn its answer by
+// the end of it, so a key press reaches the screen a frame or two after it
+// happened. That is the machine's own share of the input lag, and no display
+// or sound tuning can reach it. Run-ahead pays it off with processor time:
+// copy the machine, run the copy on to the frame the player would only see
+// later, show that frame, then put the machine back and carry on.
+//
+// Two things stay out of the copy on purpose. Input, so a key pressed during
+// the ahead frame is not undone by the rollback - that is the whole point. And
+// sound: the ahead pass writes nothing to the ring, so the pacer and the rest
+// of the sound path work exactly as before. The price of that is an A/V
+// offset - the picture now runs one frame in front of the sound.
+//
+// Both passes draw. The buffers swap twice per shown frame, so each pass keeps
+// to a buffer of its own and the one shown is always the ahead pass's; the real
+// pass redraws a picture nobody sees, which is the biggest single waste here.
+// vid->nodraw would save it, but the ray is drawn during a frame and the
+// decision to run ahead is taken at the end of one, so suppressing it needs the
+// answer a frame early - and a wrong guess (a tape starting, a disk command
+// beginning mid-frame) shows an undrawn frame.
+
+static xState* raState = NULL;
+static Computer* raOwner = NULL;	// what raBroken was decided about
+static int raBroken = 0;		// the snapshot cannot be taken at all: stop trying
+
+// One frame, no breakpoints, no sound, nothing that reaches outside the
+// machine. The bound is only there to let go of a machine that never finishes a
+// frame - dummy hardware, say - instead of spinning on it every frame forever.
+static int ra_frame(Computer* comp) {
+	int guard = 200000;		// a frame is ~20000 opcodes
+	while (!comp->flgFRM && (guard-- > 0))
+		compExec(comp);
+	comp->flgFRM = 0;
+	return guard > 0;
+}
+
+static void ra_back(Computer* comp, long rayOff, long lineOff) {
+	if (!xstate_load(raState, comp)) return;
+	// The image buffers are outside the snapshot and the ahead frame swaps
+	// them, so the ray goes back by its offset into whichever buffer is current
+	// after the rollback, not by the address it held before.
+	comp->vid->ray.ptr = scrimg + rayOff;
+	comp->vid->ray.lptr = scrimg + lineOff;
+}
+
+// 1 when the machine has been run on and has to be wound back afterwards.
+// xstate_safe() answers for everything the snapshot does not carry; what is
+// left here is this side's own policy.
+int xThread::runAhead(Computer* comp, long* rayOff, long* lineOff) {
+	if (comp != raOwner) {		// a new machine may well fit where the last one did not
+		raOwner = comp;
+		raBroken = 0;
+	}
+	if (finish || raBroken) return 0;
+	if (conf.emu.runahead < 1) return 0;
+	if (conf.emu.fast || conf.emu.pause || comp->flgDBG) return 0;
+	if (autostart_busy()) return 0;		// the typist counts frames of its own
+	if (!xstate_safe(comp)) return 0;
+	if (!raState) raState = xstate_create();
+	if (!raState || !xstate_save(raState, comp)) {
+		raBroken = 1;
+		return 0;
+	}
+	*rayOff = comp->vid->ray.ptr - scrimg;
+	*lineOff = comp->vid->ray.lptr - scrimg;
+	x_runahead = 1;
+	for (int i = 0; i < conf.emu.runahead; i++) {
+		if (!ra_frame(comp)) {
+			xlog(XLG_CORE, XLL_WARN, "run ahead: the machine does not finish a frame, giving up");
+			raBroken = 1;
+			break;
+		}
+	}
+	x_runahead = 0;
+	return 1;
+}
+
 void xThread::emuCycle(Computer* comp) {
 	int tm;
 	int brkskip = 0;
@@ -221,6 +301,10 @@ void xThread::emuCycle(Computer* comp) {
 			conf.vid.fcount++;
 			comp->frmCount++;
 			autostart_frame(comp);
+			// the frame just made is not the one to show: run on to the one
+			// the player's last key press is already in
+			long rayOff = 0, lineOff = 0;
+			int wound = runAhead(comp, &rayOff, &lineOff);
 // process noflic/scanlines (if !fast ???)
 // buffers is already switches, bufimg - just painted (greyscale, if flag is set), scrimg - new
 			if (!conf.emu.fast && (noflic > 0))
@@ -230,6 +314,7 @@ void xThread::emuCycle(Computer* comp) {
 
 			// printf("s_frame\n");
 			emit s_frame();
+			if (wound) ra_back(comp, rayOff, lineOff);
 		}
 #if LOG_OUTPUT
 // ...
@@ -314,5 +399,7 @@ void xThread::run() {
 			usleep(10);
 #endif
 	} while (!finish);
+	xstate_destroy(raState);
+	raState = NULL;
 	exit(0);
 }

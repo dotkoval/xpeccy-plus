@@ -70,6 +70,10 @@ void memSetSize(Memory* mem, int ramSz, int romSz) {
 	}
 }
 
+size_t mem_ram_extent(Memory* mem) {
+	return (size_t)mem->ramMask + 1;
+}
+
 int memRd(Memory* mem, int adr) {
 	int res = -1;
 	MemPage* ptr = &mem->map[(adr >> mem->pgshift) & 0xff];

@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include "vfat.h"
+#include "defines.h"
 
 /*
 // mode

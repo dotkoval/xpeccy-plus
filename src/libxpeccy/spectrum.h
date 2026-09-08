@@ -209,6 +209,11 @@ typedef struct Computer {
 
 #endif
 
+	// brkRamMap..brkIOMap is skipped by the state snapshot: 4.6 MB of debugger
+	// bookkeeping that no rollback needs, so xstate.c takes this struct as the
+	// ranges around it. A field that DOES belong in a snapshot has to go before
+	// brkRamMap or after brkIOMap - one put between them would be left out with
+	// nothing to say so. (The rzx frame buffer above is skipped the same way.)
 	unsigned char brkRamMap[MEM_4M];	// ram brk/type : b0..3:brk flags, b4..7:type
 	unsigned char brkRomMap[MEM_512K];	// rom brk/type : b0..3:brk flags, b4..7:type
 	unsigned char brkAdrMap[MEM_64K];	// adr brk

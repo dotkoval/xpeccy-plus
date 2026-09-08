@@ -175,6 +175,9 @@ void saveConfig() {
 	fprintf(cfile, "fullscreen = %s\n", YESNO(conf.vid.fullScreen));
 	fprintf(cfile, "keepratio = %s\n", YESNO(conf.vid.keepRatio));
 	fprintf(cfile, "lowlatency = %s\n", YESNO(conf.vid.lowLatency));
+	// kept beside lowlatency: the two are one page in the options, and moving
+	// a key between sections later would orphan everyone's setting
+	fprintf(cfile, "runahead = %i\n", conf.emu.runahead);
 	fprintf(cfile, "scale = %i\n", conf.vid.scale);
 	fprintf(cfile, "greyscale = %s\n", YESNO(greyScale));
 //	fprintf(cfile, "scanlines = %s\n", YESNO(scanlines));
@@ -599,6 +602,7 @@ void loadConfig() {
 					if (pnam=="fullscreen") conf.vid.fullScreen = arg.b;
 					if (pnam=="keepratio") conf.vid.keepRatio = arg.b;
 					if (pnam=="lowlatency") conf.vid.lowLatency = arg.b;
+					if (pnam=="runahead") conf.emu.runahead = getRanged(arg.s, 0, 2);
 					if (pnam=="border") conf.vid.border = brd_mode_id(arg.s);
 					// before 2026.4 this was a percentage of the machine's own border
 					if (pnam=="bordersize") conf.vid.border = brd_mode_pcnt(getRanged(arg.s, 0, 100));

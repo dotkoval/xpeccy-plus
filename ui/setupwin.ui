@@ -843,16 +843,6 @@
              </widget>
             </item>
             <item>
-             <widget class="QCheckBox" name="cbLowLat">
-              <property name="toolTip">
-               <string>Show each frame at once for low input lag (best with VRR / high refresh). Off: buffer frames for smoother motion on fixed-refresh displays.</string>
-              </property>
-              <property name="text">
-               <string>Low latency</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <widget class="QCheckBox" name="grayscale">
               <property name="text">
                <string>Gray scale</string>
@@ -3256,202 +3246,96 @@
            <property name="currentIndex">
             <number>0</number>
            </property>
-           <widget class="QWidget" name="tab_5">
+           <widget class="QWidget" name="tabEmulation">
             <attribute name="icon">
              <iconset resource="../xpeccy.qrc">
-              <normaloff>:/images/other.png</normaloff>:/images/other.png</iconset>
+              <normaloff>:/images/clock.png</normaloff>:/images/clock.png</iconset>
             </attribute>
             <attribute name="title">
-             <string>Tools</string>
+             <string>Emulation</string>
             </attribute>
-            <layout class="QVBoxLayout" name="verticalLayout_32">
+            <layout class="QVBoxLayout" name="verticalLayout_16">
              <item>
-              <layout class="QGridLayout" name="gridLayout_6">
-               <item row="0" column="2">
-                <spacer name="horizontalSpacer_6">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item row="0" column="1">
-                <widget class="QSpinBox" name="sbPort">
-                 <property name="minimumSize">
-                  <size>
-                   <width>80</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="minimum">
-                  <number>1</number>
-                 </property>
-                 <property name="maximum">
-                  <number>65535</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_24">
-                 <property name="text">
-                  <string>Listen port</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="3">
-                <widget class="QWidget" name="widget" native="true">
-                 <layout class="QVBoxLayout" name="verticalLayout_44">
-                  <item>
-                   <widget class="QCheckBox" name="cbConfexit">
-                    <property name="text">
-                     <string>Confirm exit</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="groupBox_2">
+              <widget class="QGroupBox" name="gbLatency">
                <property name="title">
-                <string>Bookmarks</string>
+                <string>Input lag</string>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_12">
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_15">
-                  <item>
-                   <widget class="QTableWidget" name="umlist">
-                    <property name="editTriggers">
-                     <set>QAbstractItemView::NoEditTriggers</set>
-                    </property>
-                    <property name="alternatingRowColors">
-                     <bool>true</bool>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::SingleSelection</enum>
-                    </property>
-                    <property name="selectionBehavior">
-                     <enum>QAbstractItemView::SelectRows</enum>
-                    </property>
-                    <property name="textElideMode">
-                     <enum>Qt::ElideMiddle</enum>
-                    </property>
-                    <property name="gridStyle">
-                     <enum>Qt::DotLine</enum>
-                    </property>
-                    <property name="rowCount">
-                     <number>0</number>
-                    </property>
-                    <property name="columnCount">
-                     <number>2</number>
-                    </property>
-                    <attribute name="horizontalHeaderVisible">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="horizontalHeaderMinimumSectionSize">
-                     <number>1</number>
-                    </attribute>
-                    <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="horizontalHeaderStretchLastSection">
-                     <bool>true</bool>
-                    </attribute>
-                    <attribute name="verticalHeaderVisible">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="verticalHeaderDefaultSectionSize">
-                     <number>24</number>
-                    </attribute>
-                    <column/>
-                    <column/>
-                   </widget>
-                  </item>
-                  <item>
-                   <layout class="QVBoxLayout" name="verticalLayout_8">
-                    <item>
-                     <widget class="QToolButton" name="umaddtb">
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umuptb">
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/arrow-up.png</normaloff>:/images/arrow-up.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umdntb">
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/arrow-down.png</normaloff>:/images/arrow-down.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="verticalSpacer_5">
-                      <property name="orientation">
-                       <enum>Qt::Vertical</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umdeltb">
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
+               <layout class="QGridLayout" name="gridLayout_lat">
+                <property name="horizontalSpacing">
+                 <number>16</number>
+                </property>
+                <property name="verticalSpacing">
+                 <number>8</number>
+                </property>
+                <item row="0" column="0">
+                 <widget class="QLabel" name="labLowLat">
+                  <property name="font">
+                   <font>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>Low latency</string>
+                  </property>
+                  <property name="buddy">
+                   <cstring>cbLowLat</cstring>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="1">
+                 <widget class="QCheckBox" name="cbLowLat">
+                  <property name="toolTip">
+                   <string>Show each frame at once for low input lag (best with VRR / high refresh). Off: buffer frames for smoother motion on fixed-refresh displays.</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item row="0" column="2">
+                 <widget class="QLabel" name="labLowLatHint">
+                  <property name="text">
+                   <string>Show each frame at once instead of buffering</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="labRunAhead">
+                  <property name="font">
+                   <font>
+                    <bold>true</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>Run ahead</string>
+                  </property>
+                  <property name="buddy">
+                   <cstring>cbRunAhead</cstring>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QComboBox" name="cbRunAhead">
+                  <property name="toolTip">
+                   <string>EXPERIMENTAL. Show the frame the machine will only reach later, so a key press appears on screen 20 ms sooner per frame. Each frame is emulated twice over, and the picture ends up ahead of the sound. Off while the tape, a disk or RZX is running, and on ZX machines only.</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <widget class="QLabel" name="labRunAheadHint">
+                  <property name="text">
+                   <string>EXPERIMENTAL. Emulate ahead, so keys respond sooner</string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
              </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="tab_6">
-            <attribute name="icon">
-             <iconset resource="../xpeccy.qrc">
-              <normaloff>:/images/lamp.png</normaloff>:/images/lamp.png</iconset>
-            </attribute>
-            <attribute name="title">
-             <string>Indicators</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="verticalLayout_16">
              <item>
+              <widget class="QGroupBox" name="gbIndicators">
+               <property name="title">
+                <string>Indicators</string>
+               </property>
               <layout class="QGridLayout" name="gridLayout_23">
                <property name="horizontalSpacing">
                 <number>16</number>
@@ -3705,6 +3589,7 @@
                 </spacer>
                </item>
               </layout>
+              </widget>
              </item>
              <item>
               <spacer name="verticalSpacer_14">
@@ -3718,6 +3603,192 @@
                 </size>
                </property>
               </spacer>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_5">
+            <attribute name="icon">
+             <iconset resource="../xpeccy.qrc">
+              <normaloff>:/images/other.png</normaloff>:/images/other.png</iconset>
+            </attribute>
+            <attribute name="title">
+             <string>Tools</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_32">
+             <item>
+              <layout class="QGridLayout" name="gridLayout_6">
+               <item row="0" column="2">
+                <spacer name="horizontalSpacer_6">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item row="0" column="1">
+                <widget class="QSpinBox" name="sbPort">
+                 <property name="minimumSize">
+                  <size>
+                   <width>80</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="minimum">
+                  <number>1</number>
+                 </property>
+                 <property name="maximum">
+                  <number>65535</number>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_24">
+                 <property name="text">
+                  <string>Listen port</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
+                <widget class="QWidget" name="widget" native="true">
+                 <layout class="QVBoxLayout" name="verticalLayout_44">
+                  <item>
+                   <widget class="QCheckBox" name="cbConfexit">
+                    <property name="text">
+                     <string>Confirm exit</string>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="groupBox_2">
+               <property name="title">
+                <string>Bookmarks</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_12">
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_15">
+                  <item>
+                   <widget class="QTableWidget" name="umlist">
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="textElideMode">
+                     <enum>Qt::ElideMiddle</enum>
+                    </property>
+                    <property name="gridStyle">
+                     <enum>Qt::DotLine</enum>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>2</number>
+                    </property>
+                    <attribute name="horizontalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="horizontalHeaderMinimumSectionSize">
+                     <number>1</number>
+                    </attribute>
+                    <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderDefaultSectionSize">
+                     <number>24</number>
+                    </attribute>
+                    <column/>
+                    <column/>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QVBoxLayout" name="verticalLayout_8">
+                    <item>
+                     <widget class="QToolButton" name="umaddtb">
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umuptb">
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/arrow-up.png</normaloff>:/images/arrow-up.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umdntb">
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/arrow-down.png</normaloff>:/images/arrow-down.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="verticalSpacer_5">
+                      <property name="orientation">
+                       <enum>Qt::Vertical</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>20</width>
+                        <height>40</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umdeltb">
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
              </item>
             </layout>
            </widget>

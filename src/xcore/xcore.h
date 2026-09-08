@@ -471,6 +471,9 @@ struct xConfig {
 	struct {
 		unsigned fast:1;
 		int pause;
+		// frames the emulation runs ahead of the timeline it keeps, to hide
+		// the machine's own reaction time. 0 = off (see ethread.cpp)
+		int runahead;
 	} emu;
 	struct {
 		QList<xProfile*> list;
