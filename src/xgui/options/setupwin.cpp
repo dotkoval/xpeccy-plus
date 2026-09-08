@@ -497,6 +497,10 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbNoflicMode->addItem("2-frames (adaptive)", AF_2C_ADAPTIVE);
 	ui.cbNoflicMode->addItem("3-frames (fullscreen)", AF_3C_FULL);
 	ui.cbNoflicMode->addItem("2-/3-frames (adaptive)", AF_3C_ADAPTIVE);
+// emulation
+	ui.cbRunAhead->addItem("Off", 0);
+	ui.cbRunAhead->addItem("1 frame", 1);
+	ui.cbRunAhead->addItem("2 frames", 2);
 // sound
 	i = 0;
 	while (sndTab[i].name) {
@@ -839,10 +843,12 @@ void SetupWin::start() {
 	ui.sbFreq->setValue(comp->cpuFrq);
 	ui.sbMult->setValue(comp->frqMul);
 	ui.scrpwait->setChecked(comp->flgEM1);
+// emulation
+	ui.cbLowLat->setChecked(conf.vid.lowLatency);
+	setRFIndex(ui.cbRunAhead, conf.emu.runahead, 0);
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	ui.cbKeepRatio->setChecked(conf.vid.keepRatio);
-	ui.cbLowLat->setChecked(conf.vid.lowLatency);
 	ui.sbScale->setValue(conf.vid.scale);
 	ui.sldNoflic->setValue(noflic); chaflc();
 	ui.cbNoflicMode->setCurrentIndex(noflicMode);
@@ -1072,10 +1078,12 @@ void SetupWin::apply() {
 	if (comp->hw != oldmac) compReset(comp,RES_DEFAULT);
 	if (comp->hw->id == HW_ZX48) comp->mem->ramMask = MEM_128K - 1;		// TODO: find a better way
 	emu_unlock();
+// emulation
+	conf.vid.lowLatency = ui.cbLowLat->isChecked() ? 1 : 0;
+	conf.emu.runahead = getRFIData(ui.cbRunAhead);
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
 	conf.vid.keepRatio = ui.cbKeepRatio->isChecked() ? 1 : 0;
-	conf.vid.lowLatency = ui.cbLowLat->isChecked() ? 1 : 0;
 	conf.vid.scale = ui.sbScale->value();
 	noflic = ui.sldNoflic->value();
 	noflicMode = ui.cbNoflicMode->currentIndex();

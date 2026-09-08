@@ -5,6 +5,7 @@ extern "C" {
 #endif
 
 #include "defines.h"
+#include <stddef.h>
 
 // mempage type
 enum {
@@ -61,6 +62,11 @@ int memRd(Memory*, int);
 void memWr(Memory*, int, int);
 
 void memSetSize(Memory*, int, int);
+// How much of ramData a machine can reach. Not ramSize: memSetBank puts a page
+// at ramData + (bank << pgshift & ramMask), and ZX48 runs with 64K of ram behind
+// a 128K mask (see the hand-set ramMask in profiles.cpp), so its screen bank
+// alone sits past ramSize.
+size_t mem_ram_extent(Memory*);
 void memSetBank(Memory* mem, int page, int type, int bank, int siz, extmrd rd, extmwr wr, void* data);
 
 void memPutData(Memory*,int,int,int,char*);

@@ -11,6 +11,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
+  so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
+  off by default. It doubles the emulation work, puts the picture slightly ahead of the
+  sound, and turns itself off while the tape, a disk or an RZX recording is running.
 - The virtual keyboard, on the menu and Alt+K, can be resized, and it can sit under the
   emulator window at its width. Right-click an empty spot on it for the size and docking
   choices.
@@ -29,6 +33,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- Options: the Low latency setting and the indicator switches moved to a page of their
+  own, Xpeccy+ -> Emulation.
 - Xpeccy+ is a ZX Spectrum emulator only now. MSX, Game Boy, NES, Commodore 64, BK0010,
   IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in
   the machine, CPU, disk and hard disk lists, in the romset editor, and in the debugger.

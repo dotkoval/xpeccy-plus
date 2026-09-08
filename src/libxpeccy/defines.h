@@ -1,5 +1,12 @@
 #pragma once
 
+// Non-zero while a frame that is going to be rolled back is running (run-ahead,
+// see ethread.cpp). Breakpoints sit it out - a break in such a frame would fire
+// twice - and so do the floppy / sd / hdd writers, whose media are outside the
+// snapshot and would keep what such a frame wrote. It lives here rather than in
+// xstate.h because those writers are handed a device, never a Computer.
+extern int x_runahead;
+
 #include <stdint.h>
 #include <math.h>
 #include <time.h>

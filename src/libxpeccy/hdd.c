@@ -142,6 +142,7 @@ void ataReadSector(ATADev* dev) {
 }
 
 void ataWriteSector(ATADev* dev) {
+	if (x_runahead) return;			// this frame is going to be rolled back
 	ataSetLBA(dev);
 	if (dev->lba >= dev->maxlba) {			// sector not found
 		dev->reg.state |= HDF_ERR;

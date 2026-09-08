@@ -118,6 +118,7 @@ void sdcRdSector(SDCard* sdc) {
 void sdcWrSector(SDCard* sdc) {
 //	printf("SDC write sector %i\n",sdc->addr);
 	if (sdc->vfat) return;			// a folder is served read only
+	if (x_runahead) return;			// this frame is going to be rolled back
 	if ((sdc->addr < sdc->maxlba) && sdc->file) {
 		fseek(sdc->file,sdc->addr << 9,SEEK_SET);
 		fwrite(sdc->buf.data + 1,512,1,sdc->file);

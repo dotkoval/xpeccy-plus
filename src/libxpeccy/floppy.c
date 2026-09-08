@@ -54,6 +54,7 @@ int flp_get_interleave() {
 
 void flpWr(Floppy* flp, int hd, unsigned char val) {
 	flp->wr = 1;
+	if (x_runahead) return;			// this frame is going to be rolled back
 	hd &= 1;
 	if (hd & !flp->doubleSide) return;	// saving on HD1 for SS Floppy
 	if (flp->insert && flp->door) {

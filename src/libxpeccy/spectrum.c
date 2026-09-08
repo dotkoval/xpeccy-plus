@@ -89,7 +89,7 @@ int memrd(int adr, int m1, void* ptr) {
 			}
 		}
 	}
-	if (comp->flgHEAT) {
+	if (comp->flgHEAT && !x_runahead) {	// an ahead frame would count every access twice
 		// a byte is part of the instruction stream (opcode, prefix, immediate/displacement
 		// operand) whenever it lands right where PC just advanced past it; everything else
 		// is a real data read (memory operand, stack pop, etc)
@@ -113,7 +113,7 @@ int memrd(int adr, int m1, void* ptr) {
 void memwr(int adr, int val, void* ptr) {
 	Computer* comp = (Computer*)ptr;
 	adr &= comp->cpu->busmask;
-	if (comp->flgHEAT) {
+	if (comp->flgHEAT && !x_runahead) {	// an ahead frame would count every access twice
 		// writes (incl. stack push/call) are always data traffic, never execution
 		comp_heat_hit(comp, adr, HEAT_WR);
 	}
@@ -732,8 +732,9 @@ int compSetHardware(Computer* comp, const char* name) {
 
 int compExec(Computer* comp) {
 	comp->vid->time = 0;
-// breakpoints
-	if (!comp->flgDBG) {
+// breakpoints. A run-ahead frame is thrown away, so a break there would fire
+// twice: leave it to the pass that keeps its result
+	if (!comp->flgDBG && !x_runahead) {
 		bpChecker ch = comp_check_bp(comp, cpu_get_pc(comp->cpu) + comp->cpu->cs.base, MEM_BRK_FETCH | MEM_BRK_TFETCH);
 		if (ch.t >= 0) {
 			comp->flgBRK = 1;
