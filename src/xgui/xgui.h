@@ -31,6 +31,7 @@ void showInfo(const char*);
 
 int getRFIData(QComboBox*);
 void setRFIndex(QComboBox*, QVariant, int = 0);
+int comboFitWidth(QComboBox*);
 
 // subclasses
 

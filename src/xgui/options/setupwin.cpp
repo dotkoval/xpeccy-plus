@@ -499,8 +499,8 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbNoflicMode->addItem("2-/3-frames (adaptive)", AF_3C_ADAPTIVE);
 // emulation
 	ui.cbRunAhead->addItem("Off", 0);
-	ui.cbRunAhead->addItem("1 frame", 1);
-	ui.cbRunAhead->addItem("2 frames", 2);
+	ui.cbRunAhead->addItem("1", 1);
+	ui.cbRunAhead->addItem("2", 2);
 // sound
 	i = 0;
 	while (sndTab[i].name) {
@@ -812,6 +812,20 @@ void SetupWin::setPadName() {
 //	ui.lePadName->setText(conf.joy.gpad->name());
 }
 
+// What a grid's column really needs: the widest cell in it, taking a widget
+// pinned to a fixed width at that width rather than at the hint it asks for.
+static int gridColWidth(QGridLayout* grid, int col) {
+	int wid = 0;
+	for (int i = 0; i < grid->count(); i++) {
+		int row, cl, rspan, cspan;
+		grid->getItemPosition(i, &row, &cl, &rspan, &cspan);
+		QWidget* w = grid->itemAt(i)->widget();
+		if (w && (cl == col) && (cspan == 1))
+			wid = qMax(wid, qMin(w->sizeHint().width(), w->maximumWidth()));
+	}
+	return wid;
+}
+
 void SetupWin::start() {
 	xProfile* prof = conf.prof.cur;
 	Computer* comp = prof->zx;
@@ -846,6 +860,16 @@ void SetupWin::start() {
 // emulation
 	ui.cbLowLat->setChecked(conf.vid.lowLatency);
 	setRFIndex(ui.cbRunAhead, conf.emu.runahead, 0);
+	// Input lag and Indicators are grids of their own, and columns line up
+	// between two grids only while both are given the same widths. Measure them
+	// here, not in the .ui: a style or a font would outgrow a number set there.
+	ui.cbRunAhead->setFixedWidth(comboFitWidth(ui.cbRunAhead));
+	QGridLayout* emugrid[2] = {ui.gridLayout_lat, ui.gridLayout_23};
+	for (int col = 0; col < 2; col++) {
+		int wid = qMax(gridColWidth(emugrid[0], col), gridColWidth(emugrid[1], col));
+		emugrid[0]->setColumnMinimumWidth(col, wid);
+		emugrid[1]->setColumnMinimumWidth(col, wid);
+	}
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	ui.cbKeepRatio->setChecked(conf.vid.keepRatio);
