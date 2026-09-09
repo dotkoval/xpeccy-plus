@@ -507,10 +507,10 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 		ui.outbox->addItem(QString::fromLocal8Bit(sndTab[i].name));
 		i++;
 	}
-	ui.ratbox->addItem("48000",48000);
-	ui.ratbox->addItem("44100",44100);
-	ui.ratbox->addItem("22050",22050);
-	ui.ratbox->addItem("11025",11025);
+	ui.ratbox->addItem("Auto",0);		// the device's own rate, filled in by start()
+	for (i = 0; sndRateTab[i]; i++) {
+		ui.ratbox->addItem(QString::number(sndRateTab[i]), sndRateTab[i]);
+	}
 	opt_fill_psg_boxes(ui.cbPsgCount, ui.cbPsgType, ui.cbPsgFrq, ui.cbPsgStereo);
 	ui.cbPsgCount->setItemDelegate(new xTwoPartDelegate(ui.cbPsgCount));
 	ui.cbPsgFrq->setItemDelegate(new xTwoPartDelegate(ui.cbPsgFrq));
@@ -891,7 +891,13 @@ void SetupWin::start() {
 
 	ui.senbox->setChecked(conf.snd.enabled);
 	ui.outbox->setCurrentIndex(ui.outbox->findText(QString::fromLocal8Bit(sndOutput->name)));
-	ui.ratbox->setCurrentIndex(ui.ratbox->findData(QVariant(conf.snd.rate)));
+	// Auto keeps conf.snd.rate as the rate actually in use, so the box says
+	// which one that turned out to be rather than leaving the user guessing.
+	// It is also where a rate that is no longer offered falls back to.
+	int autoIdx = ui.ratbox->findData(0);
+	ui.ratbox->setItemText(autoIdx,
+		conf.snd.rateauto ? QString("Auto (%1)").arg(conf.snd.rate) : QString("Auto"));
+	setRFIndex(ui.ratbox, conf.snd.rateauto ? 0 : conf.snd.rate, autoIdx);
 	ui.sldSndLatency->setRange(SND_LATENCY_MIN, SND_LATENCY_MAX);	// the block size sets the floor, keep the two together
 	ui.sldSndLatency->setValue(conf.snd.latency);
 	ui.chkSndLatAuto->setChecked(conf.snd.latauto);
@@ -1136,7 +1142,11 @@ void SetupWin::apply() {
 	conf.snd.vol.saa = ui.sbSAAVol->value();
 
 	std::string nname = getRFText(ui.outbox);
+	// 0 is the Auto item. The rate it finds goes into conf.snd.rate like any
+	// other, so everything downstream keeps reading one setting.
 	int rate = getRFIData(ui.ratbox);
+	int rateauto = (rate == 0) ? 1 : 0;
+	if (rateauto) rate = conf.snd.rate;		// re-read from the device on open
 	// the auto mode writes its findings back into the same setting, so the
 	// slider shows what the emulator settled on and is still the way to nudge
 	// it by hand
@@ -1144,8 +1154,10 @@ void SetupWin::apply() {
 	int latency = ui.sldSndLatency->value();
 	// reopen on a changed latency too: the pacer would creep to the new target
 	// over tens of seconds, refilling the ring gets there at once
-	if ((rate != conf.snd.rate) || (latency != conf.snd.latency) || (nname != sndGetName())) {
+	if ((rate != conf.snd.rate) || (rateauto != conf.snd.rateauto) ||
+		(latency != conf.snd.latency) || (nname != sndGetName())) {
 		conf.snd.rate = rate;
+		conf.snd.rateauto = rateauto;
 		conf.snd.latency = latency;
 		setOutput(nname.c_str());
 	}

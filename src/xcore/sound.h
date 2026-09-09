@@ -52,6 +52,19 @@ typedef struct {
 // goes, so it is what the size has to be checked against (see pacing.cpp)
 #define SND_MAX_RATE		48000
 
+// Output rates offered, highest first, 0 terminates. It lives here rather than
+// in the options dialog because the config parser has to check against the same
+// list - a rate this build does not offer would leave the box with nothing
+// selected. 11025 and 22050 were dropped in 2026.4: every audio engine now runs
+// at 44100 or 48000, so a lower rate only bought a resample on the way out plus
+// the fold-back our box decimation cannot filter.
+//
+// Auto is bounded by the same list, so a device running at anything else - 96000,
+// say - is still asked for the nearest of these and still resamples. Following it
+// exactly would mean sizing the ring at run time, which SND_MAX_RATE rules out.
+extern const int sndRateTab[];
+int sndRateSupported(int);
+
 extern OutSys sndTab[];
 extern OutSys* sndOutput;
 

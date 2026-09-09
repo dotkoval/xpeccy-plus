@@ -500,6 +500,7 @@ struct xConfig {
 		// as a plain int a decrement landing inside an addition wiped it out.
 		std::atomic<int> need;
 		int rate;
+		int rateauto;		// take the rate from the device instead (see sound.cpp)
 		int chans;
 		int latency;		// ms of sound kept in the ring buffer (see sound.h)
 		int latauto;		// let the emulator find that number by itself

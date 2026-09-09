@@ -207,6 +207,7 @@ void saveConfig() {
 	fprintf(cfile, "enabled = %s\n", YESNO(conf.snd.enabled));
 	fprintf(cfile, "soundsys = %s\n", sndOutput->name);
 	fprintf(cfile, "rate = %i\n", conf.snd.rate);
+	fprintf(cfile, "rate_auto = %s\n", YESNO(conf.snd.rateauto));
 	fprintf(cfile, "latency = %i\n", conf.snd.latency);
 	fprintf(cfile, "latency_auto = %s\n", YESNO(conf.snd.latauto));
 	fprintf(cfile, "volume.master = %i\n", conf.snd.vol.master);
@@ -692,7 +693,13 @@ void loadConfig() {
 				case SECT_SOUND:
 					if (pnam=="enabled") conf.snd.enabled = arg.b;
 					if (pnam=="soundsys") soutnam = pval;
-					if (pnam=="rate") conf.snd.rate = arg.i;
+					// a config written by an older build can name a rate this
+					// one no longer offers; sndInit's default stands instead
+					if (pnam=="rate") {
+						if (sndRateSupported(arg.i)) conf.snd.rate = arg.i;
+						else xlog(XLG_SOUND, XLL_WARN, "rate %i is not offered any more, using %i Hz", arg.i, conf.snd.rate);
+					}
+					if (pnam=="rate_auto") conf.snd.rateauto = arg.b;
 					if (pnam=="latency") conf.snd.latency = getRanged(arg.s, SND_LATENCY_MIN, SND_LATENCY_MAX);
 					if (pnam=="latency_auto") conf.snd.latauto = arg.b;
 					if (pnam=="volume.master") conf.snd.vol.master = getRanged(arg.s, 0, 100);
