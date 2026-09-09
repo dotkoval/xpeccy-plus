@@ -5,6 +5,7 @@
 #include <QPainter>
 #include <QStyle>
 #include <QStyleOptionSlider>
+#include <QStyleOptionComboBox>
 #include <QApplication>
 #include <QSet>
 #include <QTabBar>
@@ -13,6 +14,22 @@
 
 QString gethexword(int);
 QString gethexbyte(uchar);
+
+// A combo box asks for much more width than its text needs, and its hint is
+// cached until a style or font change. This is what it really needs: the
+// widest item, the arrow and whatever frame the style draws around them.
+int comboFitWidth(QComboBox* box) {
+	QStyleOptionComboBox opt;
+	opt.initFrom(box);
+	opt.subControls = QStyle::SC_All;
+	opt.rect = QRect(QPoint(0, 0), box->sizeHint());
+	int field = box->style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxEditField, box).width();
+	QFontMetrics fm(box->font());
+	int text = 0;
+	for (int i = 0; i < box->count(); i++)
+		text = qMax(text, fm.horizontalAdvance(box->itemText(i)));
+	return opt.rect.width() - field + text + 4;	// 4: a pixel of air either side
+}
 
 void setRegExp(QRegExpValidator& v, QString s) {
 #if QT_VERSION < QT_VERSION_CHECK(6,0,0)

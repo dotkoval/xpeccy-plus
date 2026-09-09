@@ -7,7 +7,6 @@
 #include <QBuffer>
 #include <QPainter>
 #include <QStyleOptionButton>
-#include <QStyleOptionComboBox>
 #include <QShowEvent>
 #include <QTabBar>
 #include <QVector>
@@ -210,23 +209,11 @@ void DebugWin::updateStyle() {
 	wid_disk_dump->draw();
 }
 
-// A combo box asks for much more width than its text needs, and its hint is
-// cached until a style or font change - which is why these four came out wide
-// at startup and only shrank once Options re-applied the style. Cut them down
-// to the widest item, the arrow and whatever frame the style draws, the way
-// fitFlagBoxes() does for the flags.
+// The boxes come out wide at startup and only shrank once Options re-applied
+// the style, since a combo box caches its hint. Cut them down to what they
+// need, the way fitFlagBoxes() does for the flags.
 void DebugWin::fitMMapBoxes() {
-	QComboBox* box = mmapType[0];
-	QStyleOptionComboBox opt;
-	opt.initFrom(box);
-	opt.subControls = QStyle::SC_All;
-	opt.rect = QRect(QPoint(0, 0), box->sizeHint());
-	int field = box->style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxEditField, box).width();
-	QFontMetrics fm(box->font());
-	int text = 0;
-	for (int i = 0; i < box->count(); i++)
-		text = qMax(text, fm.horizontalAdvance(box->itemText(i)));
-	int wid = opt.rect.width() - field + text + 4;	// 4: a pixel of air either side
+	int wid = comboFitWidth(mmapType[0]);
 	for (int i = 0; i < 4; i++)
 		mmapType[i]->setFixedWidth(wid);
 }
