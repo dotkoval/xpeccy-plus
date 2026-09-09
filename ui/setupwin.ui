@@ -3317,7 +3317,7 @@
                 <item row="1" column="1">
                  <widget class="QComboBox" name="cbRunAhead">
                   <property name="toolTip">
-                   <string>EXPERIMENTAL. Show the frame the machine will only reach later, so a key press appears on screen 20 ms sooner per frame. Each frame is emulated twice over, and the picture ends up ahead of the sound. Off while the tape, a disk or RZX is running, and on ZX machines only.</string>
+                   <string>EXPERIMENTAL. Emulates each frame twice over to show one the machine has not reached yet, so a key press lands sooner. The sound stays a frame behind.</string>
                   </property>
                  </widget>
                 </item>
