@@ -18,6 +18,9 @@
     <layout class="QGridLayout" name="gridLayout">
      <item row="2" column="0">
       <widget class="QLabel" name="label_3">
+       <property name="toolTip">
+        <string>Set of bindings this gamepad uses</string>
+       </property>
        <property name="text">
         <string>Mapping</string>
        </property>
@@ -25,6 +28,9 @@
      </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label">
+       <property name="toolTip">
+        <string>The gamepad this tab sets up</string>
+       </property>
        <property name="text">
         <string>Gamepad</string>
        </property>
@@ -32,6 +38,9 @@
      </item>
      <item row="1" column="1">
       <widget class="QSlider" name="sldDeadZone">
+       <property name="toolTip">
+        <string>How far a stick has to move before it counts</string>
+       </property>
        <property name="maximum">
         <number>32768</number>
        </property>
@@ -42,21 +51,35 @@
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
+       <property name="toolTip">
+        <string>How far a stick has to move before it counts</string>
+       </property>
        <property name="text">
         <string>Dead Zone</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="QComboBox" name="cbGPName"/>
+      <widget class="QComboBox" name="cbGPName">
+       <property name="toolTip">
+        <string>The gamepad this tab sets up</string>
+       </property>
+      </widget>
      </item>
      <item row="2" column="1">
       <layout class="QHBoxLayout" name="horizontalLayout">
        <item>
-        <widget class="QComboBox" name="cbMapFile"/>
+        <widget class="QComboBox" name="cbMapFile">
+         <property name="toolTip">
+          <string>Set of bindings this gamepad uses</string>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QToolButton" name="tbAddMap">
+         <property name="toolTip">
+          <string>New map</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
@@ -68,6 +91,9 @@
        </item>
        <item>
         <widget class="QToolButton" name="tbDelMap">
+         <property name="toolTip">
+          <string>Delete this map</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
@@ -87,6 +113,9 @@
       <layout class="QVBoxLayout" name="verticalLayout">
        <item>
         <widget class="QToolButton" name="tbAddEntry">
+         <property name="toolTip">
+          <string>Add a binding</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
@@ -98,6 +127,9 @@
        </item>
        <item>
         <widget class="QToolButton" name="tbEditEntry">
+         <property name="toolTip">
+          <string>Edit the binding</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
@@ -122,6 +154,9 @@
        </item>
        <item>
         <widget class="QToolButton" name="tbDelEntry">
+         <property name="toolTip">
+          <string>Delete the binding</string>
+         </property>
          <property name="text">
           <string>...</string>
          </property>
