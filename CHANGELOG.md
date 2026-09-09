@@ -25,6 +25,10 @@ before that point is upstream's history and is not repeated here.
   part of the emulator it came from, so a video problem can be told apart from a sound
   one at a glance. `--log-groups video:debug,sound:off` sets those parts one by one when
   a bug needs it.
+- Sound now follows the sound card's own sample rate instead of asking for a fixed one,
+  which on Windows could be heard as a faint whistle in quiet moments. Options -> Sound ->
+  Rate is Auto by default; 44100 and 48000 can still be picked by hand, and the old 11025
+  and 22050 are gone.
 - Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
   up when the buffer starts running thin, back down after a long clean spell. The slider
   in Options -> Sound shows where it settled and still sets it by hand, anywhere from 10 to

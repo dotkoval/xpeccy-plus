@@ -404,10 +404,59 @@ void sdlPlayAudio(void*, Uint8* stream, int len) {
 #endif
 }
 
+const int sndRateTab[] = {48000, 44100, 0};
+
+// The offered rate closest to what was asked. Auto has to land on one of them:
+// the ring is sized against SND_MAX_RATE, and a rate outside the list would
+// leave the options box with nothing selected and be refused on the next load.
+static int snd_nearest_rate(int rate) {
+	int res = sndRateTab[0];
+	for (int i = 0; sndRateTab[i]; i++) {
+		if (abs(sndRateTab[i] - rate) < abs(res - rate))
+			res = sndRateTab[i];
+	}
+	return res;
+}
+
+int sndRateSupported(int rate) {
+	return snd_nearest_rate(rate) == rate;
+}
+
+// Auto rate: ask the default device what it runs at, and ask for that.
+//
+// Any other rate makes something in the chain resample, and on Windows that is
+// the audio engine's own converter at default quality - SDL sets
+// AUTOCONVERTPCM | SRC_DEFAULT_QUALITY as soon as the rate differs from the
+// device's mix format - which is audible as a whistle under silence. The
+// mismatch buys nothing either way: the device's period is a fixed number of
+// milliseconds whatever rate it is fed.
+//
+// Every backend the project ships on answers this - wasapi, directsound,
+// pulseaudio, alsa, pipewire, coreaudio - so there is no second mechanism for
+// the ones that don't: they simply keep the rate they were given.
+static void snd_pick_auto_rate() {
+	if (!conf.snd.rateauto) return;
+#if defined(HAVESDL2) && SDL_VERSION_ATLEAST(2, 24, 0)
+	SDL_AudioSpec dev;
+	memset(&dev, 0, sizeof(dev));
+	if (SDL_GetDefaultAudioInfo(NULL, &dev, 0) < 0) {
+		xlog(XLG_SOUND, XLL_INFO, "auto rate: the driver won't say (%s), keeping %i Hz",
+			SDL_GetError(), conf.snd.rate);
+		return;
+	}
+	int rate = snd_nearest_rate(dev.freq);
+	if (rate != dev.freq)
+		xlog(XLG_SOUND, XLL_INFO, "auto rate: device runs at %i Hz, asking for %i",
+			dev.freq, rate);
+	conf.snd.rate = rate;
+#endif
+}
+
 int sdlopen() {
 	int res;
 	SDL_AudioSpec asp;
 	SDL_AudioSpec dsp;
+	snd_pick_auto_rate();
 	asp.freq = conf.snd.rate;
 	asp.format = AUDIO_S16LSB;
 	asp.channels = conf.snd.chans;
@@ -416,6 +465,10 @@ int sdlopen() {
 	asp.userdata = NULL;
 	conf.snd.need = 0;
 #if defined(HAVESDL2)
+	// Nothing is allowed to change: a rate granted behind our back could be one
+	// the ring is not sized for, and it would be written to the config as if
+	// the user had picked it. snd_pick_auto_rate() above is the one place the
+	// rate is chosen.
 	sdldevid = SDL_OpenAudioDevice(NULL, 0, &asp, &dsp, 0);
 	if (sdldevid == 0) {
 #else
@@ -499,6 +552,7 @@ void init_kih() {
 
 void sndInit() {
 	conf.snd.rate = 44100;
+	conf.snd.rateauto = 1;
 	conf.snd.chans = 2;
 	conf.snd.latency = SND_LATENCY_DEF;
 	conf.snd.latauto = 1;
