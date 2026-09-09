@@ -21,6 +21,9 @@
     <layout class="QGridLayout" name="gridLayout" columnstretch="0,10">
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
+       <property name="toolTip">
+        <string>Where this part starts in the file</string>
+       </property>
        <property name="text">
         <string>File offset</string>
        </property>
@@ -28,6 +31,9 @@
      </item>
      <item row="2" column="0">
       <widget class="QLabel" name="label_3">
+       <property name="toolTip">
+        <string>How much of the file to take. 0 = to the end</string>
+       </property>
        <property name="text">
         <string>Size</string>
        </property>
@@ -35,6 +41,9 @@
      </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label">
+       <property name="toolTip">
+        <string>ROM file, from the roms folder</string>
+       </property>
        <property name="text">
         <string>File</string>
        </property>
@@ -42,16 +51,26 @@
      </item>
      <item row="3" column="0">
       <widget class="QLabel" name="label_4">
+       <property name="toolTip">
+        <string>Where the part lands in the machine's ROM</string>
+       </property>
        <property name="text">
         <string>Rom pos</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
-      <widget class="xTreeBox" name="cbFile"/>
+      <widget class="xTreeBox" name="cbFile">
+       <property name="toolTip">
+        <string>ROM file, from the roms folder</string>
+       </property>
+      </widget>
      </item>
      <item row="1" column="1">
       <widget class="QSpinBox" name="cbFoffset">
+       <property name="toolTip">
+        <string>Where this part starts in the file</string>
+       </property>
        <property name="suffix">
         <string> KB</string>
        </property>
@@ -62,6 +81,9 @@
      </item>
      <item row="2" column="1">
       <widget class="QSpinBox" name="cbFsize">
+       <property name="toolTip">
+        <string>How much of the file to take. 0 = to the end</string>
+       </property>
        <property name="suffix">
         <string> KB</string>
        </property>
@@ -72,6 +94,9 @@
      </item>
      <item row="3" column="1">
       <widget class="QSpinBox" name="cbRoffset">
+       <property name="toolTip">
+        <string>Where the part lands in the machine's ROM</string>
+       </property>
        <property name="suffix">
         <string> KB</string>
        </property>

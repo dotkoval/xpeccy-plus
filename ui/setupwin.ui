@@ -86,7 +86,11 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QComboBox" name="resbox"/>
+               <widget class="QComboBox" name="resbox">
+                <property name="toolTip">
+                 <string>Which ROM the machine starts from after a reset</string>
+                </property>
+               </widget>
               </item>
               <item row="0" column="0">
                <widget class="QLabel" name="label">
@@ -96,10 +100,18 @@
                </widget>
               </item>
               <item row="0" column="1">
-               <widget class="QComboBox" name="machbox"/>
+               <widget class="QComboBox" name="machbox">
+                <property name="toolTip">
+                 <string>The machine this profile emulates</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QComboBox" name="rsetbox"/>
+               <widget class="QComboBox" name="rsetbox">
+                <property name="toolTip">
+                 <string>The set of ROM files this profile boots from</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="label_2">
@@ -125,6 +137,9 @@
                <layout class="QHBoxLayout" name="horizontalLayout_2">
                 <item>
                  <widget class="QToolButton" name="addrset">
+                  <property name="toolTip">
+                   <string>Add a romset</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -136,6 +151,9 @@
                 </item>
                 <item>
                  <widget class="QToolButton" name="rmrset">
+                  <property name="toolTip">
+                   <string>Delete this romset</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -161,7 +179,11 @@
                </layout>
               </item>
               <item row="0" column="2">
-               <widget class="QComboBox" name="mszbox"/>
+               <widget class="QComboBox" name="mszbox">
+                <property name="toolTip">
+                 <string>How much RAM the machine has</string>
+                </property>
+               </widget>
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="label_37">
@@ -178,7 +200,8 @@
                 <item>
                  <widget class="QDoubleSpinBox" name="sbFreq">
                   <property name="toolTip">
-                   <string>Base frequence, it affect fps if video using same freq.generator</string>
+                   <string>Base clock of the machine. If the video runs off
+the same generator, it sets the frame rate too</string>
                   </property>
                   <property name="decimals">
                    <number>4</number>
@@ -200,7 +223,7 @@
                 <item>
                  <widget class="QDoubleSpinBox" name="sbMult">
                   <property name="toolTip">
-                   <string>Multiplier for CPU freq.</string>
+                   <string>Multiplier for the CPU clock</string>
                   </property>
                   <property name="prefix">
                    <string>x</string>
@@ -310,6 +333,9 @@
             <layout class="QVBoxLayout" name="verticalLayout_37">
              <item>
               <widget class="QToolButton" name="tbAddRom">
+               <property name="toolTip">
+                <string>Add a ROM file to the set</string>
+               </property>
                <property name="text">
                 <string>...</string>
                </property>
@@ -321,6 +347,9 @@
              </item>
              <item>
               <widget class="QToolButton" name="tbEditRom">
+               <property name="toolTip">
+                <string>Edit the selected ROM</string>
+               </property>
                <property name="text">
                 <string>...</string>
                </property>
@@ -332,6 +361,9 @@
              </item>
              <item>
               <widget class="QToolButton" name="tbPreset">
+               <property name="toolTip">
+                <string>Fill the set with this machine's standard ROMs</string>
+               </property>
                <property name="text">
                 <string>...</string>
                </property>
@@ -356,6 +388,9 @@
              </item>
              <item>
               <widget class="QToolButton" name="tbDelRom">
+               <property name="toolTip">
+                <string>Remove the selected ROM from the set</string>
+               </property>
                <property name="text">
                 <string>...</string>
                </property>
@@ -410,6 +445,9 @@
                <layout class="QHBoxLayout" name="horizontalLayout_26">
                 <item>
                  <widget class="QToolButton" name="layAdd">
+                  <property name="toolTip">
+                   <string>Add a layout</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -421,6 +459,9 @@
                 </item>
                 <item>
                  <widget class="QToolButton" name="layEdit">
+                  <property name="toolTip">
+                   <string>Edit this layout</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -432,6 +473,9 @@
                 </item>
                 <item>
                  <widget class="QToolButton" name="layDel">
+                  <property name="toolTip">
+                   <string>Delete this layout</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -464,10 +508,18 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QComboBox" name="geombox"/>
+               <widget class="QComboBox" name="geombox">
+                <property name="toolTip">
+                 <string>Raster layout: the size of the frame,
+and where the screen sits in it</string>
+                </property>
+               </widget>
               </item>
               <item row="4" column="0">
                <widget class="QLabel" name="label_3">
+                <property name="toolTip">
+                 <string>How much border is shown around the screen</string>
+                </property>
                 <property name="text">
                  <string>Border</string>
                 </property>
@@ -475,6 +527,9 @@
               </item>
               <item row="4" column="1">
                  <widget class="xSlider" name="bszsld">
+                  <property name="toolTip">
+                   <string>How much border is shown around the screen</string>
+                  </property>
                   <property name="maximum">
                    <number>4</number>
                   </property>
@@ -512,7 +567,11 @@
                </widget>
               </item>
               <item row="3" column="1">
-               <widget class="QComboBox" name="cbShader"/>
+               <widget class="QComboBox" name="cbShader">
+                <property name="toolTip">
+                 <string>Post-processing shader, from config/shaders</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="labPalPreset">
@@ -522,12 +581,19 @@
                </widget>
               </item>
               <item row="2" column="1">
-               <widget class="QComboBox" name="cbPalPreset"/>
+               <widget class="QComboBox" name="cbPalPreset">
+                <property name="toolTip">
+                 <string>Colors the picture is drawn with</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="2">
                <layout class="QHBoxLayout" name="horizontalLayout_40">
                 <item>
                  <widget class="QToolButton" name="tbPalEdit">
+                  <property name="toolTip">
+                   <string>Edit the palette</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -563,6 +629,9 @@
              <layout class="QGridLayout" name="antiFlickerGridLayout">
               <item row="0" column="0">
                <widget class="QLabel" name="label_12">
+                <property name="toolTip">
+                 <string>How much of the frames before is left in the picture</string>
+                </property>
                 <property name="maximumSize">
                  <size>
                   <width>55</width>
@@ -576,6 +645,9 @@
               </item>
               <item row="0" column="1" colspan="3">
                <widget class="xSlider" name="sldNoflic">
+                <property name="toolTip">
+                 <string>How much of the frames before is left in the picture</string>
+                </property>
                 <property name="maximum">
                  <number>50</number>
                 </property>
@@ -616,7 +688,13 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QComboBox" name="cbNoflicMode"/>
+               <widget class="QComboBox" name="cbNoflicMode">
+                <property name="toolTip">
+                 <string>Blending method:
+2-frames (Gigascreen)
+3-frames (3Color)</string>
+                </property>
+               </widget>
               </item>
               <item row="1" column="2">
                <widget class="QLabel" name="antiflickerGammaLabel">
@@ -627,7 +705,8 @@
                  </size>
                 </property>
                 <property name="toolTip">
-                 <string>Gamma value for colors blending</string>
+                 <string>Gamma the frames are blended with. Typical: 1.8-2.4
+(2.2 is close to a CRT, 1.0 blends linearly)</string>
                 </property>
                 <property name="text">
                  <string>Gamma</string>
@@ -640,7 +719,8 @@
               <item row="1" column="3">
                <widget class="QDoubleSpinBox" name="sbNoflicGamma">
                 <property name="toolTip">
-                 <string>Typical values: 1.8–2.4 (2.2 ≈ CRT, 1.0 = linear blending)</string>
+                 <string>Gamma the frames are blended with. Typical: 1.8-2.4
+(2.2 is close to a CRT, 1.0 blends linearly)</string>
                 </property>
                 <property name="decimals">
                  <number>2</number>
@@ -673,7 +753,11 @@
                 <item>
                  <layout class="QGridLayout" name="gridLayout_3">
                  <item row="0" column="1">
-                   <widget class="QComboBox" name="ssfbox"/>
+                   <widget class="QComboBox" name="ssfbox">
+                    <property name="toolTip">
+                     <string>File format screenshots are saved in</string>
+                    </property>
+                   </widget>
                   </item>
                   <item row="0" column="0">
                    <widget class="QLabel" name="label_5">
@@ -693,6 +777,9 @@
                    <layout class="QHBoxLayout" name="horizontalLayout_24">
                     <item>
                      <widget class="QLineEdit" name="pathle">
+                      <property name="toolTip">
+                       <string>Folder screenshots are saved in</string>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -700,6 +787,9 @@
                     </item>
                     <item>
                      <widget class="QToolButton" name="pathtb">
+                      <property name="toolTip">
+                       <string>Pick the folder</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -723,7 +813,11 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="scntbox"/>
+                   <widget class="QSpinBox" name="scntbox">
+                    <property name="toolTip">
+                     <string>How many screenshots one key press takes</string>
+                    </property>
+                   </widget>
                   </item>
                   <item>
                    <widget class="QLabel" name="label_6">
@@ -733,7 +827,11 @@
                    </widget>
                   </item>
                   <item>
-                   <widget class="QSpinBox" name="sintbox"/>
+                   <widget class="QSpinBox" name="sintbox">
+                    <property name="toolTip">
+                     <string>Frames between the screenshots of a combo</string>
+                    </property>
+                   </widget>
                   </item>
                   <item>
                    <widget class="QLabel" name="label_34">
@@ -770,6 +868,9 @@
                <layout class="QVBoxLayout" name="verticalLayout_7">
                 <item>
                  <widget class="QCheckBox" name="ssNoLeds">
+                  <property name="toolTip">
+                   <string>Leave the indicators out of the screenshot</string>
+                  </property>
                   <property name="enabled">
                    <bool>false</bool>
                   </property>
@@ -780,6 +881,9 @@
                 </item>
                 <item>
                  <widget class="QCheckBox" name="ssNoBord">
+                  <property name="toolTip">
+                   <string>Screen only, without the border</string>
+                  </property>
                   <property name="text">
                    <string>No border</string>
                   </property>
@@ -817,6 +921,9 @@
            <layout class="QVBoxLayout" name="verticalLayout_23">
             <item>
              <widget class="QSpinBox" name="sbScale">
+              <property name="toolTip">
+               <string>Window size: screen pixels per emulated pixel</string>
+              </property>
               <property name="prefix">
                <string>scale x</string>
               </property>
@@ -837,6 +944,10 @@
             </item>
             <item>
              <widget class="QCheckBox" name="cbKeepRatio">
+              <property name="toolTip">
+               <string>Fullscreen: keep the picture's shape and show more
+border, instead of stretching it</string>
+              </property>
               <property name="text">
                <string>Keep ratio</string>
               </property>
@@ -844,6 +955,9 @@
             </item>
             <item>
              <widget class="QCheckBox" name="grayscale">
+              <property name="toolTip">
+               <string>Draw the picture in shades of gray</string>
+              </property>
               <property name="text">
                <string>Gray scale</string>
               </property>
@@ -858,6 +972,10 @@
             </item>
             <item>
              <widget class="QCheckBox" name="border4T">
+              <property name="toolTip">
+               <string>Border color changes in steps of 4 T-states,
+not at every dot</string>
+              </property>
               <property name="text">
                <string>4T border</string>
               </property>
@@ -865,6 +983,9 @@
             </item>
             <item>
              <widget class="QCheckBox" name="ulaPlus">
+              <property name="toolTip">
+               <string>ULAplus: 64 colors, when the program asks for them</string>
+              </property>
               <property name="text">
                <string>ULA plus</string>
               </property>
@@ -887,7 +1008,7 @@
             <item>
              <widget class="QCheckBox" name="contMem">
               <property name="toolTip">
-               <string>ULA: perform contended memory</string>
+               <string>ULA slows the CPU down on contended memory</string>
               </property>
               <property name="text">
                <string>Cont. mem</string>
@@ -897,7 +1018,7 @@
             <item>
              <widget class="QCheckBox" name="contIO">
               <property name="toolTip">
-               <string>ULA: perform contended in/out</string>
+               <string>ULA slows the CPU down on contended in/out</string>
               </property>
               <property name="text">
                <string>Cont. I/O</string>
@@ -906,6 +1027,10 @@
             </item>
             <item>
              <widget class="QLabel" name="label_69">
+              <property name="toolTip">
+               <string>Contention pattern: type A for 48K, 128K, +2;
+type B for +2A, +3</string>
+              </property>
               <property name="text">
                <string>Pattern</string>
               </property>
@@ -914,12 +1039,17 @@
             <item>
              <widget class="QComboBox" name="cbContPattern">
               <property name="toolTip">
-               <string>ULA type A for 48K,128K,+2; type B for +2A,+3</string>
+               <string>Contention pattern: type A for 48K, 128K, +2;
+type B for +2A, +3</string>
               </property>
              </widget>
             </item>
             <item>
              <widget class="QCheckBox" name="cbEarlyTiming">
+              <property name="toolTip">
+               <string>Contention starts two dots earlier,
+as on the 'early' timing machines</string>
+              </property>
               <property name="text">
                <string>Early timing</string>
               </property>
@@ -962,10 +1092,18 @@
              </property>
              <layout class="QGridLayout" name="gridLayout_5" columnstretch="0,10,0,10">
               <item row="0" column="1">
-               <widget class="QComboBox" name="outbox"/>
+               <widget class="QComboBox" name="outbox">
+                <property name="toolTip">
+                 <string>Sound output driver</string>
+                </property>
+               </widget>
               </item>
               <item row="0" column="3">
-               <widget class="QComboBox" name="ratbox"/>
+               <widget class="QComboBox" name="ratbox">
+                <property name="toolTip">
+                 <string>Sample rate of the output</string>
+                </property>
+               </widget>
               </item>
               <item row="0" column="0">
                <widget class="QLabel" name="label_4">
@@ -986,6 +1124,10 @@
               </item>
               <item row="1" column="0">
                <widget class="QLabel" name="labSndLatName">
+                <property name="toolTip">
+                 <string>How much sound is kept buffered ahead of playback.
+Less is more responsive; too little and the sound clicks</string>
+                </property>
                 <property name="text">
                  <string>Latency</string>
                 </property>
@@ -996,7 +1138,8 @@
                 <item>
                  <widget class="xSlider" name="sldSndLatency">
                   <property name="toolTip">
-                   <string>How much sound is kept buffered ahead of playback. Less is more responsive; too little and the sound clicks.</string>
+                   <string>How much sound is kept buffered ahead of playback.
+Less is more responsive; too little and the sound clicks</string>
                   </property>
                   <property name="singleStep">
                    <number>5</number>
@@ -1031,7 +1174,8 @@
                 <item>
                  <widget class="QCheckBox" name="chkSndLatAuto">
                   <property name="toolTip">
-                   <string>Find the latency by itself: raise it when the buffer runs thin, lower it again after a long clean spell.</string>
+                   <string>Find the latency by itself: raise it when the buffer runs
+thin, lower it again after a long clean spell</string>
                   </property>
                   <property name="text">
                    <string>Auto adjust</string>
@@ -1075,6 +1219,9 @@
               </item>
               <item>
                <widget class="QCheckBox" name="gsrbox">
+                <property name="toolTip">
+                 <string>Reset the General Sound with the machine</string>
+                </property>
                 <property name="text">
                  <string>GS reset</string>
                 </property>
@@ -1311,6 +1458,9 @@
               </item>
               <item row="4" column="0">
                <widget class="QCheckBox" name="cbGS">
+                <property name="toolTip">
+                 <string>General Sound module</string>
+                </property>
                 <property name="text">
                  <string>GS</string>
                 </property>
@@ -1318,6 +1468,9 @@
               </item>
               <item row="6" column="0">
                <widget class="QCheckBox" name="cbSAA">
+                <property name="toolTip">
+                 <string>SAA1099 sound chip</string>
+                </property>
                 <property name="text">
                  <string>SAA</string>
                 </property>
@@ -1346,6 +1499,9 @@
                 </item>
                 <item row="0" column="1">
                  <widget class="QComboBox" name="cbPsgCount">
+                  <property name="toolTip">
+                   <string>How many AY/YM chips the machine has (TurboSound)</string>
+                  </property>
                   <property name="sizeAdjustPolicy">
                    <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
                   </property>
@@ -1363,6 +1519,9 @@
                 </item>
                 <item row="1" column="1">
                  <widget class="QComboBox" name="cbPsgType">
+                  <property name="toolTip">
+                   <string>Which chip: AY-3-8910 or YM2149</string>
+                  </property>
                   <property name="sizeAdjustPolicy">
                    <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
                   </property>
@@ -1382,6 +1541,9 @@
                  <layout class="QHBoxLayout" name="horizontalLayout_34" stretch="10,0">
                   <item>
                    <widget class="QComboBox" name="cbPsgFrq">
+                    <property name="toolTip">
+                     <string>Clock the chips run at</string>
+                    </property>
                     <property name="editable">
                      <bool>true</bool>
                     </property>
@@ -1419,6 +1581,9 @@
                   </property>
                   <item>
                    <widget class="QComboBox" name="cbPsgStereo">
+                    <property name="toolTip">
+                     <string>How the three channels are spread over the two speakers</string>
+                    </property>
                     <property name="sizeAdjustPolicy">
                      <enum>QComboBox::AdjustToContents</enum>
                     </property>
@@ -1426,6 +1591,9 @@
                   </item>
                   <item>
                    <widget class="QLabel" name="labPsgSepName">
+                    <property name="toolTip">
+                     <string>Stereo separation: 100% = channels kept apart, 0% = mono</string>
+                    </property>
                     <property name="text">
                      <string>Separation</string>
                     </property>
@@ -1503,7 +1671,11 @@
                 </widget>
                </item>
                <item row="2" column="1">
-                <widget class="QComboBox" name="sdrvBox"/>
+                <widget class="QComboBox" name="sdrvBox">
+                 <property name="toolTip">
+                  <string>Covox / Soundrive digital sound port</string>
+                 </property>
+                </widget>
                </item>
               </layout>
              </item>
@@ -1554,7 +1726,11 @@
                </widget>
               </item>
               <item row="1" column="1">
-               <widget class="QComboBox" name="keyMapBox"/>
+               <widget class="QComboBox" name="keyMapBox">
+                <property name="toolTip">
+                 <string>Which PC keys the machine's keys sit on</string>
+                </property>
+               </widget>
               </item>
               <item row="2" column="0">
                <widget class="QLabel" name="label_65">
@@ -1588,6 +1764,9 @@
              <layout class="QVBoxLayout" name="verticalLayout_3">
               <item>
                <widget class="QCheckBox" name="ratEnable">
+                <property name="toolTip">
+                 <string>Kempston mouse is plugged in</string>
+                </property>
                 <property name="text">
                  <string>Enabled</string>
                 </property>
@@ -1609,6 +1788,9 @@
               </item>
               <item>
                <widget class="QLabel" name="label_66">
+                <property name="toolTip">
+                 <string>How far the emulated mouse goes for a move of the PC one</string>
+                </property>
                 <property name="text">
                  <string>Sensitivity:</string>
                 </property>
@@ -1616,6 +1798,9 @@
               </item>
               <item>
                <widget class="xSlider" name="sldSensitivity">
+                <property name="toolTip">
+                 <string>How far the emulated mouse goes for a move of the PC one</string>
+                </property>
                 <property name="minimum">
                  <number>100</number>
                 </property>
@@ -1670,6 +1855,9 @@
              <layout class="QVBoxLayout" name="verticalLayout_21">
               <item>
                <widget class="QCheckBox" name="cbKbuttons">
+                <property name="toolTip">
+                 <string>Kempston joystick with 4 buttons instead of one</string>
+                </property>
                 <property name="text">
                  <string>4 buttons</string>
                 </property>
@@ -1707,7 +1895,8 @@
          <item>
           <widget class="QCheckBox" name="cbAutorun">
            <property name="toolTip">
-            <string>Opening a tape or a disk resets the machine and starts it, the way a snapshot starts itself</string>
+            <string>Opening a tape or a disk resets the machine and starts it,
+the way a snapshot starts itself</string>
            </property>
            <property name="text">
             <string>Auto-run opened media</string>
@@ -1717,7 +1906,8 @@
          <item>
           <widget class="QCheckBox" name="mempaths">
            <property name="toolTip">
-            <string>Keep the tape and disk paths in the profile, so the same media is back on the next start</string>
+            <string>Keep the tape and disk paths in the profile,
+so the same media is back on the next start</string>
            </property>
            <property name="text">
             <string>Remember mounted media</string>
@@ -1796,7 +1986,9 @@
                    <item>
                     <widget class="QLabel" name="labTapeSpeed">
                      <property name="toolTip">
-                      <string>How fast the tape signal is played, in per cent of normal. A few images made on machines with an unusual clock load only when it is nudged either way</string>
+                      <string>How fast the tape signal is played, in per cent of normal.
+A few images made on machines with an unusual clock
+load only when it is nudged either way</string>
                      </property>
                      <property name="text">
                       <string>Playback speed</string>
@@ -1806,7 +1998,9 @@
                    <item>
                     <widget class="xSlider" name="sldTapeSpeed">
                      <property name="toolTip">
-                      <string>How fast the tape signal is played, in per cent of normal. A few images made on machines with an unusual clock load only when it is nudged either way</string>
+                      <string>How fast the tape signal is played, in per cent of normal.
+A few images made on machines with an unusual clock
+load only when it is nudged either way</string>
                      </property>
                      <property name="minimum">
                       <number>95</number>
@@ -1879,7 +2073,8 @@
                   <item>
                    <widget class="QCheckBox" name="cbTapeAuto">
                     <property name="toolTip">
-                     <string>Start the tape when a loader asks for it, stop it between blocks</string>
+                     <string>Start the tape when a loader asks for it,
+stop it between blocks</string>
                     </property>
                     <property name="text">
                      <string>Auto play / stop</string>
@@ -1889,7 +2084,8 @@
                   <item>
                    <widget class="QCheckBox" name="cbTapeFast">
                     <property name="toolTip">
-                     <string>Hand ROM blocks straight to the machine instead of playing them</string>
+                     <string>Hand ROM blocks straight to the machine
+instead of playing them</string>
                     </property>
                     <property name="text">
                      <string>Fast loading</string>
@@ -1899,7 +2095,8 @@
                   <item>
                    <widget class="QCheckBox" name="cbTapeRewind">
                     <property name="toolTip">
-                     <string>Play starts a tape played to its end over again; off, it stops at the end</string>
+                     <string>At the end of the tape, Play starts it again.
+Off: the tape stops at the end</string>
                     </property>
                     <property name="text">
                      <string>Rewind at end</string>
@@ -2060,6 +2257,9 @@
                 <layout class="QGridLayout" name="gridLayout_20" columnstretch="0,10">
                  <item row="0" column="1">
                   <widget class="QComboBox" name="diskTypeBox">
+                   <property name="toolTip">
+                    <string>Disk interface the machine has</string>
+                   </property>
                    <property name="maximumSize">
                     <size>
                      <width>200</width>
@@ -2083,6 +2283,9 @@
                  </item>
                  <item row="0" column="0">
                   <widget class="QLabel" name="label_38">
+                   <property name="toolTip">
+                    <string>Disk interface the machine has</string>
+                   </property>
                    <property name="text">
                     <string>Interface</string>
                    </property>
@@ -2090,6 +2293,9 @@
                  </item>
                  <item row="1" column="0">
                   <widget class="QLabel" name="label_68">
+                   <property name="toolTip">
+                    <string>Order the sectors are laid out on a track in</string>
+                   </property>
                    <property name="text">
                     <string>Interleave</string>
                    </property>
@@ -2672,13 +2878,20 @@
               <layout class="QHBoxLayout" name="horizontalLayout_17">
                <item>
                 <widget class="QLabel" name="label_33">
+                 <property name="toolTip">
+                  <string>Interface the hard disks are attached to</string>
+                 </property>
                  <property name="text">
                   <string>Interface</string>
                  </property>
                 </widget>
                </item>
                <item>
-                <widget class="QComboBox" name="hiface"/>
+                <widget class="QComboBox" name="hiface">
+                 <property name="toolTip">
+                  <string>Interface the hard disks are attached to</string>
+                 </property>
+                </widget>
                </item>
                <item>
                 <spacer name="horizontalSpacer_3">
@@ -2708,7 +2921,11 @@
                  <item>
                   <layout class="QGridLayout" name="gridLayout_10">
                    <item row="0" column="1">
-                    <widget class="QComboBox" name="hm_type"/>
+                    <widget class="QComboBox" name="hm_type">
+                     <property name="toolTip">
+                      <string>What is attached: nothing, or an ATA hard disk</string>
+                     </property>
+                    </widget>
                    </item>
                    <item row="0" column="0">
                     <widget class="QLabel" name="label_17">
@@ -2823,6 +3040,9 @@
                    </item>
                    <item row="1" column="0">
                     <widget class="QCheckBox" name="hm_islba">
+                     <property name="toolTip">
+                      <string>Use LBA addressing instead of C/H/S</string>
+                     </property>
                      <property name="text">
                       <string>LBA enabled</string>
                      </property>
@@ -2889,7 +3109,11 @@
                     </widget>
                    </item>
                    <item row="0" column="1">
-                    <widget class="QComboBox" name="hs_type"/>
+                    <widget class="QComboBox" name="hs_type">
+                     <property name="toolTip">
+                      <string>What is attached: nothing, or an ATA hard disk</string>
+                     </property>
+                    </widget>
                    </item>
                    <item row="1" column="0">
                     <widget class="QLabel" name="label_31">
@@ -3033,6 +3257,9 @@
                    </item>
                    <item row="1" column="0">
                     <widget class="QCheckBox" name="hs_islba">
+                     <property name="toolTip">
+                      <string>Use LBA addressing instead of C/H/S</string>
+                     </property>
                      <property name="text">
                       <string>LBA enabled</string>
                      </property>
@@ -3146,6 +3373,9 @@
                   </item>
                   <item row="0" column="5">
                    <widget class="QCheckBox" name="sdlock">
+                    <property name="toolTip">
+                     <string>Refuse writes to the card</string>
+                    </property>
                     <property name="text">
                      <string>Read only</string>
                     </property>
@@ -3269,6 +3499,12 @@
                 </property>
                 <item row="0" column="0">
                  <widget class="QLabel" name="labLowLat">
+                  <property name="toolTip">
+                   <string>Show each frame at once for low input lag,
+best with VRR or a high refresh rate.
+Off: frames are buffered, for smoother motion
+on a fixed-refresh display</string>
+                  </property>
                   <property name="font">
                    <font>
                     <bold>true</bold>
@@ -3285,7 +3521,10 @@
                 <item row="0" column="1">
                  <widget class="QCheckBox" name="cbLowLat">
                   <property name="toolTip">
-                   <string>Show each frame at once for low input lag (best with VRR / high refresh). Off: buffer frames for smoother motion on fixed-refresh displays.</string>
+                   <string>Show each frame at once for low input lag,
+best with VRR or a high refresh rate.
+Off: frames are buffered, for smoother motion
+on a fixed-refresh display</string>
                   </property>
                   <property name="text">
                    <string/>
@@ -3301,6 +3540,11 @@
                 </item>
                 <item row="1" column="0">
                  <widget class="QLabel" name="labRunAhead">
+                  <property name="toolTip">
+                   <string>EXPERIMENTAL. Emulates each frame twice over to show
+one the machine has not reached yet, so a key press
+lands sooner. The sound stays a frame behind</string>
+                  </property>
                   <property name="font">
                    <font>
                     <bold>true</bold>
@@ -3317,7 +3561,9 @@
                 <item row="1" column="1">
                  <widget class="QComboBox" name="cbRunAhead">
                   <property name="toolTip">
-                   <string>EXPERIMENTAL. Emulates each frame twice over to show one the machine has not reached yet, so a key press lands sooner. The sound stays a frame behind.</string>
+                   <string>EXPERIMENTAL. Emulates each frame twice over to show
+one the machine has not reached yet, so a key press
+lands sooner. The sound stays a frame behind</string>
                   </property>
                  </widget>
                 </item>
@@ -3632,6 +3878,10 @@
                </item>
                <item row="0" column="1">
                 <widget class="QSpinBox" name="sbPort">
+                 <property name="toolTip">
+                  <string>TCP port the emulator listens on
+(experimental network support)</string>
+                 </property>
                  <property name="minimumSize">
                   <size>
                    <width>80</width>
@@ -3648,6 +3898,10 @@
                </item>
                <item row="0" column="0">
                 <widget class="QLabel" name="label_24">
+                 <property name="toolTip">
+                  <string>TCP port the emulator listens on
+(experimental network support)</string>
+                 </property>
                  <property name="text">
                   <string>Listen port</string>
                  </property>
@@ -3658,6 +3912,9 @@
                  <layout class="QVBoxLayout" name="verticalLayout_44">
                   <item>
                    <widget class="QCheckBox" name="cbConfexit">
+                    <property name="toolTip">
+                     <string>Ask before closing the emulator</string>
+                    </property>
                     <property name="text">
                      <string>Confirm exit</string>
                     </property>
@@ -3728,6 +3985,9 @@
                    <layout class="QVBoxLayout" name="verticalLayout_8">
                     <item>
                      <widget class="QToolButton" name="umaddtb">
+                      <property name="toolTip">
+                       <string>Add a bookmark</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -3739,6 +3999,9 @@
                     </item>
                     <item>
                      <widget class="QToolButton" name="umuptb">
+                      <property name="toolTip">
+                       <string>Move the bookmark up</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -3750,6 +4013,9 @@
                     </item>
                     <item>
                      <widget class="QToolButton" name="umdntb">
+                      <property name="toolTip">
+                       <string>Move the bookmark down</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -3774,6 +4040,9 @@
                     </item>
                     <item>
                      <widget class="QToolButton" name="umdeltb">
+                      <property name="toolTip">
+                       <string>Delete the bookmark</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -3803,6 +4072,10 @@
             <layout class="QVBoxLayout" name="verticalLayout_35" stretch="0,10">
              <item>
               <widget class="QCheckBox" name="defstart">
+               <property name="toolTip">
+                <string>Always start on the default profile,
+not the one that was in use last</string>
+               </property>
                <property name="text">
                 <string>Start on default</string>
                </property>
@@ -3865,6 +4138,9 @@
                 <layout class="QVBoxLayout" name="verticalLayout_27">
                  <item>
                   <widget class="QToolButton" name="tbNewProfile">
+                   <property name="toolTip">
+                    <string>New profile</string>
+                   </property>
                    <property name="text">
                     <string>...</string>
                    </property>
@@ -3876,6 +4152,9 @@
                  </item>
                  <item>
                   <widget class="QToolButton" name="tbCopyProfile">
+                   <property name="toolTip">
+                    <string>Copy this profile</string>
+                   </property>
                    <property name="text">
                     <string>...</string>
                    </property>
@@ -3900,6 +4179,9 @@
                  </item>
                  <item>
                   <widget class="QToolButton" name="tbDelProfile">
+                   <property name="toolTip">
+                    <string>Delete this profile</string>
+                   </property>
                    <property name="text">
                     <string>...</string>
                    </property>
@@ -3940,7 +4222,11 @@
                    </widget>
                   </item>
                   <item row="0" column="1">
-                   <widget class="QComboBox" name="cbStyleSheet"/>
+                   <widget class="QComboBox" name="cbStyleSheet">
+                    <property name="toolTip">
+                     <string>Interface style, from config/styles</string>
+                    </property>
+                   </widget>
                   </item>
                   <item row="1" column="0">
                    <widget class="QLabel" name="label_64">
@@ -3953,6 +4239,9 @@
                    <layout class="QHBoxLayout" name="horizontalLayout_38">
                     <item>
                      <widget class="QLineEdit" name="leDbgFont">
+                      <property name="toolTip">
+                       <string>Font the debugger's panels use</string>
+                      </property>
                       <property name="readOnly">
                        <bool>true</bool>
                       </property>
@@ -3960,6 +4249,9 @@
                     </item>
                     <item>
                      <widget class="QToolButton" name="tbDbgFont">
+                      <property name="toolTip">
+                       <string>Pick the font</string>
+                      </property>
                       <property name="text">
                        <string>...</string>
                       </property>
@@ -3973,6 +4265,9 @@
                   </item>
                   <item row="2" column="0">
                    <widget class="QLabel" name="label_61">
+                    <property name="toolTip">
+                     <string>How many bytes a DB line of the listing holds</string>
+                    </property>
                     <property name="text">
                      <string>DB in row</string>
                     </property>
@@ -3980,6 +4275,9 @@
                   </item>
                   <item row="2" column="1">
                    <widget class="QSpinBox" name="sbDbSize">
+                    <property name="toolTip">
+                     <string>How many bytes a DB line of the listing holds</string>
+                    </property>
                     <property name="minimum">
                      <number>1</number>
                     </property>
@@ -3993,6 +4291,9 @@
                   </item>
                   <item row="3" column="0">
                    <widget class="QLabel" name="label_63">
+                    <property name="toolTip">
+                     <string>How many words a DW line of the listing holds</string>
+                    </property>
                     <property name="text">
                      <string>DW in row</string>
                     </property>
@@ -4000,6 +4301,9 @@
                   </item>
                   <item row="3" column="1">
                    <widget class="QSpinBox" name="sbDwSize">
+                    <property name="toolTip">
+                     <string>How many words a DW line of the listing holds</string>
+                    </property>
                     <property name="minimum">
                      <number>1</number>
                     </property>
@@ -4013,6 +4317,9 @@
                   </item>
                   <item row="4" column="0">
                    <widget class="QLabel" name="label_62">
+                    <property name="toolTip">
+                     <string>Longest text a DM line of the listing holds</string>
+                    </property>
                     <property name="text">
                      <string>Max text length</string>
                     </property>
@@ -4020,6 +4327,9 @@
                   </item>
                   <item row="4" column="1">
                    <widget class="QSpinBox" name="sbTextSize">
+                    <property name="toolTip">
+                     <string>Longest text a DM line of the listing holds</string>
+                    </property>
                     <property name="minimum">
                      <number>1</number>
                     </property>
@@ -4037,14 +4347,16 @@
                      <string>Stack offset</string>
                     </property>
                     <property name="toolTip">
-                     <string>Offset the stack panel starts at. It goes on until the panel runs out of height</string>
+                     <string>Offset the stack panel starts at.
+It goes on until the panel runs out of height</string>
                     </property>
                    </widget>
                   </item>
                   <item row="5" column="1">
                    <widget class="QSpinBox" name="sbDbgStackOfs">
                     <property name="toolTip">
-                     <string>Offset the stack panel starts at. It goes on until the panel runs out of height</string>
+                     <string>Offset the stack panel starts at.
+It goes on until the panel runs out of height</string>
                     </property>
                     <property name="minimum">
                      <number>-16</number>
@@ -4083,7 +4395,8 @@
                        <string>Memmap</string>
                       </property>
                       <property name="toolTip">
-                       <string>Memory pages. The panel is dragged by that title, so the block stays</string>
+                       <string>Memory pages.
+The panel is dragged by that title, so the block stays</string>
                       </property>
                      </widget>
                     </item>
@@ -4136,7 +4449,8 @@
                     <string>Ports</string>
                    </property>
                    <property name="toolTip">
-                    <string>Ports of this profile the panel shows, and the ones it skips</string>
+                    <string>Ports of this profile the panel shows,
+and the ones it skips</string>
                    </property>
                    <layout class="QVBoxLayout" name="layDbgPorts"/>
                   </widget>
@@ -4402,7 +4716,8 @@
                      <enum>Qt::CustomContextMenu</enum>
                     </property>
                     <property name="toolTip">
-                     <string>Constants in the listing. Right click: back to the style colour</string>
+                     <string>Constants in the listing.
+Right click: back to the style color</string>
                     </property>
                     <property name="text">
                      <string/>
@@ -4514,6 +4829,11 @@
                </item>
                <item>
                 <widget class="QLabel" name="labLogLevel">
+                 <property name="toolTip">
+                  <string>How much is written. Single groups can be moved apart
+from the rest with --log-groups, or the groups line
+in config.conf</string>
+                 </property>
                  <property name="text">
                   <string>Level</string>
                  </property>
@@ -4522,7 +4842,9 @@
                <item>
                 <widget class="QComboBox" name="cbxLogLevel">
                  <property name="toolTip">
-                  <string>How much is written. Single groups can be moved apart from the rest with --log-groups, or the groups line in config.conf</string>
+                  <string>How much is written. Single groups can be moved apart
+from the rest with --log-groups, or the groups line
+in config.conf</string>
                  </property>
                  <property name="minimumSize">
                   <size>
@@ -4549,6 +4871,9 @@
                 </item>
                 <item row="0" column="1">
                  <widget class="QLineEdit" name="leLogDir">
+                  <property name="toolTip">
+                   <string>Folder the log files go to</string>
+                  </property>
                   <property name="placeholderText">
                    <string>beside the binary</string>
                   </property>
@@ -4556,6 +4881,9 @@
                 </item>
                 <item row="0" column="2">
                  <widget class="QToolButton" name="tbLogDir">
+                  <property name="toolTip">
+                   <string>Pick the folder</string>
+                  </property>
                   <property name="text">
                    <string>...</string>
                   </property>
@@ -4574,6 +4902,9 @@
                 </item>
                 <item row="1" column="1">
                  <widget class="QLineEdit" name="leLogFile">
+                  <property name="toolTip">
+                   <string>The file this run is writing to</string>
+                  </property>
                   <property name="readOnly">
                    <bool>true</bool>
                   </property>

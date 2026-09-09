@@ -35,7 +35,11 @@
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="layName"/>
+           <widget class="QLineEdit" name="layName">
+            <property name="toolTip">
+             <string>Name of the layout</string>
+            </property>
+           </widget>
           </item>
          </layout>
         </item>
@@ -53,6 +57,10 @@
            </property>
            <item row="0" column="0">
             <widget class="QLabel" name="label">
+             <property name="toolTip">
+              <string>Dots in one line, blanking included.
+A dot is one screen pixel, two of them to a T-state</string>
+             </property>
              <property name="text">
               <string>Row size</string>
              </property>
@@ -60,6 +68,9 @@
            </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="rowsBox">
+             <property name="toolTip">
+              <string>Lines in one frame, blanking included</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -67,6 +78,9 @@
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_2">
+             <property name="toolTip">
+              <string>Lines in one frame, blanking included</string>
+             </property>
              <property name="text">
               <string>Rows</string>
              </property>
@@ -74,6 +88,10 @@
            </item>
            <item row="0" column="1">
             <widget class="QSpinBox" name="lineBox">
+             <property name="toolTip">
+              <string>Dots in one line, blanking included.
+A dot is one screen pixel, two of them to a T-state</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -90,6 +108,9 @@
           <layout class="QGridLayout" name="gridLayout_7">
            <item row="0" column="0">
             <widget class="QLabel" name="label_11">
+             <property name="toolTip">
+              <string>Screen width in dots, without the border (256 on a ZX)</string>
+             </property>
              <property name="text">
               <string>Width</string>
              </property>
@@ -97,6 +118,9 @@
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_12">
+             <property name="toolTip">
+              <string>Screen height in lines, without the border (192 on a ZX)</string>
+             </property>
              <property name="text">
               <string>Height</string>
              </property>
@@ -104,6 +128,9 @@
            </item>
            <item row="0" column="1">
             <widget class="QSpinBox" name="sbScrW">
+             <property name="toolTip">
+              <string>Screen width in dots, without the border (256 on a ZX)</string>
+             </property>
              <property name="minimum">
               <number>8</number>
              </property>
@@ -114,6 +141,9 @@
            </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="sbScrH">
+             <property name="toolTip">
+              <string>Screen height in lines, without the border (192 on a ZX)</string>
+             </property>
              <property name="minimum">
               <number>8</number>
              </property>
@@ -136,6 +166,9 @@
            </property>
            <item row="0" column="0">
             <widget class="QLabel" name="label_3">
+             <property name="toolTip">
+              <string>Dots between the blanking and the left of the screen</string>
+             </property>
              <property name="text">
               <string>Border left</string>
              </property>
@@ -143,6 +176,9 @@
            </item>
            <item row="0" column="1">
             <widget class="QSpinBox" name="brdLBox">
+             <property name="toolTip">
+              <string>Dots between the blanking and the left of the screen</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -150,6 +186,9 @@
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_7">
+             <property name="toolTip">
+              <string>Lines between the blanking and the top of the screen</string>
+             </property>
              <property name="text">
               <string>Border up</string>
              </property>
@@ -157,6 +196,9 @@
            </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="brdUBox">
+             <property name="toolTip">
+              <string>Lines between the blanking and the top of the screen</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -176,6 +218,9 @@
            </property>
            <item row="0" column="0">
             <widget class="QLabel" name="label_4">
+             <property name="toolTip">
+              <string>Line the interrupt starts on</string>
+             </property>
              <property name="text">
               <string>Row</string>
              </property>
@@ -183,6 +228,9 @@
            </item>
            <item row="0" column="1">
             <widget class="QSpinBox" name="intRowBox">
+             <property name="toolTip">
+              <string>Line the interrupt starts on</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -190,6 +238,9 @@
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_5">
+             <property name="toolTip">
+              <string>Dot in that line the interrupt starts at</string>
+             </property>
              <property name="text">
               <string>Pos</string>
              </property>
@@ -197,6 +248,9 @@
            </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="intPosBox">
+             <property name="toolTip">
+              <string>Dot in that line the interrupt starts at</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -204,6 +258,10 @@
            </item>
            <item row="2" column="0">
             <widget class="QLabel" name="label_6">
+             <property name="toolTip">
+              <string>How long the interrupt is held, in dots
+(two dots to a T-state)</string>
+             </property>
              <property name="text">
               <string>Length</string>
              </property>
@@ -211,6 +269,10 @@
            </item>
            <item row="2" column="1">
             <widget class="QSpinBox" name="intLenBox">
+             <property name="toolTip">
+              <string>How long the interrupt is held, in dots
+(two dots to a T-state)</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -230,6 +292,9 @@
            </property>
            <item row="0" column="1">
             <widget class="QSpinBox" name="vsyncBox">
+             <property name="toolTip">
+              <string>Blanked lines at the start of a frame</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -237,6 +302,9 @@
            </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_9">
+             <property name="toolTip">
+              <string>Blanked dots at the start of a line</string>
+             </property>
              <property name="text">
               <string>HBlank</string>
              </property>
@@ -244,6 +312,9 @@
            </item>
            <item row="0" column="0">
             <widget class="QLabel" name="label_8">
+             <property name="toolTip">
+              <string>Blanked lines at the start of a frame</string>
+             </property>
              <property name="text">
               <string>VBlank</string>
              </property>
@@ -251,6 +322,9 @@
            </item>
            <item row="1" column="1">
             <widget class="QSpinBox" name="hsyncBox">
+             <property name="toolTip">
+              <string>Blanked dots at the start of a line</string>
+             </property>
              <property name="maximum">
               <number>512</number>
              </property>
@@ -292,6 +366,10 @@
        </item>
        <item row="0" column="0">
         <widget class="QLabel" name="showField">
+         <property name="toolTip">
+          <string>Blue: the visible frame. Gray: the screen.
+Red: the interrupt</string>
+         </property>
          <property name="text">
           <string>*</string>
          </property>

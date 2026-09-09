@@ -35,6 +35,9 @@ before that point is upstream's history and is not repeated here.
 
 - Options: the Low latency setting and the indicator switches moved to a page of their
   own, Xpeccy+ -> Emulation.
+- Options: most settings now say what they do when the mouse rests on them, and the long
+  ones no longer run off the edge of the screen. The romset, layout, palette, gamepad and
+  bookmark dialogs got the same.
 - Xpeccy+ is a ZX Spectrum emulator only now. MSX, Game Boy, NES, Commodore 64, BK0010,
   IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in
   the machine, CPU, disk and hard disk lists, in the romset editor, and in the debugger.
