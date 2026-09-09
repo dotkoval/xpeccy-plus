@@ -19,7 +19,7 @@ before that point is upstream's history and is not repeated here.
   emulator window at its width. Right-click an empty spot on it for the size and docking
   choices.
 - A log, for when something goes wrong and a screenshot is not enough. Turn it on in
-  Options -> Xpeccy+ -> Log, or start with `--log`, and every event lands in
+  Options -> Xpeccy+ -> General, or start with `--log`, and every event lands in
   `logs/<date>/` beside the emulator, with the version, the machine and the graphics
   card at the top. Each line carries the time, the emulated frame and T-state, and the
   part of the emulator it came from, so a video problem can be told apart from a sound
@@ -37,6 +37,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- Options: the Tools page is now called General and comes first, with the log settings
+  on it.
 - Options: the Low latency setting and the indicator switches moved to a page of their
   own, Xpeccy+ -> Emulation.
 - Options: most settings now say what they do when the mouse rests on them, and the long
