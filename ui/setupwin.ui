@@ -3476,6 +3476,356 @@ Off: the tape stops at the end</string>
            <property name="currentIndex">
             <number>0</number>
            </property>
+           <widget class="QWidget" name="tab_5">
+            <attribute name="icon">
+             <iconset resource="../xpeccy.qrc">
+              <normaloff>:/images/other.png</normaloff>:/images/other.png</iconset>
+            </attribute>
+            <attribute name="title">
+             <string>General</string>
+            </attribute>
+            <layout class="QVBoxLayout" name="verticalLayout_32">
+             <item>
+              <widget class="QGroupBox" name="gbApplication">
+               <property name="title">
+                <string>Application</string>
+               </property>
+               <layout class="QGridLayout" name="gridLayout_6">
+                <item row="0" column="0" colspan="3">
+                 <widget class="QCheckBox" name="cbConfexit">
+                  <property name="toolTip">
+                   <string>Ask before closing the emulator</string>
+                  </property>
+                  <property name="text">
+                   <string>Confirm exit</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="0">
+                 <widget class="QLabel" name="label_24">
+                  <property name="toolTip">
+                   <string>TCP port the emulator listens on
+(experimental network support)</string>
+                  </property>
+                  <property name="text">
+                   <string>Listen port</string>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="1">
+                 <widget class="QSpinBox" name="sbPort">
+                  <property name="toolTip">
+                   <string>TCP port the emulator listens on
+(experimental network support)</string>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>80</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="minimum">
+                   <number>1</number>
+                  </property>
+                  <property name="maximum">
+                   <number>65535</number>
+                  </property>
+                 </widget>
+                </item>
+                <item row="1" column="2">
+                 <spacer name="horizontalSpacer_6">
+                  <property name="orientation">
+                   <enum>Qt::Horizontal</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>40</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="groupBox_2">
+               <property name="title">
+                <string>Bookmarks</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_12">
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_15">
+                  <item>
+                   <widget class="QTableWidget" name="umlist">
+                    <property name="editTriggers">
+                     <set>QAbstractItemView::NoEditTriggers</set>
+                    </property>
+                    <property name="alternatingRowColors">
+                     <bool>true</bool>
+                    </property>
+                    <property name="selectionMode">
+                     <enum>QAbstractItemView::SingleSelection</enum>
+                    </property>
+                    <property name="selectionBehavior">
+                     <enum>QAbstractItemView::SelectRows</enum>
+                    </property>
+                    <property name="textElideMode">
+                     <enum>Qt::ElideMiddle</enum>
+                    </property>
+                    <property name="gridStyle">
+                     <enum>Qt::DotLine</enum>
+                    </property>
+                    <property name="rowCount">
+                     <number>0</number>
+                    </property>
+                    <property name="columnCount">
+                     <number>2</number>
+                    </property>
+                    <attribute name="horizontalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="horizontalHeaderMinimumSectionSize">
+                     <number>1</number>
+                    </attribute>
+                    <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="horizontalHeaderStretchLastSection">
+                     <bool>true</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderVisible">
+                     <bool>false</bool>
+                    </attribute>
+                    <attribute name="verticalHeaderDefaultSectionSize">
+                     <number>24</number>
+                    </attribute>
+                    <column/>
+                    <column/>
+                   </widget>
+                  </item>
+                  <item>
+                   <layout class="QVBoxLayout" name="verticalLayout_8">
+                    <item>
+                     <widget class="QToolButton" name="umaddtb">
+                      <property name="toolTip">
+                       <string>Add a bookmark</string>
+                      </property>
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umuptb">
+                      <property name="toolTip">
+                       <string>Move the bookmark up</string>
+                      </property>
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/arrow-up.png</normaloff>:/images/arrow-up.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umdntb">
+                      <property name="toolTip">
+                       <string>Move the bookmark down</string>
+                      </property>
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/arrow-down.png</normaloff>:/images/arrow-down.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                    <item>
+                     <spacer name="verticalSpacer_5">
+                      <property name="orientation">
+                       <enum>Qt::Vertical</enum>
+                      </property>
+                      <property name="sizeHint" stdset="0">
+                       <size>
+                        <width>20</width>
+                        <height>40</height>
+                       </size>
+                      </property>
+                     </spacer>
+                    </item>
+                    <item>
+                     <widget class="QToolButton" name="umdeltb">
+                      <property name="toolTip">
+                       <string>Delete the bookmark</string>
+                      </property>
+                      <property name="text">
+                       <string>...</string>
+                      </property>
+                      <property name="icon">
+                       <iconset resource="../xpeccy.qrc">
+                        <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+                      </property>
+                     </widget>
+                    </item>
+                   </layout>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="gbLog">
+               <property name="title">
+                <string>Log</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_log">
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_log1">
+                  <item>
+                   <widget class="QCheckBox" name="cbLogEnable">
+                    <property name="toolTip">
+                     <string>Write the log to a file under logs/&lt;date&gt;/</string>
+                    </property>
+                    <property name="text">
+                     <string>Write a log file</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QCheckBox" name="cbLogConsole">
+                    <property name="toolTip">
+                     <string>Also write every line to the console (Windows: only with -c)</string>
+                    </property>
+                    <property name="text">
+                     <string>To the console</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_log1">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="labLogLevel">
+                    <property name="toolTip">
+                     <string>How much is written. Single groups can be moved apart
+   from the rest with --log-groups, or the groups line
+   in config.conf</string>
+                    </property>
+                    <property name="text">
+                     <string>Level</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="cbxLogLevel">
+                    <property name="toolTip">
+                     <string>How much is written. Single groups can be moved apart
+   from the rest with --log-groups, or the groups line
+   in config.conf</string>
+                    </property>
+                    <property name="minimumSize">
+                     <size>
+                      <width>100</width>
+                      <height>0</height>
+                     </size>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QGridLayout" name="gridLayout_log">
+                  <item row="0" column="0">
+                   <widget class="QLabel" name="labLogDir">
+                    <property name="text">
+                     <string>Folder</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="1">
+                   <widget class="QLineEdit" name="leLogDir">
+                    <property name="toolTip">
+                     <string>Folder the log files go to</string>
+                    </property>
+                    <property name="placeholderText">
+                     <string>beside the binary</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="0" column="2">
+                   <widget class="QToolButton" name="tbLogDir">
+                    <property name="toolTip">
+                     <string>Pick the folder</string>
+                    </property>
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../xpeccy.qrc">
+                      <normaloff>:/images/fileopen.png</normaloff>:/images/fileopen.png</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="0">
+                   <widget class="QLabel" name="labLogNow">
+                    <property name="text">
+                     <string>Now</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="1">
+                   <widget class="QLineEdit" name="leLogFile">
+                    <property name="toolTip">
+                     <string>The file this run is writing to</string>
+                    </property>
+                    <property name="readOnly">
+                     <bool>true</bool>
+                    </property>
+                    <property name="placeholderText">
+                     <string>not writing a file</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="1" column="2">
+                   <widget class="QToolButton" name="tbLogOpen">
+                    <property name="toolTip">
+                     <string>Open the folder the log is in</string>
+                    </property>
+                    <property name="text">
+                     <string>...</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../xpeccy.qrc">
+                      <normaloff>:/images/search.png</normaloff>:/images/search.png</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
            <widget class="QWidget" name="tabEmulation">
             <attribute name="icon">
              <iconset resource="../xpeccy.qrc">
@@ -3849,215 +4199,6 @@ lands sooner. The sound stays a frame behind</string>
                 </size>
                </property>
               </spacer>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="tab_5">
-            <attribute name="icon">
-             <iconset resource="../xpeccy.qrc">
-              <normaloff>:/images/other.png</normaloff>:/images/other.png</iconset>
-            </attribute>
-            <attribute name="title">
-             <string>Tools</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="verticalLayout_32">
-             <item>
-              <layout class="QGridLayout" name="gridLayout_6">
-               <item row="0" column="2">
-                <spacer name="horizontalSpacer_6">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item row="0" column="1">
-                <widget class="QSpinBox" name="sbPort">
-                 <property name="toolTip">
-                  <string>TCP port the emulator listens on
-(experimental network support)</string>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>80</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="minimum">
-                  <number>1</number>
-                 </property>
-                 <property name="maximum">
-                  <number>65535</number>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="0">
-                <widget class="QLabel" name="label_24">
-                 <property name="toolTip">
-                  <string>TCP port the emulator listens on
-(experimental network support)</string>
-                 </property>
-                 <property name="text">
-                  <string>Listen port</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="0" column="3">
-                <widget class="QWidget" name="widget" native="true">
-                 <layout class="QVBoxLayout" name="verticalLayout_44">
-                  <item>
-                   <widget class="QCheckBox" name="cbConfexit">
-                    <property name="toolTip">
-                     <string>Ask before closing the emulator</string>
-                    </property>
-                    <property name="text">
-                     <string>Confirm exit</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="groupBox_2">
-               <property name="title">
-                <string>Bookmarks</string>
-               </property>
-               <layout class="QVBoxLayout" name="verticalLayout_12">
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_15">
-                  <item>
-                   <widget class="QTableWidget" name="umlist">
-                    <property name="editTriggers">
-                     <set>QAbstractItemView::NoEditTriggers</set>
-                    </property>
-                    <property name="alternatingRowColors">
-                     <bool>true</bool>
-                    </property>
-                    <property name="selectionMode">
-                     <enum>QAbstractItemView::SingleSelection</enum>
-                    </property>
-                    <property name="selectionBehavior">
-                     <enum>QAbstractItemView::SelectRows</enum>
-                    </property>
-                    <property name="textElideMode">
-                     <enum>Qt::ElideMiddle</enum>
-                    </property>
-                    <property name="gridStyle">
-                     <enum>Qt::DotLine</enum>
-                    </property>
-                    <property name="rowCount">
-                     <number>0</number>
-                    </property>
-                    <property name="columnCount">
-                     <number>2</number>
-                    </property>
-                    <attribute name="horizontalHeaderVisible">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="horizontalHeaderMinimumSectionSize">
-                     <number>1</number>
-                    </attribute>
-                    <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="horizontalHeaderStretchLastSection">
-                     <bool>true</bool>
-                    </attribute>
-                    <attribute name="verticalHeaderVisible">
-                     <bool>false</bool>
-                    </attribute>
-                    <attribute name="verticalHeaderDefaultSectionSize">
-                     <number>24</number>
-                    </attribute>
-                    <column/>
-                    <column/>
-                   </widget>
-                  </item>
-                  <item>
-                   <layout class="QVBoxLayout" name="verticalLayout_8">
-                    <item>
-                     <widget class="QToolButton" name="umaddtb">
-                      <property name="toolTip">
-                       <string>Add a bookmark</string>
-                      </property>
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umuptb">
-                      <property name="toolTip">
-                       <string>Move the bookmark up</string>
-                      </property>
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/arrow-up.png</normaloff>:/images/arrow-up.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umdntb">
-                      <property name="toolTip">
-                       <string>Move the bookmark down</string>
-                      </property>
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/arrow-down.png</normaloff>:/images/arrow-down.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <spacer name="verticalSpacer_5">
-                      <property name="orientation">
-                       <enum>Qt::Vertical</enum>
-                      </property>
-                      <property name="sizeHint" stdset="0">
-                       <size>
-                        <width>20</width>
-                        <height>40</height>
-                       </size>
-                      </property>
-                     </spacer>
-                    </item>
-                    <item>
-                     <widget class="QToolButton" name="umdeltb">
-                      <property name="toolTip">
-                       <string>Delete the bookmark</string>
-                      </property>
-                      <property name="text">
-                       <string>...</string>
-                      </property>
-                      <property name="icon">
-                       <iconset resource="../xpeccy.qrc">
-                        <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
-                      </property>
-                     </widget>
-                    </item>
-                   </layout>
-                  </item>
-                 </layout>
-                </item>
-               </layout>
-              </widget>
              </item>
             </layout>
            </widget>
@@ -4780,168 +4921,6 @@ Right click: back to the style color</string>
                 <number>24</number>
                </attribute>
               </widget>
-             </item>
-            </layout>
-           </widget>
-           <widget class="QWidget" name="tabLog">
-            <attribute name="icon">
-             <iconset resource="../xpeccy.qrc">
-              <normaloff>:/images/doc-new.png</normaloff>:/images/doc-new.png</iconset>
-            </attribute>
-            <attribute name="title">
-             <string>Log</string>
-            </attribute>
-            <layout class="QVBoxLayout" name="verticalLayout_log">
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_log1">
-               <item>
-                <widget class="QCheckBox" name="cbLogEnable">
-                 <property name="toolTip">
-                  <string>Write the log to a file under logs/&lt;date&gt;/</string>
-                 </property>
-                 <property name="text">
-                  <string>Write a log file</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QCheckBox" name="cbLogConsole">
-                 <property name="toolTip">
-                  <string>Also write every line to the console (Windows: only with -c)</string>
-                 </property>
-                 <property name="text">
-                  <string>To the console</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="horizontalSpacer_log1">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>40</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-               <item>
-                <widget class="QLabel" name="labLogLevel">
-                 <property name="toolTip">
-                  <string>How much is written. Single groups can be moved apart
-from the rest with --log-groups, or the groups line
-in config.conf</string>
-                 </property>
-                 <property name="text">
-                  <string>Level</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QComboBox" name="cbxLogLevel">
-                 <property name="toolTip">
-                  <string>How much is written. Single groups can be moved apart
-from the rest with --log-groups, or the groups line
-in config.conf</string>
-                 </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>100</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
-             <item>
-              <widget class="QGroupBox" name="gbLogFile">
-               <property name="title">
-                <string>File</string>
-               </property>
-               <layout class="QGridLayout" name="gridLayout_log">
-                <item row="0" column="0">
-                 <widget class="QLabel" name="labLogDir">
-                  <property name="text">
-                   <string>Folder</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="1">
-                 <widget class="QLineEdit" name="leLogDir">
-                  <property name="toolTip">
-                   <string>Folder the log files go to</string>
-                  </property>
-                  <property name="placeholderText">
-                   <string>beside the binary</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="0" column="2">
-                 <widget class="QToolButton" name="tbLogDir">
-                  <property name="toolTip">
-                   <string>Pick the folder</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/fileopen.png</normaloff>:/images/fileopen.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="0">
-                 <widget class="QLabel" name="labLogNow">
-                  <property name="text">
-                   <string>Now</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="1">
-                 <widget class="QLineEdit" name="leLogFile">
-                  <property name="toolTip">
-                   <string>The file this run is writing to</string>
-                  </property>
-                  <property name="readOnly">
-                   <bool>true</bool>
-                  </property>
-                  <property name="placeholderText">
-                   <string>not writing a file</string>
-                  </property>
-                 </widget>
-                </item>
-                <item row="1" column="2">
-                 <widget class="QToolButton" name="tbLogOpen">
-                  <property name="toolTip">
-                   <string>Open the folder the log is in</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/search.png</normaloff>:/images/search.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </widget>
-             </item>
-             <item>
-              <spacer name="verticalSpacer_log">
-               <property name="orientation">
-                <enum>Qt::Vertical</enum>
-               </property>
-               <property name="sizeHint" stdset="0">
-                <size>
-                 <width>20</width>
-                 <height>20</height>
-                </size>
-               </property>
-              </spacer>
              </item>
             </layout>
            </widget>
