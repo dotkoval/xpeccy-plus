@@ -237,6 +237,8 @@ std::string xm_id_for_name(const std::string&);
 void xm_finish_load();
 void xm_load_nvram();
 void xm_save_nvram();
+QStringList xm_over_keys();	// what differs from what the machine ships with
+void xm_reset_over();		// drop all of it and take the machine as it ships
 void xm_save(FILE*);
 void xm_save_media(FILE*);
 std::string getDiskString(Floppy*);

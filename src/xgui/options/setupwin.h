@@ -38,6 +38,7 @@ class SetupWin : public QDialog {
 		Ui::LayEditor layUi;
 
 		xRomsetEditor* rseditor;
+		QDialog* advWin;		// the machine-defining settings
 		xRomsetModel* rsmodel;
 		xRomset rsPreview;		// the set the combo shows, until Apply
 
@@ -66,7 +67,6 @@ class SetupWin : public QDialog {
 		void buildtapelist();
 		void buildmenulist();
 		void buildkeylist();
-		void buildproflist();
 		void buildpadlist();
 
 	signals:
@@ -119,6 +119,8 @@ class SetupWin : public QDialog {
 		void delRom();
 		void setRom(xRomFile);
 		void romPreset();
+		void resetMachine();
+		void showAdvanced();
 
 		void newPadMap();
 		void delPadMap();
@@ -135,7 +137,6 @@ class SetupWin : public QDialog {
 		void diskToHobeta();
 		void diskToRaw();
 
-		void chProfile(int, int);
 
 		void edLayout();
 		void addNewLayout();

@@ -400,21 +400,12 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.tabz->setTabIcon(ui.tabz->indexOf(ui.tab_4), QGuiApplication::windowIcon());
 
 #ifdef XZXONLY
-	// the z80 is the only core built, so there is nothing to pick: name the row
-	// after it and let the clock and its multiplier take the box's place, or the
-	// row keeps a gap where the box was. The cell comes from the form rather than
-	// from constants, so moving the row in Designer cannot silently break this
-	ui.label_37->setText("Z80");
-	ui.sbFreq->setSuffix(" MHz");
+	// the z80 is the only core built, so there is nothing to pick: drop the row
+	// and let the clock row carry the name
+	ui.icoCpuType->hide();
+	ui.label_37->hide();
 	ui.cbCpu->hide();
-	int cpurow, cpucol, rspan, cspan;
-	ui.gridLayout->getItemPosition(ui.gridLayout->indexOf(ui.cbCpu), &cpurow, &cpucol, &rspan, &cspan);
-	QLayoutItem* frq = ui.gridLayout->itemAtPosition(cpurow, cpucol + 1);
-	if (frq) {
-		ui.gridLayout->removeItem(frq);
-		ui.gridLayout->addItem(frq, cpurow, cpucol, 1, 2);
-		ui.horizontalLayout_18->addStretch(1);	// keep the boxes their own size in the wider cell
-	}
+	ui.labCpuFreq->setText("CPU");
 #endif
 
 	spaceLedIcon(ui.cbKeysLed);
@@ -594,6 +585,19 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.tbEditRom,SIGNAL(released()),this,SLOT(editRom()));
 	connect(ui.tbDelRom,SIGNAL(released()),this,SLOT(delRom()));
 	connect(ui.tbPreset,SIGNAL(released()),this,SLOT(romPreset()));
+	connect(ui.pbResetMachine,SIGNAL(released()),this,SLOT(resetMachine()));
+	connect(ui.pbAdvanced,SIGNAL(released()),this,SLOT(showAdvanced()));
+
+	// The settings that define the machine rather than how it is used live in
+	// a window of their own. It is the same widgets, moved out of the page -
+	// so everything that reads and writes them stays as it is.
+	advWin = new QDialog(this);
+	advWin->setWindowTitle("Machine: advanced settings");
+	QVBoxLayout* advLay = new QVBoxLayout(advWin);
+	advLay->addWidget(ui.advBox);
+	QDialogButtonBox* advBtn = new QDialogButtonBox(QDialogButtonBox::Close, advWin);
+	advLay->addWidget(advBtn);
+	connect(advBtn, SIGNAL(rejected()), advWin, SLOT(hide()));
 // video
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
@@ -752,12 +756,6 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 		i++;
 	}
 // profiles manager
-	// the machine list; a page of its own is phase 5 of the machines rework
-	ui.tbNewProfile->hide();
-	ui.tbCopyProfile->hide();
-	ui.tbDelProfile->hide();
-	ui.defstart->hide();
-	connect(ui.twProfileList,SIGNAL(cellDoubleClicked(int, int)),this,SLOT(chProfile(int, int)));
 }
 
 void SetupWin::okay() {
@@ -1512,6 +1510,21 @@ void SetupWin::layEditorOK() {
 
 // back to the roms the machine ships with, dropping the files of your own
 
+// everything the user changed on this machine goes, and it comes back as the
+// definition has it
+
+void SetupWin::showAdvanced() {
+	advWin->show();
+	advWin->raise();
+}
+
+void SetupWin::resetMachine() {
+	if (!areSure("Take this machine as it ships, dropping everything you changed on it?")) return;
+	xm_reset_over();
+	start();
+	emit s_prf_changed();
+}
+
 void SetupWin::romPreset() {
 	xm_set_romset(conf.romSet);
 	rsmodel->fill(&conf.roms);
@@ -1664,26 +1677,6 @@ void SetupWin::buildmenulist() {
 	}
 	ui.umlist->setColumnWidth(0,100);
 	ui.umlist->selectRow(0);
-}
-
-void SetupWin::buildproflist() {
-	const QList<xMachine>& list = xm_list();
-	ui.twProfileList->setRowCount(list.size());
-	QTableWidgetItem* itm;
-	// every row gets an icon slot, so the name doesn't shift on the current one
-	QSize isz(16, 16);
-	ui.twProfileList->setIconSize(isz);
-	QPixmap blank(isz);
-	blank.fill(Qt::transparent);
-	QIcon mark(":/images/checkbox.png");
-	for (int i = 0; i < list.size(); i++) {
-		itm = new QTableWidgetItem(QString::fromLocal8Bit(list[i].name.c_str()));
-		itm->setIcon((list[i].id == conf.macId) ? mark : QIcon(blank));
-		ui.twProfileList->setItem(i,0,itm);
-		itm = new QTableWidgetItem(QString::fromLocal8Bit(list[i].id.c_str()));
-		ui.twProfileList->setItem(i,1,itm);
-	}
-	ui.twProfileList->resizeColumnToContents(0);
 }
 
 void SetupWin::copyToTape() {
@@ -2354,16 +2347,6 @@ void SetupWin::umaconf() {
 	umadial->hide();
 	buildmenulist();
 	ui.umlist->selectRow(ui.umlist->rowCount()-1);
-}
-
-// machines
-
-void SetupWin::chProfile(int row, int col) {
-	const QList<xMachine>& list = xm_list();
-	if ((row < 0) || (row >= list.size())) return;
-	xm_set(list[row].id);
-	start();
-	emit s_prf_changed();
 }
 
 void SetupWin::selectDbgFont() {

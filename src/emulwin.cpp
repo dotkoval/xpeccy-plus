@@ -54,7 +54,6 @@ void MainWin::updateHead() {
 #endif
 	if (conf.zx) {
 		title.append(" | ").append(conf.macName.c_str());
-		title.append(" | ").append(conf.layName.c_str());
 	}
 	if (conf.emu.fast) {
 		title.append(" | fast");
@@ -531,7 +530,6 @@ void MainWin::moveEvent(QMoveEvent* ev) {
 
 void MainWin::menuShow() {
 	Computer* comp = conf.zx;
-	layoutMenu->setDisabled(comp->hw->lay != NULL);
 	pause(true,PR_MENU);
 }
 
@@ -1101,8 +1099,7 @@ void MainWin::initUserMenu() {
 // submenu
 	fileMenu = userMenu->addMenu(QIcon(":/images/fileopen.png"),"Open...");
 	bookmarkMenu = userMenu->addMenu(QIcon(":/images/star.png"),"Bookmarks");
-	profileMenu = userMenu->addMenu(QIcon(":/images/profile.png"),"Profiles");
-	layoutMenu = userMenu->addMenu(QIcon(":/images/display.png"),"Layout");
+	profileMenu = userMenu->addMenu(QIcon(":/images/computer.png"),"Machine");
 	keyMenu = userMenu->addMenu(QIcon(":/images/keyboardzx.png"), "Keymap");
 	resMenu = userMenu->addMenu(QIcon(":/images/shutdown.png"),"Reset");
 	shdMenu = userMenu->addMenu(QIcon(":/images/shader.png"), "Shaders");
@@ -1121,7 +1118,6 @@ void MainWin::initUserMenu() {
 
 	connect(bookmarkMenu,SIGNAL(triggered(QAction*)),this,SLOT(bookmarkSelected(QAction*)));
 	connect(profileMenu,SIGNAL(triggered(QAction*)),this,SLOT(profileSelected(QAction*)));
-	connect(layoutMenu,SIGNAL(triggered(QAction*)),this,SLOT(chLayout(QAction*)));
 	connect(resMenu,SIGNAL(triggered(QAction*)),this,SLOT(reset(QAction*)));
 	connect(fileMenu,SIGNAL(triggered(QAction*)),this,SLOT(umOpen(QAction*)));
 	connect(shdMenu,SIGNAL(triggered(QAction*)),this,SLOT(shdSelected(QAction*)));
@@ -1162,13 +1158,15 @@ void MainWin::fillUserMenu() {
 	}
 	// fill machine menu
 	profileMenu->clear();
+	std::string family;
 	foreach(const xMachine& mac, xm_list()) {
-		profileMenu->addAction(QString::fromLocal8Bit(mac.name.c_str()))->setData(mac.id.c_str());
-	}
-	// fill layout menu
-	layoutMenu->clear();
-	foreach(xLayout lay, conf.layList) {
-		layoutMenu->addAction(lay.name.c_str())->setData(lay.name.c_str());
+		if (!family.empty() && (mac.family != family))
+			profileMenu->addSeparator();
+		family = mac.family;
+		act = profileMenu->addAction(QString::fromLocal8Bit(mac.name.c_str()));
+		act->setData(mac.id.c_str());
+		act->setCheckable(true);
+		act->setChecked(mac.id == conf.macId);
 	}
 	// fill keymaps menu
 	keyMenu->clear();
@@ -1338,12 +1336,6 @@ void MainWin::reset(QAction* act) {
 	emu_unlock();
 }
 
-void MainWin::chLayout(QAction* act) {
-	std::string str = QString(act->data().toByteArray()).toStdString();
-	xm_set_layout(str);
-	saveConfig();
-	updateWindow();
-}
 
 void MainWin::umOpen(QAction* act) {
 	openMedia(QString(), act->data().toInt(), -1, conf.autorun);

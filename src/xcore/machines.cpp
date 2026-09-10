@@ -804,15 +804,14 @@ static bool mac_same_roms(const xRomset* rs, const xRomset* set) {
 	return true;
 }
 
-void xm_save(FILE* file) {
+// everything about the machine in use that differs from what it ships with
+
+static void mac_put_all(QStringList& out) {
 	const xMachine* mac = xm_find(conf.macId);
 	if (!mac || !conf.zx) return;
 	Computer* comp = conf.zx;
 	std::string cpu = comp->cpu->core->name;
 	if (comp->cpu->lib) cpu += std::string("@") + comp->cpu->libname;
-
-	// the machine in use, rebuilt from what is live
-	QStringList out;
 	mac_put(out, "hw", comp->hw->name, mac->hw);
 	mac_put(out, "cpu", cpu, mac->cpu);
 	mac_put(out, "cpu.frq", int(comp->cpuFrq * 1e6), mac->cpufrq);
@@ -839,6 +838,31 @@ void xm_save(FILE* file) {
 	mac_put_yn(out, "joy.buttons", comp->joy->extbuttons, mac->joyButtons);
 	mac_put(out, "romset", conf.romSet, std::string());
 	mac_put_roms(out);
+}
+
+// the settings that differ from what the machine ships with - the ui marks
+// them, and "machine defaults" throws them away
+
+QStringList xm_over_keys() {
+	QStringList out;
+	mac_put_all(out);
+	QStringList res;
+	foreach(QString line, out)
+		res << line.section('=', 0, 0).trimmed();
+	return res;
+}
+
+void xm_reset_over() {
+	macOver.remove(QString::fromLocal8Bit(conf.macId.c_str()));
+	std::string id = conf.macId;
+	conf.macId.clear();			// so xm_set does not save what we are dropping
+	xm_set(id);
+}
+
+void xm_save(FILE* file) {
+	if (conf.macId.empty() || !conf.zx) return;
+	QStringList out;
+	mac_put_all(out);
 	if (!out.isEmpty()) {
 		fprintf(file, "\n[MACHINE.%s]\n\n", conf.macId.c_str());
 		fprintf(file, "%s\n", out.join("\n").toLocal8Bit().data());

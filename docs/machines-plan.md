@@ -807,7 +807,7 @@ Three things fell out of it:
 Still phase 6: the ordinary/Advanced split of the ROM rows (6.3) - offsets and sizes are on
 screen as they always were.
 
-### Phase 5 - the UI
+### Phase 5 - the UI - PART DONE
 - A machine selector in the main window: always visible, one control.
 - Options regrouped into two groups, each page headed with what it applies to:
   **This machine** (machine, ROM set, storage, peripherals - with the phase-6 settings
@@ -817,6 +817,22 @@ screen as they always were.
 - A definition declares what applies to it, so the UI greys what a machine does not have
   instead of showing dead controls.
 - The Profiles page goes away.
+
+Decided while building it, both by the user:
+
+- **The machine selector stays in the menu.** The emulator window is the picture and nothing
+  else; a strip under it would cost the picture height for a control that is one click away
+  in the menu anyway. That menu is called Machine now, lists the machines in lineage order
+  with a separator between the Sinclair ones and the clones, and ticks the one running.
+- **Options is not regrouped into "this machine" and "application" yet.** Video, Sound and
+  Input each mix the two, so a real regroup means moving widgets between pages - a large
+  edit of `setupwin.ui` with a real chance of breaking a layout, for a gain that is
+  presentational. Left as a decision of its own.
+
+Done: the Profiles page is gone, "Machine defaults" on the Machine page drops everything the
+user changed on this machine (`xm_reset_over()`), and a setting that differs from what the
+machine ships with is drawn bold - `xm_over_keys()` is the same diff `xm_save()` writes, so
+the marks and the file can never disagree.
 
 ### Phase 6 - the settings audit
 - Behind "Advanced": `4t-border`, `earlyTiming`, `contPattern`, `contio`, `contmem`,

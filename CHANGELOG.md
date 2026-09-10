@@ -42,6 +42,14 @@ before that point is upstream's history and is not repeated here.
   in one file; what you change on a machine is remembered for that machine. An update can
   fix a machine now without touching anything you set. Your old profile is carried over on
   first start, and the `profiles` folder is left where it is.
+- The machine menu picks the machine: the emulator's menu lists them in family order and
+  ticks the one running. Restore machine defaults, on the Machine page, puts the whole
+  machine back the way it ships.
+- Options: the Machine page keeps what a machine is - the machine, its CPU, its memory and
+  its ROMs. The ULA settings and the raster layout are behind Advanced settings on that
+  page.
+- Options: the interface style moved to Xpeccy+ -> General, since it styles the whole
+  application and not just the debugger.
 - ROM sets belong to the machine. Each one carries its own ROMs and the variants it has -
   TR-DOS 5.03 on a Pentagon, v4.1 on a +3 - and the ROM table on the Machine page edits its
   slots, with what you change kept for that machine. The list of romsets is gone; the one you

@@ -485,9 +485,10 @@ void loadConfig() {
 		arg.s = pval.c_str();
 		arg.i = strtol(arg.s, NULL, 0);
 		arg.d = strtod(arg.s, NULL);
+		if (pnam.empty()) continue;		// a blank line, or one that is all comment
 		// a line with nothing after the = is a value, not a section: an empty
 		// value is how a rom bank is emptied and a setting is cleared
-		if (pval.empty() && !pnam.empty() && (pnam[0] == '[')) {
+		if (pnam[0] == '[') {
 			if (pnam=="[BOOKMARKS]") section = SECT_BOOKMARK;
 			if (pnam=="[PROFILES]") section = SECT_PROFILES;
 			if (pnam=="[MEDIA]") section = SECT_MEDIA;
