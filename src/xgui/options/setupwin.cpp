@@ -4,6 +4,7 @@
 #include <QFontDialog>
 #include <QFileDialog>
 #include <QDialogButtonBox>
+#include <QPushButton>
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QComboBox>
@@ -579,24 +580,12 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	// The settings that define the machine rather than how it is used live in
 	// a window of their own. It is the same widgets, moved out of the page -
 	// so everything that reads and writes them stays as it is.
-	advWin = new QDialog(this);
-	advWin->setWindowTitle("Machine: advanced settings");
-	QVBoxLayout* advLay = new QVBoxLayout(advWin);
-	advLay->addWidget(ui.advBox);
-	QDialogButtonBox* advBtn = new QDialogButtonBox(QDialogButtonBox::Close, advWin);
-	advLay->addWidget(advBtn);
-	connect(advBtn, SIGNAL(rejected()), advWin, SLOT(hide()));
+	advWin = popOut(ui.advBox, "Machine: advanced settings");
 
 	// same for the set file by file: the page shows which file is in which
 	// slot, this window has the offsets and sizes behind it
-	romWin = new QDialog(this);
-	romWin->setWindowTitle("Machine: ROM files");
+	romWin = popOut(ui.romAdvBox, "Machine: ROM files");
 	romWin->resize(620, 340);
-	QVBoxLayout* romLay = new QVBoxLayout(romWin);
-	romLay->addWidget(ui.romAdvBox);
-	QDialogButtonBox* romBtn = new QDialogButtonBox(QDialogButtonBox::Close, romWin);
-	romLay->addWidget(romBtn);
-	connect(romBtn, SIGNAL(rejected()), romWin, SLOT(hide()));
 	connect(ui.pbRomAdvanced, SIGNAL(released()), this, SLOT(showRomFiles()));
 // video
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
@@ -1499,6 +1488,22 @@ void SetupWin::layEditorOK() {
 		}
 	}
 	if (ok) layeditor->hide();
+}
+
+// A box taken out of the page, in a window with one button to put it away.
+// The button wears the cross the main dialog's Cancel wears, so the three
+// windows read as one family.
+
+QDialog* SetupWin::popOut(QWidget* box, const char* title) {
+	QDialog* win = new QDialog(this);
+	win->setWindowTitle(title);
+	QVBoxLayout* lay = new QVBoxLayout(win);
+	lay->addWidget(box);
+	QDialogButtonBox* bbox = new QDialogButtonBox(QDialogButtonBox::Close, win);
+	bbox->button(QDialogButtonBox::Close)->setIcon(QIcon(":/images/cancel.png"));
+	lay->addWidget(bbox);
+	connect(bbox, SIGNAL(rejected()), win, SLOT(hide()));
+	return win;
 }
 
 void SetupWin::showAdvanced() {

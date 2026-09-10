@@ -30,6 +30,7 @@ class SetupWin : public QDialog {
 		void start();
 		void setPadName();
 	private:
+		QDialog* popOut(QWidget*, const char*);
 		void cfgLoaded();
 		void fillRomSlots();
 		void addRomSlot(int, QString, int, const QStringList&, bool, int);
