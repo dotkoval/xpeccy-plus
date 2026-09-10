@@ -3,6 +3,11 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QFileDialog>
+#include <QDialogButtonBox>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QComboBox>
+#include <QToolButton>
 #include <QFileInfo>
 #include <QDir>
 #include <QDirIterator>

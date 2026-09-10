@@ -53,16 +53,17 @@ cat "$LOG"
 grep -q "^exit" "$LOG" || { echo "did not reach the end of main()"; exit 1; }
 rc=$(cat "$RC" 2>/dev/null || echo "?")
 [ "$rc" = 0 ] || { echo "exited with $rc - main() finished, so this is a destructor"; exit 1; }
-[ -s "$CONF/config.conf" ] || { echo "no config.conf: the bundled configuration was not found"; exit 1; }
+[ -s "$CONF/config.conf" ] || { echo "no config.conf: the defaults in the binary did not reach the disk"; exit 1; }
 roms=$(ls -1 "$CONF/roms" | wc -l | tr -d ' ')
 echo "roms seeded: $roms"
 [ "$roms" -ge 20 ] || { echo "the rom images did not make it into the bundle"; exit 1; }
 
 # a missing file comes back on the next start, so an update brings its new files
-# to a config directory that is already there
-rm -f "$CONF/styles/Dark.qss"
+# to a config directory that is already there. A rom, because that is what ships
+# as a file now - the palettes, shaders, styles and keymaps are in the binary
+rm -f "$CONF/roms/48.rom"
 "$BIN" --confdir "$CONF" --help > /dev/null 2>&1 \
 	|| { echo "the second start failed"; exit 1; }
-[ -f "$CONF/styles/Dark.qss" ] ||{ echo "the config directory was not topped up on start"; exit 1; }
+[ -f "$CONF/roms/48.rom" ] ||{ echo "the config directory was not topped up on start"; exit 1; }
 
 echo "ok: $APP"

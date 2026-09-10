@@ -1,5 +1,7 @@
 #include <fstream>
 
+#include <QFile>
+
 #include <string.h>
 #include <math.h>
 

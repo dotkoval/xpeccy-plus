@@ -22,7 +22,6 @@ $err = Join-Path $env:TEMP 'xpeccy-smoke.err'
 if (-not (Test-Path $exe)) { throw "no binary at $exe" }
 
 # the install rules, before anything is run
-if (-not (Test-Path (Join-Path $Dist 'config\config.conf'))) { throw 'no config\config.conf in the staged folder' }
 $roms = (Get-ChildItem (Join-Path $Dist 'config\roms') -File).Count
 Write-Host "roms staged: $roms"
 if ($roms -lt 20) { throw 'the rom images did not make it into the staged folder' }
@@ -50,5 +49,10 @@ if ($stderr) { Write-Host "stderr: $stderr" }
 if (-not (Select-String -Path $out -Pattern '^exit' -Quiet)) { throw 'did not reach the end of main()' }
 # checked after the line above: a crash in a destructor happens after it
 if ($p.ExitCode -ne 0) { throw "exited with 0x$('{0:X8}' -f $p.ExitCode) - main() finished, so this is a destructor" }
+
+# the settings a first start writes come out of the binary, not the folder
+if (-not (Test-Path (Join-Path $Dist 'config\config.conf'))) {
+	throw 'no config\config.conf after the first start: the defaults in the binary did not reach the disk'
+}
 
 Write-Host "ok: $Dist" -ForegroundColor Green
