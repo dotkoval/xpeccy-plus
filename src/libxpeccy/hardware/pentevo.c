@@ -548,7 +548,7 @@ xPortDsc evo_port_tab[] = {
 	{-1, 0, 0}
 };
 
-HardWare evo_hw_core = {HW_PENTEVO,HWG_ZX,"PentEvo","Evo Baseconf (before 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
+HardWare evo_hw_core = {HW_PENTEVO,HWG_ZX,"Baseconf","ZX Evolution (BaseConf)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
 			zx_init,evoMapMem,evoOut,evoIn,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};
-HardWare evo_v2_core = {HW_PENTEVO,HWG_ZX,"PentEvo21","Evo Baseconf (after 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
+HardWare evo_v2_core = {HW_PENTEVO,HWG_ZX,"Baseconf21","ZX Evolution (BaseConf 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
 			zx_init,evoMapMem,evoOutv2,evoInv2,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};

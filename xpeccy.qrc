@@ -3,7 +3,22 @@
         <file>config/roms/48.rom</file>
         <file>res/help/cond-syntax.html</file>
         <file>res/fallback/config.conf</file>
-        <file>res/fallback/xpeccy.conf</file>
+        <file>res/machines/atm2.conf</file>
+        <file>res/machines/evo-baseconf.conf</file>
+        <file>res/machines/evo-baseconf21.conf</file>
+        <file>res/machines/evo-tsconf.conf</file>
+        <file>res/machines/pent.conf</file>
+        <file>res/machines/pent1024.conf</file>
+        <file>res/machines/phoenix.conf</file>
+        <file>res/machines/profi.conf</file>
+        <file>res/machines/scorp.conf</file>
+        <file>res/machines/zx128-trdos.conf</file>
+        <file>res/machines/zx128.conf</file>
+        <file>res/machines/zx48-trdos.conf</file>
+        <file>res/machines/zx48.conf</file>
+        <file>res/machines/zxplus2a.conf</file>
+        <file>res/machines/zxplus3.conf</file>
+        <file>res/nvram/evo-tsconf.cmos</file>
         <file>images/cd.png</file>
         <file>images/clock.png</file>
         <file>images/hdd.png</file>

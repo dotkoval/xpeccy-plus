@@ -31,7 +31,7 @@ QVariant xDmaTableModel::data(const QModelIndex& idx, int role) const {
 	if (role != Qt::DisplayRole) return res;
 	int row = idx.row();
 	int col = idx.column();
-	i8237DMA* dma = (col & 4) ? conf.prof.cur->zx->dma2 : conf.prof.cur->zx->dma1;
+	i8237DMA* dma = (col & 4) ? conf.zx->dma2 : conf.zx->dma1;
 	DMAChan* ch = &dma->ch[col & 3];
 	int cwr = ch->cwr;	// counters
 	int bwr = ch->bwr;

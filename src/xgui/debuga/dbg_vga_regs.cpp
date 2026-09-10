@@ -35,29 +35,29 @@ QVariant xVgaRegModel::data(const QModelIndex& idx, int role) const {
 			switch(col) {
 				case 0:
 					if (row <= VGA_CRB)
-						res = gethexbyte(conf.prof.cur->zx->CRT_REG(row));
+						res = gethexbyte(conf.zx->CRT_REG(row));
 					break;
 				case 1:
 					if (row <= VGA_SRC)
-						res = gethexbyte(conf.prof.cur->zx->SEQ_REG(row));
+						res = gethexbyte(conf.zx->SEQ_REG(row));
 					break;
 				case 2:
 					if (row <= VGA_GRC)
-						res = gethexbyte(conf.prof.cur->zx->GRF_REG(row));
+						res = gethexbyte(conf.zx->GRF_REG(row));
 					break;
 				case 3:
 					if (row <= VGA_ATC)
-						res = gethexbyte(conf.prof.cur->zx->ATR_REG(row));
+						res = gethexbyte(conf.zx->ATR_REG(row));
 					break;
 			}
 			break;
 		case Qt::ForegroundRole:
 			n = -1;
 			switch (col) {
-				case 0: n = conf.prof.cur->zx->CRT_IDX; break;
-				case 1: n = conf.prof.cur->zx->SEQ_IDX; break;
-				case 2: n = conf.prof.cur->zx->GRF_IDX; break;
-				case 3: n = conf.prof.cur->zx->ATR_IDX; break;
+				case 0: n = conf.zx->CRT_IDX; break;
+				case 1: n = conf.zx->SEQ_IDX; break;
+				case 2: n = conf.zx->GRF_IDX; break;
+				case 3: n = conf.zx->ATR_IDX; break;
 			}
 			if (row == n) {
 				res = QColor(0xe0, 0x20, 0x20);

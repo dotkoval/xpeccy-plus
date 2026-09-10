@@ -62,7 +62,7 @@ int ev_to_keyid(QKeyEvent* ev, bool kgrab) {
 void MainWin::keyPressEvent(QKeyEvent* ev) {
 	int keyid;
 	keyEntry kent;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 //	qDebug() << ev->key();
 	if (comp->flgDBG) {
 		ev->ignore();
@@ -126,7 +126,7 @@ void MainWin::xkey_press(int xkey) {
 	int err;
 	QSize wsz;
 	QString path;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (pckAct->isChecked()) {
 		// xt_press(comp->keyb, &kent);
 		if (comp->hw->keyp)
@@ -363,7 +363,7 @@ void MainWin::xkey_press(int xkey) {
 
 void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 	if (ev->isAutoRepeat()) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 //	if (relskip) {
 //		relskip = 0;
 //	} else {
@@ -410,7 +410,7 @@ void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 }
 
 void MainWin::xkey_release(int keyid) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	keyEntry kent = getKeyEntry(keyid);
 	// xt_release(comp->keyb, &kent);
 	if (comp->hw->keyr)
@@ -426,7 +426,7 @@ void MainWin::xkey_release(int keyid) {
 }
 
 void MainWin::calcCoords(QMouseEvent* ev) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if ((drawW < 1) || (drawH < 1)) return;
 	int x = ((ev->xEventX - drawX) * comp->vid->vsze.x / drawW) + comp->vid->lcut.x - comp->vid->bord.x;
 	int y = ((ev->xEventY - drawY) * comp->vid->vsze.y / drawH) + comp->vid->lcut.y - comp->vid->bord.y;

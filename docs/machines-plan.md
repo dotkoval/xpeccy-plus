@@ -271,9 +271,9 @@ sdc  = no
 mouse = no
 
 [rom]                           # see section 6
-0 = 128-0.rom
-1 = 128-1.rom
-gs = gs105b.rom
+rom0 = 128-0.rom
+rom1 = 128-1.rom
+gs   = gs105b.rom
 ```
 
 ---
@@ -368,15 +368,15 @@ file":
 
 ```
 [rom]
-0 = 128-0.rom
-1 = 128-1.rom
+rom0 = 128-0.rom
+rom1 = 128-1.rom
 gs   = gs105b.rom       # General Sound, its own 32K space
 font = sgen.rom         # character generator, its own space
 ```
 
 A machine whose ROM comes as one combined dump names one file at bank 0
-(`0 = tsconf.rom`) and it fills as far as it reaches. The long form appends the part of the
-file to take, in KB - `2 = big-dump.rom:32:16` is "16K starting 32K into the file, at bank
+(`rom0 = tsconf.rom`) and it fills as far as it reaches. The long form appends the part of the
+file to take, in KB - `rom2 = big-dump.rom:32:16` is "16K starting 32K into the file, at bank
 2" - and is what the shipped definitions never use.
 
 ### 6.3 The two views
@@ -397,19 +397,19 @@ the machine:
 
 ```
 [rom]
-0 = 128p-0.rom
-1 = 128p-1.rom
-2 = gluck.rom
-3 = trdos504t.rom
+rom0 = 128p-0.rom
+rom1 = 128p-1.rom
+rom2 = gluck.rom
+rom3 = trdos504t.rom
 
 [rom.trdos503]
 name = TR-DOS 5.03
-3    = trdos.rom
+rom3 = trdos.rom
 ```
 
 A variant block lists only the banks it changes. In the UI this is one "ROM set" combo
 above the slot rows, holding the machine's variants; picking one refills the rows, and a
-row the user then changes by hand lands in their override block as `rom.3 = something.rom`.
+row the user then changes by hand lands in their override block as `rom3 = something.rom`.
 The global `[ROMSETS]` section goes away, and its editor becomes the Advanced view of 6.3.
 
 ### 6.5 Missing files
@@ -637,12 +637,15 @@ old. Anyone who actually wanted +2A paging was using the `+2A` profile, which is
 
 Each phase is meant to be shippable on its own.
 
-### Phase 0 - reference data
+### Phase 0 - reference data - DONE
 Build the machine reference table: for each machine, the correct CPU frequency, RAM sizes,
 video layout, contention pattern, port decode, sound chips, disk interface. Sources: the
 layouts already in `config.conf`, the wiki, and the raster-geometry notes in memory.
 
-### Phase 1 - machine list cleanup (core, independent of everything else)
+It is `docs/machines-reference.md`, and it is what phase 2 generates the shipped definitions
+from.
+
+### Phase 1 - machine list cleanup (core, independent of everything else) - DONE
 
 The point of this phase is to stop the machine list lying, once, so it never has to be
 revisited. Names and structure both.
@@ -674,7 +677,13 @@ revisited. Names and structure both.
   loop" notes rather than by reading the diff.
 - Test the `ZXONLY` toggle *in place*, both ways (`CLAUDE.md` -> "ZX-only build").
 
-### Phase 2 - machine definitions
+Beyond the list: the shipped profiles name the new cores, and `ZX Spectrum +2` moved onto the
+128K core with its own ROM set - 7.4 in profile form, so phase 3 has nothing left to decide
+there. `HW_PLUS2` is `HW_PLUS2A`. The core half of the alias table (7.6) is in
+`prfSetHardware()` (`xcore/profiles.cpp`), the one place a name from a file reaches the core,
+and where the profile-name half joins it in phase 3.
+
+### Phase 2 - machine definitions - DONE
 - The definition format and its loader (`src/xcore/machines.cpp`, `xMachine` in `xcore.h`),
   reading from Qt resources first and the user directory second.
 - Generate the shipped definitions from today's 15 machine profiles, cleaned per 3.2.
@@ -683,7 +692,33 @@ revisited. Names and structure both.
 - Seed data for CMOS/NVRAM into the resources (6.6), starting with the TSConf one.
 - Nothing observable changes yet: profiles still work, still load, still save.
 
-### Phase 3 - drop profiles
+The definitions are `res/machines/<id>.conf`, the seed is `res/nvram/evo-tsconf.cmos`, and
+the one thing reading them so far is the ROM preset button in Options. Five points where the
+format came out different from 4.3:
+
+- **The file name is the id**, so there is no `id` key to keep in step with it.
+- **A bank is `rom<N>`, not a bare number.** A number would have to be the "everything else"
+  branch of the parser, which quietly turns a mistyped key into bank 0; a named key can be
+  told apart from a mistake, and one gets a warning.
+- **No `sdc` key**: nothing in `Computer` says whether a card reader is fitted.
+- Added, because today's profiles vary them and they are machine traits: `reset` in
+  `[machine]`, `soundrive` in `[sound]`, `joy.buttons` in `[input]`.
+- **A child's `[rom]` block names the banks it changes**, on top of the set it inherits; the
+  parent's ROM *variants* are not inherited, since a variant belongs to the machine listing it.
+- **A `[rom.<variant>]` block is an overlay applied after the base set**, so a variant that is
+  one combined dump (`rom0 = plus3-41.rom`) covers the base banks by itself and needs no syntax
+  for clearing them.
+
+The machines with no definition - the non-ZX ones - keep a small ROM preset table of their
+own in `setupwin.cpp`, under `#ifndef XZXONLY`.
+
+Two notes for later phases. Phase 4 retires `xRomset`'s global list, and with it the overlap
+between `xRomset` and `xMachineRoms`. And phase 5 deletes the `xm_find_by_core()` call in
+`SetupWin::romPreset()` rather than extending it: a core does not say which machine is running,
+so the preset now offers the plain machine of that core - `ZX48` gives the 48K's one ROM, not
+the 48K + TR-DOS pair it used to.
+
+### Phase 3 - drop profiles - DONE
 - One `Computer` in the process. `conf.prof.cur->zx` -> the global; `brk`, `labsets`,
   `commap` -> `conf`.
 - Migration on first run: resolve each profile through the alias table (7.5), then write
@@ -693,6 +728,39 @@ revisited. Names and structure both.
   machine id; `-m` / `--machine` is the name from here on (decision 5).
 - CMOS and NVRAM move to `nvram/<id>.*` in the user directory (6.6).
 - `schema = 2` in `xpeccy.conf`, so a later change can migrate again.
+
+Where it came out differently from 4.2:
+
+- **The one user file is `config.conf`**, the name it already has, not `xpeccy.conf`. Renaming
+  it would have been a migration of its own for no gain, and `xpeccy.conf` was the *profile*
+  file name - reusing it right after dropping profiles is the confusing choice, not the tidy
+  one. The sections it grew are `[MACHINE.<id>]` and `[MEDIA]`.
+- **Overrides land in phase 3, not phase 4.** Migration has to keep what a user tuned, and
+  that only means anything if loading and saving already work in terms of "what differs from
+  the definition". So `xm_save()` diffs the live machine against its definition and writes
+  only the difference; a machine that matches its definition writes no block at all. What is
+  left for phase 4 is the `[ROMSETS]` and layout tables.
+- **A named romset that is the machine's own set is dropped on migration**, so the shipped
+  machines are not pinned to the old romset table and take a ROM fix from an update. An empty
+  `romset` means "the machine's own ROMs"; a name still points into `[ROMSETS]`.
+- The settings that sit on the `Computer` but belong to the user - what is mounted, the PSG
+  clock and stereo, mouse and keyboard preferences, the turbo multiplier, the watched ports -
+  are collected while the file is read and applied once the machine is up (`xm_defer()`), so
+  building the machine cannot wipe them.
+- The Machine page's own combo is the machine list, in the lineage order the cores are in,
+  and picking another machine loads it - definition, overrides, reset - and shows its
+  settings instead of writing the page's values over it. That also retires
+  `xm_find_by_core()`'s use in the ROM preset, which now knows the machine exactly, and the
+  small non-ZX preset table with it: a machine with no definition cannot be picked, so a
+  non-ZX build needs definitions before its machines come back (see 9.3).
+- The Options "Profiles" page is a second machine list for now, and its add / copy / delete
+  buttons are hidden. Phase 5 replaces the page.
+- `res/fallback/config.conf`, what a config directory is bootstrapped from, is schema 2 and
+  starts on `zx48` - the one machine whose ROM a bootstrapped directory has, since `48.rom`
+  is copied out of the resources beside it. `res/fallback/xpeccy.conf` was the profile half
+  of that pair and is gone.
+- `-p` resolves a name through `xm_id_for_name()`, which takes a machine id, the name an old
+  profile went by, or a machine's display name.
 
 ### Phase 4 - the file split
 - Machine keys move out of the user's file except as overrides.
@@ -740,7 +808,12 @@ so this is a filter over the existing format table keyed by the machine, not new
 The machine definition is the natural place for that list, which is one more reason the
 definitions should be easy to extend with a key.
 
-### 9.3 Per-machine media
+### 9.3 Bringing ALF TV-Game back
+The ALF core is still in the tree, but it is in `NONZX_SOURCES`, so the default build does not
+have it, and there is no profile for it either. Wanted back later, not now. Nothing here blocks
+it: the core exists, so it is a machine definition plus taking `alf.c` out of that list.
+
+### 9.4 Per-machine media
 If it turns out people want "the 48K remembers its tape and the TSConf remembers its
 image", that is media keyed by machine id in the override block - a small addition, to be
 made on evidence rather than upfront.

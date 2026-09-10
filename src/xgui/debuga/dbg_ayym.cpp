@@ -21,7 +21,7 @@ xAYWidget::xAYWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 }
 
 void xAYWidget::offChan(int st) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	aymChip* chp = comp->ts->chipA;
 	int chn = ui.sbChanNum->value();
 	chp->chanFM[chn].off = (st == Qt::Checked);
@@ -83,7 +83,7 @@ QString getOpStatusName(int id) {
 }
 
 void xAYWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	tsGetVolume(comp->ts);		// to update FM output value
 	aymChip* chp;
 	switch (ui.cbChipSelect->currentIndex()) {

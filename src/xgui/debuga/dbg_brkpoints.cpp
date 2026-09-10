@@ -14,8 +14,7 @@ xBreakListModel::xBreakListModel(QObject* par):xTableModel(par) {
 }
 
 int xBreakListModel::rowCount(const QModelIndex&) const {
-	if (!conf.prof.cur) return 0;
-	return conf.prof.cur->brk.list.size();
+		return conf.brk.list.size();
 }
 
 int xBreakListModel::columnCount(const QModelIndex&) const {
@@ -71,7 +70,7 @@ QVariant xBreakListModel::data(const QModelIndex& idx, int role) const {
 	int col = idx.column();
 	if ((col < 0) || (col >= columnCount())) return res;
 	if ((row < 0) || (row >= rowCount())) return res;
-	xBrkPoint brk = conf.prof.cur->brk.list[row];
+	xBrkPoint brk = conf.brk.list[row];
 	switch (role) {
 		case Qt::CheckStateRole:
 			switch(col) {
@@ -132,15 +131,14 @@ bool xbsName(const xBrkPoint bpa, const xBrkPoint bpb) {
 bool xbsCond(const xBrkPoint bpa, const xBrkPoint bpb) {return (bpa.cond < bpb.cond);}
 
 void xBreakListModel::sort(int col, Qt::SortOrder ord) {
-	if (!conf.prof.cur) return;
-	switch(col) {
-		case 0: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsOff); break;
-		case 1: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsFe); break;
-		case 2: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsRd); break;
-		case 3: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsWr); break;
-		case 4: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsName); break;
-		case 5: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsCond); break;
-		case 6: std::sort(conf.prof.cur->brk.list.begin(), conf.prof.cur->brk.list.end(), xbsCnt); break;
+		switch(col) {
+		case 0: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsOff); break;
+		case 1: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsFe); break;
+		case 2: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsRd); break;
+		case 3: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsWr); break;
+		case 4: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsName); break;
+		case 5: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsCond); break;
+		case 6: std::sort(conf.brk.list.begin(), conf.brk.list.end(), xbsCnt); break;
 	}
 	emit dataChanged(index(0,0), index(rowCount() - 1, columnCount() - 1));
 }
@@ -256,8 +254,7 @@ void xBreakTable::onCellClick(QModelIndex idx) {
 	if (!idx.isValid()) return;
 	int row = idx.row();
 	int col = idx.column();
-	xProfile* prf = conf.prof.cur;
-	xBrkPoint* brk = &prf->brk.list[row];
+	xBrkPoint* brk = &conf.brk.list[row];
 	// no checkbox means the flag doesn't apply here (or the column isn't one) - a click does nothing
 	if (!idx.data(Qt::CheckStateRole).isValid()) return;
 	switch(col) {
@@ -266,7 +263,7 @@ void xBreakTable::onCellClick(QModelIndex idx) {
 		case 2: brk->read ^= 1; break;
 		case 3: brk->write ^= 1; break;
 	}
-	// brkInstall(prf->brk.list[row], 0);
+	// brkInstall(conf.brk.list[row], 0);
 	brkInstallAll();
 	model->updateCell(row, col);
 	emit rqDasmDump();
@@ -275,12 +272,12 @@ void xBreakTable::onCellClick(QModelIndex idx) {
 void xBreakTable::onDoubleClick(QModelIndex idx) {
 	if (!idx.isValid()) return;
 	int row = idx.row();
-	xBrkPoint bp = conf.prof.cur->brk.list[row];
+	xBrkPoint bp = conf.brk.list[row];
 	int adr = -1;
 	switch(bp.type) {
 		case BRK_CPUADR: adr = bp.adr; break;
-		case BRK_MEMRAM: adr = memFindAdr(conf.prof.cur->zx->mem, MEM_RAM, bp.adr); break;
-		case BRK_MEMROM: adr = memFindAdr(conf.prof.cur->zx->mem, MEM_ROM, bp.adr); break;
+		case BRK_MEMRAM: adr = memFindAdr(conf.zx->mem, MEM_RAM, bp.adr); break;
+		case BRK_MEMROM: adr = memFindAdr(conf.zx->mem, MEM_ROM, bp.adr); break;
 	}
 	if (adr < 0) return;
 	emit rqDisasm(adr);
@@ -424,7 +421,7 @@ void xBrkManager::setElements(int mask) {
 // bus, a memory cell one by the size of ram/rom/slot
 
 void xBrkManager::setLimits(int t) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int max;
 	switch (t) {
 		case BRK_CPUADR:
@@ -652,7 +649,7 @@ void xBreakWidget::editBrk() {
 	QModelIndexList idxl = ui.bpList->selectionModel()->selectedRows();
 	if (idxl.size() < 1) return;
 	int row = idxl.first().row();
-	xBrkPoint* brk = &conf.prof.cur->brk.list[row];
+	xBrkPoint* brk = &conf.brk.list[row];
 	brkManager->edit(brk);
 }
 
@@ -673,7 +670,7 @@ void xBreakWidget::delBrk() {
 	QModelIndex idx;
 	xBrkPoint brk;
 	foreach(idx, idxl) {
-		brk = conf.prof.cur->brk.list[idx.row()];
+		brk = conf.brk.list[idx.row()];
 		brkDelete(brk);
 	}
 	ui.bpList->update();
@@ -684,8 +681,8 @@ void xBreakWidget::resetBrk() {
 	QModelIndexList idxl = ui.bpList->selectionModel()->selectedRows();
 	QModelIndex idx;
 	foreach(idx, idxl) {
-		conf.prof.cur->brk.list[idx.row()].hits = 0;
-		conf.prof.cur->brk.list[idx.row()].count = 0;
+		conf.brk.list[idx.row()].hits = 0;
+		conf.brk.list[idx.row()].count = 0;
 	}
 	ui.bpList->update();
 	emit updated();		// fill disasm/dump

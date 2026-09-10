@@ -40,8 +40,7 @@ static bool header_done = false;
 // The emulated clock for the F and T columns: frames since reset, T since the
 // last interrupt. Called for every line, from either thread.
 static void emu_time(int* frame, int* tick) {
-	xProfile* prf = conf.prof.cur;
-	Computer* comp = prf ? prf->zx : NULL;
+	Computer* comp = conf.zx;
 	if (!comp) return;
 	*frame = comp->frmCount;
 	*tick = comp->frmtCount;
@@ -251,7 +250,7 @@ static void write_header() {
 #endif
 	put(QString("screen: %1").arg(screen_line()));
 	put(QString("config: %1").arg(QString::fromStdString(conf.path.confDir)));
-	put(QString("profile: %1").arg(conf.prof.cur ? QString::fromStdString(conf.prof.cur->name) : QString("none")));
+	put(QString("machine: %1").arg(QString::fromStdString(conf.macName)));
 	QString lvls;
 	for (int i = 0; i < XLG_COUNT; i++)
 		lvls += QString("%1%2:%3").arg(i ? " " : "").arg(xlog_group_name(i)).arg(xlog_level_name(xlog_lev[i]));

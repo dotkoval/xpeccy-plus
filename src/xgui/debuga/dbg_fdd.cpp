@@ -9,7 +9,7 @@ xFDDWidget::xFDDWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 }
 
 void xFDDWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	ui.fdcBusyL->setText(comp->dif->fdc->idle ? "0" : "1");
 	ui.fdcComL->setText(comp->dif->fdc->idle ? "--" : gethexbyte(comp->dif->fdc->com));
 	ui.fdcIrqL->setText(comp->dif->fdc->irq ? "1" : "0");

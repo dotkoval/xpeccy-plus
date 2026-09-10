@@ -37,7 +37,7 @@ QString getDumpString(QByteArray bts, int cp) {
 }
 
 int xDumpModel::mrd(int adr) const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	MemPage* pg;
 	int fadr;
 	int res = 0xff;
@@ -74,7 +74,7 @@ int xDumpModel::mrd(int adr) const {
 }
 
 void xDumpModel::mwr(int adr, unsigned char bt) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	MemPage* pg;
 	int fadr;
 	if (comp->cpu->core->group == CPUG_X86) {
@@ -241,21 +241,21 @@ QVariant xDumpModel::data(const QModelIndex& idx, int role) const {
 			break;
 		case Qt::DisplayRole:
 			if (col == 0) {
-				if (conf.prof.cur->zx->cpu->core->group == CPUG_X86) {
+				if (conf.zx->cpu->core->group == CPUG_X86) {
 					adr %= maxadr;
 					if (!conf.dbg.segment) {
 						res = QString::number(adr, 16).toUpper().rightJustified(6 , '0');
-					} else if (check_seg(adr, conf.prof.cur->zx->cpu->cs)) {
-						adr -= conf.prof.cur->zx->cpu->cs.base;
+					} else if (check_seg(adr, conf.zx->cpu->cs)) {
+						adr -= conf.zx->cpu->cs.base;
 						res = QString("CS:").append(gethexword(adr & 0xffff));
-					} else if (check_seg(adr, conf.prof.cur->zx->cpu->ss)) {
-						adr -= conf.prof.cur->zx->cpu->ss.base;
+					} else if (check_seg(adr, conf.zx->cpu->ss)) {
+						adr -= conf.zx->cpu->ss.base;
 						res = QString("SS:").append(gethexword(adr & 0xffff));
-					} else if (check_seg(adr, conf.prof.cur->zx->cpu->ds)) {
-						adr -= conf.prof.cur->zx->cpu->ds.base;
+					} else if (check_seg(adr, conf.zx->cpu->ds)) {
+						adr -= conf.zx->cpu->ds.base;
 						res = QString("DS:").append(gethexword(adr & 0xffff));
-					} else if (check_seg(adr, conf.prof.cur->zx->cpu->es)) {
-						adr -= conf.prof.cur->zx->cpu->es.base;
+					} else if (check_seg(adr, conf.zx->cpu->es)) {
+						adr -= conf.zx->cpu->es.base;
 						res = QString("ES:").append(gethexword(adr & 0xffff));
 					} else {
 						res = QString::number(adr, 16).toUpper().rightJustified(6 , '0');
@@ -265,9 +265,9 @@ QVariant xDumpModel::data(const QModelIndex& idx, int role) const {
 					if ((mode == XVIEW_RAM) || (mode == XVIEW_ROM)) {
 						adr %= pgsize;
 						adr += pgbase;
-						str = QString::number(page, conf.prof.cur->zx->hw->base).toUpper().rightJustified(2, '0').append(":");
+						str = QString::number(page, conf.zx->hw->base).toUpper().rightJustified(2, '0').append(":");
 					}
-					str.append(QString::number(adr, conf.prof.cur->zx->hw->base).toUpper().rightJustified((conf.prof.cur->zx->hw->base == 16) ? 4 : 6, '0'));
+					str.append(QString::number(adr, conf.zx->hw->base).toUpper().rightJustified((conf.zx->hw->base == 16) ? 4 : 6, '0'));
 					res = str;
 				}
 			} else if (col == 17) {
@@ -314,7 +314,7 @@ bool xDumpModel::setData(const QModelIndex& idx, const QVariant& val, int role) 
 	unsigned char bt;
 	QString str = val.toString();
 	if (col == 0) {
-		fadr = str_to_adr(conf.prof.cur->zx, str);
+		fadr = str_to_adr(conf.zx, str);
 		if (fadr >= 0) {
 			dmpadr = (fadr - row * dmpsize) % maxadr;
 			update();
@@ -521,7 +521,7 @@ extern int dbg_get_reg_adr_name(CPU*, const char*);
 // go to the address a register pair holds, the way a right click on its name does
 
 void xDumpTable::gotoReg(const char* name) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (!comp) return;
 	int adr = dbg_get_reg_adr_name(comp->cpu, name);
 	if (adr < 0) return;
@@ -768,7 +768,7 @@ void xDumpWidget::setLimit(int lim) {
 
 void xDumpWidget::customMenu() {
 	int adr = ui.dumpTable->getCurrentAdr();
-	unsigned char flag = getBrk(conf.prof.cur->zx, adr);
+	unsigned char flag = getBrk(conf.zx, adr);
 	ui.actFetch->setChecked(flag & MEM_BRK_FETCH);
 	ui.actRead->setChecked(flag & MEM_BRK_RD);
 	ui.actWrite->setChecked(flag & MEM_BRK_WR);
@@ -779,7 +779,7 @@ void xDumpWidget::customMenu() {
 void xDumpWidget::customMenuAction(QAction* act) {
 	int bt = 0;
 	xAdr xadr;
-	Memory* mem = conf.prof.cur->zx->mem;
+	Memory* mem = conf.zx->mem;
 	int adr = ui.dumpTable->getCurrentAdr();
 	if (ui.actFetch->isChecked()) bt |= MEM_BRK_FETCH;
 	if (ui.actRead->isChecked()) bt |= MEM_BRK_RD;
@@ -859,7 +859,7 @@ void xDumpWidget::refill() {
 	int page = ui.sbDumpPage->value();
 	int pbase = ui.leDumpPageBase->getValue();
 	int psize;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (mode == XVIEW_CPU) {
 		psize = (1 << comp->hw->adrbus); // (comp->hw->id == HW_IBM_PC) ? MEM_4M : MEM_64K;
 	} else {

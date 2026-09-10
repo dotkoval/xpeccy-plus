@@ -43,7 +43,7 @@ void help() {
 	printf("-s | --size {1..6}\tset window size x1..x6.\n");
 	printf("-n | --noflick {0..100}\tset noflick level\n");
 	printf("-r | --ratio {0|1}\tset 'keep aspect ratio' property\n");
-	printf("-p | --profile NAME\tset current profile\n");
+	printf("-m | --machine ID\tstart this machine (-p is the old name for it)\n");
 	printf("-b | --bank NUM\t\tset rampage NUM to #c000 memory window\n");
 	printf("-a | --adr ADR\t\tset loading address (see -f below)\n");
 	printf("-f | --file NAME\tload binary file to address defined by -a (see above)\n");
@@ -103,8 +103,8 @@ bool xApp::eventFilter(QObject* obj, QEvent* ev) {
 // A document the os hands over. Two ways in: the event itself, and the one kept
 // back until there was a machine to load it into.
 static void open_os_file(const QString& path) {
-	load_file(conf.prof.cur->zx, path.toLocal8Bit().data(), FG_ALL, 0);
-	media_autorun(conf.prof.cur->zx, conf.autorun);
+	load_file(conf.zx, path.toLocal8Bit().data(), FG_ALL, 0);
+	media_autorun(conf.zx, conf.autorun);
 }
 
 // for apple users
@@ -117,7 +117,7 @@ bool xApp::event(QEvent* ev) {
 			path = fev->file();		// the url's path is still percent-encoded
 			if (path.isEmpty())
 				path = fev->url().toLocalFile();
-			if (conf.prof.cur)
+			if (conf.zx)
 				open_os_file(path);
 			else
 				pendingFile = path;	// no machine yet: main() picks it up
@@ -346,26 +346,33 @@ int main(int ac,char** av) {
 			style = 1;
 #endif
 		} else if (i < ac) {
-			if (!strcmp(parg,"-p") || !strcmp(parg,"--profile")) {
-				prfSetCurrent(av[i]);
+			if (!strcmp(parg,"-m") || !strcmp(parg,"--machine")
+				|| !strcmp(parg,"-p") || !strcmp(parg,"--profile")) {
+				// -p is what the profiles answered to, so the name a profile
+				// went by still names its machine
+				std::string mid = xm_id_for_name(av[i]);
+				if (mid.empty()) {
+					xlog(XLG_APP, XLL_ERROR, "no such machine: %s", av[i]);
+				} else {
+					xm_set(mid);
+				}
 				mwin.onPrfChange();
 				dbgw.onPrfChange();
-				//mwin.setProfile(std::string(av[i]));
 				i++;
 			} else if (!strcmp(parg,"--pc")) {
-				conf.prof.cur->zx->cpu->regPC = strtol(av[i],NULL,0) & 0xffff;
+				conf.zx->cpu->regPC = strtol(av[i],NULL,0) & 0xffff;
 				i++;
 			} else if (!strcmp(parg,"--sp")) {
-				conf.prof.cur->zx->cpu->regSP = strtol(av[i],NULL,0) & 0xffff;
+				conf.zx->cpu->regSP = strtol(av[i],NULL,0) & 0xffff;
 				i++;
 			} else if (!strcmp(parg,"-b") || !strcmp(parg,"--bank")) {
-				memSetBank(conf.prof.cur->zx->mem, 0xc0, MEM_RAM, strtol(av[i],NULL,0), MEM_16K, NULL, NULL, NULL);
+				memSetBank(conf.zx->mem, 0xc0, MEM_RAM, strtol(av[i],NULL,0), MEM_16K, NULL, NULL, NULL);
 				i++;
 			} else if (!strcmp(parg,"-a") || !strcmp(parg,"--adr")) {
 				adr = strtol(av[i],NULL,0) & 0xffff;
 				i++;
 			} else if (!strcmp(parg,"-f") || !strcmp(parg,"--file")) {
-				loadDUMP(conf.prof.cur->zx, av[i], adr);
+				loadDUMP(conf.zx, av[i], adr);
 				i++;
 			} else if (!strcmp(parg,"--bp")) {
 				xadr = find_label(av[i]);
@@ -402,7 +409,7 @@ int main(int ac,char** av) {
 				conf.vid.fullScreen = atoi(av[i]) ? 1 : 0;
 				i++;
 			} else if (!strcmp(parg, "--sdcard")) {
-				sdc_mount(conf.prof.cur->zx->sdc, QString::fromLocal8Bit(av[i]));
+				sdc_mount(conf.zx->sdc, QString::fromLocal8Bit(av[i]));
 				i++;
 			} else if (!strcmp(parg, "--disk")) {
 				parg = av[i];
@@ -421,15 +428,15 @@ int main(int ac,char** av) {
 			} else if (!strcmp(parg, "--confdir")) {
 				i++;		// handled before conf_init above
 			} else if (strlen(parg) > 0) {
-				load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
+				load_file(conf.zx, parg, FG_ALL, drv);
 			}
 		} else if (strlen(parg) > 0) {
-			load_file(conf.prof.cur->zx, parg, FG_ALL, drv);
+			load_file(conf.zx, parg, FG_ALL, drv);
 		}
 	}
 	// tape or disk from the command line: mounting is not enough, so press
 	// what the user would press by hand. Here, after every option is known
-	media_autorun(conf.prof.cur->zx, astart);
+	media_autorun(conf.zx, astart);
 
 	// a document macOS handed over before there was a machine to load it into
 	if (!app.pendingFile.isEmpty()) {

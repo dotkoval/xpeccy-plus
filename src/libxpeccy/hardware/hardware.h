@@ -11,17 +11,18 @@ extern "C" {
 enum {
 	HW_NULL = 0,
 	HW_DUMMY,	// nothing-to-do-here
-	HW_ZX48,	// ZX48K (Classic)
+	HW_ZX48,	// ZX Spectrum 48K
+	HW_ZX128,	// ZX Spectrum 128K (and the grey +2, which is one)
 	HW_PENT,	// Pentagon
 	HW_P1024,	// Pentagon1024SL
 	HW_SCORP,	// ZS Scorpion
-	HW_PLUS2,	// Spectrum 2+
-	HW_PLUS3,	// Spectrum 3+
+	HW_PLUS2A,	// ZX Spectrum +2A
+	HW_PLUS3,	// ZX Spectrum +3
 	HW_ATM1,	// ATM 1
 	HW_ATM2,	// ATM 2+
-	HW_PENTEVO,	// ZXEvo (Baseconf)
-	HW_PENTEVO21,	// Baseconf after 2021
-	HW_TSLAB,	// PentEvo (TSConf)
+	HW_PENTEVO,	// ZX Evolution (BaseConf)
+	HW_PENTEVO21,	// ZX Evolution (BaseConf after 2021)
+	HW_TSLAB,	// ZX Evolution (TSConf)
 	HW_PROFI,	// Profi
 	HW_PHOENIX,	// ZXM Phoenix
 	HW_ALF,		// ALF (ZX48K-like console)
@@ -173,6 +174,7 @@ int xInFFDF(Computer*, int);
 // common_zx calls
 void zx_init(Computer*);
 void zx_reset(Computer*);
+void zx128_map_mem(Computer*, int);	// 128K paging, shared with the Pentagon; arg is the bank extension mask
 void zx_set_vmode(Computer*);	// pick the screen drawer for this ula
 void zx_keyp(Computer*, keyEntry*);
 void zx_keyr(Computer*, keyEntry*);

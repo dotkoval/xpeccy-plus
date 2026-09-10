@@ -58,8 +58,8 @@ int brd_mode_pcnt(int pcnt) {
 // ratio' stretches it to fill.
 void vid_upd_scale() {
 	QSize scrsz;
-	Video* vid = conf.prof.cur->zx->vid;
-	double xscale = conf.prof.cur->zx->hw->xscale;		// BK is 2 pixels wide per dot
+	Video* vid = conf.zx->vid;
+	double xscale = conf.zx->hw->xscale;		// BK is 2 pixels wide per dot
 	int dwid;
 	int dhei;
 	vid_upd_crop(vid);					// the frame the border size asks for
@@ -118,7 +118,7 @@ int brd_mode_for(Computer* comp, int mode) {
 }
 
 void vid_set_border_mode(int mode) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	conf.vid.border = mode;
 	vid_set_border(comp->vid, brd_mode_for(comp, mode));
 	vid_upd_scale();

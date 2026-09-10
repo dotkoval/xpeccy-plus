@@ -29,7 +29,7 @@ QStringList filter(QStringList lst, QString f) {
 void xLabelistModel::reset(QString f) {
 	// list = conf.labels.keys().filter(f, Qt::CaseInsensitive);
 	fstr = f;
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (set) {
 		list = filter(set->list.keys(), f);
 //		list.sort();		// useless
@@ -64,7 +64,7 @@ QVariant xLabelistModel::data(const QModelIndex& idx, int role) const {
 			str = list.at(row);
 			xadr = find_label(str);
 			if (cpuMode) {
-				zadr = memFindAdr(conf.prof.cur->zx->mem, xadr.type, xadr.abs);
+				zadr = memFindAdr(conf.zx->mem, xadr.type, xadr.abs);
 				if (zadr < 0) {
 					adrstr = QString("%0:%1").arg(gethexbyte(xadr.abs >> 14), gethexword(xadr.abs & 0x3fff));
 					pref = true;
@@ -136,7 +136,7 @@ void xLabeList::newGroup() {
 }
 
 void xLabeList::editGroup() {
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (!set) return;
 	QString str = QInputDialog::getText(this, "Input name", "Set name",QLineEdit::Normal,set->name);
 	if (str.isEmpty()) return;
@@ -146,7 +146,7 @@ void xLabeList::editGroup() {
 }
 
 void xLabeList::delGroup() {
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (!set) return;
 	if (!areSure("Do you want to delete this labelset?")) return;
 	delLabelSet(set->name);
@@ -158,11 +158,11 @@ void xLabeList::delGroup() {
 void xLabeList::fillSetList() {
 	ui.cbLabelSet->blockSignals(true);		// prevent index changing -> slot calling -> current labset changing
 	ui.cbLabelSet->clear();
-	foreach(xLabelSet* set, conf.prof.cur->labsets) {
+	foreach(xLabelSet* set, conf.labsets) {
 		ui.cbLabelSet->addItem(set->name, set->name);
 	}
-	if (conf.prof.cur->curlabset) {
-		setRFIndex(ui.cbLabelSet, conf.prof.cur->curlabset->name, 0);
+	if (conf.curlabset) {
+		setRFIndex(ui.cbLabelSet, conf.curlabset->name, 0);
 	} else {
 		ui.cbLabelSet->setCurrentIndex(-1);
 	}

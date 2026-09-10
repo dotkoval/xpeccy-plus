@@ -391,7 +391,7 @@ xExpr xexpr_compile(const char* src) {
 	res.src = src;
 	prs.src = src;
 	prs.ptr = src;
-	prs.comp = conf.prof.cur ? conf.prof.cur->zx : NULL;
+	prs.comp = conf.zx;
 	prs.errpos = -1;
 	prs.code = &res.code;
 	xe_skip(&prs);
@@ -658,7 +658,7 @@ xResult xEval(const char* ptr, int) {
 		res.err = 1;
 		res.value = 0;
 	} else {
-		res.value = xexpr_eval(exp, conf.prof.cur ? conf.prof.cur->zx : NULL, &err);
+		res.value = xexpr_eval(exp, conf.zx, &err);
 		res.err = err ? 1 : 0;
 	}
 	return res;

@@ -565,12 +565,12 @@ int xDisasmModel::fill() {
 	dasmData drow;
 	QList<dasmData> list;
 	int row;
-	int adr = asmadr;		// (disasmAdr & 0xffff) + conf.prof.cur->zx->cpu->cs.base;
+	int adr = asmadr;		// (disasmAdr & 0xffff) + conf.zx->cpu->cs.base;
 	int res = 0;
 	dasm.clear();
 	for(row = 0; row < rowCount(); row++) {
-		adr &= conf.prof.cur->zx->mem->busmask;
-		list = getDisasm(conf.prof.cur->zx, adr);
+		adr &= conf.zx->mem->busmask;
+		list = getDisasm(conf.zx, adr);
 		foreach (drow, list) {
 			if (dasm.size() < rowCount()) {
 				dasm.append(drow);
@@ -588,9 +588,9 @@ int xDisasmModel::fill() {
 int xDisasmModel::update_lst() {
 	int res = fill();
 	int i;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int pc = cpu_get_pc(comp->cpu);
-	xMnem mnm = cpuDisasm(comp->cpu, pc + comp->cpu->cs.base, NULL, dasmrd, conf.prof.cur->zx);
+	xMnem mnm = cpuDisasm(comp->cpu, pc + comp->cpu->cs.base, NULL, dasmrd, conf.zx);
 	if (mnm.cond && mnm.met) {
 		for (i = 0; i < dasm.size(); i++) {
 			if ((dasm[i].adr == mnm.oadr) && (mnm.oadr != pc)) {
@@ -771,7 +771,7 @@ bool xDisasmModel::setData(const QModelIndex& cidx, const QVariant& val, int rol
 	int len;
 	QString str;
 	int adr = dasm[row].adr;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	xAdr xadr = mem_get_xadr(comp->mem, adr);
 	switch(col) {
 		case 0:
@@ -1033,7 +1033,7 @@ void xDisasmTable::setAdr(int adr, int hist) {
 	if (hist)
 		pushHistory(model->asmadr);
 	int oadr = model->asmadr;
-	model->asmadr = adr & conf.prof.cur->zx->mem->busmask;
+	model->asmadr = adr & conf.zx->mem->busmask;
 	if (oadr != model->asmadr) {
 		updContent();
 		emit s_adrch(model->asmadr);
@@ -1110,9 +1110,9 @@ void xDisasmTable::copyToCbrd() {
 	int work = 1;
 	str = "\tORG 0x" + QString::number(adr, 16).toUpper() + "\n";
 	while ((adr <= end) && work) {
-		dasm = getDisasm(conf.prof.cur->zx, adr);
+		dasm = getDisasm(conf.zx, adr);
 		foreach (drow, dasm) {
-			if (adr > conf.prof.cur->zx->mem->busmask)
+			if (adr > conf.zx->mem->busmask)
 				work = 0;		// address overfill (FFFF+)
 			if (drow.isequ) {
 				str += drow.aname + ":";
@@ -1184,7 +1184,7 @@ void xDisasmTable::keyPressEvent(QKeyEvent* ev) {
 		key = shortcut_check(SCG_DISASM, QKeySequence(ev->key()));
 	if (key < 0)
 		key = ev->key();
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int pc = cpu_get_pc(comp->cpu);
 	switch (key) {
 		case Qt::Key_Up:
@@ -1431,7 +1431,7 @@ void xDisasmTable::scrolDn(Qt::KeyboardModifiers mod) {
 		if (i < model->dasm.size()) {
 			adr = model->dasm[i].adr;
 		} else {
-			adr = model->asmadr + dasmSome(conf.prof.cur->zx, model->asmadr, d);
+			adr = model->asmadr + dasmSome(conf.zx, model->asmadr, d);
 			// model->asmadr++;
 		}
 	}
@@ -1445,7 +1445,7 @@ void xDisasmTable::scrolUp(Qt::KeyboardModifiers mod) {
 	if (mod & Qt::ControlModifier) {
 		adr = model->asmadr - 1;
 	} else {
-		adr = getPrevAdr(conf.prof.cur->zx, model->asmadr);
+		adr = getPrevAdr(conf.zx, model->asmadr);
 	}
 	setAdr(adr, 0);
 //	updContent();

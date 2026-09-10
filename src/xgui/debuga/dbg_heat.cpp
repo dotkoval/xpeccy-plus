@@ -87,7 +87,7 @@ xHeatView::xHeatView(QWidget* par):QWidget(par) {
 // the cpu space is shown as blocks when it really is four 16K slots: a machine
 // with a wider bus keeps the plain raster
 bool xHeatView::blockView() const {
-	return (mode == XVIEW_CPU) && (conf.prof.cur->zx->mem->busmask == 0xffff);
+	return (mode == XVIEW_CPU) && (conf.zx->mem->busmask == 0xffff);
 }
 
 QSize xHeatView::minimumSizeHint() const {
@@ -124,7 +124,7 @@ int xHeatView::getTop() const {
 }
 
 int xHeatView::rowsTotal() const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int size = (mode == XVIEW_CPU) ? (comp->mem->busmask + 1) : MEM_16K;
 	return size / HEAT_BPR;
 }
@@ -188,7 +188,7 @@ bool xHeatView::fits(int extra) const {
 // counters of one cell, by its offset inside the current source. a block cell
 // stands for a group of bytes and answers with their sum
 xHeatCell xHeatView::cellData(int off) const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (blockView()) {
 		xAdr xadr = mem_get_xadr(comp->mem, off);
 		return heat_sum(comp, xadr.type, xadr.abs);
@@ -202,7 +202,7 @@ xHeatCell xHeatView::cellData(int off) const {
 // pgshift is never below 8 - so one page lookup serves all 256 of them, which
 // is what keeps the whole-source scan below off the page-lookup path
 void xHeatView::rowSource(int row, int* type, int* base) const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int off = row * HEAT_BPR;
 	if (mode == XVIEW_CPU) {
 		xAdr xadr = mem_get_xadr(comp->mem, off);
@@ -216,7 +216,7 @@ void xHeatView::rowSource(int row, int* type, int* base) const {
 
 // one cell per byte, coloured the same way the block view colours a group
 QImage xHeatView::raster(int rows, QRgb none) const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	QImage img(HEAT_BPR, rows, QImage::Format_RGB32);
 	int type, base, x, y;
 	xHeatCell cell;
@@ -278,7 +278,7 @@ int xHeatView::blkAt(const QPoint& pos) const {
 }
 
 void xHeatView::paintBlocks(QPainter& pnt, QRgb none) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	xBlkGeom g = blkGeom();
 	int bw = HEAT_BLKDIM * g.cs;
 	// once a cell is big enough to have an inside, leave a gap along its right
@@ -326,7 +326,7 @@ void xHeatView::paintBlocks(QPainter& pnt, QRgb none) {
 
 // nothing is being counted: say so over whichever picture is up
 void xHeatView::paintOffHint(QPainter& pnt, const QRect& box) const {
-	if (conf.prof.cur->zx->flgHEAT) return;
+	if (conf.zx->flgHEAT) return;
 	pnt.setPen(HEAT_COL_HINT);
 	pnt.drawText(box, Qt::AlignCenter, "collecting is off");
 }
@@ -405,7 +405,7 @@ void xHeatView::mouseMoveEvent(QMouseEvent* ev) {
 		emit s_cell(QString(), nocell);
 		return;
 	}
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	QString str;
 	if (mode == XVIEW_CPU) {
 		xAdr xadr = mem_get_xadr(comp->mem, off);
@@ -439,7 +439,7 @@ void xHeatView::leaveEvent(QEvent*) {
 void xHeatView::mouseDoubleClickEvent(QMouseEvent* ev) {
 	int off = cellAt(ev->pos());
 	if (off < 0) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (mode == XVIEW_CPU) {
 		emit s_adr(off);
 	} else {
@@ -588,7 +588,7 @@ xHeatWidget::xHeatWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 
 // pages the current machine has in the bank being shown
 int xHeatWidget::pageMax() const {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int size = (getRFIData(ui.cbHeatView) == XVIEW_ROM) ? (comp->mem->romMask + 1) : (comp->mem->ramMask + 1);
 	int cnt = size / MEM_16K;
 	return (cnt > 0) ? (cnt - 1) : 0;
@@ -609,7 +609,7 @@ void xHeatWidget::opts_changed() {
 }
 
 void xHeatWidget::collect_toggle(bool on) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	comp->flgHEAT = on ? 1 : 0;
 	if (on) comp_heat_sync(comp);		// banks may not match the current hardware yet
 	view->update();
@@ -617,7 +617,7 @@ void xHeatWidget::collect_toggle(bool on) {
 
 void xHeatWidget::counters_reset() {
 	if (!areSure("Reset memory heat-map counters?")) return;
-	comp_heat_reset(conf.prof.cur->zx);
+	comp_heat_reset(conf.zx);
 	view->update();
 }
 
@@ -626,7 +626,7 @@ void xHeatWidget::counters_export() {
 	if (path.isEmpty()) return;
 	if (!path.endsWith(".csv", Qt::CaseInsensitive))
 		path.append(".csv");
-	if (comp_heat_save(conf.prof.cur->zx, path.toLocal8Bit().data()) != 0)
+	if (comp_heat_save(conf.zx, path.toLocal8Bit().data()) != 0)
 		shitHappens("Can't write heat-map file");
 }
 
@@ -654,7 +654,7 @@ void xHeatWidget::sync_scroll() {
 }
 
 void xHeatWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	ui.cbHeatOn->blockSignals(true);
 	ui.cbHeatOn->setChecked(comp->flgHEAT);
 	ui.cbHeatOn->blockSignals(false);

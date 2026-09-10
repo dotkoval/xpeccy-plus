@@ -211,68 +211,30 @@ int brk_save_list(const char*);
 void emu_lock();
 void emu_unlock();
 
-// profiles
+// the running machine
 
-typedef struct {
-	unsigned initrq:1;		// must be initialized
-	std::string name;
- 	std::string file;		// config file
-	std::string layName;		// screen layout
-	std::string hwName;		// hardware
-	std::string rsName;		// romset
-	std::string jmapNameA;		// joysticks
-	std::string jmapNameB;
-	std::string kmapName;		// keymap
-	std::string lastDir;
-	std::string palette;
-	struct {
-		std::vector<xBrkPoint> list;
-		std::vector<xBrkPoint> list_sys;
-		std::map<int, std::map<int, xBrkPoint*> > map;		// [memtype][addr] = pointer
-	} brk;
-	Computer* zx;
-	QMap<int, QMap<int, QString> > commap;	// comments: [memtype][addr] = string
-	QMap<int, QMap<int, QString> > labmap;	// [memtype][addr] = name
-	QList<xLabelSet*> labsets;
-	xLabelSet* curlabset;			// curlabset->list = labels
-} xProfile;
+// switch to a machine by id, building it from its definition and the user's
+// own overrides on top
+bool xm_set(std::string);
+void xm_set_romset(std::string);
+bool xm_set_layout(std::string);
+int xm_set_hardware(std::string);
 
-#define	DELP_ERR	-1
-#define	DELP_OK		0
-#define	DELP_OK_CURR	1
-
-xProfile* findProfile(std::string);
-xProfile* addProfile(std::string,std::string);
-int delProfile(std::string);
-int copyProfile(std::string, std::string);
-void clearProfiles();
-void prfLoadAll();
-bool prfSetCurrent(std::string);
-void prfSetRomset(xProfile*, std::string);
-bool prfSetLayout(xProfile*, std::string);
-int prfSetHardware(xProfile*, std::string);
-
-void prfChangeRsName(std::string, std::string);
-void prfChangeLayName(std::string, std::string);
-
-//void prfFillBreakpoints(xProfile*);
-
-#define	PLOAD_OK	0
-#define	PLOAD_NF	1
-#define	PLOAD_OF	2
-#define	PLOAD_HW	3
-#define	PLOAD_RS	4
-
-int prfLoad(std::string);
+// what the user changed, per machine id, and what is mounted
+void xm_over_clear();
+void xm_over_add(const std::string&, const std::string&, const std::string&);
+void xm_defer(const std::string&, const std::string&);
+bool xm_migrate(const std::string&, const std::string&);
+std::string xm_id_for_name(const std::string&);
+void xm_finish_load();
+void xm_load_nvram();
+void xm_save_nvram();
+void xm_save(FILE*);
+void xm_save_media(FILE*);
+std::string getDiskString(Floppy*);
 
 QStringList getWatchPorts(Computer*, int = 1);
 void setWatchPorts(Computer*, QStringList);
-
-#define PSAVE_OK	PLOAD_OK
-#define	PSAVE_NF	PLOAD_NF
-#define	PSAVE_OF	PLOAD_OF
-
-int prfSave(std::string = "");
 
 //screenshot format
 #define	SCR_BMP		1
@@ -285,7 +247,7 @@ int prfSave(std::string = "");
 void conf_init(char*, char* confdir = NULL);
 QList<QColor> loadColors(std::string);
 int saveColors(std::string, QList<QColor>);
-void loadPalette(xProfile*);
+void loadPalette();
 void dbgPaletteDefaults();			// debugger colours: back to the built-in ones
 const char* dbgPaletteDefault(const char*);
 bool loadStylePalette(const std::string&);	// debugger colours shipped with a style sheet
@@ -432,6 +394,56 @@ xRomset* findRomset(std::string);
 bool addRomset(xRomset);
 void delRomset(int);
 
+// machines
+
+// What a machine is: read-only, from the binary's own resources or from
+// machines/ in the config directory, where a file of the same id shadows the
+// built-in one. See docs/machines-plan.md.
+
+typedef struct {
+	std::string id;			// empty for the machine's own set
+	std::string name;
+	std::string gsFile;
+	std::string fntFile;
+	QList<xRomFile> roms;
+} xMachineRoms;
+
+typedef struct {
+	std::string id;
+	std::string name;
+	std::string family;
+	std::string hw;			// HardWare.name
+	std::string cpu;		// cpuCore.name
+	int memory;			// KB
+	int cpufrq;			// Hz
+	int resbank;			// RES_*
+	unsigned contio:1;
+	unsigned contmem:1;
+	unsigned scrpwait:1;
+	std::string geometry;		// layout name
+	int contPattern;
+	unsigned early:1;
+	unsigned brd4t:1;
+	int psgCount;
+	int psgType;			// SND_*
+	int soundrive;			// SDRV_*
+	int disk;			// DIF_*
+	int ide;			// IDE_*
+	unsigned mouse:1;
+	unsigned joyButtons:1;
+	unsigned gs:1;			// General Sound
+	unsigned saa:1;
+	unsigned ulaplus:1;
+	unsigned ddpal:1;		// Profi's dd palette
+	QList<xMachineRoms> roms;	// the machine's own set has an empty id, the rest are its variants
+} xMachine;
+
+void xm_load_all();
+const QList<xMachine>& xm_list();
+const xMachine* xm_find(std::string);
+const xMachine* xm_find_by_core(std::string);
+const xMachineRoms* xm_find_roms(const xMachine*, std::string);
+
 // layouts
 
 typedef struct {
@@ -453,9 +465,29 @@ void save_xmap(QString);
 #define	YESNO(cnd) ((cnd) ? "yes" : "no")
 
 struct xConfig {
+	// the machine, one per process, and the workspace around it
+	Computer* zx;
+	std::string macId;		// machine definition id
+	std::string macName;		// what the machine is called
+	std::string layName;		// screen layout
+	std::string rsName;		// romset
+	std::string palette;		// colour palette file
+	std::string kmapName;		// keyboard layout
+	std::string jmapNameA;		// gamepad maps
+	std::string jmapNameB;
+	std::string lastDir;
+	struct {
+		std::vector<xBrkPoint> list;
+		std::vector<xBrkPoint> list_sys;
+		std::map<int, std::map<int, xBrkPoint*> > map;	// [memtype][addr] = pointer
+	} brk;
+	QMap<int, QMap<int, QString> > commap;	// comments: [memtype][addr] = string
+	QMap<int, QMap<int, QString> > labmap;	// [memtype][addr] = name
+	QList<xLabelSet*> labsets;
+	xLabelSet* curlabset;		// curlabset->list = labels
+
 	unsigned running:1;
 	unsigned storePaths:1;		// store tape/disk paths
-	unsigned defProfile:1;		// start @ default profile
 	unsigned boot:1;		// add boot to trdos floppies
 	unsigned autorun:1;		// reset and start media opened from the gui
 	unsigned confexit:1;		// confirm on exit
@@ -475,10 +507,6 @@ struct xConfig {
 		// the machine's own reaction time. 0 = off (see ethread.cpp)
 		int runahead;
 	} emu;
-	struct {
-		QList<xProfile*> list;
-		xProfile* cur;
-	} prof;
 	struct {
 		unsigned fullScreen:1;	// use fullscreen
 		unsigned keepRatio:1;	// keep ratio in fullscreen (add black borders)
@@ -550,7 +578,8 @@ struct xConfig {
 		std::string confDir;
 		std::string confFile;
 		std::string romDir;
-		std::string prfDir;
+		std::string prfDir;	// old profiles, only read once by the migration
+		std::string nvDir;	// nvram/, what the machines keep
 		std::string shdDir;
 		std::string palDir;
 		std::string plgDir;	// so/dll/dynlib (experimental, works only for CPU)

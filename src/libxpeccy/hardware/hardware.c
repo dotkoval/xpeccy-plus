@@ -10,6 +10,7 @@ int hwflags = 0;
 
 extern HardWare dum_hw_core;
 extern HardWare z48_hw_core;
+extern HardWare z128_hw_core;
 #ifndef XZXONLY
 extern HardWare alf_hw_core;
 #endif
@@ -37,12 +38,15 @@ extern HardWare ibm_hw_core;
 extern HardWare p98_hw_core;
 #endif
 
+// Order is the lineage: the Sinclair machines, then the clones that came from
+// them. A NULL core is a separator in the machine list.
 tabHwItem tabHwPtr[] = {
 	{HW_DUMMY, &dum_hw_core},
 	{HW_ZX48, &z48_hw_core},
-#ifndef XZXONLY
-	{HW_ALF, &alf_hw_core},
-#endif
+	{HW_ZX128, &z128_hw_core},
+	{HW_PLUS2A, &pl2_hw_core},
+	{HW_PLUS3, &pl3_hw_core},
+	{HW_DUMMY, NULL},
 	{HW_PENT, &pnt_hw_core},
 	{HW_P1024, &p1m_hw_core},
 	{HW_SCORP, &sco_hw_core},
@@ -52,11 +56,9 @@ tabHwItem tabHwPtr[] = {
 	{HW_PENTEVO, &evo_hw_core},
 	{HW_PENTEVO21, &evo_v2_core},
 	{HW_TSLAB, &tsl_hw_core},
-	{HW_DUMMY, NULL},
-	{HW_PLUS2, &pl2_hw_core},
-	{HW_PLUS3, &pl3_hw_core},
 #ifndef XZXONLY
 	{HW_DUMMY, NULL},
+	{HW_ALF, &alf_hw_core},
 	{HW_MSX, &mx1_hw_core},
 	{HW_MSX2, &mx2_hw_core},
 	{HW_DUMMY, NULL},
@@ -94,7 +96,7 @@ HardWare hwTab[] = {
 		HW_DUMMY,HWG_NULL,"Dummy","Dummy",16,MEM_256,1.0,NULL,16,NULL,
 		zx_init,hw_dum_map, hw_dum_iwr, hw_dum_ird, hw_dum_mrd, hw_dum_mwr, NULL, NULL, NULL, NULL, NULL, NULL, hw_dum_vol
 	},{
-		HW_ZX48,HWG_ZX,"ZX48K","ZX 48K",16,MEM_64K | MEM_16K,1.0,NULL,16,NULL,
+		HW_ZX48,HWG_ZX,"ZX48","ZX 48K",16,MEM_64K | MEM_16K,1.0,NULL,16,NULL,
 		zx_init,speMapMem,speOut,speIn,stdMRd,stdMWr,zx_irq,zx_ack,zx48_reset,zx_sync,zx_keyp,zx_keyr,zx_vol
 	},{
 		HW_ALF,HWG_ALF,"ALF","ALF TV Game",16,MEM_64K | MEM_128K,1.0,NULL,16,NULL,
@@ -126,7 +128,7 @@ HardWare hwTab[] = {
 	},{
 		HW_NULL,HWG_NULL,"","",16,0,1.0,NULL,16,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL		// separator
 	},{
-		HW_PLUS2,HWG_ZX,"Spectrum +2","Spectrum +2",16,MEM_128K,1.0,NULL,16,zx_port_tab_s,
+		HW_PLUS2A,HWG_ZX,"Plus2A","Spectrum +2A",16,MEM_128K,1.0,NULL,16,zx_port_tab_s,
 		zx_init,pl2MapMem,pl2Out,pl2In,stdMRd,stdMWr,zx_irq,zx_ack,plusRes,zx_sync,zx_keyp,zx_keyr,zx_vol
 	},{
 		HW_PLUS3,HWG_ZX,"Spectrum +3","Spectrum +3",16,MEM_128K,1.0,NULL,16,zx_port_tab_s,

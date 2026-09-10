@@ -11,9 +11,8 @@ xPalWidget::xPalWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 }
 
 void xPalWidget::draw() {
-	xProfile* prf = conf.prof.cur;
-	if (prf) {
-		Computer* comp = prf->zx;
+	if (conf.zx) {
+		Computer* comp = conf.zx;
 		if (comp) {
 			Video* vid = comp->vid;
 			if (vid) {
@@ -53,7 +52,7 @@ void xPalWidget::mousePressEvent(QMouseEvent* ev) {
 	if ((x < 0) || (x > 255)) return;
 	if ((y < 0) || (y > 255)) return;
 	int idx = ((x >> 4) & 0x0f) | (y & 0xf0);
-	uint32_t coli = conf.prof.cur->zx->vid->pal[idx];
+	uint32_t coli = conf.zx->vid->pal[idx];
 	unsigned char r = coli & 0xff;
 	unsigned char g = (coli >> 8) & 0xff;
 	unsigned char b = (coli >> 16) & 0xff;

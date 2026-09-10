@@ -18,8 +18,8 @@ TapeWin::TapeWin(QWidget *par):QDialog(par) {
 
 void TapeWin::show() {
 	QDialog::show();
-	upd(conf.prof.cur->zx->tape);		// takes the speed slider with it
-	updList(conf.prof.cur->zx->tape);
+	upd(conf.zx->tape);		// takes the speed slider with it
+	updList(conf.zx->tape);
 }
 
 // on timer
@@ -65,27 +65,27 @@ void TapeWin::updList(Tape* tape) {
 // slots
 
 void TapeWin::doPlay() {
-	Tape* tap = conf.prof.cur->zx->tape;
+	Tape* tap = conf.zx->tape;
 	tapUserPlay(tap);
 	upd(tap);
 }
 
 void TapeWin::doStop() {
-	Tape* tap = conf.prof.cur->zx->tape;
+	Tape* tap = conf.zx->tape;
 	tap->on = 0;
 	tap->rec = 0;
 	upd(tap);
 }
 
 void TapeWin::doRec() {
-	Tape* tap = conf.prof.cur->zx->tape;
+	Tape* tap = conf.zx->tape;
 	tap->rec = 1;
 	tap->on = 1;
 	upd(tap);
 }
 
 void TapeWin::doRewind() {
-	Tape* tap = conf.prof.cur->zx->tape;
+	Tape* tap = conf.zx->tape;
 	if (!tap->on) {
 		tapRewind(tap, 0);
 		upd(tap);
@@ -94,9 +94,9 @@ void TapeWin::doRewind() {
 
 void TapeWin::doLoad() {
 	conf.emu.pause |= PR_FILE;
-	load_file(conf.prof.cur->zx, nullptr, FG_TAPE, -1);
-	updList(conf.prof.cur->zx->tape);
-	// ui.tapeList->fill(conf.prof.cur->zx->tape);
+	load_file(conf.zx, nullptr, FG_TAPE, -1);
+	updList(conf.zx->tape);
+	// ui.tapeList->fill(conf.zx->tape);
 	conf.emu.pause &= ~PR_FILE;
 }
 
@@ -104,23 +104,23 @@ void TapeWin::doDClick(QModelIndex idx) {
 	int row = idx.row();
 	int col = idx.column();
 	if (col == TCC_BRK) return;
-	tapRewind(conf.prof.cur->zx->tape, row);
-	updList(conf.prof.cur->zx->tape);
-	//ui.tapeList->fill(conf.prof.cur->zx->tape);
+	tapRewind(conf.zx->tape, row);
+	updList(conf.zx->tape);
+	//ui.tapeList->fill(conf.zx->tape);
 }
 
 void TapeWin::doClick(QModelIndex idx) {
 	int row = idx.row();
 	int col = idx.column();
 	if (col != TCC_BRK) return;
-	conf.prof.cur->zx->tape->blkData[row].breakPoint ^= 1;
-	updList(conf.prof.cur->zx->tape);
-	// ui.tapeList->fill(conf.prof.cur->zx->tape);
+	conf.zx->tape->blkData[row].breakPoint ^= 1;
+	updList(conf.zx->tape);
+	// ui.tapeList->fill(conf.zx->tape);
 }
 
 void TapeWin::setSpeed(int s) {
 	if (s < 95) return;
 	if (s > 105) return;
-	conf.prof.cur->zx->tape->speed = s;
+	conf.zx->tape->speed = s;
 	ui.labSpeedVal->setText(QString("%0%").arg(s));
 }

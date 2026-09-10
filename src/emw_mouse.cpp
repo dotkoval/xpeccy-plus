@@ -3,7 +3,7 @@
 #include <QMenu>
 
 void MainWin::mousePressEvent(QMouseEvent *ev){
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp->flgDBG) {
 		if ((ev->button() == Qt::LeftButton) && (comp->hw->grp == HWG_ZX)) {
 			calcCoords(ev);
@@ -37,7 +37,7 @@ void MainWin::mousePressEvent(QMouseEvent *ev){
 
 void MainWin::mouseReleaseEvent(QMouseEvent *ev) {
 	if (conf.emu.pause) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp->flgDBG) {
 		ev->ignore();
 	} else {
@@ -77,7 +77,7 @@ void MainWin::mouseReleaseEvent(QMouseEvent *ev) {
 }
 
 void MainWin::wheelEvent(QWheelEvent* ev) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp->flgDBG) {
 		ev->ignore();
 	} else if (grabMice) {
@@ -98,7 +98,7 @@ void MainWin::wheelEvent(QWheelEvent* ev) {
 }
 
 void MainWin::mouseMoveEvent(QMouseEvent *ev) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (!grabMice || conf.emu.pause) {
 		if ((ev->buttons() & Qt::LeftButton) && (comp->hw->grp == HWG_ZX)) {
 			calcCoords(ev);

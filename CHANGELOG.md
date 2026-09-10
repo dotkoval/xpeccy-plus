@@ -11,6 +11,7 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- ZX Spectrum 128K, as a machine of its own.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the
@@ -37,6 +38,14 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- Profiles are gone. There is one machine at a time, picked by name, and the settings live
+  in one file; what you change on a machine is remembered for that machine. An update can
+  fix a machine now without touching anything you set. Your old profile is carried over on
+  first start, and the `profiles` folder is left where it is.
+- The machine list is in family order, Sinclair machines first, and the names match the
+  hardware: Spectrum +2A, ZX Evolution (BaseConf), ZX Evolution (TSConf). The +2 runs on
+  the 128K it is. Settings written by an older build still load.
+- Each machine starts with the hardware it had, the extended configurations included.
 - Options: the Tools page is now called General and comes first, with the log settings
   on it.
 - Options: the Low latency setting and the indicator switches moved to a page of their

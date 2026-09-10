@@ -136,10 +136,7 @@ class SetupWin : public QDialog {
 		void diskToHobeta();
 		void diskToRaw();
 
-		void newProfile();
-		void copyProf();
 		void chProfile(int, int);
-		void rmProfile();
 
 		void edLayout();
 		void addNewLayout();

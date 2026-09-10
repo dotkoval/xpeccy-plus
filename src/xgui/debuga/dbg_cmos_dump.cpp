@@ -25,12 +25,12 @@ QVariant xCmosDumpModel::data(const QModelIndex& idx, int role) const {
 			if (col == 0) {
 				res = gethexbyte(row << 3).prepend("#");		// 00..F8 = address
 			} else {
-				res = gethexbyte(conf.prof.cur->zx->cmos.data[(row << 3) + col - 1] & 0xff);
+				res = gethexbyte(conf.zx->cmos.data[(row << 3) + col - 1] & 0xff);
 			}
 			break;
 		case Qt::EditRole:
 			if (col == 0) break;
-			res = gethexbyte(conf.prof.cur->zx->cmos.data[(row << 3) + col - 1] & 0xff);
+			res = gethexbyte(conf.zx->cmos.data[(row << 3) + col - 1] & 0xff);
 			break;
 	}
 	return res;
@@ -48,7 +48,7 @@ bool xCmosDumpModel::setData(const QModelIndex& idx, const QVariant& val, int ro
 		case Qt::EditRole:
 			d = val.toString().toInt(&flag,16) & 0xff;
 			if (flag) {
-				conf.prof.cur->zx->cmos.data[adr] = d;
+				conf.zx->cmos.data[adr] = d;
 			}
 			break;
 	}

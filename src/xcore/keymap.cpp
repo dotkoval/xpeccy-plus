@@ -200,14 +200,12 @@ void initKeyMap() {
 }
 
 void loadKeys() {
-	xProfile* prf = conf.prof.cur;
-	if (!prf) return;
-	std::string sfnam = conf.path.confDir + SLASH + prf->kmapName;
+	std::string sfnam = conf.path.confDir + SLASH + conf.kmapName;
 	initKeyMap();
-	if ((prf->kmapName == "") || (prf->kmapName == "default")) return;
+	if (conf.kmapName.empty() || (conf.kmapName == "default")) return;
 	std::ifstream file(sfnam);
 	if (!file.good()) {
-		sfnam = conf.path.confDir + SLASH + "keymaps" + SLASH + prf->kmapName;
+		sfnam = conf.path.confDir + SLASH + "keymaps" + SLASH + conf.kmapName;
 		file.open(sfnam);
 		if (!file.good()) {
 			xlog(XLG_INPUT, XLL_WARN, "can't open the keyboard layout, using the default one");
