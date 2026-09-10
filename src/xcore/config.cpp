@@ -65,14 +65,11 @@ void conf_init(char* wpath, char* confdir) {
 	conf.path.prfDir = conf.path.confDir + "/profiles";
 	conf.path.nvDir = conf.path.confDir + "/nvram";
 	mkdir(conf.path.nvDir.c_str() ,0777);
-	conf.path.shdDir = conf.path.confDir + "/shaders";
-	mkdir(conf.path.shdDir.c_str() ,0777);
+	mkdir((conf.path.confDir + "/shaders").c_str() ,0777);
 	conf.path.palDir = conf.path.confDir + "/palettes";
 	mkdir(conf.path.palDir.c_str() ,0777);
 	conf.path.plgDir = conf.path.confDir + "/plugins";
-	mkdir(conf.path.plgDir.c_str() ,0777);
-	conf.path.qssDir = conf.path.confDir + "/styles";
-	mkdir(conf.path.qssDir.c_str() ,0777);
+	mkdir((conf.path.confDir + "/styles").c_str() ,0777);
 	conf.path.confFile = conf.path.confDir + "/config.conf";
 	conf.path.boot = conf.path.confDir + "/boot.$B";
 #elif defined(__WIN32)
@@ -89,19 +86,16 @@ void conf_init(char* wpath, char* confdir) {
 	conf.path.romDir = conf.path.confDir + "\\roms";
 	conf.path.prfDir = conf.path.confDir + "\\profiles";
 	conf.path.nvDir = conf.path.confDir + "\\nvram";
-	conf.path.shdDir = conf.path.confDir + "\\shaders";
 	conf.path.palDir = conf.path.confDir + "\\palettes";
 	conf.path.plgDir = conf.path.confDir + "\\plugins";
-	conf.path.qssDir = conf.path.confDir + "\\styles";
 	conf.path.confFile = conf.path.confDir + "\\config.conf";
 	conf.path.boot = conf.path.confDir + "\\boot.$B";
 	mkdir(conf.path.confDir.c_str());
 	mkdir(conf.path.romDir.c_str());
 	mkdir(conf.path.nvDir.c_str());
-	mkdir(conf.path.shdDir.c_str());
+	mkdir((conf.path.confDir + "\\shaders").c_str());
 	mkdir(conf.path.palDir.c_str());
-	mkdir(conf.path.plgDir.c_str());
-	mkdir(conf.path.qssDir.c_str());
+	mkdir((conf.path.confDir + "\\styles").c_str());
 #endif
 	conf.scrShot.format = "png";
 	conf.running = 0;
@@ -263,11 +257,9 @@ void saveConfig() {
 		i++;
 	}
 
-	layouts_save();
 	xm_save(cfile);
 	xm_save_media(cfile);
 	fclose(cfile);
-	xm_save_nvram();
 }
 
 // The debugger's own colours. One table, three users: the values set at
@@ -357,12 +349,11 @@ static QString sysConfigDir() {
 
 // add to the config directory whatever the installed configuration has and it
 // lacks, so files an update brings along show up. Files already there are left
-// alone, edits included. Returns false if there is nothing to copy from, so the
-// built-in defaults are used.
+// alone, edits included.
 
-static bool seedConfigDir(const QString& src) {
+static void seedConfigDir(const QString& src) {
 	QDir sdir(src);
-	if (src.isEmpty() || !sdir.exists()) return false;
+	if (src.isEmpty() || !sdir.exists()) return;
 	QString dst = QString::fromLocal8Bit(conf.path.confDir.c_str());
 	QDirIterator it(src, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
 	int cnt = 0;
@@ -378,7 +369,6 @@ static bool seedConfigDir(const QString& src) {
 		}
 	}
 	if (cnt) xlog(XLG_CONF, XLL_INFO, "%i files copied from %s", cnt, src.toLocal8Bit().data());
-	return true;
 }
 
 // emulator config
@@ -388,17 +378,18 @@ void loadConfig() {
 	//printf("%s\n",conf.path.confFile);
 	// on every start, not only on the first one: this is how a new file added
 	// by an update reaches a config directory that already exists
-	bool installed = seedConfigDir(sysConfigDir());
+	seedConfigDir(sysConfigDir());
 	std::ifstream file(conf.path.confFile);
 	char fname[FILENAME_MAX];
 	if (!file.good()) {
 		xlog(XLG_CONF, XLL_WARN, "main config is missing, copying the default files");
-		if (!installed) {
-			copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
-			strcpy(fname, conf.path.romDir.c_str());
-			strcat(fname, SLASH);
-			strcat(fname, "48.rom");
-			copyFile(":/config/roms/48.rom", fname);
+		// no file to copy from an install either: the defaults are in the
+		// binary, and so are the roms the machine they name needs
+		copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
+		static const char* seedRom[] = {"48.rom", "128-0.rom", "128-1.rom", NULL};
+		for (int i = 0; seedRom[i]; i++) {
+			snprintf(fname, sizeof(fname), "%s" SLASH "%s", conf.path.romDir.c_str(), seedRom[i]);
+			copyFile((std::string(":/config/roms/") + seedRom[i]).c_str(), fname);
 		}
 		file.open(conf.path.confFile);
 		if (!file.good()) {
@@ -425,7 +416,6 @@ void loadConfig() {
 	std::string macover;
 	std::map<std::string, std::string> oldprf;
 	std::vector<std::string> vect;
-	vLayout vlay;
 	std::vector<xRomset> rsListist;
 	xRomset newrs;
 	xRomFile rfile;

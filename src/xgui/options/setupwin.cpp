@@ -4,6 +4,8 @@
 #include <QFontDialog>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QDir>
+#include <QDirIterator>
 #include <QMessageBox>
 #include <QVector3D>
 #include <QLibrary>
@@ -34,14 +36,6 @@
 #include "libxpeccy/filetypes/filetypes.h"
 #include "libxpeccy/input/input.h"
 
-void fillRFBox(QComboBox* box, QStringList lst) {
-	box->clear();
-	box->addItem("none","");
-	foreach(QString str, lst) {
-		box->addItem(str, str);
-	}
-}
-
 void setRFIndex(QComboBox* box, QVariant data, int defidx) {
 	int idx = box->findData(data);
 	if (idx < 0) idx = defidx;
@@ -64,15 +58,18 @@ std::string getRFText(QComboBox* box) {
 	return std::string(res.toLocal8Bit().data());
 }
 
-// the machine's own roms, and the variants its definition names
+// the machines, parted by family the way the emulator's own menu parts them
 
-void fill_romset_list(QComboBox* box) {
+void fill_machine_list(QComboBox* box) {
 	box->clear();
-	box->addItem(QObject::tr("Its own"), QString());
-	foreach(QString id, xm_rom_variants()) {
-		box->addItem(id, id);
+	std::string family;
+	foreach(const xMachine& mac, xm_list()) {
+		if (!family.empty() && (mac.family != family))
+			box->insertSeparator(9999);
+		family = mac.family;
+		box->addItem(QString::fromLocal8Bit(mac.name.c_str()),
+			QString::fromLocal8Bit(mac.id.c_str()));
 	}
-	setRFIndex(box, QString::fromLocal8Bit(conf.romSet.c_str()), 0);
 }
 
 void fill_layout_list(QComboBox* box, QString txt = QString()) {
@@ -377,17 +374,6 @@ void opt_fill_cpu(QComboBox* box) {
 #endif
 }
 
-extern tabHwItem tabHwPtr[];
-QList<HardWare*> getHardwareList() {
-	QList<HardWare*> res;
-	tabHwItem* itm = tabHwPtr;
-	while(itm->id != HW_NULL) {
-		res.append(itm->core);
-		itm++;
-	}
-	return res;
-}
-
 SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	setModal(true);
 	ui.setupUi(this);
@@ -439,15 +425,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	kedit = new xKeyEditor(this);
 
 	int i;
-// machine
-	std::string family;
-	foreach(const xMachine& mac, xm_list()) {
-		if (!family.empty() && (mac.family != family))
-			ui.machbox->insertSeparator(9999);
-		family = mac.family;
-		ui.machbox->addItem(QString::fromLocal8Bit(mac.name.c_str()),
-			QString::fromLocal8Bit(mac.id.c_str()));
-	}
+	fill_machine_list(ui.machbox);
 
 	ui.resbox->addItem("BASIC 48",RES_48);
 	ui.resbox->addItem("BASIC 128",RES_128);
@@ -574,12 +552,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.apbut,SIGNAL(released()),this,SLOT(apply()));
 	connect(ui.cnbut,SIGNAL(released()),this,SLOT(reject()));
 // machine
-	connect(ui.rsetbox,SIGNAL(currentIndexChanged(int)),this,SLOT(buildrsetlist()));
 	connect(ui.machbox,SIGNAL(currentIndexChanged(int)),this,SLOT(setmszbox(int)));
 	connect(ui.tvRomset,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(editRom()));
 	// a rom set is the machine's own now, so there is none to add or delete
-	ui.addrset->hide();
-	ui.rmrset->hide();
 	connect(rseditor,SIGNAL(complete(xRomFile)),this,SLOT(setRom(xRomFile)));
 	connect(ui.tbAddRom,SIGNAL(released()),this,SLOT(addRom()));
 	connect(ui.tbEditRom,SIGNAL(released()),this,SLOT(editRom()));
@@ -587,6 +562,8 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.tbPreset,SIGNAL(released()),this,SLOT(romPreset()));
 	connect(ui.pbResetMachine,SIGNAL(released()),this,SLOT(resetMachine()));
 	connect(ui.pbAdvanced,SIGNAL(released()),this,SLOT(showAdvanced()));
+	connect(ui.pbSaveMachine,SIGNAL(released()),this,SLOT(saveMachine()));
+	connect(ui.pbDelMachine,SIGNAL(released()),this,SLOT(delMachine()));
 
 	// The settings that define the machine rather than how it is used live in
 	// a window of their own. It is the same widgets, moved out of the page -
@@ -598,6 +575,18 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	QDialogButtonBox* advBtn = new QDialogButtonBox(QDialogButtonBox::Close, advWin);
 	advLay->addWidget(advBtn);
 	connect(advBtn, SIGNAL(rejected()), advWin, SLOT(hide()));
+
+	// same for the set file by file: the page shows which file is in which
+	// slot, this window has the offsets and sizes behind it
+	romWin = new QDialog(this);
+	romWin->setWindowTitle("Machine: ROM files");
+	romWin->resize(620, 340);
+	QVBoxLayout* romLay = new QVBoxLayout(romWin);
+	romLay->addWidget(ui.romAdvBox);
+	QDialogButtonBox* romBtn = new QDialogButtonBox(QDialogButtonBox::Close, romWin);
+	romLay->addWidget(romBtn);
+	connect(romBtn, SIGNAL(rejected()), romWin, SLOT(hide()));
+	connect(ui.pbRomAdvanced, SIGNAL(released()), this, SLOT(showRomFiles()));
 // video
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
@@ -827,7 +816,11 @@ void SetupWin::start() {
 	fillLogPage();
 // machine
 	int idx;
-	fill_romset_list(ui.rsetbox);
+	fill_machine_list(ui.machbox);
+	ui.pbDelMachine->setEnabled(xm_is_users(conf.macId));
+	roms = conf.roms;
+	rsmodel->fill(&roms);
+	fillRomSlots();
 	ui.machbox->setCurrentIndex(ui.machbox->findData(QString::fromLocal8Bit(conf.macId.c_str())));
 	ui.resbox->setCurrentIndex(ui.resbox->findData(comp->resbank));
 	setmszbox(ui.machbox->currentIndex());
@@ -1069,15 +1062,8 @@ void SetupWin::apply() {
 		emit s_prf_changed();
 		return;
 	}
-	emu_lock();		// romset, memory size and cpu are rebuilt below
-	HardWare *oldmac = comp->hw;
-	std::string variant = std::string(getRFSData(ui.rsetbox).toLocal8Bit().data());
-	if (variant != conf.romSet) {
-		xm_set_romset(variant);		// another set of the machine's own
-		rsmodel->fill(&conf.roms);
-	} else {
-		xm_set_roms(conf.roms);
-	}
+	emu_lock();		// roms, memory size and cpu are rebuilt below
+	xm_set_roms(roms);
 	comp->resbank = getRFIData(ui.resbox);
 	memSetSize(comp->mem, getRFIData(ui.mszbox), -1);
 	// cpu
@@ -1104,7 +1090,6 @@ void SetupWin::apply() {
 	compSetBaseFrq(comp, ui.sbFreq->value());
 	compSetTurbo(comp, ui.sbMult->value());
 	comp->flgEM1 = ui.scrpwait->isChecked();
-	if (comp->hw != oldmac) compReset(comp,RES_DEFAULT);
 	if (comp->hw->id == HW_ZX48) comp->mem->ramMask = MEM_128K - 1;		// TODO: find a better way
 	emu_unlock();
 // emulation
@@ -1324,6 +1309,7 @@ void SetupWin::apply() {
 
 	emit s_apply();
 
+	layouts_save();
 	saveConfig();
 }
 
@@ -1408,8 +1394,11 @@ void SetupWin::edLayout() {
 
 void SetupWin::delLayout() {
 	int eidx = ui.geombox->currentIndex();
-	if (eidx < 1) {
-		shitHappens("You can't delete this layout");
+	if (eidx < 0) return;
+	const xLayout* shp = layout_shipped(conf.layList[eidx].name);
+	if (shp) {
+		if (!areSure("Put this layout back the way it ships?")) return;
+		conf.layList[eidx] = *shp;
 		return;
 	}
 	if (areSure("Do you really want to delete this layout?")) {
@@ -1469,10 +1458,7 @@ void SetupWin::layEditorOK() {
 	vlay.scr.x = layUi.sbScrW->value();
 	vlay.scr.y = layUi.sbScrH->value();
 	if (eidx < 0) {						// new layout
-		if (nm == "default") {				// protected
-			showInfo("'default' layout cannot be changed");
-			ok = 0;
-		} else if (exlay == NULL) {			// new name
+		if (exlay == NULL) {				// new name
 			addLayout(name, vlay);
 			fill_layout_list(ui.geombox, nm);
 		} else {					// existing name
@@ -1480,7 +1466,7 @@ void SetupWin::layEditorOK() {
 			if (ok) exlay->lay = vlay;
 			fill_layout_list(ui.geombox, nm);
 		}
-	} else if (eidx > 0) {					// ==0 is 'default', not editable
+	} else {
 		std::string onm = conf.layList[eidx].name;
 		if (onm != name) {				// name changed
 			if (exlay == NULL) {			// no existing layout with new name
@@ -1504,18 +1490,78 @@ void SetupWin::layEditorOK() {
 	if (ok) layeditor->hide();
 }
 
-// ROMSETS
-
-// fill the romset from the machine's own roms, out of its definition
-
-// back to the roms the machine ships with, dropping the files of your own
-
-// everything the user changed on this machine goes, and it comes back as the
-// definition has it
-
 void SetupWin::showAdvanced() {
 	advWin->show();
 	advWin->raise();
+}
+
+// A machine of the user's own is this one with what was changed on it, kept
+// as a definition of its own. The machine it came from goes back to how it
+// ships - the settings did not disappear, they moved.
+
+void SetupWin::saveMachine() {
+	// what is saved is what the page shows, so the page goes in first
+	std::string was = conf.macId;
+	apply();
+	if (conf.macId != was) return;		// that was a machine switch, not a save
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	// a machine of your own starts as itself, so saving it again updates it
+	QString sug = QString::fromLocal8Bit(mac->name.c_str());
+	if (!xm_is_users(conf.macId)) sug += " (mine)";
+	bool ok = false;
+	QString name = QInputDialog::getText(this, "Save machine",
+		"Name for this machine:", QLineEdit::Normal, sug, &ok);
+	name = name.trimmed();
+	if (!ok || name.isEmpty()) return;
+	std::string nam = std::string(name.toLocal8Bit().data());
+	std::string id = xm_id_of_name(nam);
+	bool over = false;
+	if (xm_find(id)) {
+		if (!xm_is_users(id)) {
+			shitHappens("A machine that ships is called that.<br>"
+				"Give this one a name of its own.");
+			return;
+		}
+		if (id == conf.macId) {
+			if (!areSure("Update this machine with what you changed on it?")) return;
+		} else if (!areSure("A machine of your own is already called that. Replace it?")) {
+			return;
+		}
+		over = true;
+	}
+	id = xm_save_as(nam, over);
+	if (id.empty()) {
+		shitHappens("Could not write the machine file");
+		return;
+	}
+	xm_over_forget(conf.macId);	// what was changed here lives in that machine now
+	xm_set(id);
+	start();
+	emit s_prf_changed();
+}
+
+void SetupWin::delMachine() {
+	if (!xm_is_users(conf.macId)) {
+		shitHappens("This machine ships with the emulator, so there is nothing to delete.<br>"
+			"Restore machine defaults drops what you changed on it.");
+		return;
+	}
+	if (!areSure("Delete this machine?")) return;
+	const xMachine* mac = xm_find(conf.macId);
+	std::string id = conf.macId;
+	std::string back = mac ? mac->parent : std::string();
+	if (!xm_delete(id)) {
+		shitHappens("Could not delete the machine file");
+		return;
+	}
+	// gone for good, or back as it ships: either way the list is rebuilt
+	if (!xm_find(id)) id = back;
+	if (!xm_find(id)) id = xm_list().isEmpty() ? std::string() : xm_list().first().id;
+	conf.macId.clear();		// nothing to save into a machine that is gone
+	if (!id.empty()) xm_set(id);
+	start();
+	emit s_prf_changed();
 }
 
 void SetupWin::resetMachine() {
@@ -1526,8 +1572,157 @@ void SetupWin::resetMachine() {
 }
 
 void SetupWin::romPreset() {
-	xm_set_romset(conf.romSet);
-	rsmodel->fill(&conf.roms);
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	roms = mac->roms;
+	rsmodel->fill(&roms);
+	fillRomSlots();
+}
+
+// THE SET AS THE MACHINE WEARS IT
+//
+// One row per slot, with the files to put in it. Where a file starts, how much
+// of it is read and where it lands are in the window behind Advanced.
+
+#define	RSLOT_GS	-1
+#define	RSLOT_FONT	-2
+
+static QStringList rom_files() {
+	QDir dir(QString::fromLocal8Bit(conf.path.romDir.c_str()));
+	QStringList res;
+	QDirIterator it(dir.absolutePath(), QStringList() << "*.rom" << "*.bin",
+			QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		it.next();
+		res << dir.relativeFilePath(it.filePath());
+	}
+	res.sort(Qt::CaseInsensitive);
+	return res;
+}
+
+void SetupWin::showRomFiles() {
+	romWin->show();
+	romWin->raise();
+}
+
+// how far a rom file reaches, in 16K banks
+
+static int rom_file_banks(const xRomFile& rf) {
+	int size = rf.fsize * 1024;
+	if (size <= 0) {
+		QFileInfo inf(QString::fromLocal8Bit(xm_rom_path(rf.name).c_str()));
+		size = inf.size() - rf.foffset * 1024;
+	}
+	return (size + MEM_16K - 1) / MEM_16K;
+}
+
+// a bank with no file of its own may still be covered by a big one in a bank
+// before it: for each bank, the slot it comes from, or -1
+
+static QVector<int> rom_slot_cover(const xRomset& rs, int banks) {
+	QVector<int> res(banks, -1);
+	foreach(xRomFile rf, rs.roms) {
+		int first = rf.roffset / 16;
+		int last = first + rom_file_banks(rf);
+		for (int i = first + 1; (i < last) && (i < banks); i++) {
+			if (res[i] < 0) res[i] = first;
+		}
+	}
+	return res;
+}
+
+void SetupWin::fillRomSlots() {
+	QLayoutItem* itm;
+	while ((itm = ui.gridRomSlots->takeAt(0)) != NULL) {
+		delete itm->widget();
+		delete itm;
+	}
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	QStringList files = rom_files();
+	QVector<int> from = rom_slot_cover(roms, mac->romBanks);
+	int row = 0;
+	for (int i = 0; i < mac->romBanks; i++)
+		addRomSlot(row++, QString("ROM %0").arg(i), i, files, true, from[i]);
+	addRomSlot(row++, "GS", RSLOT_GS, files, conf.zx->gs->enable, -1);
+	// only a machine with a text mode draws from a font rom
+	addRomSlot(row++, "Font", RSLOT_FONT, files, !mac->roms.fntFile.empty(), -1);
+	// spare height under the rows, so they do not spread out
+	ui.gridRomSlots->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum,
+		QSizePolicy::Expanding), row, 0);
+}
+
+// the file in a slot, or an empty string when there is none
+
+QString SetupWin::romSlotFileName(int slot) {
+	std::string res;
+	if (slot == RSLOT_GS) {
+		res = roms.gsFile;
+	} else if (slot == RSLOT_FONT) {
+		res = roms.fntFile;
+	} else {
+		foreach(xRomFile rf, roms.roms) {
+			if (rf.roffset == slot * 16) res = rf.name;
+		}
+	}
+	return QString::fromLocal8Bit(res.c_str());
+}
+
+void SetupWin::addRomSlot(int row, QString name, int slot, const QStringList& files, bool has, int from) {
+	QLabel* lab = new QLabel(name);
+	lab->setMinimumWidth(60);
+	lab->setEnabled(has);
+	QComboBox* box = new QComboBox;
+	box->setMinimumWidth(200);
+	box->setMaximumWidth(200);
+	QString none = has ? tr("(empty)") : tr("(not fitted)");
+	if (from >= 0) none = tr("(from ROM %0)").arg(from);
+	box->addItem(none, QString());
+	foreach(QString f, files) {
+		box->addItem(f, f);
+	}
+	QString cur = romSlotFileName(slot);
+	// a file that is missing, or one of the user's own from elsewhere
+	if (!cur.isEmpty() && (box->findData(cur) < 0)) box->insertItem(1, cur, cur);
+	box->setCurrentIndex(qMax(0, box->findData(cur)));
+	box->setEnabled(has);
+	connect(box, QOverload<int>::of(&QComboBox::activated), this, [=](int idx){
+		romSlotPick(slot, box->itemData(idx).toString());
+	});
+	QToolButton* btn = new QToolButton;
+	btn->setIcon(QIcon(":/images/fileopen.png"));
+	btn->setToolTip(tr("Pick a ROM file"));
+	btn->setEnabled(has);
+	connect(btn, &QToolButton::released, this, [=](){ romSlotFile(box, slot); });
+	ui.gridRomSlots->addWidget(lab, row, 0);
+	ui.gridRomSlots->addWidget(box, row, 1);
+	ui.gridRomSlots->addWidget(btn, row, 2);
+}
+
+// a file from anywhere, which is kept as the path it is
+
+void SetupWin::romSlotFile(QComboBox* box, int slot) {
+	QString dir = QString::fromLocal8Bit(conf.path.romDir.c_str());
+	QString file = QFileDialog::getOpenFileName(this, tr("ROM file"), dir,
+		tr("ROM images (*.rom *.bin);;All files (*)"));
+	if (file.isEmpty()) return;
+	QString rel = QDir(dir).relativeFilePath(file);
+	if (!rel.startsWith("..")) file = rel;	// under the rom directory
+	if (box->findData(file) < 0) box->insertItem(1, file, file);
+	box->setCurrentIndex(box->findData(file));
+	romSlotPick(slot, file);
+}
+
+void SetupWin::romSlotPick(int slot, const QString& file) {
+	std::string name = std::string(file.toLocal8Bit().data());
+	if (slot == RSLOT_GS) {
+		roms.gsFile = name;
+	} else if (slot == RSLOT_FONT) {
+		roms.fntFile = name;
+	} else {
+		xm_rom_set_file(roms, slot, name);
+	}
+	rsmodel->fill(&roms);
 }
 
 void SetupWin::addRom() {
@@ -1544,19 +1739,20 @@ void SetupWin::delRom() {
 	QModelIndexList qmil = ui.tvRomset->selectionModel()->selectedRows();
 	int row = (qmil.size() > 0) ? qmil.first().row() : -1;
 	if (row < 0) return;
-	int sz = conf.roms.roms.size();
+	int sz = roms.roms.size();
 	if (row < sz) {
-		conf.roms.roms.erase(conf.roms.roms.begin() + row);
+		roms.roms.erase(roms.roms.begin() + row);
 	} else if (row == sz) {
-		conf.roms.gsFile.clear();
+		roms.gsFile.clear();
 	} else if (row == sz+1) {
-		conf.roms.fntFile.clear();
+		roms.fntFile.clear();
 	} else if (row == sz+2) {
-		conf.roms.vBiosFile.clear();
+		roms.vBiosFile.clear();
 	} else if (row == sz+3) {
-		conf.roms.sBiosFile.clear();
+		roms.sBiosFile.clear();
 	}
-	rsmodel->fill(&conf.roms);
+	rsmodel->fill(&roms);
+	fillRomSlots();
 }
 
 void SetupWin::editRom() {
@@ -1567,40 +1763,39 @@ void SetupWin::editRom() {
 	f.foffset = 0;
 	f.fsize = 0;
 	f.roffset = 0;
-	int sz = conf.roms.roms.size();
+	int sz = roms.roms.size();
 	if (row < sz) {
-		f = conf.roms.roms[row];
+		f = roms.roms[row];
 	} else if (row == sz) {
-		f.name = conf.roms.gsFile;
+		f.name = roms.gsFile;
 	} else if (row == sz+1) {
-		f.name = conf.roms.fntFile;
+		f.name = roms.fntFile;
 	} else if (row == sz+2) {
-		f.name = conf.roms.vBiosFile;
+		f.name = roms.vBiosFile;
 	} else if (row == sz+3) {
-		f.name = conf.roms.sBiosFile;
+		f.name = roms.sBiosFile;
 	}
 	eidx = row;
 	rseditor->edit(f);
 }
 
 void SetupWin::setRom(xRomFile f) {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	int sz = conf.roms.roms.size();
+	int sz = roms.roms.size();
 	if (eidx < 0) {
-		conf.roms.roms.push_back(f);
+		roms.roms.push_back(f);
 	} else if (eidx < sz) {
-		conf.roms.roms[eidx] = f;
+		roms.roms[eidx] = f;
 	} else if (eidx == sz) {
-		conf.roms.gsFile = f.name;
+		roms.gsFile = f.name;
 	} else if (eidx == sz+1) {
-		conf.roms.fntFile = f.name;
+		roms.fntFile = f.name;
 	} else if (eidx == sz+2) {
-		conf.roms.vBiosFile = f.name;
+		roms.vBiosFile = f.name;
 	} else if (eidx == sz+3) {
-		conf.roms.sBiosFile = f.name;
+		roms.sBiosFile = f.name;
 	}
-	rsmodel->fill(&conf.roms);
+	rsmodel->fill(&roms);
+	fillRomSlots();
 }
 
 // lists
@@ -1612,7 +1807,8 @@ void SetupWin::buildpadlist() {
 }
 
 void SetupWin::buildkeylist() {
-	fillRFBox(ui.keyMapBox, xres_list("keymaps", QStringList() << "*.map"));
+	fillComboBox(ui.keyMapBox, "keymaps", QStringList() << "*.map", "none",
+		QString::fromLocal8Bit(conf.kmapName.c_str()));
 }
 
 struct xMemName {
@@ -1650,14 +1846,6 @@ void SetupWin::setmszbox(int idx) {
 	}
 	ui.mszbox->setCurrentIndex(ui.mszbox->findText(oldText));
 	if (ui.mszbox->currentIndex() < 0) ui.mszbox->setCurrentIndex(ui.mszbox->count() - 1);
-}
-
-// picking another of the machine's sets shows what it holds; it is loaded on Apply
-
-void SetupWin::buildrsetlist() {
-	std::string variant = std::string(getRFSData(ui.rsetbox).toLocal8Bit().data());
-	rsPreview = (variant == conf.romSet) ? conf.roms : xm_roms_of(variant);
-	rsmodel->fill(&rsPreview);
 }
 
 void SetupWin::buildtapelist() {

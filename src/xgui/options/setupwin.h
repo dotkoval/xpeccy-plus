@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QKeyEvent>
 #include <QShortcut>
+#include <QComboBox>
 #include <QModelIndex>
 #include <QKeySequence>
 
@@ -29,6 +30,11 @@ class SetupWin : public QDialog {
 		void start();
 		void setPadName();
 	private:
+		void fillRomSlots();
+		void addRomSlot(int, QString, int, const QStringList&, bool, int);
+		QString romSlotFileName(int);
+		void romSlotPick(int, const QString&);
+		void romSlotFile(QComboBox*, int);
 		void fillDbgPalette();
 		void fillLogPage();
 		void applyLogPage();
@@ -39,8 +45,9 @@ class SetupWin : public QDialog {
 
 		xRomsetEditor* rseditor;
 		QDialog* advWin;		// the machine-defining settings
+		QDialog* romWin;		// the set, file by file
 		xRomsetModel* rsmodel;
-		xRomset rsPreview;		// the set the combo shows, until Apply
+		xRomset roms;			// the set the page edits, until Apply
 
 		QDialog* layeditor;
 		QDialog* umadial;
@@ -77,7 +84,6 @@ class SetupWin : public QDialog {
 		void reject();
 		void apply();
 		void okay();
-		void buildrsetlist();
 		void setmszbox(int);
 		void selsspath();
 		void chabsz();
@@ -121,6 +127,9 @@ class SetupWin : public QDialog {
 		void romPreset();
 		void resetMachine();
 		void showAdvanced();
+		void showRomFiles();
+		void saveMachine();
+		void delMachine();
 
 		void newPadMap();
 		void delPadMap();

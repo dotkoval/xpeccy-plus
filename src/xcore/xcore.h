@@ -221,10 +221,6 @@ void emu_unlock();
 // switch to a machine by id, building it from its definition and the user's
 // own overrides on top
 bool xm_set(std::string);
-void xm_set_romset(std::string);
-QList<QString> xm_rom_variants();
-void xm_rom_over_clear();
-void xm_rom_over_add(const std::string&, const std::string&);
 bool xm_set_layout(std::string);
 int xm_set_hardware(std::string);
 
@@ -235,9 +231,7 @@ void xm_defer(const std::string&, const std::string&);
 bool xm_migrate(const std::string&, const std::string&);
 std::string xm_id_for_name(const std::string&);
 void xm_finish_load();
-void xm_load_nvram();
 void xm_save_nvram();
-QStringList xm_over_keys();	// what differs from what the machine ships with
 void xm_reset_over();		// drop all of it and take the machine as it ships
 void xm_save(FILE*);
 void xm_save_media(FILE*);
@@ -404,9 +398,12 @@ typedef struct {
 xRomset* findRomset(std::string);
 bool addRomset(xRomset);
 
+// where a rom file is: under the rom directory, unless it names its own path
+std::string xm_rom_path(const std::string&);
+
 // what the machine loads, and putting a changed set back as the user's own
 void xm_set_roms(const xRomset&);
-xRomset xm_roms_of(std::string);
+void xm_rom_set_file(xRomset&, int, const std::string&);
 
 // machines
 
@@ -415,17 +412,10 @@ xRomset xm_roms_of(std::string);
 // built-in one. See docs/machines-plan.md.
 
 typedef struct {
-	std::string id;			// empty for the machine's own set
-	std::string name;
-	std::string gsFile;
-	std::string fntFile;
-	QList<xRomFile> roms;
-} xMachineRoms;
-
-typedef struct {
 	std::string id;
 	std::string name;
 	std::string family;
+	std::string parent;		// the machine it inherits, if any
 	std::string hw;			// HardWare.name
 	std::string cpu;		// cpuCore.name
 	int memory;			// KB
@@ -449,14 +439,20 @@ typedef struct {
 	unsigned saa:1;
 	unsigned ulaplus:1;
 	unsigned ddpal:1;		// Profi's dd palette
-	QList<xMachineRoms> roms;	// the machine's own set has an empty id, the rest are its variants
+	int romBanks;			// 16K rom banks the core can page
+	xRomset roms;			// the files it ships with
 } xMachine;
 
 void xm_load_all();
+// machines of the user's own: saving the running one, and dropping it again
+std::string xm_save_as(const std::string&, bool);
+std::string xm_id_of_name(const std::string&);
+bool xm_delete(const std::string&);
+void xm_over_forget(const std::string&);
+bool xm_is_users(const std::string&);
 const QList<xMachine>& xm_list();
 const xMachine* xm_find(std::string);
 const xMachine* xm_find_by_core(std::string);
-const xMachineRoms* xm_find_roms(const xMachine*, std::string);
 
 // layouts
 
@@ -465,7 +461,11 @@ typedef struct {
 	vLayout lay;
 } xLayout;
 
+// what a machine gets when the layout it names is not there
+#define	LAY_DEFAULT	"ULA.48"
+
 bool addLayout(std::string, vLayout);
+const xLayout* layout_shipped(const std::string&);
 bool addLayoutString(const std::string&);
 std::string layoutString(const xLayout&);
 void rmLayout(std::string);
@@ -486,9 +486,7 @@ struct xConfig {
 	// the machine, one per process, and the workspace around it
 	Computer* zx;
 	std::string macId;		// machine definition id
-	std::string macName;		// what the machine is called
 	std::string layName;		// screen layout
-	std::string romSet;		// the machine's rom variant, empty = its own
 	xRomset roms;			// what it loads: its own, that variant, your files
 	std::string palette;		// colour palette file
 	std::string kmapName;		// keyboard layout
@@ -599,10 +597,8 @@ struct xConfig {
 		std::string romDir;
 		std::string prfDir;	// old profiles, only read once by the migration
 		std::string nvDir;	// nvram/, what the machines keep
-		std::string shdDir;
 		std::string palDir;
 		std::string plgDir;	// so/dll/dynlib (experimental, works only for CPU)
-		std::string qssDir;	// visual styles
 		std::string font;
 		std::string boot;
 	} path;

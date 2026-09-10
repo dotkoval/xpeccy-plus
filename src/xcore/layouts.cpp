@@ -18,8 +18,6 @@ xLayout* findLayout(std::string nm) {
 // todo: case insensitive
 
 bool ly_compare(const xLayout lay1, const xLayout lay2) {
-	if (lay1.name == "default") return true;		// allways on top
-	if (lay2.name == "default") return false;
 	return (lay1.name < lay2.name);
 }
 
@@ -113,27 +111,26 @@ static void lay_read(const QString& path) {
 
 void layouts_load_all() {
 	conf.layList.clear();
-	// Pentagon geometry, the one layout that needs no file:
-	// rows: 16Vblk + (16 invis + 48 vis) top border + 192 screen + 48 bottom border = 320
-	// cols: 64Hblk + 72 left border + 256 screen + 56 right border = 448 dots (224T)
-	vLayout vlay = {{448,320},{72,64},{64,16},{256,192},{0,0},64};
-	addLayout("default", vlay);
 	lay_read(LAY_RES_FILE);
 	layShipped = conf.layList;
 	lay_read(QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH LAY_USER_FILE);
 }
 
+// the shipped version of a layout, for putting one back after it was changed
+// or deleted
+
+const xLayout* layout_shipped(const std::string& name) {
+	foreach(const xLayout& lay, layShipped) {
+		if (lay.name == name) return &lay;
+	}
+	return NULL;
+}
+
 void layouts_save() {
 	QStringList out;
 	foreach(xLayout lay, conf.layList) {
-		if (lay.name == "default") continue;
-		bool same = false;
-		foreach(xLayout shp, layShipped) {
-			if (shp.name != lay.name) continue;
-			same = lay_same(shp.lay, lay.lay);
-			break;
-		}
-		if (!same) out << QString("layout = %1").arg(QString::fromLocal8Bit(layoutString(lay).c_str()));
+		const xLayout* shp = layout_shipped(lay.name);
+		if (!shp || !lay_same(shp->lay, lay.lay)) out << QString("layout = %1").arg(QString::fromLocal8Bit(layoutString(lay).c_str()));
 	}
 	std::string path = conf.path.confDir + SLASH LAY_USER_FILE;
 	if (out.isEmpty()) {

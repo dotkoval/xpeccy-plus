@@ -250,7 +250,8 @@ static void write_header() {
 #endif
 	put(QString("screen: %1").arg(screen_line()));
 	put(QString("config: %1").arg(QString::fromStdString(conf.path.confDir)));
-	put(QString("machine: %1").arg(QString::fromStdString(conf.macName)));
+	const xMachine* mac = xm_find(conf.macId);
+	put(QString("machine: %1").arg(QString::fromStdString(mac ? mac->name : conf.macId)));
 	QString lvls;
 	for (int i = 0; i < XLG_COUNT; i++)
 		lvls += QString("%1%2:%3").arg(i ? " " : "").arg(xlog_group_name(i)).arg(xlog_level_name(xlog_lev[i]));

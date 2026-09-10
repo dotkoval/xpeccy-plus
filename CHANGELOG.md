@@ -12,6 +12,11 @@ before that point is upstream's history and is not repeated here.
 ### Added
 
 - ZX Spectrum 128K, as a machine of its own.
+- Machines of your own. Set a machine up the way you want it and Save machine, on the
+  Machine page, keeps it in the list beside the ones that ship - it remembers only what you
+  changed, so a fix to the machine it came from still reaches it. Saving one of your own
+  under the name it already has updates it; a new name makes another machine. Delete this
+  machine drops it again; if it went by the name of one that ships, that one comes back.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the
@@ -50,14 +55,29 @@ before that point is upstream's history and is not repeated here.
   page.
 - Options: the interface style moved to Xpeccy+ -> General, since it styles the whole
   application and not just the debugger.
-- ROM sets belong to the machine. Each one carries its own ROMs and the variants it has -
-  TR-DOS 5.03 on a Pentagon, v4.1 on a +3 - and the ROM table on the Machine page edits its
-  slots, with what you change kept for that machine. The list of romsets is gone; the one you
-  used is carried over on first start.
+- ROM sets are gone as a thing of their own: a machine carries its ROMs, and the Machine
+  page has a row per slot - ROM 0 to ROM 3, GS and Font - with the files in `roms/` to pick
+  from and a button for one from anywhere else. Another TR-DOS is another file, not another
+  set. Slots the machine does not have are greyed, and offsets and sizes are behind
+  Advanced. What you change is kept for that machine, and the romset you used is carried
+  over on first start.
 - The machine list is in family order, Sinclair machines first, and the names match the
-  hardware: Spectrum +2A, ZX Evolution (BaseConf), ZX Evolution (TSConf). The +2 runs on
-  the 128K it is. Settings written by an older build still load.
-- Each machine starts with the hardware it had, the extended configurations included.
+  hardware: Spectrum +2A, ZX Evolution (BaseConf), ZX Evolution (TSConf). The +2 is a
+  machine of its own, a 128K with its own ROMs. Settings written by an older build still
+  load.
+- Each machine is the machine as it was made. The two that were a Spectrum with a disk
+  interface added, 48K + TR-DOS and 128K + TR-DOS, are not shipped any more: fit one
+  yourself and Save as a machine keeps it. An old profile of either name comes across onto
+  the Spectrum it extended, carrying what it added.
+- `config/` holds the ROMs and little else now. The settings the emulator starts with, and
+  the palettes, shaders, styles and keymaps it ships with, are in the binary - so a fresh
+  install and an empty config directory both come up as a 128K set up the way it ships, and
+  an update reaches a shader or a style nobody has touched. Put a file of your own in
+  `config/shaders`, `styles`, `palettes` or `keymaps` and it joins the list; one named like a
+  built-in replaces it.
+- Screen layouts are named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Plus3`,
+  `ULA.Pentagon` and so on. The `default` layout, which was Pentagon geometry under a name
+  that said otherwise, is gone; a machine that names no layout gets `ULA.48`.
 - Options: the Tools page is now called General and comes first, with the log settings
   on it.
 - Options: the Low latency setting and the indicator switches moved to a page of their
@@ -93,6 +113,7 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Cancel in Options now really cancels a ROM you picked on the Machine page.
 - Picking a palette preset changes the colors right away again on the ZX Spectrum
   48K and 128K, where they only changed after a reset. The palette editor had the
   same problem.

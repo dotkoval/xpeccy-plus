@@ -829,16 +829,115 @@ Decided while building it, both by the user:
   edit of `setupwin.ui` with a real chance of breaking a layout, for a gain that is
   presentational. Left as a decision of its own.
 
-Done: the Profiles page is gone, "Machine defaults" on the Machine page drops everything the
-user changed on this machine (`xm_reset_over()`), and a setting that differs from what the
-machine ships with is drawn bold - `xm_over_keys()` is the same diff `xm_save()` writes, so
-the marks and the file can never disagree.
+Done: the Profiles page is gone and the Machine page is what a machine *is* - the machine, its
+CPU, its memory, its default reset and its ROMs. Restore machine defaults drops everything the
+user changed on it (`xm_reset_over()`); the ULA settings and the raster layout are behind
+Advanced settings, a window built in code out of `ui.advBox`.
+
+**The bold marking of changed settings was dropped.** `xm_over_keys()` gave the same diff
+`xm_save()` writes, so the marks could not disagree with the file - but they only caught up
+when the dialog was reopened, which reads as the marks being wrong. What replaced it is
+plainer: names in normal weight, what a setting does in italics beside it, on the Emulation
+page as well.
+
+**The ROM slots got their two views** (6.3, phase 6's item, taken here since the group was
+being rebuilt anyway). The page shows every slot the machine has - `ROM 0`..`ROM 3`, `GS`,
+`Font` - with a combo of the ROM files found under `roms/` and a button beside it for one
+from anywhere else. An empty slot reads `(empty)`; one the machine cannot have is greyed and
+reads `(not fitted)`. A file outside the rom directory is stored as its own absolute path;
+`xm_rom_path()` is where that is decided, so the loader and the size column agree. Advanced,
+in the same group, opens the old table - offsets, sizes and positions - in a window of its
+own.
+
+How many slots a machine has is `banks` in its `[rom]` section, the 16K pages its core can
+address. Four is the default and only the 48K says otherwise: two, BASIC and the interface
+ROM the DOS flag pages in. A file bigger than one bank covers the ones after it, and they
+say so - `(from ROM 0)` - which is how the machines that load a single image over the whole
+ROM space read.
+
+**Romset variants are gone.** `[rom.<id>]` sections, `conf.romSet`, `xm_set_romset()`,
+`xm_rom_variants()` and the combo over them: a slot takes any file, so "TR-DOS 5.03 instead
+of 5.04" is a file in ROM 3, kept as an override like everything else, and the combo was one
+concept too many for what it bought. The one variant that was not a file swap was the 128K's
+`plus2` - a different model wearing different ROMs - and that is now `zxplus2`, a machine of
+its own inheriting `zx128`. An old config that named a romset still migrates: unless the set
+holds what the machine ships with anyway, its files come across as the user's own.
+
+**Machines of the user's own** (7.x, not in the plan as written - asked for while phase 5
+was being built). Save as a machine writes the running machine to
+`<confdir>/machines/<id>.conf` as `inherit = <the machine it came from>` plus the same diff
+`xm_save()` writes to the override block, in the sections a definition uses - so it carries
+only what was changed and follows a shipped fix in everything else. The machine it came from
+goes back to how it ships: the settings did not disappear, they moved. Delete this machine
+removes the file; a definition that shadowed a shipped one leaves that one behind, and the
+list is rebuilt either way.
+
+Saving under a name that is already a machine of the user's own writes over it, which is how
+a machine is updated - one button, and the name says what happens. Two things fall out of
+that. The file has to inherit what the machine it replaces inherited, or it would inherit
+itself; and the diff has to be measured against *that* parent, not against the machine being
+written, or a machine saved twice with nothing changed would come back empty - the first
+save's keys are part of its own definition by then. `mac_put_all()` takes the baseline it
+measures against for that reason. A name that belongs to a machine that ships is refused:
+a file of that id would shadow the machine it inherits.
+
+Saving applies the page first. Every setting there stages until Apply, so without that the
+button would keep what the machine is rather than what the page shows.
+
+The keys of a definition and the keys of an override block are the same words in a different
+shape, which is what makes this a mapping and not a translation - `macSectTab` in
+`machines.cpp` is that mapping. The one collision it turned up: `gs` is the General Sound
+chip in `[sound]` and its ROM file in `[rom]`, and in the flat override block the two could
+not be told apart - the ROM file was read as a boolean and switched the chip off. The rom
+keys are `rom.gs` and `rom.font` there now.
+
+**The two extended machines went** once machines of your own worked: `zx48-trdos` and
+`zx128-trdos` were a Spectrum with a disk interface and a sound card added, which is now a
+thing anyone can make and keep. Their old profile names still migrate, onto `zx48` and
+`zx128`, so what the profile added arrives as that machine's own settings.
+
+**Layouts are named after the ULA**: `ULA.48`, `ULA.128`, `ULA.Plus3`, `ULA.Pentagon`,
+`ULA.Scorpion`, `ULA.Profi`, `ULA.ATM2`, `ULA.TSConf`. The `default` entry is gone - it was
+built in code, held Pentagon geometry, sorted itself to the top and could not be deleted,
+and nothing about the name said any of that. `LAY_DEFAULT` (`ULA.48`) is what a machine gets
+when the layout it names is missing.
+
+**`config/` ships the roms and little else.** `config.conf` and the seventeen profiles under
+it are gone from the install: the settings a fresh start uses are `res/fallback/config.conf`
+in the binary, which is the shipped default rather than the bare minimum it used to be, and
+the roms its machine needs are resources too. The palettes, shaders, styles and keymaps moved
+to `res/`, which is what the binary is built from, so nothing shadows them any more - that
+closes 3.4 and the half of 4.1 phase 4 left open. Each of those folders keeps its README, so
+the config directory still says what to put there. The empty `plugins` directory is not made
+either: it was for cpu cores as shared libraries, which nothing ships and the ZX-only build
+cannot even pick.
+
+**One reader for a machine's keys.** The settings kept for a machine were applied a second
+way: `mac_apply()` read them from a definition into an `xMachine`, and `mac_set_key()` poked
+each one into the running `Computer` after it was already built. The two had drifted - one
+clamped `cpu.frq` and warned about an unknown key, the other did neither, and `psg.count` and
+`psg.type` had to read the live machine back to avoid clobbering each other. The block holds
+the definition's own keys in a flatter shape, so `mac_with_over()` now turns each pair back
+into a definition line (`mac_key_place()` says which section it belongs to) and lays it over
+the definition; the machine is built once, from the result. `mac_set_key()` is gone, and so is
+the `macRomOver` scaffolding that existed only because rom keys were read before the machine
+was up - the merged definition carries them like any other key.
+
+**The ROM editors stage like everything else.** They wrote straight into the running machine,
+so a ROM picked and then Cancelled was still what the config file got. `SetupWin` keeps its own
+`xRomset`, seeded in `start()`, and Apply is what loads it - the same shape as every other
+setting on the page.
+
+**`saveConfig()` writes the settings file and nothing else.** It had grown `layouts_save()` and
+`xm_save_nvram()`, and it is called from the zoom and fullscreen hotkeys - so changing the
+window size rewrote the machine's CMOS. Layouts are saved on Apply and on exit, NVRAM on a
+machine switch (where it already was) and on exit.
 
 ### Phase 6 - the settings audit
 - Behind "Advanced": `4t-border`, `earlyTiming`, `contPattern`, `contio`, `contmem`,
   `scrp.wait`, `DDpal`. **Not** `psg.frq` - decision 6.
 - The ROM slots get their two views (6.3): files only by default, offsets and sizes behind
-  the same button.
+  the same button. **Done in phase 5.**
 - One media panel showing everything mounted at once (tape, A-D, HDD master/slave, SD),
   instead of five sibling tabs under Storage.
 - Export / import of the whole configuration as one file, for sharing a setup and for bug

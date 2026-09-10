@@ -205,7 +205,7 @@ std::pair<std::string,std::string> splitline(std::string line, char delim) {
 // name collision. `kind` is the folder the two share - palettes, shaders,
 // styles, keymaps.
 
-#define	XRES_ROOT	":/config/"
+#define	XRES_ROOT	":/res/"
 
 QString xres_dir(const char* kind) {
 	return QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + kind;

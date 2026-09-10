@@ -74,9 +74,9 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_39" stretch="0,0,10">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="10,0">
-           <item>
-            <widget class="QGroupBox" name="archArchGBox">
+          <widget class="QGroupBox" name="archArchGBox">
+           <layout class="QHBoxLayout" name="horizontalLayout_9">
+            <item>
              <layout class="QGridLayout" name="gridLayout" columnstretch="0,0,0,0,10">
                <item row="0" column="0">
                 <widget class="QLabel" name="icoMachine">
@@ -218,62 +218,92 @@
                  </property>
                 </widget>
                </item>
-               <item row="2" column="2">
-                <widget class="QDoubleSpinBox" name="sbFreq">
-                 <property name="toolTip">
-                  <string>Base clock of the machine. If the video runs off
-the same generator, it sets the frame rate too</string>
+               <item row="2" column="2" colspan="3">
+                <widget class="QWidget" name="freqBox" native="true">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
                  </property>
-                 <property name="suffix">
-                  <string> MHz</string>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
                  </property>
-                 <property name="decimals">
-                  <number>4</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.500000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>14.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.010000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>3.500000000000000</double>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="3">
-                <widget class="QLabel" name="labMult">
-                 <property name="text">
-                  <string>Mult</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="2" column="4">
-                <widget class="QDoubleSpinBox" name="sbMult">
-                 <property name="toolTip">
-                  <string>Multiplier for the CPU clock</string>
-                 </property>
-                 <property name="prefix">
-                  <string>x</string>
-                 </property>
-                 <property name="decimals">
-                  <number>1</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>8.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>1.000000000000000</double>
-                 </property>
+                 <layout class="QHBoxLayout" name="horizontalLayout_freq">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QDoubleSpinBox" name="sbFreq">
+                    <property name="toolTip">
+                     <string>Base clock of the machine. If the video runs off
+   the same generator, it sets the frame rate too</string>
+                    </property>
+                    <property name="suffix">
+                     <string> MHz</string>
+                    </property>
+                    <property name="decimals">
+                     <number>4</number>
+                    </property>
+                    <property name="minimum">
+                     <double>0.500000000000000</double>
+                    </property>
+                    <property name="maximum">
+                     <double>14.000000000000000</double>
+                    </property>
+                    <property name="singleStep">
+                     <double>0.010000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>3.500000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="labMult">
+                    <property name="text">
+                     <string>Mult</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QDoubleSpinBox" name="sbMult">
+                    <property name="toolTip">
+                     <string>Multiplier for the CPU clock</string>
+                    </property>
+                    <property name="prefix">
+                     <string>x</string>
+                    </property>
+                    <property name="decimals">
+                     <number>1</number>
+                    </property>
+                    <property name="minimum">
+                     <double>0.100000000000000</double>
+                    </property>
+                    <property name="maximum">
+                     <double>8.000000000000000</double>
+                    </property>
+                    <property name="singleStep">
+                     <double>0.100000000000000</double>
+                    </property>
+                    <property name="value">
+                     <double>1.000000000000000</double>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
                 </widget>
                </item>
                <item row="3" column="0">
@@ -398,59 +428,124 @@ the same generator, it sets the frame rate too</string>
                 </spacer>
                </item>
              </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QGroupBox" name="gbMachineButtons">
-             <property name="title">
-              <string/>
-             </property>
-              <layout class="QVBoxLayout" name="verticalLayout_26">
-               <item>
-                <widget class="QPushButton" name="pbResetMachine">
-  <property name="icon">
- <iconset resource="../xpeccy.qrc">
-<normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
-  </property>
-                 <property name="toolTip">
-                  <string>Drop everything you changed on this machine and take it as it ships</string>
-                 </property>
-                 <property name="text">
-                  <string>Restore machine defaults</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="pbAdvanced">
-  <property name="icon">
- <iconset resource="../xpeccy.qrc">
-<normaloff>:/images/settings.png</normaloff>:/images/settings.png</iconset>
-  </property>
-                 <property name="toolTip">
-                  <string>The settings that define this machine rather than how you use it</string>
-                 </property>
-                 <property name="text">
-                  <string>Advanced settings</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <spacer name="verticalSpacer_18">
-                 <property name="orientation">
-                  <enum>Qt::Vertical</enum>
-                 </property>
-                 <property name="sizeHint" stdset="0">
-                  <size>
-                   <width>20</width>
-                   <height>5</height>
-                  </size>
-                 </property>
-                </spacer>
-               </item>
-              </layout>
-            </widget>
-           </item>
-          </layout>
+            </item>
+            <item>
+             <spacer name="horizontalSpacer_mach">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeType">
+               <enum>QSizePolicy::Fixed</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>24</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QWidget" name="machButtons" native="true">
+              <property name="minimumSize">
+               <size>
+                <width>155</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>155</width>
+                <height>16777215</height>
+               </size>
+              </property>
+               <layout class="QVBoxLayout" name="verticalLayout_26">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="pbAdvanced">
+                  <property name="icon">
+                   <iconset resource="../xpeccy.qrc">
+                    <normaloff>:/images/settings.png</normaloff>:/images/settings.png</iconset>
+                  </property>
+                  <property name="toolTip">
+                   <string>The settings that define this machine rather than how you use it</string>
+                  </property>
+                  <property name="text">
+                   <string>Advanced settings</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pbResetMachine">
+                  <property name="icon">
+                   <iconset resource="../xpeccy.qrc">
+                    <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
+                  </property>
+                  <property name="toolTip">
+                   <string>Drop everything you changed on this machine and take it as it ships</string>
+                  </property>
+                  <property name="text">
+                   <string>Restore machine</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pbSaveMachine">
+                  <property name="icon">
+                   <iconset resource="../xpeccy.qrc">
+                    <normaloff>:/images/save_all.png</normaloff>:/images/save_all.png</iconset>
+                  </property>
+                  <property name="toolTip">
+                   <string>Keep this configuration as a machine of your own. Saving it under its own name updates it</string>
+                  </property>
+                  <property name="text">
+                   <string>Save machine...</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="pbDelMachine">
+                  <property name="icon">
+                   <iconset resource="../xpeccy.qrc">
+                    <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+                  </property>
+                  <property name="toolTip">
+                   <string>Drop a machine of your own. One that shadows a machine that ships puts it back</string>
+                  </property>
+                  <property name="text">
+                   <string>Delete this machine</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <spacer name="verticalSpacer_18">
+                  <property name="orientation">
+                   <enum>Qt::Vertical</enum>
+                  </property>
+                  <property name="sizeHint" stdset="0">
+                   <size>
+                    <width>20</width>
+                    <height>5</height>
+                   </size>
+                  </property>
+                 </spacer>
+                </item>
+               </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </item>
          <item>
           <widget class="QGroupBox" name="gbRoms">
@@ -459,55 +554,13 @@ the same generator, it sets the frame rate too</string>
            </property>
            <layout class="QVBoxLayout" name="verticalLayout_roms">
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_2">
+             <layout class="QHBoxLayout" name="horizontalLayout_slots">
               <item>
-               <widget class="QLabel" name="label_2">
-                <property name="minimumSize">
-                 <size>
-                  <width>70</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="text">
-                 <string>ROM set</string>
-                </property>
-               </widget>
+               <layout class="QGridLayout" name="gridRomSlots">
+               </layout>
               </item>
               <item>
-               <widget class="QComboBox" name="rsetbox">
-                <property name="minimumSize">
-                 <size>
-                  <width>200</width>
-                  <height>0</height>
-                 </size>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>200</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-                <property name="toolTip">
-                 <string>The machine's own ROMs, or one of the sets it comes with</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="addrset">
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QToolButton" name="rmrset">
-                <property name="text">
-                 <string>...</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <spacer name="horizontalSpacer_2">
+               <spacer name="horizontalSpacer_slots">
                 <property name="orientation">
                  <enum>Qt::Horizontal</enum>
                 </property>
@@ -519,124 +572,188 @@ the same generator, it sets the frame rate too</string>
                 </property>
                </spacer>
               </item>
+              <item>
+               <widget class="QWidget" name="romButtons" native="true">
+                <property name="minimumSize">
+                 <size>
+                  <width>155</width>
+                  <height>0</height>
+                 </size>
+                </property>
+                <property name="maximumSize">
+                 <size>
+                  <width>155</width>
+                  <height>16777215</height>
+                 </size>
+                </property>
+                 <layout class="QVBoxLayout" name="verticalLayout_romsbtn">
+                  <property name="leftMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="topMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="rightMargin">
+                   <number>0</number>
+                  </property>
+                  <property name="bottomMargin">
+                   <number>0</number>
+                  </property>
+                  <item>
+                   <widget class="QPushButton" name="pbRomAdvanced">
+                    <property name="toolTip">
+                     <string>Edit the set file by file: where each one starts,
+  how much of it is read, and where it lands</string>
+                    </property>
+                    <property name="text">
+                     <string>Advanced</string>
+                    </property>
+                    <property name="icon">
+                     <iconset resource="../xpeccy.qrc">
+                      <normaloff>:/images/settings.png</normaloff>:/images/settings.png</iconset>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="verticalSpacer_romsbtn">
+                    <property name="orientation">
+                     <enum>Qt::Vertical</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>20</width>
+                      <height>5</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+               </widget>
+              </item>
              </layout>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_19">
-              <item>
-               <widget class="QTableView" name="tvRomset">
-                <property name="enabled">
-                 <bool>true</bool>
-                </property>
-                <property name="editTriggers">
-                 <set>QAbstractItemView::NoEditTriggers</set>
-                </property>
-                <property name="alternatingRowColors">
-                 <bool>true</bool>
-                </property>
-                <property name="selectionMode">
-                 <enum>QAbstractItemView::SingleSelection</enum>
-                </property>
-                <property name="selectionBehavior">
-                 <enum>QAbstractItemView::SelectRows</enum>
-                </property>
-                <property name="gridStyle">
-                 <enum>Qt::DotLine</enum>
-                </property>
-                <attribute name="horizontalHeaderMinimumSectionSize">
-                 <number>32</number>
-                </attribute>
-                <attribute name="horizontalHeaderDefaultSectionSize">
-                 <number>32</number>
-                </attribute>
-                <attribute name="horizontalHeaderStretchLastSection">
-                 <bool>true</bool>
-                </attribute>
-                <attribute name="verticalHeaderVisible">
-                 <bool>false</bool>
-                </attribute>
-                <attribute name="verticalHeaderMinimumSectionSize">
-                 <number>17</number>
-                </attribute>
-                <attribute name="verticalHeaderDefaultSectionSize">
-                 <number>17</number>
-                </attribute>
-               </widget>
-              </item>
-              <item>
-               <layout class="QVBoxLayout" name="verticalLayout_37">
-                <item>
-                 <widget class="QToolButton" name="tbAddRom">
-                  <property name="toolTip">
-                   <string>Add a ROM file to the set</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QToolButton" name="tbEditRom">
-                  <property name="toolTip">
-                   <string>Edit the selected ROM</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/edit.png</normaloff>:/images/edit.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QToolButton" name="tbPreset">
-                  <property name="toolTip">
-                   <string>Fill the set with this machine's standard ROMs</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/lamp.png</normaloff>:/images/lamp.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <spacer name="verticalSpacer_13">
-                  <property name="orientation">
-                   <enum>Qt::Vertical</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>20</width>
-                    <height>40</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-                <item>
-                 <widget class="QToolButton" name="tbDelRom">
-                  <property name="toolTip">
-                   <string>Remove the selected ROM from the set</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-               </layout>
-              </item>
-             </layout>
+             <widget class="QWidget" name="romAdvBox" native="true">
+              <layout class="QVBoxLayout" name="verticalLayout_romadv">
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_19">
+                 <item>
+                  <widget class="QTableView" name="tvRomset">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="editTriggers">
+                    <set>QAbstractItemView::NoEditTriggers</set>
+                   </property>
+                   <property name="alternatingRowColors">
+                    <bool>true</bool>
+                   </property>
+                   <property name="selectionMode">
+                    <enum>QAbstractItemView::SingleSelection</enum>
+                   </property>
+                   <property name="selectionBehavior">
+                    <enum>QAbstractItemView::SelectRows</enum>
+                   </property>
+                   <property name="gridStyle">
+                    <enum>Qt::DotLine</enum>
+                   </property>
+                   <attribute name="horizontalHeaderMinimumSectionSize">
+                    <number>32</number>
+                   </attribute>
+                   <attribute name="horizontalHeaderDefaultSectionSize">
+                    <number>32</number>
+                   </attribute>
+                   <attribute name="horizontalHeaderStretchLastSection">
+                    <bool>true</bool>
+                   </attribute>
+                   <attribute name="verticalHeaderVisible">
+                    <bool>false</bool>
+                   </attribute>
+                   <attribute name="verticalHeaderMinimumSectionSize">
+                    <number>17</number>
+                   </attribute>
+                   <attribute name="verticalHeaderDefaultSectionSize">
+                    <number>17</number>
+                   </attribute>
+                  </widget>
+                 </item>
+                 <item>
+                  <layout class="QVBoxLayout" name="verticalLayout_37">
+                   <item>
+                    <widget class="QToolButton" name="tbAddRom">
+                     <property name="toolTip">
+                      <string>Add a ROM file to the set</string>
+                     </property>
+                     <property name="text">
+                      <string>...</string>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/add.png</normaloff>:/images/add.png</iconset>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QToolButton" name="tbEditRom">
+                     <property name="toolTip">
+                      <string>Edit the selected ROM</string>
+                     </property>
+                     <property name="text">
+                      <string>...</string>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/edit.png</normaloff>:/images/edit.png</iconset>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QToolButton" name="tbPreset">
+                     <property name="toolTip">
+                      <string>Fill the set with this machine's standard ROMs</string>
+                     </property>
+                     <property name="text">
+                      <string>...</string>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/lamp.png</normaloff>:/images/lamp.png</iconset>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="verticalSpacer_13">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>40</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                   <item>
+                    <widget class="QToolButton" name="tbDelRom">
+                     <property name="toolTip">
+                      <string>Remove the selected ROM from the set</string>
+                     </property>
+                     <property name="text">
+                      <string>...</string>
+                     </property>
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/cancel.png</normaloff>:/images/cancel.png</iconset>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
+                 </item>
+                </layout>
+               </item>
+              </layout>
+             </widget>
             </item>
            </layout>
           </widget>
@@ -710,7 +827,7 @@ where in the frame the interrupt falls</string>
                  <item>
                   <widget class="QToolButton" name="layDel">
                    <property name="toolTip">
-                    <string>Delete this layout</string>
+                    <string>Delete this layout, or put a shipped one back</string>
                    </property>
                    <property name="text">
                     <string>...</string>

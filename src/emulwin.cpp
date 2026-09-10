@@ -52,8 +52,9 @@ void MainWin::updateHead() {
 #ifdef ISDEBUG
 	title.append(" | debug");
 #endif
-	if (conf.zx) {
-		title.append(" | ").append(conf.macName.c_str());
+	const xMachine* mac = xm_find(conf.macId);
+	if (conf.zx && mac) {
+		title.append(" | ").append(mac->name.c_str());
 	}
 	if (conf.emu.fast) {
 		title.append(" | fast");
@@ -529,7 +530,6 @@ void MainWin::moveEvent(QMoveEvent* ev) {
 }
 
 void MainWin::menuShow() {
-	Computer* comp = conf.zx;
 	pause(true,PR_MENU);
 }
 
@@ -948,6 +948,8 @@ void MainWin::closeEvent(QCloseEvent* ev) {
 		sdcCloseFile(comp->sdc);
 		sltEject(comp->slot);		// this must save cartridge ram
 		emit s_keywin_close();
+		layouts_save();		// their own files, not the settings one
+		xm_save_nvram();
 		saveConfig();
 #ifdef USENETWORK
 		closeServer();

@@ -1,53 +1,55 @@
 <RCC>
     <qresource prefix="/">
         <file>config/roms/48.rom</file>
-        <file>config/palettes/atm.txt</file>
-        <file>config/palettes/hardware.txt</file>
-        <file>config/palettes/next.txt</file>
-        <file>config/palettes/pulsar.txt</file>
-        <file>config/palettes/schafft.txt</file>
-        <file>config/palettes/spectaculator.txt</file>
-        <file>config/palettes/wiki1.txt</file>
-        <file>config/palettes/wiki2.txt</file>
-        <file>config/palettes/xpeccy.txt</file>
-        <file>config/shaders/composite-crt-flat.txt</file>
-        <file>config/shaders/composite-crt.txt</file>
-        <file>config/shaders/grille-nocurve-crisp.txt</file>
-        <file>config/shaders/grille-nocurve-light.txt</file>
-        <file>config/shaders/grille2-nocurve-crisp.txt</file>
-        <file>config/shaders/grille2-nocurve-light.txt</file>
-        <file>config/shaders/monitor-1084-flat.txt</file>
-        <file>config/shaders/monitor-1084.txt</file>
-        <file>config/shaders/pvm-sharp.txt</file>
-        <file>config/shaders/tridot-curve-crisp.txt</file>
-        <file>config/shaders/tridot-curve-light.txt</file>
-        <file>config/shaders/tridot-nocurve-crisp.txt</file>
-        <file>config/shaders/tridot-nocurve-light.txt</file>
-        <file>config/shaders/tvline-curve-light.txt</file>
-        <file>config/shaders/tvline-nocurve-light.txt</file>
-        <file>config/shaders/widetridot-curve-crisp.txt</file>
-        <file>config/shaders/widetridot-curve-light.txt</file>
-        <file>config/shaders/widetridot-nocurve-crisp.txt</file>
-        <file>config/shaders/widetridot-nocurve-light.txt</file>
-        <file>config/shaders/zx-rf-artifact.txt</file>
-        <file>config/styles/Dark.pal</file>
-        <file>config/styles/Dark.qss</file>
-        <file>config/styles/Dracula.pal</file>
-        <file>config/styles/Dracula.qss</file>
-        <file>config/styles/Gruvbox.pal</file>
-        <file>config/styles/Gruvbox.qss</file>
-        <file>config/styles/Light.pal</file>
-        <file>config/styles/Light.qss</file>
-        <file>config/styles/Solarized Dark.pal</file>
-        <file>config/styles/Solarized Dark.qss</file>
-        <file>config/styles/Solarized Light.pal</file>
-        <file>config/styles/Solarized Light.qss</file>
-        <file>config/styles/Sublime.pal</file>
-        <file>config/styles/Sublime.qss</file>
-        <file>config/styles/ZX Spectrum.pal</file>
-        <file>config/styles/ZX Spectrum.qss</file>
-        <file>config/keymaps/ZX Spectrum 128K.map</file>
-        <file>config/keymaps/ZX Spectrum 48K.map</file>
+        <file>config/roms/128-0.rom</file>
+        <file>config/roms/128-1.rom</file>
+        <file>res/palettes/atm.txt</file>
+        <file>res/palettes/hardware.txt</file>
+        <file>res/palettes/next.txt</file>
+        <file>res/palettes/pulsar.txt</file>
+        <file>res/palettes/schafft.txt</file>
+        <file>res/palettes/spectaculator.txt</file>
+        <file>res/palettes/wiki1.txt</file>
+        <file>res/palettes/wiki2.txt</file>
+        <file>res/palettes/xpeccy.txt</file>
+        <file>res/shaders/composite-crt-flat.txt</file>
+        <file>res/shaders/composite-crt.txt</file>
+        <file>res/shaders/grille-nocurve-crisp.txt</file>
+        <file>res/shaders/grille-nocurve-light.txt</file>
+        <file>res/shaders/grille2-nocurve-crisp.txt</file>
+        <file>res/shaders/grille2-nocurve-light.txt</file>
+        <file>res/shaders/monitor-1084-flat.txt</file>
+        <file>res/shaders/monitor-1084.txt</file>
+        <file>res/shaders/pvm-sharp.txt</file>
+        <file>res/shaders/tridot-curve-crisp.txt</file>
+        <file>res/shaders/tridot-curve-light.txt</file>
+        <file>res/shaders/tridot-nocurve-crisp.txt</file>
+        <file>res/shaders/tridot-nocurve-light.txt</file>
+        <file>res/shaders/tvline-curve-light.txt</file>
+        <file>res/shaders/tvline-nocurve-light.txt</file>
+        <file>res/shaders/widetridot-curve-crisp.txt</file>
+        <file>res/shaders/widetridot-curve-light.txt</file>
+        <file>res/shaders/widetridot-nocurve-crisp.txt</file>
+        <file>res/shaders/widetridot-nocurve-light.txt</file>
+        <file>res/shaders/zx-rf-artifact.txt</file>
+        <file>res/styles/Dark.pal</file>
+        <file>res/styles/Dark.qss</file>
+        <file>res/styles/Dracula.pal</file>
+        <file>res/styles/Dracula.qss</file>
+        <file>res/styles/Gruvbox.pal</file>
+        <file>res/styles/Gruvbox.qss</file>
+        <file>res/styles/Light.pal</file>
+        <file>res/styles/Light.qss</file>
+        <file>res/styles/Solarized Dark.pal</file>
+        <file>res/styles/Solarized Dark.qss</file>
+        <file>res/styles/Solarized Light.pal</file>
+        <file>res/styles/Solarized Light.qss</file>
+        <file>res/styles/Sublime.pal</file>
+        <file>res/styles/Sublime.qss</file>
+        <file>res/styles/ZX Spectrum.pal</file>
+        <file>res/styles/ZX Spectrum.qss</file>
+        <file>res/keymaps/ZX Spectrum 128K.map</file>
+        <file>res/keymaps/ZX Spectrum 48K.map</file>
         <file>res/help/cond-syntax.html</file>
         <file>res/fallback/config.conf</file>
         <file>res/layouts.conf</file>
@@ -60,10 +62,9 @@
         <file>res/machines/phoenix.conf</file>
         <file>res/machines/profi.conf</file>
         <file>res/machines/scorp.conf</file>
-        <file>res/machines/zx128-trdos.conf</file>
         <file>res/machines/zx128.conf</file>
-        <file>res/machines/zx48-trdos.conf</file>
         <file>res/machines/zx48.conf</file>
+        <file>res/machines/zxplus2.conf</file>
         <file>res/machines/zxplus2a.conf</file>
         <file>res/machines/zxplus3.conf</file>
         <file>res/nvram/evo-tsconf.cmos</file>
