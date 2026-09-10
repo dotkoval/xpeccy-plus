@@ -28,6 +28,11 @@ if ($roms -lt 20) { throw 'the rom images did not make it into the staged folder
 
 $keepPath = $env:PATH
 $env:PATH = "$env:SystemRoot\system32;$env:SystemRoot"
+# A runner has no sound card, and WASAPI can take the best part of a minute
+# to say so - long enough to look like a hang. There is nothing to hear here
+# anyway; what is being checked is that the binary starts and finishes.
+$keepAudio = $env:SDL_AUDIODRIVER
+$env:SDL_AUDIODRIVER = 'dummy'
 try {
 	$p = Start-Process $exe -ArgumentList '--help' -WorkingDirectory $Dist `
 		-RedirectStandardOutput $out -RedirectStandardError $err -PassThru -NoNewWindow
@@ -39,6 +44,7 @@ try {
 	}
 } finally {
 	$env:PATH = $keepPath
+	$env:SDL_AUDIODRIVER = $keepAudio
 }
 
 Get-Content $out -ErrorAction SilentlyContinue
