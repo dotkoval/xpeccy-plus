@@ -98,7 +98,8 @@ typedef struct Computer {
 	struct HardWare *hw;	// computer core - misc params, callbacks
 
 	double cpuFrq;
-	double frqMul;
+	double frqMul;		// turbo the user asked for
+	double hwMul;		// turbo the machine switched on itself
 	unsigned char intVector;
 
 	int brkt;		// breakpoint type (cpu, ram, rom...)
@@ -270,6 +271,7 @@ void comp_kbd_release(Computer*);
 
 void compSetBaseFrq(Computer*,double);
 void compSetTurbo(Computer*,double);
+void compSetHwTurbo(Computer*,double);
 int compSetHardware(Computer*,const char*);
 void comp_set_layout(Computer*, vLayout*);
 

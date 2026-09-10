@@ -343,10 +343,10 @@ void tsOut1FAF(Computer* comp, int port, int val) {comp->dmaDst.ih = val & 0xff;
 
 void tsOut20AF(Computer* comp, int port, int val) {
 	switch (val & 3) {
-		case 0: compSetTurbo(comp,1); break;
-		case 1: compSetTurbo(comp,2); break;
-		case 2: compSetTurbo(comp,4); break;	// normal
-		case 3: compSetTurbo(comp,4); break;	// overclock
+		case 0: compSetHwTurbo(comp,1); break;
+		case 1: compSetHwTurbo(comp,2); break;
+		case 2: compSetHwTurbo(comp,4); break;	// normal
+		case 3: compSetHwTurbo(comp,4); break;	// overclock
 	}
 }
 

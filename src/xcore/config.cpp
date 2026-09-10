@@ -386,17 +386,24 @@ static void seedConfigDir(const QString& src) {
 
 #define	XCONF_MARK	"[["
 
-static QStringList xconf_files() {
-	QStringList res;
-	res << "config.conf" << "layouts.conf";
-	QString dir = xres_dir("machines");
-	foreach(QString nam, QDir(dir).entryList(QStringList() << "*.conf", QDir::Files, QDir::Name))
-		res << "machines/" + nam;
-	return res;
+// the settings themselves; the machines come from the module that owns them
+
+static const char* xconfFile[] = {"config.conf", "layouts.conf", NULL};
+
+static QString xconf_dir() {
+	return QString::fromLocal8Bit(conf.path.confDir.c_str());
 }
 
+static QStringList xconf_files() {
+	QStringList res;
+	for (int i = 0; xconfFile[i]; i++)
+		res << xconfFile[i];
+	return res + xm_user_files();
+}
+
+// The caller commits what it has first: this writes the files as they stand.
+
 bool xconf_export(const QString& path) {
-	saveConfig();			// what is exported is what is running
 	QFile out(path);
 	if (!out.open(QFile::WriteOnly)) {
 		xlog(XLG_CONF, XLL_ERROR, "can't write %s", path.toLocal8Bit().data());
@@ -405,7 +412,7 @@ bool xconf_export(const QString& path) {
 	QString head = QString("# " XPRODUCT " configuration, version " XVERSION "\n"
 		"# Import it in Options - Xpeccy+ - General.\n");
 	out.write(head.toLocal8Bit());
-	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
+	QString base = xconf_dir();
 	foreach(QString nam, xconf_files()) {
 		QFile in(base + SLASH + nam);
 		if (!in.open(QFile::ReadOnly)) continue;	// nothing of that kind here
@@ -418,11 +425,16 @@ bool xconf_export(const QString& path) {
 	return true;
 }
 
-// the files of the config directory this one is allowed to write over
+// the files of the config directory this one is allowed to write over. Not
+// the list above: a machine that is not here yet is exactly what an imported
+// file is expected to bring
 
 static bool xconf_may_write(const QString& nam) {
 	if (nam.contains("..") || nam.contains(':')) return false;
-	return xconf_files().contains(nam) || nam.startsWith("machines/");
+	for (int i = 0; xconfFile[i]; i++) {
+		if (nam == xconfFile[i]) return true;
+	}
+	return xm_is_user_file(nam);
 }
 
 bool xconf_import(const QString& path) {
@@ -453,7 +465,7 @@ bool xconf_import(const QString& path) {
 		xlog(XLG_CONF, XLL_ERROR, "%s holds no configuration", path.toLocal8Bit().data());
 		return false;
 	}
-	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
+	QString base = xconf_dir();
 	foreach(QString key, part.keys()) {
 		QString dst = base + SLASH + key;
 		QDir().mkpath(QFileInfo(dst).path());
@@ -474,9 +486,8 @@ bool xconf_import(const QString& path) {
 // user's own are content, not settings, and are left where they are.
 
 bool xconf_reset() {
-	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
-	QFile::remove(base + SLASH "config.conf");
-	QFile::remove(base + SLASH "layouts.conf");
+	for (int i = 0; xconfFile[i]; i++)
+		QFile::remove(xconf_dir() + SLASH + xconfFile[i]);
 	return reloadConfig();
 }
 
@@ -486,12 +497,21 @@ bool xconf_reset() {
 // read at all, which here would take the whole emulator down with it.
 
 bool reloadConfig() {
+	// loadConfig() is startup: it re-opens the sound output and rescans the
+	// gamepads as well as reading the files, and it does it under a machine
+	// that is already running
+	emu_lock();
+	conf.emu.pause |= PR_EXTRA;
 	try {
 		loadConfig();
 	} catch (...) {
 		xlog(XLG_CONF, XLL_ERROR, "the configuration could not be read");
+		conf.emu.pause &= ~PR_EXTRA;
+		emu_unlock();
 		return false;
 	}
+	conf.emu.pause &= ~PR_EXTRA;
+	emu_unlock();
 	return true;
 }
 

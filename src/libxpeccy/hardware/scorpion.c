@@ -76,12 +76,12 @@ int scrpIn1F(Computer* comp, int port) {
 }
 
 int scrpIn1FFD(Computer* comp, int port) {
-	compSetTurbo(comp, 1);
+	compSetHwTurbo(comp, 1);
 	return 0xff;
 }
 
 int scrpIn7FFD(Computer* comp, int port) {
-	compSetTurbo(comp, 2);
+	compSetHwTurbo(comp, 2);
 	return 0xff;
 }
 

@@ -249,7 +249,7 @@
                    <widget class="QDoubleSpinBox" name="sbFreq">
                     <property name="toolTip">
                      <string>Base clock of the machine. If the video runs off
-   the same generator, it sets the frame rate too</string>
+the same generator, it sets the frame rate too</string>
                     </property>
                     <property name="suffix">
                      <string> MHz</string>
@@ -603,7 +603,7 @@
                    <widget class="QPushButton" name="pbRomAdvanced">
                     <property name="toolTip">
                      <string>Edit the set file by file: where each one starts,
-  how much of it is read, and where it lands</string>
+how much of it is read, and where it lands</string>
                     </property>
                     <property name="text">
                      <string>Advanced</string>
@@ -1154,116 +1154,290 @@ none for the clones</string>
           <layout class="QVBoxLayout" name="verticalLayout_24">
            <item>
             <widget class="QGroupBox" name="vidViewGBox">
-             <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,1,0" columnminimumwidth="55,0,0">
-              <item row="3" column="0">
-               <widget class="QLabel" name="labShader">
-                <property name="text">
-                 <string>Shader</string>
-                </property>
-               </widget>
+             <property name="title">
+              <string>Picture</string>
+             </property>
+             <layout class="QHBoxLayout" name="horizontalLayout_pic">
+              <item>
+               <layout class="QGridLayout" name="gridLayout_2" columnstretch="0,0,1" columnminimumwidth="55,0,0">
+               <item row="0" column="0">
+                <widget class="QLabel" name="label_3">
+                 <property name="toolTip">
+                  <string>How much border is shown around the screen</string>
+                 </property>
+                 <property name="text">
+                  <string>Border</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="1">
+                <widget class="xSlider" name="bszsld">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                   <property name="toolTip">
+                    <string>How much border is shown around the screen</string>
+                   </property>
+                   <property name="maximum">
+                    <number>4</number>
+                   </property>
+                   <property name="pageStep">
+                    <number>1</number>
+                   </property>
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="tickPosition">
+                    <enum>QSlider::TicksBelow</enum>
+                   </property>
+                   <property name="tickInterval">
+                    <number>1</number>
+                   </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QLabel" name="bszlab">
+                 <property name="minimumSize">
+                  <size>
+                   <width>104</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>104</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="0">
+                <widget class="QLabel" name="labPalPreset">
+                 <property name="text">
+                  <string>Palette</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="cbPalPreset">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Colors the picture is drawn with</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="2">
+                <layout class="QHBoxLayout" name="horizontalLayout_40">
+                 <item>
+                  <widget class="QToolButton" name="tbPalEdit">
+                   <property name="toolTip">
+                    <string>Edit the palette</string>
+                   </property>
+                   <property name="text">
+                    <string>...</string>
+                   </property>
+                   <property name="icon">
+                    <iconset resource="../xpeccy.qrc">
+                     <normaloff>:/images/edit.png</normaloff>:/images/edit.png</iconset>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="spacerPalBtn">
+                   <property name="orientation">
+                    <enum>Qt::Horizontal</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>0</width>
+                     <height>0</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
+               </item>
+               <item row="2" column="0">
+                <widget class="QLabel" name="labShader">
+                 <property name="text">
+                  <string>Shader</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QComboBox" name="cbShader">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Post-processing shader, from config/shaders</string>
+                 </property>
+                </widget>
+               </item>
+               </layout>
               </item>
-              <item row="4" column="0">
-               <widget class="QLabel" name="label_3">
-                <property name="toolTip">
-                 <string>How much border is shown around the screen</string>
+              <item>
+               <spacer name="horizontalSpacer_pic">
+                <property name="orientation">
+                 <enum>Qt::Horizontal</enum>
                 </property>
-                <property name="text">
-                 <string>Border</string>
+                <property name="sizeHint" stdset="0">
+                 <size>
+                  <width>24</width>
+                  <height>20</height>
+                 </size>
                 </property>
-               </widget>
+               </spacer>
               </item>
-              <item row="4" column="1">
-                 <widget class="xSlider" name="bszsld">
-                  <property name="toolTip">
-                   <string>How much border is shown around the screen</string>
-                  </property>
-                  <property name="maximum">
-                   <number>4</number>
-                  </property>
-                  <property name="pageStep">
-                   <number>1</number>
-                  </property>
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="tickPosition">
-                   <enum>QSlider::TicksBelow</enum>
-                  </property>
-                  <property name="tickInterval">
-                   <number>1</number>
-                  </property>
-                 </widget>
-              </item>
-              <item row="4" column="2">
-               <widget class="QLabel" name="bszlab">
+              <item>
+               <widget class="QWidget" name="picOptions" native="true">
                 <property name="minimumSize">
                  <size>
-                  <width>104</width>
+                  <width>80</width>
                   <height>0</height>
                  </size>
                 </property>
                 <property name="maximumSize">
                  <size>
-                  <width>104</width>
+                  <width>80</width>
                   <height>16777215</height>
                  </size>
                 </property>
-                <property name="text">
-                 <string/>
-                </property>
+                <layout class="QVBoxLayout" name="verticalLayout_23">
+                 <property name="leftMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="topMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="rightMargin">
+                  <number>0</number>
+                 </property>
+                 <property name="bottomMargin">
+                  <number>0</number>
+                 </property>
+                 <item>
+                  <widget class="QComboBox" name="cbScale">
+                   <property name="toolTip">
+                    <string>Window size: screen pixels per emulated pixel.
+Integer scaling, so every pixel is the same size</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="cbFullscreen">
+                   <property name="toolTip">
+                    <string>Fill the screen with the picture. Alt+Enter does the same</string>
+                   </property>
+                   <property name="text">
+                    <string>Fullscreen</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="cbKeepRatio">
+                   <property name="toolTip">
+                    <string>Fullscreen: keep the picture's shape and show more
+border, instead of stretching it</string>
+                   </property>
+                   <property name="text">
+                    <string>Keep ratio</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="grayscale">
+                   <property name="toolTip">
+                    <string>Draw the picture in shades of gray</string>
+                   </property>
+                   <property name="text">
+                    <string>Gray scale</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <spacer name="verticalSpacer_pic">
+                   <property name="orientation">
+                    <enum>Qt::Vertical</enum>
+                   </property>
+                   <property name="sizeHint" stdset="0">
+                    <size>
+                     <width>20</width>
+                     <height>5</height>
+                    </size>
+                   </property>
+                  </spacer>
+                 </item>
+                </layout>
                </widget>
-              </item>
-              <item row="3" column="1">
-               <widget class="QComboBox" name="cbShader">
-                <property name="toolTip">
-                 <string>Post-processing shader, from config/shaders</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="0">
-               <widget class="QLabel" name="labPalPreset">
-                <property name="text">
-                 <string>Palette</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="1">
-               <widget class="QComboBox" name="cbPalPreset">
-                <property name="toolTip">
-                 <string>Colors the picture is drawn with</string>
-                </property>
-               </widget>
-              </item>
-              <item row="2" column="2">
-               <layout class="QHBoxLayout" name="horizontalLayout_40">
-                <item>
-                 <widget class="QToolButton" name="tbPalEdit">
-                  <property name="toolTip">
-                   <string>Edit the palette</string>
-                  </property>
-                  <property name="text">
-                   <string>...</string>
-                  </property>
-                  <property name="icon">
-                   <iconset resource="../xpeccy.qrc">
-                    <normaloff>:/images/edit.png</normaloff>:/images/edit.png</iconset>
-                  </property>
-                 </widget>
-                </item>
-                <item>
-                 <spacer name="spacerPalBtn">
-                  <property name="orientation">
-                   <enum>Qt::Horizontal</enum>
-                  </property>
-                  <property name="sizeHint" stdset="0">
-                   <size>
-                    <width>0</width>
-                    <height>0</height>
-                   </size>
-                  </property>
-                 </spacer>
-                </item>
-               </layout>
               </item>
              </layout>
             </widget>
@@ -1549,6 +1723,25 @@ none for the clones</string>
             </widget>
            </item>
            <item>
+            <widget class="QGroupBox" name="gbRecording">
+             <property name="title">
+              <string>Recording</string>
+             </property>
+             <layout class="QVBoxLayout" name="verticalLayout_rec">
+              <item>
+               <widget class="QLabel" name="labRecTodo">
+                <property name="text">
+                 <string>Nothing here yet: this is where writing the picture to a video file will live, with the size it writes and the settings FFmpeg needs.</string>
+                </property>
+                <property name="wordWrap">
+                 <bool>true</bool>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </widget>
+           </item>
+           <item>
             <spacer name="verticalSpacer_11">
              <property name="orientation">
               <enum>Qt::Vertical</enum>
@@ -1562,69 +1755,6 @@ none for the clones</string>
             </spacer>
            </item>
           </layout>
-         </item>
-         <item>
-          <widget class="QGroupBox" name="vidOptGBox">
-           <layout class="QVBoxLayout" name="verticalLayout_23">
-            <item>
-             <widget class="QSpinBox" name="sbScale">
-              <property name="toolTip">
-               <string>Window size: screen pixels per emulated pixel</string>
-              </property>
-              <property name="prefix">
-               <string>scale x</string>
-              </property>
-              <property name="minimum">
-               <number>1</number>
-              </property>
-              <property name="maximum">
-               <number>6</number>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="cbFullscreen">
-              <property name="text">
-               <string>Fullscreen</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="cbKeepRatio">
-              <property name="toolTip">
-               <string>Fullscreen: keep the picture's shape and show more
-border, instead of stretching it</string>
-              </property>
-              <property name="text">
-               <string>Keep ratio</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QCheckBox" name="grayscale">
-              <property name="toolTip">
-               <string>Draw the picture in shades of gray</string>
-              </property>
-              <property name="text">
-               <string>Gray scale</string>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <spacer name="verticalSpacer_24">
-              <property name="orientation">
-               <enum>Qt::Vertical</enum>
-              </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>5</height>
-               </size>
-              </property>
-             </spacer>
-            </item>
-           </layout>
-          </widget>
          </item>
         </layout>
        </widget>
@@ -2457,7 +2587,7 @@ thin, lower it again after a long clean spell</string>
              <widget class="QCheckBox" name="cbAutorun">
               <property name="toolTip">
                <string>Opening a tape or a disk resets the machine and starts it,
-   the way a snapshot starts itself</string>
+the way a snapshot starts itself</string>
               </property>
               <property name="text">
                <string>Auto-run opened media</string>
@@ -2468,7 +2598,7 @@ thin, lower it again after a long clean spell</string>
              <widget class="QCheckBox" name="mempaths">
               <property name="toolTip">
                <string>Keep the tape and disk paths in the profile,
-   so the same media is back on the next start</string>
+so the same media is back on the next start</string>
               </property>
               <property name="text">
                <string>Remember mounted media</string>
@@ -4422,8 +4552,8 @@ Off: the tape stops at the end</string>
                    <widget class="QLabel" name="labLogLevel">
                     <property name="toolTip">
                      <string>How much is written. Single groups can be moved apart
-   from the rest with --log-groups, or the groups line
-   in config.conf</string>
+from the rest with --log-groups, or the groups line
+in config.conf</string>
                     </property>
                     <property name="text">
                      <string>Level</string>
@@ -4434,8 +4564,8 @@ Off: the tape stops at the end</string>
                    <widget class="QComboBox" name="cbxLogLevel">
                     <property name="toolTip">
                      <string>How much is written. Single groups can be moved apart
-   from the rest with --log-groups, or the groups line
-   in config.conf</string>
+from the rest with --log-groups, or the groups line
+in config.conf</string>
                     </property>
                     <property name="minimumSize">
                      <size>

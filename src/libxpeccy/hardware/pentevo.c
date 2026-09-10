@@ -335,7 +335,7 @@ void evoOut77(Computer* comp, int port, int val) {
 
 void evoOut77d(Computer* comp, int port, int val) {
 	comp->prt2 = ((port & 0x4000) >> 7) | ((port & 0x0300) >> 3) | (val & 0x0f);	// a14.a9.a8.0.b3.b2.b1.b0
-	compSetTurbo(comp,(val & 0x08) ? 4 : ((comp->pEFF7 & 0x10) ? 1 : 2));
+	compSetHwTurbo(comp,(val & 0x08) ? 4 : ((comp->pEFF7 & 0x10) ? 1 : 2));
 	evoSetVideoMode(comp);
 	evoMapMem(comp);
 }
@@ -419,7 +419,7 @@ void evoOutDFF7(Computer* comp, int port, int val) {	// !dos
 
 void evoOutEFF7(Computer* comp, int port, int val) {	// !dos
 	comp->pEFF7 = val & 0xff;
-	compSetTurbo(comp,(comp->prt2 & 0x08) ? 4 : (val & 0x08) ? 2 : 1);
+	compSetHwTurbo(comp,(comp->prt2 & 0x08) ? 4 : (val & 0x08) ? 2 : 1);
 	evoSetVideoMode(comp);
 	evoMapMem(comp);
 }

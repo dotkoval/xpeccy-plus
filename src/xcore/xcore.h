@@ -456,6 +456,8 @@ std::string xm_id_of_name(const std::string&);
 bool xm_delete(const std::string&);
 void xm_over_forget(const std::string&);
 bool xm_is_users(const std::string&);
+QStringList xm_user_files();
+bool xm_is_user_file(const QString&);
 const QList<xMachine>& xm_list();
 const xMachine* xm_find(std::string);
 const xMachine* xm_find_by_core(std::string);

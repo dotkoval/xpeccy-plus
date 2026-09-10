@@ -645,10 +645,6 @@ static void mac_from_def(const xMachine* mac) {
 	xm_set_hardware(mac->hw);
 	mac_set_cpu(comp, mac->cpu);
 	compSetBaseFrq(comp, mac->cpufrq / 1e6);
-	// the base clock is what the machine is, the multiplier is what it is
-	// doing: a Scorpion, ATM or Evolution turns its own turbo on from a port,
-	// and the machine after it starts at its own speed like any other
-	compSetTurbo(comp, 1.0);
 	memSetSize(comp->mem, mac_ram_size(mac->memory, comp), -1);
 	comp->resbank = mac->resbank;
 	comp->flgCNTI = mac->contio;
@@ -1153,6 +1149,20 @@ static void mac_migrate_romset(const std::string& id) {
 // The running machine, written to the config directory as a definition that
 // inherits the one it came from - so it carries only what the user changed and
 // follows a shipped fix in everything else.
+
+// the machines the user owns, by name, relative to the config directory
+
+QStringList xm_user_files() {
+	QStringList res;
+	foreach(QString nam, QDir(xres_dir(MAC_DIR)).entryList(
+			QStringList() << ("*" MAC_SUFFIX), QDir::Files, QDir::Name))
+		res << MAC_DIR "/" + nam;
+	return res;
+}
+
+bool xm_is_user_file(const QString& nam) {
+	return nam.startsWith(MAC_DIR "/");
+}
 
 QString xm_user_path(const std::string& id) {
 	return xres_dir(MAC_DIR) + SLASH + QString::fromLocal8Bit(id.c_str()) + MAC_SUFFIX;

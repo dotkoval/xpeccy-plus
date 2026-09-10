@@ -891,6 +891,15 @@ chip in `[sound]` and its ROM file in `[rom]`, and in the flat override block th
 not be told apart - the ROM file was read as a boolean and switched the chip off. The rom
 keys are `rom.gs` and `rom.font` there now.
 
+**The turbo multiplier had two owners.** A machine that switches its own turbo on - Scorpion,
+ATM, Pentagon 1024, ZX Evolution - wrote the same `comp->frqMul` the user's Mult box and the
+turbo hotkey write, so the multiplier survived into the machine you switched to next and it
+ran at the wrong speed. Resetting it on a switch would have papered over it and dropped the
+user's own setting with it; instead the machine's turbo is `comp->hwMul`, set through
+`compSetHwTurbo()`, and the timings divide by the product. `compReset()` puts it back, which
+is where "what the machine is doing" already goes - so a switch and a plain reset are covered
+by the same line. Measured: a Scorpion runs 139776 T a frame, and the 48K after it 69888.
+
 **The two extended machines went** once machines of your own worked: `zx48-trdos` and
 `zx128-trdos` were a Spectrum with a disk interface and a sound card added, which is now a
 thing anyone can make and keep. Their old profile names still migrate, onto `zx48` and

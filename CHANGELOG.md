@@ -11,16 +11,6 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
-- ZX Spectrum 128K, as a machine of its own.
-- The whole configuration as one file. Export settings, on Options -> Xpeccy+ -> General,
-  writes the settings, the screen layouts and your own machines to one text file; Import
-  settings takes them back, and Reset to defaults puts everything back the way the emulator
-  ships. All three take effect at once, without a restart.
-- Machines of your own. Set a machine up the way you want it and Save machine, on the
-  Machine page, keeps it in the list beside the ones that ship - it remembers only what you
-  changed, so a fix to the machine it came from still reaches it. Saving one of your own
-  under the name it already has updates it; a new name makes another machine. Delete this
-  machine drops it again; if it went by the name of one that ships, that one comes back.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the
@@ -47,41 +37,32 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
-- Profiles are gone. There is one machine at a time, picked by name, and the settings live
-  in one file; what you change on a machine is remembered for that machine. An update can
-  fix a machine now without touching anything you set. Your old profile is carried over on
-  first start, and the `profiles` folder is left where it is.
-- The machine menu picks the machine: the emulator's menu lists them in family order and
-  ticks the one running. Restore machine defaults, on the Machine page, puts the whole
-  machine back the way it ships.
-- Options: the Machine page keeps what a machine is - the machine, its CPU, its memory and
-  its ROMs. The ULA settings and the raster layout are behind Advanced settings on that
-  page.
+- Profiles are gone: a machine is a machine again. The emulator knows what a 48K, a 128K,
+  a Pentagon or a Scorpion is, and what you change on one is kept for that one - so an
+  update can fix a machine without touching your settings. Your old profiles come across on
+  first start.
+  - The machine is picked from the Machine menu, or on Options -> Machine, which now holds
+    what a machine *is*: its CPU, memory, ROMs and the ROM it resets into.
+  - ROM sets are gone with them: a machine carries its ROMs, one row per slot, and another
+    TR-DOS is another file rather than another set.
+  - Machines of your own: set one up, Save machine, and it stands in the list beside the
+    ones that ship. Saving under the same name updates it, Delete drops it.
+  - The whole configuration is one text file you can export, import, or reset to what the
+    emulator ships with.
+  - Machines, screen layouts, palettes, shaders, styles and keymaps live inside the binary;
+    a file of the same name in the config directory replaces one, so a shipped fix reaches
+    everyone who has not touched it.
+  - The names are the hardware's, in family order. The +2 is a machine of its own; the two
+    Spectrums with a disk interface bolted on are not shipped any more - fit one yourself
+    and keep it.
+  - The 128K runs on a core of its own instead of the Pentagon's, and the screen layouts
+    are named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Pentagon`.
+- Options: the Video page has a group called Picture, holding what the picture is made of -
+  the border, the palette, the shader - and, in a column of its own, how the window shows
+  it: the scale, fullscreen, keep ratio and gray scale. The scale is a list of whole
+  numbers now, since that is what it always was.
 - Options: the interface style moved to Xpeccy+ -> General, since it styles the whole
   application and not just the debugger.
-- ROM sets are gone as a thing of their own: a machine carries its ROMs, and the Machine
-  page has a row per slot - ROM 0 to ROM 3, GS and Font - with the files in `roms/` to pick
-  from and a button for one from anywhere else. Another TR-DOS is another file, not another
-  set. Slots the machine does not have are greyed, and offsets and sizes are behind
-  Advanced. What you change is kept for that machine, and the romset you used is carried
-  over on first start.
-- The machine list is in family order, Sinclair machines first, and the names match the
-  hardware: Spectrum +2A, ZX Evolution (BaseConf), ZX Evolution (TSConf). The +2 is a
-  machine of its own, a 128K with its own ROMs. Settings written by an older build still
-  load.
-- Each machine is the machine as it was made. The two that were a Spectrum with a disk
-  interface added, 48K + TR-DOS and 128K + TR-DOS, are not shipped any more: fit one
-  yourself and Save as a machine keeps it. An old profile of either name comes across onto
-  the Spectrum it extended, carrying what it added.
-- `config/` holds the ROMs and little else now. The settings the emulator starts with, and
-  the palettes, shaders, styles and keymaps it ships with, are in the binary - so a fresh
-  install and an empty config directory both come up as a 128K set up the way it ships, and
-  an update reaches a shader or a style nobody has touched. Put a file of your own in
-  `config/shaders`, `styles`, `palettes` or `keymaps` and it joins the list; one named like a
-  built-in replaces it.
-- Screen layouts are named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Plus3`,
-  `ULA.Pentagon` and so on. The `default` layout, which was Pentagon geometry under a name
-  that said otherwise, is gone; a machine that names no layout gets `ULA.48`.
 - Options: the Tools page is now called General and comes first, with the log settings
   on it.
 - Options: the Low latency setting and the indicator switches moved to a page of their
@@ -120,9 +101,8 @@ before that point is upstream's history and is not repeated here.
 - A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it
   on for the machine you switch to next, which ran at the wrong speed.
 - Cancel in Options now really cancels a ROM you picked on the Machine page.
-- Apply in Options leaves a whole picture on screen. It used to show half of the frame the
-  machine was drawing when it was rebuilt over half of the one before, cropped to the new
-  layout - a black band, or a picture that had slipped sideways.
+- Apply in Options leaves a whole picture on screen instead of half of one frame over half
+  of another.
 - Picking a palette preset changes the colors right away again on the ZX Spectrum
   48K and 128K, where they only changed after a reset. The palette editor had the
   same problem.

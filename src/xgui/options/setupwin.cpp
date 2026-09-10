@@ -427,6 +427,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	int i;
 	fill_machine_list(ui.machbox);
 
+	for (i = 1; i <= 6; i++)
+		ui.cbScale->addItem(QString("Scale x%0").arg(i), i);
+
 	ui.resbox->addItem("BASIC 48",RES_48);
 	ui.resbox->addItem("BASIC 128",RES_128);
 	ui.resbox->addItem("DOS",RES_DOS);
@@ -863,7 +866,7 @@ void SetupWin::start() {
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	ui.cbKeepRatio->setChecked(conf.vid.keepRatio);
-	ui.sbScale->setValue(conf.vid.scale);
+	setRFIndex(ui.cbScale, conf.vid.scale, 1);	// x2 if the file says something odd
 	ui.sldNoflic->setValue(noflic); chaflc();
 	ui.cbNoflicMode->setCurrentIndex(noflicMode);
 	ui.sbNoflicGamma->setValue(noflicGamma);
@@ -1101,7 +1104,7 @@ void SetupWin::apply() {
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
 	conf.vid.keepRatio = ui.cbKeepRatio->isChecked() ? 1 : 0;
-	conf.vid.scale = ui.sbScale->value();
+	conf.vid.scale = getRFIData(ui.cbScale);
 	noflic = ui.sldNoflic->value();
 	noflicMode = ui.cbNoflicMode->currentIndex();
 	noflicGamma = ui.sbNoflicGamma->value();
@@ -1504,15 +1507,15 @@ void SetupWin::showAdvanced() {
 // Importing one or going back to the defaults reads the configuration again
 // under the running machine, so the page has to be filled from scratch after.
 
-static const char* cfgFilter = "Xpeccy+ settings (*.conf);;All files (*)";
-static const char* cfgName = "xpeccy-settings.conf";
+#define	CFG_FILTER	"Xpeccy+ settings (*.conf);;All files (*)"
+#define	CFG_NAME	"xpeccy-settings.conf"
 
 void SetupWin::cfgExport() {
-	apply();				// what is written is what the page shows
 	QString path = QFileDialog::getSaveFileName(this, tr("Export settings"),
-		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + cfgName,
-		tr(cfgFilter));
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH CFG_NAME,
+		tr(CFG_FILTER));
 	if (path.isEmpty()) return;
+	apply();				// what is written is what the page shows
 	if (!xconf_export(path))
 		shitHappens("Could not write the settings file");
 }
@@ -1525,8 +1528,8 @@ void SetupWin::cfgLoaded() {
 
 void SetupWin::cfgImport() {
 	QString path = QFileDialog::getOpenFileName(this, tr("Import settings"),
-		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + cfgName,
-		tr(cfgFilter));
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH CFG_NAME,
+		tr(CFG_FILTER));
 	if (path.isEmpty()) return;
 	if (!areSure("Take the settings out of this file?<br>"
 		"What you have now is replaced, this machine included.")) return;
