@@ -39,6 +39,7 @@ class SetupWin : public QDialog {
 
 		xRomsetEditor* rseditor;
 		xRomsetModel* rsmodel;
+		xRomset rsPreview;		// the set the combo shows, until Apply
 
 		QDialog* layeditor;
 		QDialog* umadial;
@@ -113,8 +114,6 @@ class SetupWin : public QDialog {
 		void openSlot();
 		void ejectSlot();
 
-		void addNewRomset();
-		void rmRomset();
 		void addRom();
 		void editRom();
 		void delRom();

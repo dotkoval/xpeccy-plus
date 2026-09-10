@@ -1177,12 +1177,7 @@ void MainWin::fillUserMenu() {
 	act->setCheckable(true);
 	if (conf.zx) {
 		if (conf.kmapName.empty()) act->setChecked(true);
-		QDir dir(conf.path.confDir.c_str());
-		QStringList lst = dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name);
-		dir.setPath(dir.path().append("/keymaps/"));
-		lst.append(dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name));
-		lst.sort();
-		foreach(QString str, lst) {
+		foreach(QString str, xres_list("keymaps", QStringList() << "*.map")) {
 			act = keyMenu->addAction(str);
 			act->setData(str);
 			act->setCheckable(true);
@@ -1197,13 +1192,11 @@ void MainWin::fillUserMenu() {
 	if (conf.vid.shader.empty()) act->setChecked(true);
 #if defined(USEOPENGL) && !BLOCKGL
 	if (conf.vid.shd_support) {
-		QDir dir(conf.path.shdDir.c_str());
-		QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-		foreach(QFileInfo inf, lst) {
-			act = shdMenu->addAction(inf.fileName());
-			act->setData(inf.fileName());
+		foreach(QString nam, xres_list("shaders", QStringList() << "*.txt")) {
+			act = shdMenu->addAction(nam);
+			act->setData(nam);
 			act->setCheckable(true);
-			act->setChecked(inf.fileName() == conf.vid.shader.c_str());
+			act->setChecked(nam == conf.vid.shader.c_str());
 		}
 	}
 #endif
@@ -1213,13 +1206,11 @@ void MainWin::fillUserMenu() {
 	act->setData("");
 	act->setCheckable(true);
 	if (conf.palette.empty()) act->setChecked(true);
-	QDir dir(conf.path.palDir.c_str());
-	QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-	foreach(QFileInfo inf, lst) {
-		act = palMenu->addAction(inf.fileName());
-		act->setData(inf.fileName());
+	foreach(QString nam, xres_list("palettes", QStringList() << "*.txt")) {
+		act = palMenu->addAction(nam);
+		act->setData(nam);
 		act->setCheckable(true);
-		act->setChecked(inf.fileName() == conf.palette.c_str());
+		act->setChecked(nam == conf.palette.c_str());
 	}
 }
 

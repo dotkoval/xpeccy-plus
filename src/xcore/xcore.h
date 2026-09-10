@@ -91,6 +91,11 @@ std::vector<std::string> splitstr(std::string,const char*);
 std::pair<std::string,std::string> splitline(std::string, char = '=');
 void copyFile(const char*, const char*);
 
+// a file that ships inside the binary, replaceable by one of the user's own
+QString xres_dir(const char*);
+QString xres_path(const char*, const QString&);
+QStringList xres_list(const char*, const QStringList&);
+
 int toPower(int);
 int toLimits(int, int, int);
 double absd(double);
@@ -217,6 +222,9 @@ void emu_unlock();
 // own overrides on top
 bool xm_set(std::string);
 void xm_set_romset(std::string);
+QList<QString> xm_rom_variants();
+void xm_rom_over_clear();
+void xm_rom_over_add(const std::string&, const std::string&);
 bool xm_set_layout(std::string);
 int xm_set_hardware(std::string);
 
@@ -390,9 +398,13 @@ typedef struct {
 	QList<xRomFile> roms;
 } xRomset;
 
+// the romset table an old config file carries; read once, never written
 xRomset* findRomset(std::string);
 bool addRomset(xRomset);
-void delRomset(int);
+
+// what the machine loads, and putting a changed set back as the user's own
+void xm_set_roms(const xRomset&);
+xRomset xm_roms_of(std::string);
 
 // machines
 
@@ -452,8 +464,12 @@ typedef struct {
 } xLayout;
 
 bool addLayout(std::string, vLayout);
+bool addLayoutString(const std::string&);
+std::string layoutString(const xLayout&);
 void rmLayout(std::string);
 xLayout* findLayout(std::string);
+void layouts_load_all();
+void layouts_save();
 
 // xmap
 
@@ -470,7 +486,8 @@ struct xConfig {
 	std::string macId;		// machine definition id
 	std::string macName;		// what the machine is called
 	std::string layName;		// screen layout
-	std::string rsName;		// romset
+	std::string romSet;		// the machine's rom variant, empty = its own
+	xRomset roms;			// what it loads: its own, that variant, your files
 	std::string palette;		// colour palette file
 	std::string kmapName;		// keyboard layout
 	std::string jmapNameA;		// gamepad maps

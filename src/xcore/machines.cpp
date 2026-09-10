@@ -119,8 +119,20 @@ static QList<xMacLine> mac_read(const QString& path) {
 
 // file[:foffset[:fsize]], both in KB, 0 size = as far as the file reaches
 
+// an empty file name empties the bank, which is how a child, a variant or the
+// user says "there is nothing here" over a set that has something
+
 static void mac_rom_add(xMachineRoms* set, const std::string& val, int bank) {
 	std::vector<std::string> part = splitstr(val, ":");
+	if (part.empty() || part[0].empty()) {
+		for (int i = 0; i < set->roms.size(); i++) {
+			if (set->roms[i].roffset == bank * 16) {
+				set->roms.removeAt(i);
+				return;
+			}
+		}
+		return;
+	}
 	xRomFile rom;
 	rom.name = part[0];
 	rom.foffset = (part.size() > 1) ? atoi(part[1].c_str()) : 0;
@@ -464,44 +476,130 @@ static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std:
 	}
 }
 
-void xm_set_romset(std::string rnm) {
+// The roms of a machine before anything of the user's: its own set with the
+// chosen variant laid over it.
+
+static xRomset mac_roms_of(const xMachine* mac, const std::string& variant) {
+	xRomset res;
+	res.name = variant;
+	const xMachineRoms* set = xm_find_roms(mac, "");
+	if (set) {
+		res.roms = set->roms;
+		res.gsFile = set->gsFile;
+		res.fntFile = set->fntFile;
+	}
+	const xMachineRoms* var = variant.empty() ? NULL : xm_find_roms(mac, variant);
+	if (var) {
+		if (!var->gsFile.empty()) res.gsFile = var->gsFile;
+		if (!var->fntFile.empty()) res.fntFile = var->fntFile;
+		foreach(xRomFile rf, var->roms) {
+			int i = 0;
+			while ((i < res.roms.size()) && (res.roms[i].roffset != rf.roffset)) i++;
+			if (i < res.roms.size()) res.roms[i] = rf;
+			else res.roms << rf;
+		}
+	}
+	return res;
+}
+
+// what one of the machine's sets holds, without loading it
+
+xRomset xm_roms_of(std::string variant) {
+	return mac_roms_of(xm_find(conf.macId), variant);
+}
+
+QList<QString> xm_rom_variants() {
+	QList<QString> res;
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return res;
+	foreach(xMachineRoms set, mac->roms) {
+		if (!set.id.empty()) res << QString::fromLocal8Bit(set.id.c_str());
+	}
+	return res;
+}
+
+// A file the user named for this machine, kept as read until the roms are
+// built - the block is read before the machine is up.
+
+static QList<QPair<std::string, std::string> > macRomOver;
+
+void xm_rom_over_clear() {
+	macRomOver.clear();
+}
+
+void xm_rom_over_add(const std::string& nam, const std::string& val) {
+	macRomOver << qMakePair(nam, val);
+}
+
+static void mac_rom_over_apply(xRomset& rs) {
+	xMachineRoms tmp;
+	tmp.roms = rs.roms;
+	foreach(xMacOver::value_type kv, macRomOver) {
+		if (kv.first == "gs") rs.gsFile = kv.second;
+		else if (kv.first == "font") rs.fntFile = kv.second;
+		else mac_rom_add(&tmp, kv.second, atoi(kv.first.c_str() + 3));
+	}
+	rs.roms = tmp.roms;
+	macRomOver.clear();
+}
+
+void xm_set_romset(std::string variant) {
+	if (!conf.zx) return;
+	conf.romSet = variant;
+	xRomset rs = mac_roms_of(xm_find(conf.macId), variant);
+	mac_rom_over_apply(rs);
+	xm_set_roms(rs);
+}
+
+// what conf.roms says, into the machine
+
+void xm_set_roms(const xRomset& rs) {
 	if (!conf.zx) return;
 	emu_lock();				// rom data is rewritten under the running machine
-	conf.rsName = rnm;
+	conf.roms = rs;
 	Computer* comp = conf.zx;
 	memset(comp->vid->bios, 0xff, MEM_64K);
 	comp->vid->vga.cga = 1;
 	tsSetRomSize(comp->ts, 0);
-	if (rnm.empty()) {
-		const xMachineRoms* set = xm_find_roms(xm_find(conf.macId), "");
-		if (set) {
-			mac_load_rom(comp, set->roms, set->gsFile, set->fntFile);
-		} else {
-			xlog(XLG_CONF, XLL_ERROR, "machine %s has no roms", conf.macId.c_str());
-		}
-	} else {
-		xRomset* rset = findRomset(rnm);
-		if (rset) {
-			mac_load_rom(comp, rset->roms, rset->gsFile, rset->fntFile);
-			if (!rset->vBiosFile.empty()) {
-				std::string fpath = conf.path.romDir + SLASH + rset->vBiosFile;
-				FILE* file = fopen(fpath.c_str(), "rb");
-				if (file) {
-					if (fread(comp->vid->bios, MEM_64K, 1, file) != 1)
-						xlog(XLG_CONF, XLL_WARN, "short read from '%s'", fpath.c_str());
-					fclose(file);
-					comp->vid->vga.cga = 0;
-				}
-			}
-			if (!rset->sBiosFile.empty()) {
-				std::string fpath = conf.path.romDir + SLASH + rset->sBiosFile;
-				tsLoadRom(comp->ts, fpath.c_str());
-			}
-		} else {
-			xlog(XLG_CONF, XLL_WARN, "can't find romset %s", rnm.c_str());
-		}
-	}
+	mac_load_rom(comp, rs.roms, rs.gsFile, rs.fntFile);
 	emu_unlock();
+}
+
+static void mac_put(QStringList& out, const char* nam, const std::string& val, const std::string& def) {
+	if (val != def) out << QString("%1 = %2").arg(nam).arg(QString::fromLocal8Bit(val.c_str()));
+}
+
+static void mac_put(QStringList& out, const char* nam, int val, int def) {
+	if (val != def) out << QString("%1 = %2").arg(nam).arg(val);
+}
+
+static void mac_put_yn(QStringList& out, const char* nam, int val, int def) {
+	if (!val != !def) out << QString("%1 = %2").arg(nam).arg(YESNO(val));
+}
+
+// the files that are the user's own, as keys of the machine's block
+
+static void mac_put_roms(QStringList& out) {
+	xRomset def = mac_roms_of(xm_find(conf.macId), conf.romSet);
+	foreach(xRomFile rf, conf.roms.roms) {
+		int i = 0;
+		while ((i < def.roms.size()) && (def.roms[i].roffset != rf.roffset)) i++;
+		bool same = (i < def.roms.size()) && (def.roms[i].name == rf.name)
+			&& (def.roms[i].foffset == rf.foffset) && (def.roms[i].fsize == rf.fsize);
+		if (same) continue;
+		QString val = QString::fromLocal8Bit(rf.name.c_str());
+		if (rf.foffset || rf.fsize)
+			val += QString(":%1:%2").arg(rf.foffset).arg(rf.fsize);
+		out << QString("rom%1 = %2").arg(rf.roffset / 16).arg(val);
+	}
+	foreach(xRomFile rf, def.roms) {		// a bank the user emptied
+		int i = 0;
+		while ((i < conf.roms.roms.size()) && (conf.roms.roms[i].roffset != rf.roffset)) i++;
+		if (i >= conf.roms.roms.size())
+			out << QString("rom%1 = ").arg(rf.roffset / 16);
+	}
+	mac_put(out, "gs", conf.roms.gsFile, def.gsFile);
+	mac_put(out, "font", conf.roms.fntFile, def.fntFile);
 }
 
 // layout
@@ -608,7 +706,7 @@ static void mac_from_def(const xMachine* mac) {
 	comp->mouse->enable = mac->mouse;
 	comp->joy->extbuttons = mac->joyButtons;
 	conf.layName = mac->geometry;
-	conf.rsName.clear();
+	conf.romSet.clear();
 }
 
 // one key of the user's own block
@@ -643,7 +741,9 @@ static void mac_set_key(const std::string& nam, const std::string& val) {
 	else if (nam == "ide") ide_set_type(comp->ide, mac_word(ideTab, val, IDE_NONE, id));
 	else if (nam == "mouse") comp->mouse->enable = arg.b;
 	else if (nam == "joy.buttons") comp->joy->extbuttons = arg.b;
-	else if (nam == "romset") conf.rsName = val;
+	else if (nam == "romset") conf.romSet = val;
+	else if ((nam == "gs") || (nam == "font")
+		|| ((nam.compare(0, 3, "rom") == 0) && isdigit(nam[3]))) xm_rom_over_add(nam, val);
 	else xlog(XLG_CONF, XLL_WARN, "machine %s: unknown setting '%s'", id, nam.c_str());
 }
 
@@ -661,10 +761,11 @@ bool xm_set(std::string id) {
 		sdcCloseFile(conf.zx->sdc);
 	}
 	conf.macId = id;
+	xm_rom_over_clear();
 	mac_from_def(mac);
 	foreach(xMacOver::value_type kv, macOver.value(QString::fromLocal8Bit(id.c_str())))
 		mac_set_key(kv.first, kv.second);
-	xm_set_romset(conf.rsName);
+	xm_set_romset(conf.romSet);
 	if (!xm_set_layout(conf.layName)) xm_set_layout("default");
 	loadPalette();
 	xm_load_nvram();
@@ -674,24 +775,12 @@ bool xm_set(std::string id) {
 	conf.emu.pause &= ~PR_EXTRA;
 	emu_unlock();
 	xlog(XLG_CONF, XLL_INFO, "machine: %s (%s, romset %s)", conf.macId.c_str(),
-		conf.zx->hw->name, conf.rsName.empty() ? "own" : conf.rsName.c_str());
+		conf.zx->hw->name, conf.romSet.empty() ? "own" : conf.romSet.c_str());
 	return true;
 }
 
 // what to write back: only what differs from the definition, so a machine the
 // user never touched carries nothing and takes every fix an update brings.
-
-static void mac_put(QStringList& out, const char* nam, const std::string& val, const std::string& def) {
-	if (val != def) out << QString("%1 = %2").arg(nam).arg(QString::fromLocal8Bit(val.c_str()));
-}
-
-static void mac_put(QStringList& out, const char* nam, int val, int def) {
-	if (val != def) out << QString("%1 = %2").arg(nam).arg(val);
-}
-
-static void mac_put_yn(QStringList& out, const char* nam, int val, int def) {
-	if (!val != !def) out << QString("%1 = %2").arg(nam).arg(YESNO(val));
-}
 
 static const char* mac_word_name(xMacWord* tab, int val) {
 	for (int i = 0; tab[i].name; i++) {
@@ -702,7 +791,7 @@ static const char* mac_word_name(xMacWord* tab, int val) {
 
 // is this named romset the machine's own set under another name?
 
-static bool mac_same_roms(const xRomset* rs, const xMachineRoms* set) {
+static bool mac_same_roms(const xRomset* rs, const xRomset* set) {
 	if (!rs || !set) return false;
 	if ((rs->gsFile != set->gsFile) || (rs->fntFile != set->fntFile)) return false;
 	if (!rs->vBiosFile.empty() || !rs->sBiosFile.empty()) return false;
@@ -748,7 +837,8 @@ void xm_save(FILE* file) {
 	mac_put(out, "ide", mac_word_name(ideTab, comp->ide->type), mac_word_name(ideTab, mac->ide));
 	mac_put_yn(out, "mouse", comp->mouse->enable, mac->mouse);
 	mac_put_yn(out, "joy.buttons", comp->joy->extbuttons, mac->joyButtons);
-	mac_put(out, "romset", conf.rsName, std::string());
+	mac_put(out, "romset", conf.romSet, std::string());
+	mac_put_roms(out);
 	if (!out.isEmpty()) {
 		fprintf(file, "\n[MACHINE.%s]\n\n", conf.macId.c_str());
 		fprintf(file, "%s\n", out.join("\n").toLocal8Bit().data());
@@ -998,6 +1088,8 @@ std::string xm_id_for_name(const std::string& name) {
 
 // one key of an old profile file, onto the machine that is already up
 
+static std::string oldRomset;
+
 static void mac_set_old_key(int sect, const std::string& nam, const std::string& val) {
 	Computer* comp = conf.zx;
 	xArg arg;
@@ -1022,7 +1114,7 @@ static void mac_set_old_key(int sect, const std::string& nam, const std::string&
 			else if (nam == "lastdir") conf.lastDir = val;
 			break;
 		case PS_ROMSET:
-			if (nam == "current") conf.rsName = val;
+			if (nam == "current") oldRomset = val;
 			else if (nam == "reset") {
 				comp->resbank = RES_48;
 				if ((val == "basic128") || (val == "0")) comp->resbank = RES_128;
@@ -1100,6 +1192,38 @@ static void mac_copy_nv(const std::string& name, const std::string& id, const ch
 	copyFile(src.c_str(), (conf.path.nvDir + SLASH + id + ext).c_str());
 }
 
+// An old config named a romset out of its own [ROMSETS] table. If that set is
+// the machine's own, or one of its variants, it becomes that; anything else
+// becomes the files themselves, as the user's own.
+
+static void mac_migrate_romset(const std::string& id) {
+	const xMachine* mac = xm_find(id);
+	xRomset* rs = oldRomset.empty() ? NULL : findRomset(oldRomset);
+	oldRomset.clear();
+	if (!rs) {
+		xm_set_romset("");
+		return;
+	}
+	xRomset own = mac_roms_of(mac, "");
+	if (mac_same_roms(rs, &own)) {
+		xm_set_romset("");
+		return;
+	}
+	foreach(xMachineRoms set, mac->roms) {
+		if (set.id.empty()) continue;
+		xRomset var = mac_roms_of(mac, set.id);
+		if (!mac_same_roms(rs, &var)) continue;
+		xm_set_romset(set.id);
+		return;
+	}
+	xm_set_romset("");			// the machine's own, with these files over it
+	xRomset user = conf.roms;
+	user.gsFile = rs->gsFile;
+	user.fntFile = rs->fntFile;
+	user.roms = rs->roms;
+	xm_set_roms(user);
+}
+
 // name is the old profile's directory, file its .conf inside it
 
 bool xm_migrate(const std::string& name, const std::string& file) {
@@ -1144,11 +1268,7 @@ bool xm_migrate(const std::string& name, const std::string& file) {
 		if (spl.first.empty()) continue;
 		mac_set_old_key(sect, spl.first, spl.second);
 	}
-	// a romset that is the machine's own set stops being named, so a fix to the
-	// shipped roms still reaches this user
-	if (mac_same_roms(findRomset(conf.rsName), xm_find_roms(xm_find(id), "")))
-		conf.rsName.clear();
-	xm_set_romset(conf.rsName);
+	mac_migrate_romset(id);
 	if (!xm_set_layout(conf.layName)) xm_set_layout("default");
 	loadPalette();
 	xlog(XLG_CONF, XLL_INFO, "profile '%s' migrated to machine '%s'; the old profiles/ is left as it is",

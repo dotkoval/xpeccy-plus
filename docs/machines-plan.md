@@ -763,9 +763,49 @@ Where it came out differently from 4.2:
   profile went by, or a machine's display name.
 
 ### Phase 4 - the file split
-- Machine keys move out of the user's file except as overrides.
-- The `[ROMSETS]` and layout tables move into the machine definitions.
+- Machine keys move out of the user's file except as overrides. **Done in phase 3** - the
+  overrides had to exist for the migration to keep anything.
+- The layout table moves out of the user's file. **Done.**
+- The `[ROMSETS]` table moves into the machine definitions. **Done**, together with the
+  editor over it (6.3, the two views apart).
 - Palettes, styles, shaders and keymaps become built-in plus user-directory entries (4.1).
+  **Half done.** They ship inside the binary, and `xres_path()` / `xres_list()`
+  (`xcore/common.cpp`) read and list the config directory first and the binary second, so a
+  config directory with none of them - a fresh install, or `--confdir` - now has the whole
+  list instead of empty combo boxes. What is *not* done is stopping the install from writing
+  them into the config directory as files: while a copy sits there it shadows the built-in
+  one, so a shipped fix still does not reach a user whose directory was seeded (3.4). That
+  half is a packaging decision - the files are also how a user copies one to tweak it - and
+  is left for whoever takes it.
+
+**Layouts are named and shared, not inlined into each definition.** 4.1 and this phase's own
+bullet disagreed; 4.1 wins. Four machines use the Pentagon geometry, so inlining copies the
+same eleven numbers four times and there is nothing left for the layout editor to edit. They
+ship in the binary as `res/layouts.conf` and a `layouts.conf` in the config directory adds to
+that list, an entry of the same name replacing the shipped one. Only what the user added or
+changed is written back, so a `layout =` line in an old `config.conf` migrates itself on the
+first save and a shipped fix reaches everyone who never touched that layout.
+
+**The romsets and their editor went together**, since dropping `conf.rsList` leaves the
+editor with nothing behind it. What a machine loads is now `conf.roms`: its own set out of the
+definition, the chosen variant over that, and the user's own files over that again. The combo
+lists the machine's variants ("Its own" plus each `[rom.<id>]`), the table is the machine's
+slots, and a row the user changes is written as `rom<N>` in the machine's own block. Adding or
+deleting a whole romset is gone - the sets are the machine's.
+
+Three things fell out of it:
+
+- **An empty value empties a bank.** `rom2 =` says "nothing here" over a set that has
+  something, which the editor's delete needs and a migrated romset needs too.
+- **A line with nothing after the `=` is a value, not a section.** The config parser treated
+  it as a section header, so any cleared setting was silently dropped - a cleared shortcut
+  could not be saved either.
+- **Migration reads `[ROMSETS]` once and never writes it.** A named set that is the machine's
+  own becomes nothing, one that matches a variant becomes that variant, and anything else
+  becomes the files themselves as `rom<N>` keys.
+
+Still phase 6: the ordinary/Advanced split of the ROM rows (6.3) - offsets and sizes are on
+screen as they always were.
 
 ### Phase 5 - the UI
 - A machine selector in the main window: always visible, one control.

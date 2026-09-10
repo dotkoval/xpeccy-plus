@@ -42,6 +42,10 @@ before that point is upstream's history and is not repeated here.
   in one file; what you change on a machine is remembered for that machine. An update can
   fix a machine now without touching anything you set. Your old profile is carried over on
   first start, and the `profiles` folder is left where it is.
+- ROM sets belong to the machine. Each one carries its own ROMs and the variants it has -
+  TR-DOS 5.03 on a Pentagon, v4.1 on a +3 - and the ROM table on the Machine page edits its
+  slots, with what you change kept for that machine. The list of romsets is gone; the one you
+  used is carried over on first start.
 - The machine list is in family order, Sinclair machines first, and the names match the
   hardware: Spectrum +2A, ZX Evolution (BaseConf), ZX Evolution (TSConf). The +2 runs on
   the 128K it is. Settings written by an older build still load.

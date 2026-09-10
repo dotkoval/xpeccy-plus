@@ -64,14 +64,15 @@ std::string getRFText(QComboBox* box) {
 	return std::string(res.toLocal8Bit().data());
 }
 
-void fill_romset_list(QComboBox* box, QString txt = QString()) {
-	if (txt.isEmpty())
-		txt = box->currentText();
+// the machine's own roms, and the variants its definition names
+
+void fill_romset_list(QComboBox* box) {
 	box->clear();
-	foreach(xRomset rs, conf.rsList) {
-		box->addItem(QString::fromLocal8Bit(rs.name.c_str()));
+	box->addItem(QObject::tr("Its own"), QString());
+	foreach(QString id, xm_rom_variants()) {
+		box->addItem(id, id);
 	}
-	box->setCurrentIndex(box->findText(txt));
+	setRFIndex(box, QString::fromLocal8Bit(conf.romSet.c_str()), 0);
 }
 
 void fill_layout_list(QComboBox* box, QString txt = QString()) {
@@ -85,15 +86,13 @@ void fill_layout_list(QComboBox* box, QString txt = QString()) {
 }
 
 void fill_shader_list(QComboBox* box) {
-	QDir dir(conf.path.shdDir.c_str());
-	QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-	QFileInfo inf;
+	QStringList lst = xres_list("shaders", QStringList() << "*.txt");
 	box->clear();
 	box->addItem("none", 0);
 #if defined(USEOPENGL)
 	if (conf.vid.shd_support) {
-		foreach(inf, lst) {
-			box->addItem(inf.fileName(), 1);
+		foreach(QString nam, lst) {
+			box->addItem(nam, 1);
 		}
 		box->setCurrentIndex(box->findText(conf.vid.shader.c_str()));
 		if (box->currentIndex() < 0)
@@ -120,14 +119,11 @@ void fill_palette_list(QComboBox* box) {
 }
 */
 
-void fillComboBox(QComboBox* box, QString path, QStringList filt, QString def = "", QString sel = "") {
-	QDir dir(path);
-	QFileInfoList lst = dir.entryInfoList(filt, QDir::Files, QDir::Name);
-	QFileInfo inf;
+void fillComboBox(QComboBox* box, const char* kind, QStringList filt, QString def = "", QString sel = "") {
 	box->clear();
 	if (!def.isEmpty()) box->addItem(def);
-	foreach(inf, lst) {
-		box->addItem(inf.fileName(), inf.fileName());
+	foreach(QString nam, xres_list(kind, filt)) {
+		box->addItem(nam, nam);
 	}
 	setRFIndex(box, sel, 0);
 }
@@ -490,7 +486,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbShader->setVisible(false);
 #endif
 	//fill_palette_list(ui.cbPalPreset);
-	fillComboBox(ui.cbPalPreset, conf.path.palDir.c_str(), QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
+	fillComboBox(ui.cbPalPreset, "palettes", QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
 	paleditor = new xPalEditor(this);
 	ui.cbNoflicMode->addItem("2-frames (fullscreen)", AF_2C_FULL);
 	ui.cbNoflicMode->addItem("2-frames (adaptive)", AF_2C_ADAPTIVE);
@@ -590,8 +586,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.rsetbox,SIGNAL(currentIndexChanged(int)),this,SLOT(buildrsetlist()));
 	connect(ui.machbox,SIGNAL(currentIndexChanged(int)),this,SLOT(setmszbox(int)));
 	connect(ui.tvRomset,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(editRom()));
-	connect(ui.addrset,SIGNAL(released()),this,SLOT(addNewRomset()));
-	connect(ui.rmrset,SIGNAL(released()),this,SLOT(rmRomset()));
+	// a rom set is the machine's own now, so there is none to add or delete
+	ui.addrset->hide();
+	ui.rmrset->hide();
 	connect(rseditor,SIGNAL(complete(xRomFile)),this,SLOT(setRom(xRomFile)));
 	connect(ui.tbAddRom,SIGNAL(released()),this,SLOT(addRom()));
 	connect(ui.tbEditRom,SIGNAL(released()),this,SLOT(editRom()));
@@ -834,7 +831,6 @@ void SetupWin::start() {
 	int idx;
 	fill_romset_list(ui.rsetbox);
 	ui.machbox->setCurrentIndex(ui.machbox->findData(QString::fromLocal8Bit(conf.macId.c_str())));
-	ui.rsetbox->setCurrentIndex(ui.rsetbox->findText(QString::fromUtf8(conf.rsName.c_str())));
 	ui.resbox->setCurrentIndex(ui.resbox->findData(comp->resbank));
 	setmszbox(ui.machbox->currentIndex());
 	ui.mszbox->setCurrentIndex(ui.mszbox->findData(comp->mem->ramSize));
@@ -904,7 +900,7 @@ void SetupWin::start() {
 	ui.cbDDp->setChecked(comp->flgDDP);
 	fill_shader_list(ui.cbShader);
 	//fill_palette_list(ui.cbPalPreset);
-	fillComboBox(ui.cbPalPreset, conf.path.palDir.c_str(), QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
+	fillComboBox(ui.cbPalPreset, "palettes", QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
 // sound
 	ui.cbGS->setChecked(comp->gs->enable);
 	ui.gsrbox->setChecked(comp->gs->reset);
@@ -1058,7 +1054,7 @@ void SetupWin::start() {
 	ui.leDbgFont->setFont(dbgfnt);
 // palette
 	fillDbgPalette();
-	fillComboBox(ui.cbStyleSheet, conf.path.qssDir.c_str(), QStringList() << "*.qss", "System", conf.style.c_str());
+	fillComboBox(ui.cbStyleSheet, "styles", QStringList() << "*.qss", "System", conf.style.c_str());
 
 	show();
 }
@@ -1077,7 +1073,13 @@ void SetupWin::apply() {
 	}
 	emu_lock();		// romset, memory size and cpu are rebuilt below
 	HardWare *oldmac = comp->hw;
-	xm_set_romset(getRFText(ui.rsetbox));
+	std::string variant = std::string(getRFSData(ui.rsetbox).toLocal8Bit().data());
+	if (variant != conf.romSet) {
+		xm_set_romset(variant);		// another set of the machine's own
+		rsmodel->fill(&conf.roms);
+	} else {
+		xm_set_roms(conf.roms);
+	}
 	comp->resbank = getRFIData(ui.resbox);
 	memSetSize(comp->mem, getRFIData(ui.mszbox), -1);
 	// cpu
@@ -1508,49 +1510,14 @@ void SetupWin::layEditorOK() {
 
 // fill the romset from the machine's own roms, out of its definition
 
+// back to the roms the machine ships with, dropping the files of your own
+
 void SetupWin::romPreset() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	std::string mid = getRFSData(ui.machbox).toLocal8Bit().data();
-	const xMachineRoms* set = xm_find_roms(xm_find(mid), "");
-	xRomset rs = conf.rsList[idx];
-	if (!set) return;
-	rs.gsFile = set->gsFile;
-	rs.fntFile = set->fntFile;
-	rs.roms = set->roms;
-	rs.vBiosFile.clear();
-	rs.sBiosFile.clear();
-	conf.rsList[idx] = rs;
-	rsmodel->fill(&conf.rsList[idx]);
-}
-
-void SetupWin::rmRomset() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	if (areSure("Do you really want to delete this romset?")) {
-		delRomset(idx);
-		ui.rsetbox->removeItem(idx);
-	}
-}
-
-void SetupWin::addNewRomset() {
-	QString nam = QInputDialog::getText(this, "Enter name", "Romset name");
-	if (nam.isEmpty()) return;
-	xRomset r;
-	r.name = std::string(nam.toLocal8Bit().data());
-	r.gsFile.clear();
-	r.fntFile.clear();
-	r.roms.clear();
-	if (addRomset(r)) {
-		fill_romset_list(ui.rsetbox, nam);
-	} else {
-		shitHappens("Can't create romset with such name");
-	}
+	xm_set_romset(conf.romSet);
+	rsmodel->fill(&conf.roms);
 }
 
 void SetupWin::addRom() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
 	xRomFile f;
 	f.name[0] = 0;
 	f.foffset = 0;
@@ -1561,45 +1528,43 @@ void SetupWin::addRom() {
 }
 
 void SetupWin::delRom() {
-	int idx = ui.rsetbox->currentIndex();
 	QModelIndexList qmil = ui.tvRomset->selectionModel()->selectedRows();
 	int row = (qmil.size() > 0) ? qmil.first().row() : -1;
-	if ((idx < 0) || (row < 0)) return;
-	int sz = conf.rsList[idx].roms.size();
+	if (row < 0) return;
+	int sz = conf.roms.roms.size();
 	if (row < sz) {
-		conf.rsList[idx].roms.erase(conf.rsList[idx].roms.begin() + row);
+		conf.roms.roms.erase(conf.roms.roms.begin() + row);
 	} else if (row == sz) {
-		conf.rsList[idx].gsFile.clear();
+		conf.roms.gsFile.clear();
 	} else if (row == sz+1) {
-		conf.rsList[idx].fntFile.clear();
+		conf.roms.fntFile.clear();
 	} else if (row == sz+2) {
-		conf.rsList[idx].vBiosFile.clear();
+		conf.roms.vBiosFile.clear();
 	} else if (row == sz+3) {
-		conf.rsList[idx].sBiosFile.clear();
+		conf.roms.sBiosFile.clear();
 	}
-	rsmodel->fill(&conf.rsList[idx]);
+	rsmodel->fill(&conf.roms);
 }
 
 void SetupWin::editRom() {
-	int idx = ui.rsetbox->currentIndex();
 	QModelIndexList qmil = ui.tvRomset->selectionModel()->selectedRows();
 	int row = (qmil.size() > 0) ? qmil.first().row() : -1;
-	if ((idx < 0) || (row < 0)) return;
+	if (row < 0) return;
 	xRomFile f;
 	f.foffset = 0;
 	f.fsize = 0;
 	f.roffset = 0;
-	int sz = conf.rsList[idx].roms.size();
+	int sz = conf.roms.roms.size();
 	if (row < sz) {
-		f = conf.rsList[idx].roms[row];
+		f = conf.roms.roms[row];
 	} else if (row == sz) {
-		f.name = conf.rsList[idx].gsFile;
+		f.name = conf.roms.gsFile;
 	} else if (row == sz+1) {
-		f.name = conf.rsList[idx].fntFile;
+		f.name = conf.roms.fntFile;
 	} else if (row == sz+2) {
-		f.name = conf.rsList[idx].vBiosFile;
+		f.name = conf.roms.vBiosFile;
 	} else if (row == sz+3) {
-		f.name = conf.rsList[idx].sBiosFile;
+		f.name = conf.roms.sBiosFile;
 	}
 	eidx = row;
 	rseditor->edit(f);
@@ -1608,21 +1573,21 @@ void SetupWin::editRom() {
 void SetupWin::setRom(xRomFile f) {
 	int idx = ui.rsetbox->currentIndex();
 	if (idx < 0) return;
-	int sz = conf.rsList[idx].roms.size();
+	int sz = conf.roms.roms.size();
 	if (eidx < 0) {
-		conf.rsList[idx].roms.push_back(f);
+		conf.roms.roms.push_back(f);
 	} else if (eidx < sz) {
-		conf.rsList[idx].roms[eidx] = f;
+		conf.roms.roms[eidx] = f;
 	} else if (eidx == sz) {
-		conf.rsList[idx].gsFile = f.name;
+		conf.roms.gsFile = f.name;
 	} else if (eidx == sz+1) {
-		conf.rsList[idx].fntFile = f.name;
+		conf.roms.fntFile = f.name;
 	} else if (eidx == sz+2) {
-		conf.rsList[idx].vBiosFile = f.name;
+		conf.roms.vBiosFile = f.name;
 	} else if (eidx == sz+3) {
-		conf.rsList[idx].sBiosFile = f.name;
+		conf.roms.sBiosFile = f.name;
 	}
-	rsmodel->fill(&conf.rsList[idx]);
+	rsmodel->fill(&conf.roms);
 }
 
 // lists
@@ -1634,12 +1599,7 @@ void SetupWin::buildpadlist() {
 }
 
 void SetupWin::buildkeylist() {
-	QDir dir(conf.path.confDir.c_str());
-	QStringList lst = dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name);
-	dir.setPath(dir.path().append("/keymaps/"));
-	lst.append(dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name));
-	lst.sort();
-	fillRFBox(ui.keyMapBox,lst);
+	fillRFBox(ui.keyMapBox, xres_list("keymaps", QStringList() << "*.map"));
 }
 
 struct xMemName {
@@ -1679,14 +1639,12 @@ void SetupWin::setmszbox(int idx) {
 	if (ui.mszbox->currentIndex() < 0) ui.mszbox->setCurrentIndex(ui.mszbox->count() - 1);
 }
 
+// picking another of the machine's sets shows what it holds; it is loaded on Apply
+
 void SetupWin::buildrsetlist() {
-	if (ui.rsetbox->currentIndex() < 0) {
-		ui.tvRomset->setEnabled(false);
-	} else {
-		ui.tvRomset->setEnabled(true);
-		xRomset* rset = &conf.rsList[ui.rsetbox->currentIndex()];
-		rsmodel->fill(rset);
-	}
+	std::string variant = std::string(getRFSData(ui.rsetbox).toLocal8Bit().data());
+	rsPreview = (variant == conf.romSet) ? conf.roms : xm_roms_of(variant);
+	rsmodel->fill(&rsPreview);
 }
 
 void SetupWin::buildtapelist() {

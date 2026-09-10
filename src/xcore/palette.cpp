@@ -7,8 +7,7 @@
 QList<QColor> loadColors(std::string fname) {
 	QList<QColor> list;
 	QColor col;
-	std::string path = conf.path.palDir + SLASH + fname;
-	QFile file(path.c_str());
+	QFile file(xres_path("palettes", QString::fromLocal8Bit(fname.c_str())));
 	int i = 0;
 	QString line;
 	QString hexPart;

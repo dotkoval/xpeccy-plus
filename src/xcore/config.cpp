@@ -104,11 +104,6 @@ void conf_init(char* wpath, char* confdir) {
 	mkdir(conf.path.qssDir.c_str());
 #endif
 	conf.scrShot.format = "png";
-// Pentagon geometry:
-// rows: 16Vblk + (16 invis + 48 vis) top border + 192 screen + 48 bottom border = 320 rows
-// cols: 64Hblk + 72 left border + 256 screen + 56 right border = 448 dots (224T)
-	vLayout vlay = {{448,320},{72,64},{64,16},{256,192},{0,0},64};
-	addLayout("default", vlay);
 	conf.running = 0;
 	conf.boot = 1;
 	conf.autorun = 1;
@@ -149,14 +144,6 @@ void saveConfig() {
 	}
 
 	fprintf(cfile, "\n[VIDEO]\n\n");
-	foreach(xLayout lay, conf.layList) {
-		if (lay.name != "default") {
-			fprintf(cfile, "layout = %s:%i:%i:%i:%i:%i:%i:%i:%i:%i:%i:%i\n",lay.name.c_str(),\
-				lay.lay.full.x, lay.lay.full.y, lay.lay.bord.x, lay.lay.bord.y,\
-				lay.lay.blank.x, lay.lay.blank.y, lay.lay.intSize, lay.lay.intpos.y, lay.lay.intpos.x,\
-				lay.lay.scr.x, lay.lay.scr.y);
-		}
-	}
 	fprintf(cfile, "palette = %s\n", conf.palette.c_str());
 	fprintf(cfile, "scrDir = %s\n", conf.scrShot.dir.c_str());
 	fprintf(cfile, "scrFormat = %s\n", conf.scrShot.format.c_str());
@@ -178,23 +165,6 @@ void saveConfig() {
 	fprintf(cfile, "noflick.mode = %i\n", noflicMode);
 	fprintf(cfile, "noflick.gamma = %f\n", noflicGamma);
 	fprintf(cfile, "shader = %s\n", conf.vid.shader.c_str());
-
-	fprintf(cfile, "\n[ROMSETS]\n");
-	foreach(xRomset rms, conf.rsList) {
-		fprintf(cfile, "\nname = %s\n", rms.name.c_str());
-		foreach(xRomFile rf, rms.roms) {
-			fprintf(cfile, "rom = %s:%i:%i:%i\n",rf.name.c_str(), rf.foffset, rf.fsize, rf.roffset);
-		}
-		if (!rms.gsFile.empty())
-			fprintf(cfile, "gs = %s\n", rms.gsFile.c_str());
-		if (!rms.fntFile.empty())
-			fprintf(cfile, "font = %s\n", rms.fntFile.c_str());
-		if (!rms.vBiosFile.empty())
-			fprintf(cfile, "vga = %s\n", rms.vBiosFile.c_str());
-		if (!rms.sBiosFile.empty())
-			fprintf(cfile, "snd = %s\n", rms.sBiosFile.c_str());
-	}
-
 	fprintf(cfile, "\n[SOUND]\n\n");
 	fprintf(cfile, "enabled = %s\n", YESNO(conf.snd.enabled));
 	fprintf(cfile, "soundsys = %s\n", sndOutput->name);
@@ -293,6 +263,7 @@ void saveConfig() {
 		i++;
 	}
 
+	layouts_save();
 	xm_save(cfile);
 	xm_save_media(cfile);
 	fclose(cfile);
@@ -336,9 +307,8 @@ const char* dbgPaletteDefault(const char* name) {
 
 bool loadStylePalette(const std::string& style) {
 	if (style.empty()) return false;
-	QString path = QString::fromLocal8Bit(conf.path.qssDir.c_str()) + SLASH
-		+ QFileInfo(QString::fromLocal8Bit(style.c_str())).completeBaseName() + ".pal";
-	QFile file(path);
+	QFile file(xres_path("styles",
+		QFileInfo(QString::fromLocal8Bit(style.c_str())).completeBaseName() + ".pal"));
 	if (!file.open(QFile::ReadOnly | QFile::Text)) return false;
 	QTextStream strm(&file);
 	while (!strm.atEnd()) {
@@ -437,6 +407,7 @@ void loadConfig() {
 			throw(0);
 		}
 	}
+	layouts_load_all();
 	xm_load_all();
 	xm_over_clear();
 	if (!conf.zx) {
@@ -514,7 +485,9 @@ void loadConfig() {
 		arg.s = pval.c_str();
 		arg.i = strtol(arg.s, NULL, 0);
 		arg.d = strtod(arg.s, NULL);
-		if (pval=="") {
+		// a line with nothing after the = is a value, not a section: an empty
+		// value is how a rom bank is emptied and a setting is cleared
+		if (pval.empty() && !pnam.empty() && (pnam[0] == '[')) {
 			if (pnam=="[BOOKMARKS]") section = SECT_BOOKMARK;
 			if (pnam=="[PROFILES]") section = SECT_PROFILES;
 			if (pnam=="[MEDIA]") section = SECT_MEDIA;
@@ -613,25 +586,8 @@ void loadConfig() {
 					if (pnam=="gamepad2") conf.gpctrl->gpadb->setPadId(xPadId::fromConfig(arg.s));
 					break;
 				case SECT_VIDEO:
-					if (pnam=="layout") {
-						vect = splitstr(pval,":");
-						if (vect.size() > 8) {
-							vlay.full.x = atoi(vect[1].c_str());
-							vlay.full.y = atoi(vect[2].c_str());
-							vlay.bord.x = atoi(vect[3].c_str());
-							vlay.bord.y = atoi(vect[4].c_str());
-							vlay.blank.x = atoi(vect[5].c_str());
-							vlay.blank.y = atoi(vect[6].c_str());
-							vlay.intSize = atoi(vect[7].c_str());
-							vlay.intpos.y = atoi(vect[8].c_str());
-							vlay.intpos.x = (vect.size() > 9) ? atoi(vect[9].c_str()) : 0;
-							vlay.scr.x = (vect.size() > 10) ? atoi(vect[10].c_str()) : 256;
-							vlay.scr.y = (vect.size() > 11) ? atoi(vect[11].c_str()) : 192;
-							if (vlay.full.x > 512) vlay.full.x = 512;
-							if (vlay.full.y > 512) vlay.full.y = 512;
-							addLayout(vect[0], vlay);
-						}
-					}
+					// a config from before the layouts had a file of their own
+					if (pnam=="layout") addLayoutString(pval);
 					if (pnam=="palette") conf.palette = pval;
 					if (pnam=="scrDir") conf.scrShot.dir = pval;
 					if (pnam=="scrFormat") conf.scrShot.format = pval;
