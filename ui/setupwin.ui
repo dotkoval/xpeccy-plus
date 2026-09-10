@@ -4118,6 +4118,16 @@ Off: the tape stops at the end</string>
                    </widget>
                   </item>
                   <item row="2" column="0" colspan="2">
+                   <widget class="QCheckBox" name="cbConfexit">
+                    <property name="toolTip">
+                     <string>Ask before closing the emulator</string>
+                    </property>
+                    <property name="text">
+                     <string>Confirm exit</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item row="3" column="0" colspan="2">
                    <spacer name="verticalSpacer_appgrid">
                     <property name="orientation">
                      <enum>Qt::Vertical</enum>
@@ -4146,31 +4156,89 @@ Off: the tape stops at the end</string>
                  </spacer>
                 </item>
                 <item>
-                 <layout class="QVBoxLayout" name="verticalLayout_appsw">
-                  <item>
-                   <widget class="QCheckBox" name="cbConfexit">
-                    <property name="toolTip">
-                     <string>Ask before closing the emulator</string>
-                    </property>
-                    <property name="text">
-                     <string>Confirm exit</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <spacer name="verticalSpacer_app">
-                    <property name="orientation">
-                     <enum>Qt::Vertical</enum>
-                    </property>
-                    <property name="sizeHint" stdset="0">
-                     <size>
-                      <width>20</width>
-                      <height>5</height>
-                     </size>
-                    </property>
-                   </spacer>
-                  </item>
-                 </layout>
+                 <widget class="QWidget" name="appButtons" native="true">
+                  <property name="minimumSize">
+                   <size>
+                    <width>155</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>155</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_appsw">
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QPushButton" name="pbCfgExport">
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/save_all.png</normaloff>:/images/save_all.png</iconset>
+                     </property>
+                     <property name="toolTip">
+                      <string>Write the settings, the layouts and your own machines to one file</string>
+                     </property>
+                     <property name="text">
+                      <string>Export settings...</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pbCfgImport">
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/fileopen.png</normaloff>:/images/fileopen.png</iconset>
+                     </property>
+                     <property name="toolTip">
+                      <string>Take the settings out of a file written by Export</string>
+                     </property>
+                     <property name="text">
+                      <string>Import settings...</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pbCfgReset">
+                     <property name="icon">
+                      <iconset resource="../xpeccy.qrc">
+                       <normaloff>:/images/refresh.png</normaloff>:/images/refresh.png</iconset>
+                     </property>
+                     <property name="toolTip">
+                      <string>Back to the settings the emulator ships with. Your own machines are left alone</string>
+                     </property>
+                     <property name="text">
+                      <string>Reset to defaults</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <spacer name="verticalSpacer_app">
+                     <property name="orientation">
+                      <enum>Qt::Vertical</enum>
+                     </property>
+                     <property name="sizeHint" stdset="0">
+                      <size>
+                       <width>20</width>
+                       <height>5</height>
+                      </size>
+                     </property>
+                    </spacer>
+                   </item>
+                  </layout>
+                 </widget>
                 </item>
                </layout>
               </widget>

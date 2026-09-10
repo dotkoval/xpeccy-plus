@@ -373,6 +373,128 @@ static void seedConfigDir(const QString& src) {
 
 // emulator config
 
+// THE CONFIGURATION AS ONE FILE
+//
+// Everything a setup is made of, in one text file: the settings, the screen
+// layouts and the machines of the user's own. Plain text on purpose - it is
+// meant to be read, diffed and pasted into a bug report. Roms, palettes,
+// shaders, styles and keymaps are not in it: those are files a person put
+// there, not settings, and the ones that ship are in the binary anyway.
+//
+// A line of the form [[<name>]] at the left margin starts a file; everything
+// up to the next one is its content.
+
+#define	XCONF_MARK	"[["
+
+static QStringList xconf_files() {
+	QStringList res;
+	res << "config.conf" << "layouts.conf";
+	QString dir = xres_dir("machines");
+	foreach(QString nam, QDir(dir).entryList(QStringList() << "*.conf", QDir::Files, QDir::Name))
+		res << "machines/" + nam;
+	return res;
+}
+
+bool xconf_export(const QString& path) {
+	saveConfig();			// what is exported is what is running
+	QFile out(path);
+	if (!out.open(QFile::WriteOnly)) {
+		xlog(XLG_CONF, XLL_ERROR, "can't write %s", path.toLocal8Bit().data());
+		return false;
+	}
+	QString head = QString("# " XPRODUCT " configuration, version " XVERSION "\n"
+		"# Import it in Options - Xpeccy+ - General.\n");
+	out.write(head.toLocal8Bit());
+	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
+	foreach(QString nam, xconf_files()) {
+		QFile in(base + SLASH + nam);
+		if (!in.open(QFile::ReadOnly)) continue;	// nothing of that kind here
+		out.write(QString("\n" XCONF_MARK "%1]]\n").arg(nam).toLocal8Bit());
+		out.write(in.readAll());
+		in.close();
+	}
+	out.close();
+	xlog(XLG_CONF, XLL_INFO, "configuration exported to %s", path.toLocal8Bit().data());
+	return true;
+}
+
+// the files of the config directory this one is allowed to write over
+
+static bool xconf_may_write(const QString& nam) {
+	if (nam.contains("..") || nam.contains(':')) return false;
+	return xconf_files().contains(nam) || nam.startsWith("machines/");
+}
+
+bool xconf_import(const QString& path) {
+	QFile in(path);
+	if (!in.open(QFile::ReadOnly | QFile::Text)) {
+		xlog(XLG_CONF, XLL_ERROR, "can't read %s", path.toLocal8Bit().data());
+		return false;
+	}
+	QMap<QString, QByteArray> part;
+	QString nam;
+	while (!in.atEnd()) {
+		QByteArray line = in.readLine();
+		QString txt = QString::fromLocal8Bit(line).trimmed();
+		if (txt.startsWith(XCONF_MARK) && txt.endsWith("]]")) {
+			nam = txt.mid(2, txt.size() - 4);
+			if (!xconf_may_write(nam)) {
+				xlog(XLG_CONF, XLL_WARN, "not importing '%s'", nam.toLocal8Bit().data());
+				nam.clear();
+			} else {
+				part[nam] = QByteArray();
+			}
+		} else if (!nam.isEmpty()) {
+			part[nam] += line;
+		}
+	}
+	in.close();
+	if (part.isEmpty()) {
+		xlog(XLG_CONF, XLL_ERROR, "%s holds no configuration", path.toLocal8Bit().data());
+		return false;
+	}
+	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
+	foreach(QString key, part.keys()) {
+		QString dst = base + SLASH + key;
+		QDir().mkpath(QFileInfo(dst).path());
+		QFile f(dst);
+		if (!f.open(QFile::WriteOnly)) {
+			xlog(XLG_CONF, XLL_ERROR, "can't write %s", dst.toLocal8Bit().data());
+			continue;
+		}
+		f.write(part.value(key));
+		f.close();
+	}
+	xlog(XLG_CONF, XLL_INFO, "configuration imported from %s", path.toLocal8Bit().data());
+	return reloadConfig();
+}
+
+// back to what the emulator ships with: the settings file and the layouts go,
+// and the next read takes the defaults out of the binary. Machines of the
+// user's own are content, not settings, and are left where they are.
+
+bool xconf_reset() {
+	QString base = QString::fromLocal8Bit(conf.path.confDir.c_str());
+	QFile::remove(base + SLASH "config.conf");
+	QFile::remove(base + SLASH "layouts.conf");
+	return reloadConfig();
+}
+
+// Reading the configuration again, into the machine and the windows that are
+// already up. loadConfig() is written to be able to do this - it clears every
+// list it fills and keeps conf.zx - and it throws when there is nothing to
+// read at all, which here would take the whole emulator down with it.
+
+bool reloadConfig() {
+	try {
+		loadConfig();
+	} catch (...) {
+		xlog(XLG_CONF, XLL_ERROR, "the configuration could not be read");
+		return false;
+	}
+	return true;
+}
+
 void loadConfig() {
 	std::string soutnam = "NULL";
 	//printf("%s\n",conf.path.confFile);

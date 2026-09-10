@@ -30,6 +30,7 @@ class SetupWin : public QDialog {
 		void start();
 		void setPadName();
 	private:
+		void cfgLoaded();
 		void fillRomSlots();
 		void addRomSlot(int, QString, int, const QStringList&, bool, int);
 		QString romSlotFileName(int);
@@ -129,6 +130,9 @@ class SetupWin : public QDialog {
 		void showAdvanced();
 		void showRomFiles();
 		void saveMachine();
+		void cfgExport();
+		void cfgImport();
+		void cfgReset();
 		void delMachine();
 
 		void newPadMap();

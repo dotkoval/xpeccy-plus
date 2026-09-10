@@ -257,6 +257,12 @@ const char* dbgPaletteDefault(const char*);
 bool loadStylePalette(const std::string&);	// debugger colours shipped with a style sheet
 void loadConfig();
 void saveConfig();
+bool reloadConfig();
+
+// the whole configuration as one text file, and back to how it ships
+bool xconf_export(const QString&);
+bool xconf_import(const QString&);
+bool xconf_reset();
 
 extern std::map<std::string, int> shotFormat;
 
@@ -445,7 +451,7 @@ typedef struct {
 
 void xm_load_all();
 // machines of the user's own: saving the running one, and dropping it again
-std::string xm_save_as(const std::string&, bool);
+bool xm_save_as(const std::string&, const std::string&);
 std::string xm_id_of_name(const std::string&);
 bool xm_delete(const std::string&);
 void xm_over_forget(const std::string&);

@@ -12,6 +12,10 @@ before that point is upstream's history and is not repeated here.
 ### Added
 
 - ZX Spectrum 128K, as a machine of its own.
+- The whole configuration as one file. Export settings, on Options -> Xpeccy+ -> General,
+  writes the settings, the screen layouts and your own machines to one text file; Import
+  settings takes them back, and Reset to defaults puts everything back the way the emulator
+  ships. All three take effect at once, without a restart.
 - Machines of your own. Set a machine up the way you want it and Save machine, on the
   Machine page, keeps it in the list beside the ones that ship - it remembers only what you
   changed, so a fix to the machine it came from still reaches it. Saving one of your own
@@ -113,7 +117,12 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it
+  on for the machine you switch to next, which ran at the wrong speed.
 - Cancel in Options now really cancels a ROM you picked on the Machine page.
+- Apply in Options leaves a whole picture on screen. It used to show half of the frame the
+  machine was drawing when it was rebuilt over half of the one before, cropped to the new
+  layout - a black band, or a picture that had slipped sideways.
 - Picking a palette preset changes the colors right away again on the ZX Spectrum
   48K and 128K, where they only changed after a reset. The palette editor had the
   same problem.

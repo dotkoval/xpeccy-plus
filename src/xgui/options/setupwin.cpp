@@ -564,6 +564,9 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.pbAdvanced,SIGNAL(released()),this,SLOT(showAdvanced()));
 	connect(ui.pbSaveMachine,SIGNAL(released()),this,SLOT(saveMachine()));
 	connect(ui.pbDelMachine,SIGNAL(released()),this,SLOT(delMachine()));
+	connect(ui.pbCfgExport,SIGNAL(released()),this,SLOT(cfgExport()));
+	connect(ui.pbCfgImport,SIGNAL(released()),this,SLOT(cfgImport()));
+	connect(ui.pbCfgReset,SIGNAL(released()),this,SLOT(cfgReset()));
 
 	// The settings that define the machine rather than how it is used live in
 	// a window of their own. It is the same widgets, moved out of the page -
@@ -1495,15 +1498,60 @@ void SetupWin::showAdvanced() {
 	advWin->raise();
 }
 
+// THE WHOLE CONFIGURATION, IN AND OUT
+//
+// One text file with the settings, the layouts and the machines of your own.
+// Importing one or going back to the defaults reads the configuration again
+// under the running machine, so the page has to be filled from scratch after.
+
+static const char* cfgFilter = "Xpeccy+ settings (*.conf);;All files (*)";
+static const char* cfgName = "xpeccy-settings.conf";
+
+void SetupWin::cfgExport() {
+	apply();				// what is written is what the page shows
+	QString path = QFileDialog::getSaveFileName(this, tr("Export settings"),
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + cfgName,
+		tr(cfgFilter));
+	if (path.isEmpty()) return;
+	if (!xconf_export(path))
+		shitHappens("Could not write the settings file");
+}
+
+void SetupWin::cfgLoaded() {
+	start();
+	emit s_apply();
+	emit s_prf_changed();
+}
+
+void SetupWin::cfgImport() {
+	QString path = QFileDialog::getOpenFileName(this, tr("Import settings"),
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + cfgName,
+		tr(cfgFilter));
+	if (path.isEmpty()) return;
+	if (!areSure("Take the settings out of this file?<br>"
+		"What you have now is replaced, this machine included.")) return;
+	if (!xconf_import(path)) {
+		shitHappens("Could not read the settings file");
+		return;
+	}
+	cfgLoaded();
+}
+
+void SetupWin::cfgReset() {
+	if (!areSure("Back to the settings the emulator ships with?<br>"
+		"Your own machines are left where they are.")) return;
+	if (!xconf_reset()) {
+		shitHappens("Could not read the settings");
+		return;
+	}
+	cfgLoaded();
+}
+
 // A machine of the user's own is this one with what was changed on it, kept
 // as a definition of its own. The machine it came from goes back to how it
 // ships - the settings did not disappear, they moved.
 
 void SetupWin::saveMachine() {
-	// what is saved is what the page shows, so the page goes in first
-	std::string was = conf.macId;
-	apply();
-	if (conf.macId != was) return;		// that was a machine switch, not a save
 	const xMachine* mac = xm_find(conf.macId);
 	if (!mac) return;
 	// a machine of your own starts as itself, so saving it again updates it
@@ -1516,7 +1564,6 @@ void SetupWin::saveMachine() {
 	if (!ok || name.isEmpty()) return;
 	std::string nam = std::string(name.toLocal8Bit().data());
 	std::string id = xm_id_of_name(nam);
-	bool over = false;
 	if (xm_find(id)) {
 		if (!xm_is_users(id)) {
 			shitHappens("A machine that ships is called that.<br>"
@@ -1528,10 +1575,12 @@ void SetupWin::saveMachine() {
 		} else if (!areSure("A machine of your own is already called that. Replace it?")) {
 			return;
 		}
-		over = true;
 	}
-	id = xm_save_as(nam, over);
-	if (id.empty()) {
+	// what is saved is what the page shows, so the page goes in first
+	std::string was = conf.macId;
+	apply();
+	if (conf.macId != was) return;		// that was a machine switch, not a save
+	if (!xm_save_as(id, nam)) {
 		shitHappens("Could not write the machine file");
 		return;
 	}

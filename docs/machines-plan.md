@@ -939,9 +939,20 @@ machine switch (where it already was) and on exit.
 - The ROM slots get their two views (6.3): files only by default, offsets and sizes behind
   the same button. **Done in phase 5.**
 - One media panel showing everything mounted at once (tape, A-D, HDD master/slave, SD),
-  instead of five sibling tabs under Storage.
+  instead of five sibling tabs under Storage. **Left as it is**, on its own evidence: this
+  line is the only place the idea is written down, nothing in the plan says why, and the
+  four media have genuinely different controls - a block map and a speed for the tape,
+  geometry for the hdd, image-or-folder for the sd - so one panel grows a details area and
+  ends up being the tabs again. What the idea is really after is "what is in the machine
+  right now", which is a question about state, not about settings. If it comes back, it
+  comes back as that: an overview, in its own task.
 - Export / import of the whole configuration as one file, for sharing a setup and for bug
-  reports.
+  reports. **Done.** One text file with `[[<name>]]` markers, holding `config.conf`,
+  `layouts.conf` and the machines of the user's own - plain text so it can be read, diffed
+  and pasted into a report. Roms, palettes, shaders, styles and keymaps are not in it: those
+  are files a person put there, not settings. Import and Reset to defaults both end in
+  `reloadConfig()`, which is `loadConfig()` with the throw caught - it was already written
+  to be able to run twice, since it clears every list it fills and keeps `conf.zx`.
 
 ---
 

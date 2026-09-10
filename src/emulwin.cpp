@@ -1226,12 +1226,12 @@ void MainWin::doOptions() {
 // out of the whole raster, so the picture stays right even though the machine
 // is paused and no new frame is coming.
 void MainWin::optResize() {
-	int bpl = bytesPerLine;			// the row length the buffer was written with
 	updateWindow();
-	// Apply can also change the machine or its layout, and the frame in the
-	// buffer would then be read back at a row length it was not drawn with
-	if (bytesPerLine != bpl)
-		renderFrame();
+	// Apply rebuilds the machine and resets it, and the dialog stays up - so
+	// the machine is paused and cannot finish the frame it was drawing. What
+	// is in the buffer is half of one frame over half of another, read back
+	// with whatever row length the new layout has. Draw a whole one instead.
+	if (hasPicture) renderFrame();		// nothing to clean up before the first
 	presentFrame();
 }
 
@@ -1285,12 +1285,26 @@ void MainWin::renderFrame() {
 	vid_clear_image();			// whatever is in there was not drawn by this machine
 	if (!comp || comp->flgDBG) return;	// the debugger owns the machine, don't step it
 	// a frame is some 20000 opcodes. The count is only here to stop a machine
-	// that never finishes one - a profile still on "Dummy" hardware, say
-	int guard = 1 << 19;
+	// that never finishes one - a machine still on "Dummy" hardware, say
+	//
+	// The ray is wherever the machine was when it stopped, and a reset does
+	// not move it, so this takes two runs: the first finishes the frame that
+	// was in progress - the lines below the ray and nothing above - and the
+	// second draws a whole one from the top. Clearing between them keeps the
+	// half-frame out of the picture.
+	//
+	// vid_reset_ray() looks like the shortcut and is not: it puts the ray at
+	// the interrupt, which is mid-line, so a frame drawn from there lands in
+	// the buffer split and shifted. It is right for a snapshot, where the
+	// pacer draws the next frame, and wrong for drawing one here and now.
 	emu_lock();
-	comp->flgFRM = 0;
-	while (!comp->flgFRM && !comp->flgBRK && (guard-- > 0))
-		compExec(comp);
+	for (int i = 0; i < 2; i++) {
+		int guard = 1 << 19;
+		if (i) vid_clear_image();
+		comp->flgFRM = 0;
+		while (!comp->flgFRM && !comp->flgBRK && (guard-- > 0))
+			compExec(comp);
+	}
 	comp->flgFRM = 0;			// the frame is ours, not the pacer's
 	// A breakpoint hit inside this one cosmetic frame is dropped on purpose:
 	// emuCycle() would only clear the flag without acting on it, and the

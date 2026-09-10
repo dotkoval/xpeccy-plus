@@ -484,13 +484,6 @@ static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std:
 	}
 }
 
-// back to the files the machine ships with, dropping the ones the user named
-
-static void xm_reset_roms() {
-	const xMachine* mac = xm_find(conf.macId);
-	if (mac && conf.zx) xm_set_roms(mac->roms);
-}
-
 // one bank of a set, by the same rule the definitions use: no name empties it
 
 void xm_rom_set_file(xRomset& rs, int bank, const std::string& name) {
@@ -631,11 +624,11 @@ static void mac_set_cpu(Computer* comp, const std::string& val) {
 // the machine as the user has it: the definition with what was changed on it
 // laid over, read the same way the definition itself is
 
-static xMachine mac_with_over(const xMachine& def, const std::string& id) {
+static xMachine mac_with_over(const xMachine& def) {
 	xMachine mac = def;
 	QList<xMacLine> lines;
 	xMacLine ln;
-	foreach(xMacOver::value_type kv, macOver.value(QString::fromLocal8Bit(id.c_str()))) {
+	foreach(xMacOver::value_type kv, macOver.value(QString::fromLocal8Bit(def.id.c_str()))) {
 		QString sect;
 		QString nam = mac_key_place(QString::fromLocal8Bit(kv.first.c_str()), &sect);
 		ln.sect = std::string(sect.toLocal8Bit().data());
@@ -652,6 +645,10 @@ static void mac_from_def(const xMachine* mac) {
 	xm_set_hardware(mac->hw);
 	mac_set_cpu(comp, mac->cpu);
 	compSetBaseFrq(comp, mac->cpufrq / 1e6);
+	// the base clock is what the machine is, the multiplier is what it is
+	// doing: a Scorpion, ATM or Evolution turns its own turbo on from a port,
+	// and the machine after it starts at its own speed like any other
+	compSetTurbo(comp, 1.0);
 	memSetSize(comp->mem, mac_ram_size(mac->memory, comp), -1);
 	comp->resbank = mac->resbank;
 	comp->flgCNTI = mac->contio;
@@ -687,7 +684,7 @@ bool xm_set(std::string id) {
 		sdcCloseFile(conf.zx->sdc);
 	}
 	conf.macId = id;
-	xMachine cur = mac_with_over(*mac, id);
+	xMachine cur = mac_with_over(*mac);
 	mac_from_def(&cur);
 	xm_set_roms(cur.roms);
 	if (!xm_set_layout(conf.layName)) xm_set_layout(LAY_DEFAULT);
@@ -1140,7 +1137,8 @@ static void mac_migrate_romset(const std::string& id) {
 	const xMachine* mac = xm_find(id);
 	xRomset* rs = oldRomset.empty() ? NULL : findRomset(oldRomset);
 	oldRomset.clear();
-	xm_reset_roms();
+	if (!mac || !conf.zx) return;
+	xm_set_roms(mac->roms);		// what it ships with, before the old set
 	if (!rs) return;
 	if (mac_same_roms(rs, &mac->roms)) return;
 	xRomset user = conf.roms;
@@ -1177,30 +1175,19 @@ std::string xm_id_of_name(const std::string& name) {
 	return std::string(res.toLocal8Bit().data());
 }
 
-// the same, but past every machine there already is
+// The id is the caller's: it is what says whether this is another machine or
+// one being written over. A machine written over keeps what it inherits, so
+// updating the one you are on does not make it inherit itself.
 
-static std::string mac_id_free(const std::string& name) {
-	QString base = QString::fromLocal8Bit(xm_id_of_name(name).c_str());
-	QString id = base;
-	for (int i = 2; xm_find(std::string(id.toLocal8Bit().data())); i++)
-		id = QString("%1-%2").arg(base).arg(i);
-	return std::string(id.toLocal8Bit().data());
-}
-
-// `over` writes over a machine of the user's own instead of making another one.
-// A machine that is written over keeps what it inherits, so updating the one
-// you are on does not make it inherit itself.
-
-std::string xm_save_as(const std::string& name, bool over) {
+bool xm_save_as(const std::string& id, const std::string& name) {
 	const xMachine* mac = xm_find(conf.macId);
-	if (!mac) return std::string();
-	std::string id = over ? xm_id_of_name(name) : mac_id_free(name);
+	if (!mac) return false;
 	std::string parent = (id == mac->id) ? mac->parent : mac->id;
 	const xMachine* base = xm_find(parent);
 	if (!base) {
 		xlog(XLG_CONF, XLL_ERROR, "machine %s inherits nothing to write a diff against",
 			id.c_str());
-		return std::string();
+		return false;
 	}
 	QStringList keys;
 	mac_put_all(keys, base);
@@ -1208,7 +1195,7 @@ std::string xm_save_as(const std::string& name, bool over) {
 	QFile file(xm_user_path(id));
 	if (!file.open(QFile::WriteOnly)) {
 		xlog(XLG_CONF, XLL_ERROR, "can't write %s", xm_user_path(id).toLocal8Bit().data());
-		return std::string();
+		return false;
 	}
 	QStringList out;
 	out << "# A machine of your own. Delete this file to drop it.";
@@ -1216,28 +1203,27 @@ std::string xm_save_as(const std::string& name, bool over) {
 	out << "[machine]";
 	out << QString("name    = %1").arg(QString::fromLocal8Bit(name.c_str()));
 	out << QString("inherit = %1").arg(QString::fromLocal8Bit(base->id.c_str()));
+	QMap<QString, QStringList> part;
+	foreach(QString line, keys) {
+		QString where;
+		QString key = line.section('=', 0, 0).trimmed();
+		QString nam = mac_key_place(key, &where);	// fills where, so not inline
+		part[where] << line.replace(0, key.size(), nam);
+	}
 	const char* sect[] = {"machine", "video", "sound", "storage", "input", "rom", NULL};
 	for (int i = 0; sect[i]; i++) {
-		QStringList part;
-		foreach(QString line, keys) {
-			QString where;
-			QString key = line.section('=', 0, 0).trimmed();
-			QString nam = mac_key_place(key, &where);
-			if (where != sect[i]) continue;
-			part << line.replace(0, key.size(), nam);
-		}
-		if (part.isEmpty()) continue;
+		if (!part.contains(sect[i])) continue;
 		if (strcmp(sect[i], "machine")) {
 			out << "";
 			out << QString("[%1]").arg(sect[i]);
 		}
-		out << part;
+		out << part.value(sect[i]);
 	}
 	out << "";
 	file.write(out.join("\n").toLocal8Bit());
 	file.close();
 	xm_load_all();
-	return id;
+	return true;
 }
 
 // the file goes; a machine that only shadowed a built-in one comes back as it
