@@ -28,6 +28,22 @@ void dummyOut(Computer* comp, int port, int val) {
 
 }
 
+// mem
+
+// The 128K memory map, which the Pentagon inherits: the ROM pair at 0x0000
+// (doubled by the DOS flag, so a Beta Disk machine reaches its interface ROM
+// at banks 2,3), the screen bank at 0x4000, bank 2 at 0x8000 and whatever
+// 0x7FFD selects at 0xC000. `extMask` picks up the bits above the 3-bit bank
+// field - 0xc0 on the Pentagon, whose 512K extension a real 128K does not have.
+void zx128_map_mem(Computer* comp, int extMask) {
+	int pg = (comp->flgDOS ? 2 : 0) | (comp->flgROM ? 1 : 0);
+	memSetBank(comp->mem, 0x00, MEM_ROM, pg, MEM_16K, NULL, NULL, NULL);
+	pg = (comp->p7FFD & 7) | ((comp->p7FFD & extMask) >> 3);
+	memSetBank(comp->mem, 0x40, MEM_RAM, 5, MEM_16K, NULL, NULL, NULL);
+	memSetBank(comp->mem, 0x80, MEM_RAM, 2, MEM_16K, NULL, NULL, NULL);
+	memSetBank(comp->mem, 0xc0, MEM_RAM, pg, MEM_16K, NULL, NULL, NULL);
+}
+
 // INT handle/check
 
 void zx_sync(Computer* comp, int ns) {

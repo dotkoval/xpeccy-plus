@@ -52,9 +52,9 @@ void MainWin::updateHead() {
 #ifdef ISDEBUG
 	title.append(" | debug");
 #endif
-	if (conf.prof.cur) {
-		title.append(" | ").append(conf.prof.cur->name.c_str());
-		title.append(" | ").append(conf.prof.cur->layName.c_str());
+	const xMachine* mac = xm_find(conf.macId);
+	if (conf.zx && mac) {
+		title.append(" | ").append(mac->name.c_str());
 	}
 	if (conf.emu.fast) {
 		title.append(" | fast");
@@ -68,7 +68,7 @@ void MainWin::updateWindow() {
 	// into the resized window would stretch it until the next frame arrives
 	refit = 1;
 	QSize wsz;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	vid_set_zoom(conf.vid.scale);		// where the picture goes, and how big
 	// a size change can switch the shader off or bring it back (wantedShader)
 	if (conf.vid.shd_support && (wantedShader() != shdLoaded))
@@ -94,31 +94,21 @@ void MainWin::updateWindow() {
 }
 
 bool MainWin::saveChanged() {
-	xProfile* prf;
 	bool yep = true;
-	int res;
-	int i;
 	QString str;
 	Floppy* flp;
-	foreach(prf, conf.prof.list) {
-		if (!prf->initrq) {
-			for(i = 0; (i < 4) && yep; i++) {
-				flp = prf->zx->dif->flp[i];
-				if (flp->changed) {
-					str = QString("Disk %0 of profile '%1' was changed<br>Save it?").arg(QChar('A' + i)).arg(prf->name.c_str());
-					res = askYNC(str.toLocal8Bit().data());
-					switch(res) {
-						case QMessageBox::Yes:
-							yep &= save_file(prf->zx, flp->path, FG_DISK, i);
-							break;
-						case QMessageBox::Cancel:
-							yep = false;
-							break;
-					}
-				}
-			}
+	for (int i = 0; (i < 4) && yep; i++) {
+		flp = conf.zx->dif->flp[i];
+		if (!flp->changed) continue;
+		str = QString("Disk %0 was changed<br>Save it?").arg(QChar('A' + i));
+		switch (askYNC(str.toLocal8Bit().data())) {
+			case QMessageBox::Yes:
+				yep &= save_file(conf.zx, flp->path, FG_DISK, i);
+				break;
+			case QMessageBox::Cancel:
+				yep = false;
+				break;
 		}
-		if (!yep) break;
 	}
 	return yep;
 }
@@ -367,7 +357,7 @@ void MainWin::gpInputChanged(int type, int num, int state) {
 	// mouse bindings take their step from the size of it
 	if ((type == JOY_AXIS) || (type == JOY_CAXIS))
 		state *= 32767;
-	mapJoystick(gp, conf.prof.cur->zx, type, num, state);
+	mapJoystick(gp, conf.zx, type, num, state);
 }
 
 // calling on timer every 20ms
@@ -397,7 +387,7 @@ static struct {
 #endif
 
 void MainWin::timerEvent(QTimerEvent* ev) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (ev->timerId() == secid) {		// 0.2 sec timer, fps counter
 		// printf("0.2 sec timer event\n");
 		if (!conf.emu.pause && conf.vid.fctime) {
@@ -425,7 +415,7 @@ void MainWin::timerEvent(QTimerEvent* ev) {
 	} else if (ev->timerId() == timid) {
 // updater
 //		if (conf.prof.changed) {
-//			comp = conf.prof.cur->zx;
+//			comp = conf.zx;
 //			conf.prof.changed = 0;
 //		}
 		if (block) return;
@@ -512,7 +502,7 @@ void MainWin::timerEvent(QTimerEvent* ev) {
 
 // if window is not active release keys & buttons, release mouse
 void MainWin::focusOutEvent(QFocusEvent*) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	mouseReleaseAll(comp->mouse);
 	unsetCursor();
 	if (grabMice) {
@@ -540,8 +530,6 @@ void MainWin::moveEvent(QMoveEvent* ev) {
 }
 
 void MainWin::menuShow() {
-	Computer* comp = conf.prof.cur->zx;
-	layoutMenu->setDisabled(comp->hw->lay != NULL);
 	pause(true,PR_MENU);
 }
 
@@ -554,7 +542,7 @@ void MainWin::menuHide() {
 // connection between tape window & tape state
 
 void MainWin::tapStateChanged(int wut, int val) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	switch(wut) {
 		case TW_STATE:
 			switch(val) {
@@ -592,7 +580,7 @@ void MainWin::tapStateChanged(int wut, int val) {
 // connection between rzx player and emulation state
 void MainWin::rzxStateChanged(int state) {
 #ifdef HAVEZLIB
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	switch(state) {
 		case RWS_PLAY:
 			comp->rzx.start = 0;
@@ -624,7 +612,7 @@ void MainWin::rzxStateChanged(int state) {
 // effect at once, even while the machine is paused.
 void MainWin::uploadFrame() {
 #if defined(USEOPENGL) && !BLOCKGL
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	Video* vid = comp->vid;
 	// GL_UNPACK_ROW_LENGTH and friends are core in GL 3.3 and GLES 3.0, which
 	// is what the shaders here ask for anyway ("#version 330" / "300 es"), so
@@ -674,7 +662,7 @@ void MainWin::frame_timer() {
 	// autostart draws nothing, but vid_frame() still swaps scrimg/bufimg every
 	// frame: painting here would alternate between two stale buffers and flicker
 	if (autostart_busy()) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp) {
 		frm_ns += comp->vid->nsPerFrame;
 		frm_tmr.setInterval(frm_ns / 1000000);		// 1e6 ns = 1 ms. next frame shot
@@ -763,7 +751,7 @@ void MainWin::paintEvent(QPaintEvent*) {
 	// drivers quietly sample black.
 	if (prg.isLinked() && curtxid) {
 		const qreal r = widgetDpr(this);
-		Computer* comp = conf.prof.cur->zx;
+		Computer* comp = conf.zx;
 		const GLfloat tex_w = GLfloat(comp->vid->vsze.x * 2);
 		const GLfloat tex_h = GLfloat(comp->vid->vsze.y);
 		// the quad covers the viewport, and the viewport is the picture: in
@@ -798,7 +786,7 @@ void MainWin::paintEvent(QPaintEvent*) {
 #else
 	// same buffer as the GL path, scaled here instead. No smooth transform, so
 	// a dot stays a block of whole pixels.
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	Video* vid = comp->vid;
 	QImage img(comp->flgDBG ? scrimg : bufimg, vid->full.x * 2, bufSize / bytesPerLine, bytesPerLine, QImage::Format_RGBA8888);
 	pnt.drawImage(QRect(drawX, drawY, drawW, drawH), img,
@@ -809,7 +797,7 @@ void MainWin::paintEvent(QPaintEvent*) {
 }
 
 void MainWin::drawIcons(QPainter& pnt) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 // screenshot
 	if (scrCounter > 0) {
 		if (scrInterval > 0) {
@@ -929,7 +917,7 @@ void MainWin::dropAsk(QString path) {
 // started right there - arming resets it anyway, so there is nothing to gain
 // from letting it run a cycle first.
 void MainWin::openMedia(const QString& path, int id, int drv, int run) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	QByteArray loc = path.toLocal8Bit();
 	pause(true, PR_FILE);
 	load_file(comp, path.isEmpty() ? NULL : loc.data(), id, drv);
@@ -942,7 +930,7 @@ void MainWin::openMedia(const QString& path, int id, int drv, int run) {
 
 void MainWin::closeEvent(QCloseEvent* ev) {
 	pause(true,PR_EXIT);
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (conf.confexit) {
 		if (!areSure("Quit?")) {
 			ev->ignore();
@@ -951,11 +939,6 @@ void MainWin::closeEvent(QCloseEvent* ev) {
 		}
 	}
 //	std::string fname;
-	foreach(xProfile* prf, conf.prof.list) {
-		if (!prf->initrq) {
-			prfSave(prf->name);
-		}
-	}
 	if (saveChanged()) {
 		snd_wav_close();
 		frm_tmr.stop();
@@ -965,6 +948,8 @@ void MainWin::closeEvent(QCloseEvent* ev) {
 		sdcCloseFile(comp->sdc);
 		sltEject(comp->slot);		// this must save cartridge ram
 		emit s_keywin_close();
+		layouts_save();		// their own files, not the settings one
+		xm_save_nvram();
 		saveConfig();
 #ifdef USENETWORK
 		closeServer();
@@ -979,7 +964,7 @@ void MainWin::closeEvent(QCloseEvent* ev) {
 
 void MainWin::checkState() {
 #ifdef HAVEZLIB
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp->rzx.start) {
 		emit s_rzx_start();
 	} else if (comp->rzx.stop) {
@@ -997,7 +982,7 @@ void MainWin::checkState() {
 uchar hobHead[] = {'s','c','r','e','e','n',' ',' ','C',0,0,0,0x1b,0,0x1b,0xe7,0x81};	// last 2 bytes is crc
 
 void MainWin::screenShot() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int frm = shotFormat[conf.scrShot.format];
 	std::string fext;
 	switch (frm) {
@@ -1089,7 +1074,7 @@ void MainWin::setMessage(QString str, double dur) {
 
 void MainWin::updateSatellites() {
 	if (block) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 // update rzx window
 #ifdef HAVEZLIB
 	emit s_rzx_upd(comp);
@@ -1116,8 +1101,7 @@ void MainWin::initUserMenu() {
 // submenu
 	fileMenu = userMenu->addMenu(QIcon(":/images/fileopen.png"),"Open...");
 	bookmarkMenu = userMenu->addMenu(QIcon(":/images/star.png"),"Bookmarks");
-	profileMenu = userMenu->addMenu(QIcon(":/images/profile.png"),"Profiles");
-	layoutMenu = userMenu->addMenu(QIcon(":/images/display.png"),"Layout");
+	profileMenu = userMenu->addMenu(QIcon(":/images/computer.png"),"Machine");
 	keyMenu = userMenu->addMenu(QIcon(":/images/keyboardzx.png"), "Keymap");
 	resMenu = userMenu->addMenu(QIcon(":/images/shutdown.png"),"Reset");
 	shdMenu = userMenu->addMenu(QIcon(":/images/shader.png"), "Shaders");
@@ -1136,7 +1120,6 @@ void MainWin::initUserMenu() {
 
 	connect(bookmarkMenu,SIGNAL(triggered(QAction*)),this,SLOT(bookmarkSelected(QAction*)));
 	connect(profileMenu,SIGNAL(triggered(QAction*)),this,SLOT(profileSelected(QAction*)));
-	connect(layoutMenu,SIGNAL(triggered(QAction*)),this,SLOT(chLayout(QAction*)));
 	connect(resMenu,SIGNAL(triggered(QAction*)),this,SLOT(reset(QAction*)));
 	connect(fileMenu,SIGNAL(triggered(QAction*)),this,SLOT(umOpen(QAction*)));
 	connect(shdMenu,SIGNAL(triggered(QAction*)),this,SLOT(shdSelected(QAction*)));
@@ -1175,33 +1158,30 @@ void MainWin::fillUserMenu() {
 			act->setData(QVariant(QString::fromLocal8Bit(bkm.path.c_str())));
 		}
 	}
-	// fill profile menu
+	// fill machine menu
 	profileMenu->clear();
-	foreach(xProfile* prf, conf.prof.list) {
-		profileMenu->addAction(prf->name.c_str())->setData(prf->name.c_str());
-	}
-	// fill layout menu
-	layoutMenu->clear();
-	foreach(xLayout lay, conf.layList) {
-		layoutMenu->addAction(lay.name.c_str())->setData(lay.name.c_str());
+	std::string family;
+	foreach(const xMachine& mac, xm_list()) {
+		if (!family.empty() && (mac.family != family))
+			profileMenu->addSeparator();
+		family = mac.family;
+		act = profileMenu->addAction(QString::fromLocal8Bit(mac.name.c_str()));
+		act->setData(mac.id.c_str());
+		act->setCheckable(true);
+		act->setChecked(mac.id == conf.macId);
 	}
 	// fill keymaps menu
 	keyMenu->clear();
 	act = keyMenu->addAction("Default");
 	act->setData("");
 	act->setCheckable(true);
-	if (conf.prof.cur) {
-		if (conf.prof.cur->kmapName.empty()) act->setChecked(true);
-		QDir dir(conf.path.confDir.c_str());
-		QStringList lst = dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name);
-		dir.setPath(dir.path().append("/keymaps/"));
-		lst.append(dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name));
-		lst.sort();
-		foreach(QString str, lst) {
+	if (conf.zx) {
+		if (conf.kmapName.empty()) act->setChecked(true);
+		foreach(QString str, xres_list("keymaps", QStringList() << "*.map")) {
 			act = keyMenu->addAction(str);
 			act->setData(str);
 			act->setCheckable(true);
-			act->setChecked(conf.prof.cur->kmapName == std::string(str.toUtf8().data()));
+			act->setChecked(conf.kmapName == std::string(str.toUtf8().data()));
 		}
 	}
 	// fill shader menu
@@ -1212,13 +1192,11 @@ void MainWin::fillUserMenu() {
 	if (conf.vid.shader.empty()) act->setChecked(true);
 #if defined(USEOPENGL) && !BLOCKGL
 	if (conf.vid.shd_support) {
-		QDir dir(conf.path.shdDir.c_str());
-		QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-		foreach(QFileInfo inf, lst) {
-			act = shdMenu->addAction(inf.fileName());
-			act->setData(inf.fileName());
+		foreach(QString nam, xres_list("shaders", QStringList() << "*.txt")) {
+			act = shdMenu->addAction(nam);
+			act->setData(nam);
 			act->setCheckable(true);
-			act->setChecked(inf.fileName() == conf.vid.shader.c_str());
+			act->setChecked(nam == conf.vid.shader.c_str());
 		}
 	}
 #endif
@@ -1227,14 +1205,12 @@ void MainWin::fillUserMenu() {
 	act = palMenu->addAction("default");
 	act->setData("");
 	act->setCheckable(true);
-	if (conf.prof.cur->palette.empty()) act->setChecked(true);
-	QDir dir(conf.path.palDir.c_str());
-	QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-	foreach(QFileInfo inf, lst) {
-		act = palMenu->addAction(inf.fileName());
-		act->setData(inf.fileName());
+	if (conf.palette.empty()) act->setChecked(true);
+	foreach(QString nam, xres_list("palettes", QStringList() << "*.txt")) {
+		act = palMenu->addAction(nam);
+		act->setData(nam);
 		act->setCheckable(true);
-		act->setChecked(inf.fileName() == conf.prof.cur->palette.c_str());
+		act->setChecked(nam == conf.palette.c_str());
 	}
 }
 
@@ -1250,22 +1226,22 @@ void MainWin::doOptions() {
 // out of the whole raster, so the picture stays right even though the machine
 // is paused and no new frame is coming.
 void MainWin::optResize() {
-	int bpl = bytesPerLine;			// the row length the buffer was written with
 	updateWindow();
-	// Apply can also change the machine or its layout, and the frame in the
-	// buffer would then be read back at a row length it was not drawn with
-	if (bytesPerLine != bpl)
-		renderFrame();
+	// Apply rebuilds the machine and resets it, and the dialog stays up - so
+	// the machine is paused and cannot finish the frame it was drawing. What
+	// is in the buffer is half of one frame over half of another, read back
+	// with whatever row length the new layout has. Draw a whole one instead.
+	if (hasPicture) renderFrame();		// nothing to clean up before the first
 	presentFrame();
 }
 
 void MainWin::optApply() {
 //	relskip = 1;
-//	comp = conf.prof.cur->zx;
-	Computer* comp = conf.prof.cur->zx;
+//	comp = conf.zx;
+	Computer* comp = conf.zx;
 	fillUserMenu();
 	updateWindow();
-	loadPalette(conf.prof.cur);
+	loadPalette();
 #ifdef USENETWORK
 	if (srv.serverPort() != conf.port) {
 		closeServer();
@@ -1280,13 +1256,13 @@ void MainWin::optApply() {
 void MainWin::doDebug() {
 	conf.emu.fast = 0;
 	pause(true, PR_DEBUG);
-	conf.prof.cur->zx->flgDBG = 1;
+	conf.zx->flgDBG = 1;
 	emit s_debug();
 }
 
 void MainWin::dbgReturn() {
 	pause(false, PR_DEBUG);
-	conf.prof.cur->zx->flgDBG = 0;
+	conf.zx->flgDBG = 0;
 }
 
 void MainWin::bookmarkSelected(QAction* act) {
@@ -1305,16 +1281,30 @@ void MainWin::bookmarkSelected(QAction* act) {
 // conf.emu.pause is set - which is exactly the case this exists for. emu_lock()
 // is what keeps the two apart, the same way the profile switch above uses it.
 void MainWin::renderFrame() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	vid_clear_image();			// whatever is in there was not drawn by this machine
 	if (!comp || comp->flgDBG) return;	// the debugger owns the machine, don't step it
 	// a frame is some 20000 opcodes. The count is only here to stop a machine
-	// that never finishes one - a profile still on "Dummy" hardware, say
-	int guard = 1 << 19;
+	// that never finishes one - a machine still on "Dummy" hardware, say
+	//
+	// The ray is wherever the machine was when it stopped, and a reset does
+	// not move it, so this takes two runs: the first finishes the frame that
+	// was in progress - the lines below the ray and nothing above - and the
+	// second draws a whole one from the top. Clearing between them keeps the
+	// half-frame out of the picture.
+	//
+	// vid_reset_ray() looks like the shortcut and is not: it puts the ray at
+	// the interrupt, which is mid-line, so a frame drawn from there lands in
+	// the buffer split and shifted. It is right for a snapshot, where the
+	// pacer draws the next frame, and wrong for drawing one here and now.
 	emu_lock();
-	comp->flgFRM = 0;
-	while (!comp->flgFRM && !comp->flgBRK && (guard-- > 0))
-		compExec(comp);
+	for (int i = 0; i < 2; i++) {
+		int guard = 1 << 19;
+		if (i) vid_clear_image();
+		comp->flgFRM = 0;
+		while (!comp->flgFRM && !comp->flgBRK && (guard-- > 0))
+			compExec(comp);
+	}
 	comp->flgFRM = 0;			// the frame is ours, not the pacer's
 	// A breakpoint hit inside this one cosmetic frame is dropped on purpose:
 	// emuCycle() would only clear the flag without acting on it, and the
@@ -1324,11 +1314,11 @@ void MainWin::renderFrame() {
 }
 
 void MainWin::onPrfChange() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	comp->tape->detectOn = conf.tape.autostart;
 	comp->tape->autorew = conf.tape.rewind;
 	if (comp->flgFRN) {
-		// loadPalette(conf.prof.cur);		// already loaded for each profile
+		// loadPalette();		// already loaded for each profile
 		compReset(comp, RES_DEFAULT);
 		comp->flgFRN = 0;
 	}
@@ -1349,25 +1339,19 @@ void MainWin::onPrfChange() {
 void MainWin::profileSelected(QAction* act) {
 	std::string str = QString(act->data().toByteArray()).toStdString();
 	emu_lock();		// onPrfChange resets the machine, keep it out of the emulation too
-	prfSetCurrent(str);
+	xm_set(str);
 	onPrfChange();
 	emu_unlock();
 }
 
 void MainWin::reset(QAction* act) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	emit s_rzx_stop();
 	emu_lock();		// reset re-inits the hardware
 	compReset(comp,act->data().toInt());
 	emu_unlock();
 }
 
-void MainWin::chLayout(QAction* act) {
-	std::string str = QString(act->data().toByteArray()).toStdString();
-	prfSetLayout(NULL, str);
-	prfSave();
-	updateWindow();
-}
 
 void MainWin::umOpen(QAction* act) {
 	openMedia(QString(), act->data().toInt(), -1, conf.autorun);
@@ -1376,23 +1360,23 @@ void MainWin::umOpen(QAction* act) {
 void MainWin::keySelected(QAction* act) {
 	QString str = act->data().toString();
 	if (str.isEmpty()) {
-		conf.prof.cur->kmapName.clear();
+		conf.kmapName.clear();
 	} else {
-		conf.prof.cur->kmapName = std::string(str.toUtf8().data());
+		conf.kmapName = std::string(str.toUtf8().data());
 	}
-	prfSave();
+	saveConfig();
 	loadKeys();
 }
 
 void MainWin::palSelected(QAction* act) {
 	QString str = act->data().toString();
 	if (str.isEmpty()) {
-		conf.prof.cur->palette.clear();
+		conf.palette.clear();
 	} else {
-		conf.prof.cur->palette = std::string(str.toUtf8().data());
+		conf.palette = std::string(str.toUtf8().data());
 	}
-	prfSave();
-	loadPalette(conf.prof.cur);
+	saveConfig();
+	loadPalette();
 }
 
 // debug stufffff
@@ -1402,7 +1386,7 @@ void MainWin::saveVRAM() {
 	if (path.isEmpty()) return;
 	QFile file(path);
 	xColor xcol;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (file.open(QFile::WriteOnly)) {
 		file.write((char*)comp->vid->ram, 0x20000);
 		file.write((char*)comp->vid->reg, 64);
@@ -1421,7 +1405,7 @@ void MainWin::saveGBVRAM() {
 	QString path = QFileDialog::getSaveFileName(this,"Save GB VRAM");
 	if (path.isEmpty()) return;
 	QFile file(path);
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (file.open(QFile::WriteOnly)) {
 		file.write((char*)comp->vid->ram, 0x2000);
 		file.write((char*)comp->gb.iomap, 0x80);
@@ -1433,7 +1417,7 @@ void MainWin::saveNESPPU() {
 	QString path = QFileDialog::getSaveFileName(this,"Save GB VRAM");
 	if (path.isEmpty()) return;
 	QFile file(path);
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (file.open(QFile::WriteOnly)) {
 		file.write((char*)comp->vid->ram, 0x4000);
 		file.write((char*)comp->vid->oam, 0x100);

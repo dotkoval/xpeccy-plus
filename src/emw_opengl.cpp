@@ -319,8 +319,7 @@ void MainWin::loadShader() {
 	bool user_shader = false;
 
 	if (!shdLoaded.empty()) {
-		QString path(std::string(conf.path.shdDir + SLASH + shdLoaded).c_str());
-		QFile file(path);
+		QFile file(xres_path("shaders", QString::fromLocal8Bit(shdLoaded.c_str())));
 		if (file.open(QFile::ReadOnly)) {
 			int mode = 0;
 			QString lin;

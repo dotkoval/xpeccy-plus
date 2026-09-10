@@ -5,7 +5,6 @@
 
 // ROMSET EDITOR
 
-void fillRFBox(QComboBox*, QStringList);
 std::string getRFText(QComboBox*);
 
 xRomsetEditor::xRomsetEditor(QWidget* par):QDialog(par) {
@@ -128,7 +127,7 @@ QVariant xRomsetModel::data(const QModelIndex& idx, int role) const {
 					if (rset->roms[row].fsize > 0) {
 						res = rset->roms[row].fsize;
 					} else {
-						buf = conf.path.romDir + SLASH + rset->roms[row].name;
+						buf = xm_rom_path(rset->roms[row].name);
 						inf.setFile(tr(buf.c_str()));
 						res = QString("( %0 )").arg(inf.size() >> 10);
 					}

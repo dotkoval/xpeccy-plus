@@ -37,6 +37,32 @@ before that point is upstream's history and is not repeated here.
 
 ### Changed
 
+- Profiles are gone: a machine is a machine again. The emulator knows what a 48K, a 128K,
+  a Pentagon or a Scorpion is, and what you change on one is kept for that one - so an
+  update can fix a machine without touching your settings. Your old profiles come across on
+  first start.
+  - The machine is picked from the Machine menu, or on Options -> Machine, which now holds
+    what a machine *is*: its CPU, memory, ROMs and the ROM it resets into.
+  - ROM sets are gone with them: a machine carries its ROMs, one row per slot, and another
+    TR-DOS is another file rather than another set.
+  - Machines of your own: set one up, Save machine, and it stands in the list beside the
+    ones that ship. Saving under the same name updates it, Delete drops it.
+  - The whole configuration is one text file you can export, import, or reset to what the
+    emulator ships with.
+  - Machines, screen layouts, palettes, shaders, styles and keymaps live inside the binary;
+    a file of the same name in the config directory replaces one, so a shipped fix reaches
+    everyone who has not touched it.
+  - The names are the hardware's, in family order. The +2 is a machine of its own; the two
+    Spectrums with a disk interface bolted on are not shipped any more - fit one yourself
+    and keep it.
+  - The 128K runs on a core of its own instead of the Pentagon's, and the screen layouts
+    are named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Pentagon`.
+- Options: the Video page has a group called Picture, holding what the picture is made of -
+  the border, the palette, the shader - and, in a column of its own, how the window shows
+  it: the scale, fullscreen, keep ratio and gray scale. The scale is a list of whole
+  numbers now, since that is what it always was.
+- Options: the interface style moved to Xpeccy+ -> General, since it styles the whole
+  application and not just the debugger.
 - Options: the Tools page is now called General and comes first, with the log settings
   on it.
 - Options: the Low latency setting and the indicator switches moved to a page of their
@@ -72,6 +98,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it
+  on for the machine you switch to next, which ran at the wrong speed.
+- Cancel in Options now really cancels a ROM you picked on the Machine page.
+- Apply in Options leaves a whole picture on screen instead of half of one frame over half
+  of another.
 - Picking a palette preset changes the colors right away again on the ZX Spectrum
   48K and 128K, where they only changed after a reset. The palette editor had the
   same problem.

@@ -44,7 +44,7 @@ void load_xmap(QString path) {
 	QString sname;
 	QStringList lst;
 	xAdr xadr;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	file.setFileName(path);
 	xLabelSet* set;
 	int cnt = 0;
@@ -173,7 +173,7 @@ void save_xmap(QString path) {
 	xAdr xadr;
 	QString str;
 	QString lab;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (!path.isEmpty()) {
 		file.setFileName(path);
 		if (file.open(QFile::WriteOnly)) {
@@ -196,7 +196,7 @@ void save_xmap(QString path) {
 				qfputi(file, 0);
 			}
 			// labels
-			foreach(xLabelSet* set, conf.prof.cur->labsets) {
+			foreach(xLabelSet* set, conf.labsets) {
 				file.write("labels  ", 8);
 				str = "NAME:_:";
 				str.append(set->name);
@@ -224,11 +224,11 @@ void save_xmap(QString path) {
 			}
 			// comments
 			file.write("comments", 8);
-			xputcomments(arr, &conf.prof.cur->commap[MEM_RAM], "RAM");
-			xputcomments(arr, &conf.prof.cur->commap[MEM_ROM], "ROM");
-			xputcomments(arr, &conf.prof.cur->commap[MEM_SLOT], "SLT");
-			xputcomments(arr, &conf.prof.cur->commap[MEM_IO], "IO");
-			xputcomments(arr, &conf.prof.cur->commap[MEM_EXT], "EXT");
+			xputcomments(arr, &conf.commap[MEM_RAM], "RAM");
+			xputcomments(arr, &conf.commap[MEM_ROM], "ROM");
+			xputcomments(arr, &conf.commap[MEM_SLOT], "SLT");
+			xputcomments(arr, &conf.commap[MEM_IO], "IO");
+			xputcomments(arr, &conf.commap[MEM_EXT], "EXT");
 			qfputi(file, arr.size());
 			file.write(arr.data(), arr.size());
 		} else {

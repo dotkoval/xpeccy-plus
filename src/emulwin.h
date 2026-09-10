@@ -136,7 +136,6 @@ typedef struct {
 		void keySelected(QAction*);
 		void palSelected(QAction*);
 		void reset(QAction*);
-		void chLayout(QAction*);
 		void umOpen(QAction*);
 		void gpInputChanged(int, int, int);
 		void connected();
@@ -204,7 +203,6 @@ typedef struct {
 		QMenu* userMenu;
 		QMenu* bookmarkMenu;
 		QMenu* profileMenu;
-		QMenu* layoutMenu;
 		QMenu* resMenu;
 		QMenu* fileMenu;
 		QMenu* shdMenu;

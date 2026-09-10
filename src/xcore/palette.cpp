@@ -7,8 +7,7 @@
 QList<QColor> loadColors(std::string fname) {
 	QList<QColor> list;
 	QColor col;
-	std::string path = conf.path.palDir + SLASH + fname;
-	QFile file(path.c_str());
+	QFile file(xres_path("palettes", QString::fromLocal8Bit(fname.c_str())));
 	int i = 0;
 	QString line;
 	QString hexPart;
@@ -58,12 +57,11 @@ int saveColors(std::string fname, QList<QColor> pal) {
 	return err;
 }
 
-void loadPalette(xProfile* prf) {
-//	printf("Loading palette: %s\n", prf->palette.c_str());
-	Computer* comp = prf->zx;
+void loadPalette() {
+	Computer* comp = conf.zx;
 	// the preset is always kept as the base palette
 	bool updateCurrentPallete = !!vid_zx_palette(comp->vid);
-	QList<QColor> pal = loadColors(prf->palette);
+	QList<QColor> pal = loadColors(conf.palette);
 	xColor xcol;
 	int i;
 	if (pal.size() == 16) {		// correct palette

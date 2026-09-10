@@ -710,7 +710,7 @@ void gbcSync(Computer* comp, int ns) {
 		comp->cpu->regPC++;
 		comp->flgSRQ = 0;
 		comp->flgSPD ^= 1;
-		compSetTurbo(comp, comp->flgSPD ? 2.0 : 1.0);
+		compSetHwTurbo(comp, comp->flgSPD ? 2.0 : 1.0);
 	}
 	// interrupts
 //	if (comp->vid->intrq) {
@@ -851,7 +851,7 @@ void gbReset(Computer* comp) {
 	vid_set_mode(comp->vid, VID_GBC);
 	gbcvReset(comp->vid);
 
-	compSetTurbo(comp, 1);
+	compSetHwTurbo(comp, 1);
 	comp->cpu->inten = 0;
 	comp->vid->inten = 0;
 	comp->joy->state = 0xff;

@@ -568,6 +568,7 @@ Computer* compCreate() {
 	gsReset(comp->gs);
 	comp->cmos.data[17] = 0xaa;	// 0a?
 	comp->frqMul = 1;
+	comp->hwMul = 1;
 	compSetBaseFrq(comp, 3.5);
 //	compReset(comp, RES_DEFAULT);		// Can't reset here, cuz comp->resbank not defined yet
 	return comp;
@@ -648,6 +649,7 @@ void compReset(Computer* comp,int res) {
 	dma_reset(comp->dma1);
 	dma_reset(comp->dma2);
 #endif
+	compSetHwTurbo(comp, 1);		// whatever turbo it had switched on
 	if (comp->hw->reset)
 		comp->hw->reset(comp);
 	comp->hw->mapMem(comp);
@@ -664,7 +666,7 @@ void comp_update_timings(Computer* comp) {
 	comp->nsPerTick = 1e3 / comp->cpuFrq;
 	if (comp->hw->init)
 		comp->hw->init(comp);
-	comp->nsPerTick /= comp->frqMul;
+	comp->nsPerTick /= comp->frqMul * comp->hwMul;
 	// after hw->init: a machine may set its own nsPerTick from there (nes.c does)
 	// The tick and the dot come off the same crystal - a ZX tick is exactly two
 	// dots - so derive the tick period from the dot period instead of rounding
@@ -687,9 +689,18 @@ void compSetBaseFrq(Computer* comp, double frq) {
 	comp_update_timings(comp);
 }
 
+// Two multipliers, because two parties set one: the user asks for turbo from
+// the options page or the hotkey, and a Scorpion, ATM, Pentagon 1024 or ZX
+// Evolution turns its own on from a port. Keeping them apart is what lets a
+// reset put the machine's back without touching what the user asked for.
+
 void compSetTurbo(Computer* comp, double mult) {
 	comp->frqMul = mult;
-//	comp->speed = (mult > 1) ? 1 : 0;
+	comp_update_timings(comp);
+}
+
+void compSetHwTurbo(Computer* comp, double mult) {
+	comp->hwMul = mult;
 	comp_update_timings(comp);
 }
 

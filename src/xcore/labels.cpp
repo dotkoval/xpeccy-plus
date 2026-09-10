@@ -11,7 +11,7 @@ xLabelSet* createLabelSet(QString name) {
 	xLabelSet* set = new xLabelSet;
 	set->name = name;
 	set->list.clear();
-	conf.prof.cur->labsets.append(set);
+	conf.labsets.append(set);
 	return set;
 }
 
@@ -19,7 +19,7 @@ xLabelSet* createLabelSet(QString name) {
 xLabelSet* findLabelSet(QString name) {
 	xLabelSet* ptr = nullptr;
 	xLabelSet* res = nullptr;
-	foreach (ptr, conf.prof.cur->labsets) {
+	foreach (ptr, conf.labsets) {
 		if (ptr->name == name) {
 			res = ptr;
 		}
@@ -27,30 +27,30 @@ xLabelSet* findLabelSet(QString name) {
 	return res;
 }
 
-// create conf.prof.cur->labmap from current labset
+// create conf.labmap from current labset
 void map_labels() {
-	xLabelSet* set = conf.prof.cur->curlabset;
-	conf.prof.cur->labmap.clear();
+	xLabelSet* set = conf.curlabset;
+	conf.labmap.clear();
 	if (set) {
 		xAdr xadr;
 		QString nm;
 		foreach(nm, set->list.keys()) {
 			xadr = set->list[nm];
-			conf.prof.cur->labmap[xadr.type][xadr.abs] = nm;
+			conf.labmap[xadr.type][xadr.abs] = nm;
 		}
 	}
 }
 
 int delLabelSet(QString name) {
 	int res = 0;
-	xLabelSet* cur = conf.prof.cur->curlabset;
+	xLabelSet* cur = conf.curlabset;
 	xLabelSet* ptr;
-	for (int i = conf.prof.cur->labsets.size() - 1; i >= 0; i--) {
-		ptr = conf.prof.cur->labsets.at(i);
+	for (int i = conf.labsets.size() - 1; i >= 0; i--) {
+		ptr = conf.labsets.at(i);
 		if (ptr->name == name) {
-			conf.prof.cur->labsets.removeAt(i);
+			conf.labsets.removeAt(i);
 			if (cur == ptr) {		// delete current?
-				conf.prof.cur->curlabset = conf.prof.cur->labsets.size() ? conf.prof.cur->labsets.at(0) : nullptr;
+				conf.curlabset = conf.labsets.size() ? conf.labsets.at(0) : nullptr;
 			}
 			delete(ptr);
 			res++;
@@ -70,7 +70,7 @@ xLabelSet* newLabelSet(QString name) {
 }
 
 void setLabelSet(xLabelSet* set) {
-	conf.prof.cur->curlabset = set;
+	conf.curlabset = set;
 	map_labels();			// recreate labmap
 }
 
@@ -83,34 +83,34 @@ xLabelSet* setLabelSet(QString path) {
 }
 
 void clear_labels() {
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (set) {
 		set->list.clear();
-		conf.prof.cur->labmap.clear();
+		conf.labmap.clear();
 	}
 }
 
 void clear_all_labels() {
-	while(!conf.prof.cur->labsets.isEmpty()) {
-		free(conf.prof.cur->labsets.first());
-		conf.prof.cur->labsets.takeFirst();
+	while(!conf.labsets.isEmpty()) {
+		free(conf.labsets.first());
+		conf.labsets.takeFirst();
 	}
 }
 
 void del_label(QString name) {
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (set) {
 		if (set->list.contains(name)) {
 			xAdr xadr = set->list[name];
 			set->list.remove(name);
-			conf.prof.cur->labmap[xadr.type].remove(xadr.abs);
+			conf.labmap[xadr.type].remove(xadr.abs);
 		}
 	}
 }
 
 void add_label(xAdr xadr, QString name, xLabelSet* set) {
 	if (!set) {
-		set = conf.prof.cur->curlabset;
+		set = conf.curlabset;
 	}
 	if (!set) {				// if no current labset
 		set = newLabelSet("noname");	// new internal labset
@@ -120,17 +120,17 @@ void add_label(xAdr xadr, QString name, xLabelSet* set) {
 		if (set->list.contains(name))
 			del_label(name);
 		set->list[name] = xadr;
-		conf.prof.cur->labmap[xadr.type][xadr.abs] = name;
+		conf.labmap[xadr.type][xadr.abs] = name;
 	}
 }
 
 QString find_label(xAdr xadr) {
 	QString lab;
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (set) {
-		if (conf.prof.cur->labmap.contains(xadr.type)) {
-			if (conf.prof.cur->labmap[xadr.type].contains(xadr.abs)) {
-				lab = conf.prof.cur->labmap[xadr.type][xadr.abs];
+		if (conf.labmap.contains(xadr.type)) {
+			if (conf.labmap[xadr.type].contains(xadr.abs)) {
+				lab = conf.labmap[xadr.type][xadr.abs];
 			}
 		}
 	}
@@ -140,7 +140,7 @@ QString find_label(xAdr xadr) {
 xAdr find_label(QString nm) {
 	xAdr xadr;
 	xadr.type = -1;
-	xLabelSet* set = conf.prof.cur->curlabset;
+	xLabelSet* set = conf.curlabset;
 	if (set) {
 		if (set->list.contains(nm)) {
 			xadr = set->list.value(nm);
@@ -233,7 +233,7 @@ int saveLabels(const char* fn) {
 	} else {
 		file.setFileName(path);
 		if (file.open(QFile::WriteOnly)) {
-			xLabelSet* set = conf.prof.cur->curlabset;
+			xLabelSet* set = conf.curlabset;
 			if (set) {
 				keys = set->list.keys();
 				foreach(key, keys) {
@@ -254,25 +254,25 @@ int saveLabels(const char* fn) {
 // comments
 
 void add_comment(xAdr xadr, QString str) {
-	conf.prof.cur->commap[xadr.type][xadr.abs] = str;
+	conf.commap[xadr.type][xadr.abs] = str;
 }
 
 void del_comment(xAdr xadr) {
-	if (conf.prof.cur->commap.contains(xadr.type)) {
-		conf.prof.cur->commap[xadr.type].remove(xadr.abs);
+	if (conf.commap.contains(xadr.type)) {
+		conf.commap[xadr.type].remove(xadr.abs);
 	}
 }
 
 QString find_comment(xAdr xadr) {
 	QString str;
-	if (conf.prof.cur->commap.contains(xadr.type)) {
-		if (conf.prof.cur->commap[xadr.type].contains(xadr.abs)) {
-			str = conf.prof.cur->commap[xadr.type][xadr.abs];
+	if (conf.commap.contains(xadr.type)) {
+		if (conf.commap[xadr.type].contains(xadr.abs)) {
+			str = conf.commap[xadr.type][xadr.abs];
 		}
 	}
 	return str;
 }
 
 void clear_comments() {
-	conf.prof.cur->commap.clear();
+	conf.commap.clear();
 }

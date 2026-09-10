@@ -27,9 +27,9 @@ QVariant xVicRegsModel::data(const QModelIndex& idx, int role) const {
 	switch(role) {
 		case Qt::DisplayRole:
 			switch (col) {
-				case 0: res = gethexbyte(conf.prof.cur->zx->vid->reg[row]); break;
-				case 1: res = QString::number(conf.prof.cur->zx->vid->reg[row], 10); break;
-				case 2: res = getbinbyte(conf.prof.cur->zx->vid->reg[row]); break;
+				case 0: res = gethexbyte(conf.zx->vid->reg[row]); break;
+				case 1: res = QString::number(conf.zx->vid->reg[row], 10); break;
+				case 2: res = getbinbyte(conf.zx->vid->reg[row]); break;
 			}
 			break;
 	}

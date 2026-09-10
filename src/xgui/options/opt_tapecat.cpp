@@ -26,7 +26,7 @@ void xTapeCatModel::fill(Tape* tap) {
 	info.clear();
 	if (row_count > 0) {
 		int frm;
-		switch(conf.prof.cur->zx->hw->grp) {
+		switch(conf.zx->hw->grp) {
 			case HWG_ZX: frm = TFRM_ZX; break;
 			case HWG_BK: frm = TFRM_BK; break;
 			default: frm = -1; break;	// no reader for this machine's tapes

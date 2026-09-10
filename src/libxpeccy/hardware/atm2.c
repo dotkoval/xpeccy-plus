@@ -68,7 +68,7 @@ void atm2Out77(Computer* comp, int port, int val) {		// dos
 		case 6: vid_set_mode(comp->vid,VID_ATM_TEXT); break;
 		default: vid_set_mode(comp->vid,VID_UNKNOWN); break;
 	}
-	compSetTurbo(comp,(val & 0x08) ? 2 : 1);
+	compSetHwTurbo(comp,(val & 0x08) ? 2 : 1);
 	comp->flgZ_I = (val & 0x20) ? 1 : 0;
 //	comp->keyb->mode = (val & 0x40) ? KBD_SPECTRUM : KBD_ATM2;
 	comp->p77lo = val & 0xff;

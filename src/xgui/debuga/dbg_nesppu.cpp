@@ -112,8 +112,8 @@ QImage dbgNesTilesImg(Video* vid, unsigned short tadr) {
 	for (y = 0; y < 256; y += 8) {
 		for (x = 0; x < 256; x += 8) {
 			for (lin = 0; lin < 8; lin++) {
-				bt = nes_ppu_ext_rd(adr + lin, conf.prof.cur->zx) & 0xff;
-				bt |= (nes_ppu_ext_rd(adr + lin + 8, conf.prof.cur->zx) << 8) & 0xff00;
+				bt = nes_ppu_ext_rd(adr + lin, conf.zx) & 0xff;
+				bt |= (nes_ppu_ext_rd(adr + lin + 8, conf.zx) << 8) & 0xff00;
 				for (bit = 0; bit < 8; bit++) {
 					col = ((bt >> 7) & 1) | ((bt >> 14) & 2);
 					scrmap[oadr + (lin << 8) + bit] = col;
@@ -130,7 +130,7 @@ QImage dbgNesTilesImg(Video* vid, unsigned short tadr) {
 }
 
 void xPPUWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	unsigned short adr = 0;
 	unsigned short tadr = 0;
 	QPixmap pic;

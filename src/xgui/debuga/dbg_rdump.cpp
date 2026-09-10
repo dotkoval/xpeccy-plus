@@ -71,7 +71,7 @@ xRDumpModel::xRDumpModel(QObject* p):xTableModel(p) {
 }
 
 void xRDumpModel::refill() {
-	xRegBunch rz = cpuGetRegs(conf.prof.cur->zx->cpu);
+	xRegBunch rz = cpuGetRegs(conf.zx->cpu);
 	regs.clear();
 	int i = 0;
 	nameWidth = 0;
@@ -95,7 +95,7 @@ QVariant xRDumpModel::data(const QModelIndex& idx, int role) const {
 	int col = idx.column();
 	if (row >= row_count) return res;
 	if (col >= col_count) return res;
-	Memory* mem = conf.prof.cur->zx->mem;
+	Memory* mem = conf.zx->mem;
 	MemPage* pg;
 	int adr;
 	int fadr;

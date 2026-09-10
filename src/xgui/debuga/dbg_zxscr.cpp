@@ -24,7 +24,7 @@ xZXScrWidget::xZXScrWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) 
 }
 
 void xZXScrWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int flag = ui.cbScrAtr->isChecked() ? 1 : 0;
 	flag |= ui.cbScrPix->isChecked() ? 2 : 0;
 	flag |= ui.cbScrGrid->isChecked() ? 4 : 0;

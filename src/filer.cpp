@@ -151,7 +151,7 @@ static xFileHWInfo fh_tab[] = {
 };
 
 static xFileHWInfo hw_tab[] = {
-	{FH_SPECTRUM, {HW_ATM1, HW_ATM2, HW_P1024, HW_PENT, HW_PENTEVO, HW_PHOENIX, HW_PLUS2, HW_PLUS3, HW_PROFI, HW_SCORP, HW_TSLAB, HW_ZX48, 0}},
+	{FH_SPECTRUM, {HW_ATM1, HW_ATM2, HW_P1024, HW_PENT, HW_PENTEVO, HW_PHOENIX, HW_PLUS2A, HW_PLUS3, HW_PROFI, HW_SCORP, HW_TSLAB, HW_ZX48, HW_ZX128, 0}},
 #ifndef XZXONLY
 	{FH_ALF, {HW_ALF, 0}},
 	{FH_GAMEBOY, {HW_GBC, 0}},
@@ -461,7 +461,7 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 		if (!flt.isEmpty()) {
 			filer->setWindowTitle("Open file");
 			filer->setNameFilter(flt);
-			filer->setDirectory(conf.prof.cur->lastDir.c_str());
+			filer->setDirectory(conf.lastDir.c_str());
 			filer->setAcceptMode(QFileDialog::AcceptOpen);
 			filer->setHistory(QStringList());
 			if (filer->exec()) {
@@ -469,7 +469,7 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 				flt = filer->selectedNameFilter();
 				grp = file_detect_grp(flt);
 				if (drv < 0) drv = grp->drv;
-				conf.prof.cur->lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
+				conf.lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
 			}
 		}
 	}
@@ -533,7 +533,7 @@ int save_file(Computer* comp, const char* name, int id, int drv) {
 			filer->setWindowTitle("Save file");
 			filer->setNameFilter(flt);
 			filer->setAcceptMode(QFileDialog::AcceptSave);
-			filer->setDirectory(conf.prof.cur->lastDir.c_str());
+			filer->setDirectory(conf.lastDir.c_str());
 			filer->setHistory(QStringList());
 			if (filer->exec()) {
 				path = filer->selectedFiles().first();
@@ -564,7 +564,7 @@ int save_file(Computer* comp, const char* name, int id, int drv) {
 						path.append(tin->ext);
 					}
 				}
-				conf.prof.cur->lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
+				conf.lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
 			}
 		}
 	}

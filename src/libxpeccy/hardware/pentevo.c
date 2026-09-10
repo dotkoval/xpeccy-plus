@@ -335,7 +335,7 @@ void evoOut77(Computer* comp, int port, int val) {
 
 void evoOut77d(Computer* comp, int port, int val) {
 	comp->prt2 = ((port & 0x4000) >> 7) | ((port & 0x0300) >> 3) | (val & 0x0f);	// a14.a9.a8.0.b3.b2.b1.b0
-	compSetTurbo(comp,(val & 0x08) ? 4 : ((comp->pEFF7 & 0x10) ? 1 : 2));
+	compSetHwTurbo(comp,(val & 0x08) ? 4 : ((comp->pEFF7 & 0x10) ? 1 : 2));
 	evoSetVideoMode(comp);
 	evoMapMem(comp);
 }
@@ -419,7 +419,7 @@ void evoOutDFF7(Computer* comp, int port, int val) {	// !dos
 
 void evoOutEFF7(Computer* comp, int port, int val) {	// !dos
 	comp->pEFF7 = val & 0xff;
-	compSetTurbo(comp,(comp->prt2 & 0x08) ? 4 : (val & 0x08) ? 2 : 1);
+	compSetHwTurbo(comp,(comp->prt2 & 0x08) ? 4 : (val & 0x08) ? 2 : 1);
 	evoSetVideoMode(comp);
 	evoMapMem(comp);
 }
@@ -548,7 +548,7 @@ xPortDsc evo_port_tab[] = {
 	{-1, 0, 0}
 };
 
-HardWare evo_hw_core = {HW_PENTEVO,HWG_ZX,"PentEvo","Evo Baseconf (before 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
+HardWare evo_hw_core = {HW_PENTEVO,HWG_ZX,"Baseconf","ZX Evolution (BaseConf)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
 			zx_init,evoMapMem,evoOut,evoIn,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};
-HardWare evo_v2_core = {HW_PENTEVO,HWG_ZX,"PentEvo21","Evo Baseconf (after 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
+HardWare evo_v2_core = {HW_PENTEVO,HWG_ZX,"Baseconf21","ZX Evolution (BaseConf 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
 			zx_init,evoMapMem,evoOutv2,evoInv2,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};

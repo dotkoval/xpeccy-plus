@@ -3,6 +3,10 @@
 #include <sstream>
 #include <stdlib.h>
 #include <QString>
+#include <QDir>
+#include <QFile>
+
+#include "xcore.h"
 
 static const char* hexhalf = "0123456789ABCDEF";
 // static char hexbuf[5] = {'0','0','0','0',0x00};
@@ -193,5 +197,32 @@ std::pair<std::string,std::string> splitline(std::string line, char delim) {
 	}
 	trim(res.first);
 	trim(res.second);
+	return res;
+}
+
+// A file that ships inside the binary and can be replaced by one of the user's
+// own: the list a user picks from is both, and the config directory wins on a
+// name collision. `kind` is the folder the two share - palettes, shaders,
+// styles, keymaps.
+
+#define	XRES_ROOT	":/res/"
+
+QString xres_dir(const char* kind) {
+	return QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH + kind;
+}
+
+QString xres_path(const char* kind, const QString& name) {
+	if (name.isEmpty()) return name;
+	QString own = xres_dir(kind) + SLASH + name;
+	if (QFile::exists(own)) return own;
+	return QString(XRES_ROOT) + kind + "/" + name;
+}
+
+QStringList xres_list(const char* kind, const QStringList& filt) {
+	QStringList res = QDir(xres_dir(kind)).entryList(filt, QDir::Files, QDir::Name);
+	foreach(QString nam, QDir(QString(XRES_ROOT) + kind).entryList(filt, QDir::Files, QDir::Name)) {
+		if (!res.contains(nam)) res << nam;
+	}
+	res.sort(Qt::CaseInsensitive);
 	return res;
 }

@@ -9,7 +9,7 @@ xCiaWidget::xCiaWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 }
 
 void xCiaWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	ui.cia1timera->setText(QString("%0 / %1").arg(gethexword(comp->cia1->timerA.value)).arg(gethexword(comp->cia1->timerA.inival)));
 	ui.cia1timerb->setText(QString("%0 / %1").arg(gethexword(comp->cia1->timerB.value)).arg(gethexword(comp->cia1->timerB.inival)));
 	ui.cia1irq->setText(getbinbyte(comp->cia1->intrq));

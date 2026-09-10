@@ -24,7 +24,7 @@ void xDiskDump::setDrive(int d) {
 }
 
 void xDiskDump::setTrack(int tr) {
-	Floppy* flp = conf.prof.cur->zx->dif->flp[drv & 3];
+	Floppy* flp = conf.zx->dif->flp[drv & 3];
 	if (!flp->doubleSide) tr &= ~1;
 	if (tr <= flp_max_track(flp))
 		mod->setTrack(tr);
@@ -35,7 +35,7 @@ void xDiskDump::update() {
 }
 
 void xDiskDump::toTarget() {
-	scrollTo(mod->index(conf.prof.cur->zx->dif->fdc->flp->pos / mod->rowBytes, 0));
+	scrollTo(mod->index(conf.zx->dif->fdc->flp->pos / mod->rowBytes, 0));
 }
 
 // Columns are laid out like the memory dump's: fixed cells from the left, a gap
@@ -124,8 +124,8 @@ void xDiskDumpModel::setDrive(int dr) {
 // reached from resizeEvent now, which also fires while docks are dragged
 // around and for machines that have no disk interface at all.
 void xDiskDumpModel::recount() {
-	if (!conf.prof.cur || !conf.prof.cur->zx || !conf.prof.cur->zx->dif) return;
-	Floppy* flp = conf.prof.cur->zx->dif->flp[drv];
+	if (!conf.zx || !conf.zx->dif) return;
+	Floppy* flp = conf.zx->dif->flp[drv];
 	if (!flp) return;
 	int new_rcnt = (flp->trklen + rowBytes - 1) / rowBytes;
 #if 1
@@ -160,7 +160,7 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 	unsigned char ch;
 	int pos;
 	char buf[256];
-	Floppy* flp = conf.prof.cur->zx->dif->flp[drv];
+	Floppy* flp = conf.zx->dif->flp[drv];
 	QFont fnt;
 	QString cnam;
 	QColor pcol;
@@ -191,7 +191,7 @@ QVariant xDiskDumpModel::data(const QModelIndex& idx, int role) const {
 		case Qt::FontRole:
 			if (col == 0) break;
 			if (col > rowBytes) break;
-			if (trk != ((flp->trk << 1) | (conf.prof.cur->zx->dif->fdc->side ? 1 : 0))) break;
+			if (trk != ((flp->trk << 1) | (conf.zx->dif->fdc->side ? 1 : 0))) break;
 			if (offset != flp->pos) break;
 			// from the debugger font, not a default one: that would drop the
 			// monospace family and read as a different face, not as bold
@@ -265,7 +265,7 @@ xDiskDumpWidget::xDiskDumpWidget(QString i, QString t, QWidget* p):xDockWidget(i
 // the spin box follows the selected drive: a 40 track one stops halfway, a
 // single-sided one steps by whole cylinders
 void xDiskDumpWidget::setDrive(int d) {
-	Floppy* flp = conf.prof.cur->zx->dif->flp[d & 3];
+	Floppy* flp = conf.zx->dif->flp[d & 3];
 	ui.sbTrack->setMaximum(flp_max_track(flp));
 	ui.sbTrack->setSingleStep(flp->doubleSide ? 1 : 2);
 }
@@ -276,7 +276,7 @@ void xDiskDumpWidget::bytes_changed() {
 }
 
 void xDiskDumpWidget::toTarget() {
-	FDC* fdc = conf.prof.cur->zx->dif->fdc;
+	FDC* fdc = conf.zx->dif->fdc;
 	Floppy* flp = fdc->flp;
 	ui.cbDrive->setCurrentIndex(flp->id);
 	ui.sbTrack->setValue((flp->trk << 1) | !!fdc->side);

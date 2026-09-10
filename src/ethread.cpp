@@ -346,7 +346,7 @@ void xThread::emuCycle(Computer* comp) {
 			comp->brkt = BRK_COND;
 			comp->brka = 0;
 			// each one gets its own action, and one asking to stop is enough
-			for (auto it = conf.prof.cur->brk.list.begin(); it != conf.prof.cur->brk.list.end(); it++) {
+			for (auto it = conf.brk.list.begin(); it != conf.brk.list.end(); it++) {
 				if (!it->fired) continue;
 				it->count++;
 				comp->flgBRK = 1;
@@ -370,8 +370,7 @@ void xThread::run() {
 		sleepy = 1;
 #endif
 		emu_lock();
-		// no machine yet: the profile is created on first switch to it
-		comp = conf.prof.cur ? conf.prof.cur->zx : NULL;
+		comp = conf.zx;
 		if (comp) {
 #if HAVEZLIB
 			if (comp->rzx.start) {

@@ -13,7 +13,7 @@ xTapeWidget::xTapeWidget(QString i, QString t, QWidget* p):xDockWidget(i,t,p) {
 #define XTDSTEP 20	// mks/dot
 
 void xTapeWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	Tape* tape = comp->tape;
 	drawHBar(ui.labTapein, tape->volPlay, 256);
 	drawHBar(ui.labTapeout, tape->levRec, 1);

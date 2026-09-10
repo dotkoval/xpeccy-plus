@@ -18,7 +18,7 @@ bool rs_compare(const xRomset rs1, const xRomset rs2) {
 	return (rs1.name < rs2.name);
 }
 
-void sortRomsetList() {
+static void sortRomsetList() {
 	std::sort(conf.rsList.begin(), conf.rsList.end(), rs_compare);
 }
 
@@ -29,7 +29,3 @@ bool addRomset(xRomset rs) {
 	return true;
 }
 
-void delRomset(int idx) {
-	conf.rsList.erase(conf.rsList.begin() + idx);
-	sortRomsetList();
-}

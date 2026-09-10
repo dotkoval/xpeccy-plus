@@ -93,7 +93,7 @@ QImage getGBPal(Video* gbv) {
 }
 
 void xGameboyWidget::draw() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	QImage img;
 	int tset = ui.sbTileset->value();
 	int tmap = ui.sbTilemap->value();
@@ -122,7 +122,7 @@ int xGBVideoModel::rowCount(const QModelIndex &) const {return gbvPortList.size(
 int xGBVideoModel::columnCount(const QModelIndex &) const {return 3;}
 QVariant xGBVideoModel::data(const QModelIndex& idx, int role) const {
 	QVariant res;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int row = idx.row();
 	int col = idx.column();
 	switch(role) {

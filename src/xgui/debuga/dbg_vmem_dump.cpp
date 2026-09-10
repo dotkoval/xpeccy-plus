@@ -165,7 +165,7 @@ void xVMemDumpWidget::save_vram() {
 	if (path.isEmpty()) return;
 	QFile file(path);
 	if (file.open(QFile::WriteOnly)) {
-		file.write((char*)conf.prof.cur->zx->vid->ram, MEM_256K);
+		file.write((char*)conf.zx->vid->ram, MEM_256K);
 		file.close();
 	}
 }

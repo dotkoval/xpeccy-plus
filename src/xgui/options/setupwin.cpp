@@ -3,7 +3,15 @@
 #include <QColorDialog>
 #include <QFontDialog>
 #include <QFileDialog>
+#include <QDialogButtonBox>
+#include <QPushButton>
+#include <QVBoxLayout>
+#include <QLabel>
+#include <QComboBox>
+#include <QToolButton>
 #include <QFileInfo>
+#include <QDir>
+#include <QDirIterator>
 #include <QMessageBox>
 #include <QVector3D>
 #include <QLibrary>
@@ -34,14 +42,6 @@
 #include "libxpeccy/filetypes/filetypes.h"
 #include "libxpeccy/input/input.h"
 
-void fillRFBox(QComboBox* box, QStringList lst) {
-	box->clear();
-	box->addItem("none","");
-	foreach(QString str, lst) {
-		box->addItem(str, str);
-	}
-}
-
 void setRFIndex(QComboBox* box, QVariant data, int defidx) {
 	int idx = box->findData(data);
 	if (idx < 0) idx = defidx;
@@ -64,14 +64,18 @@ std::string getRFText(QComboBox* box) {
 	return std::string(res.toLocal8Bit().data());
 }
 
-void fill_romset_list(QComboBox* box, QString txt = QString()) {
-	if (txt.isEmpty())
-		txt = box->currentText();
+// the machines, parted by family the way the emulator's own menu parts them
+
+void fill_machine_list(QComboBox* box) {
 	box->clear();
-	foreach(xRomset rs, conf.rsList) {
-		box->addItem(QString::fromLocal8Bit(rs.name.c_str()));
+	std::string family;
+	foreach(const xMachine& mac, xm_list()) {
+		if (!family.empty() && (mac.family != family))
+			box->insertSeparator(9999);
+		family = mac.family;
+		box->addItem(QString::fromLocal8Bit(mac.name.c_str()),
+			QString::fromLocal8Bit(mac.id.c_str()));
 	}
-	box->setCurrentIndex(box->findText(txt));
 }
 
 void fill_layout_list(QComboBox* box, QString txt = QString()) {
@@ -85,15 +89,13 @@ void fill_layout_list(QComboBox* box, QString txt = QString()) {
 }
 
 void fill_shader_list(QComboBox* box) {
-	QDir dir(conf.path.shdDir.c_str());
-	QFileInfoList lst = dir.entryInfoList(QStringList() << "*.txt", QDir::Files, QDir::Name);
-	QFileInfo inf;
+	QStringList lst = xres_list("shaders", QStringList() << "*.txt");
 	box->clear();
 	box->addItem("none", 0);
 #if defined(USEOPENGL)
 	if (conf.vid.shd_support) {
-		foreach(inf, lst) {
-			box->addItem(inf.fileName(), 1);
+		foreach(QString nam, lst) {
+			box->addItem(nam, 1);
 		}
 		box->setCurrentIndex(box->findText(conf.vid.shader.c_str()));
 		if (box->currentIndex() < 0)
@@ -114,20 +116,17 @@ void fill_palette_list(QComboBox* box) {
 	foreach(inf, lst) {
 		box->addItem(inf.fileName(), inf.fileName());		// need data=text, cuz setRFIndex using data, not text
 	}
-	setRFIndex(box, conf.prof.cur->palette.c_str());
+	setRFIndex(box, conf.palette.c_str());
 	if (box->currentIndex() < 0)
 		box->setCurrentIndex(0);
 }
 */
 
-void fillComboBox(QComboBox* box, QString path, QStringList filt, QString def = "", QString sel = "") {
-	QDir dir(path);
-	QFileInfoList lst = dir.entryInfoList(filt, QDir::Files, QDir::Name);
-	QFileInfo inf;
+void fillComboBox(QComboBox* box, const char* kind, QStringList filt, QString def = "", QString sel = "") {
 	box->clear();
 	if (!def.isEmpty()) box->addItem(def);
-	foreach(inf, lst) {
-		box->addItem(inf.fileName(), inf.fileName());
+	foreach(QString nam, xres_list(kind, filt)) {
+		box->addItem(nam, nam);
 	}
 	setRFIndex(box, sel, 0);
 }
@@ -381,17 +380,6 @@ void opt_fill_cpu(QComboBox* box) {
 #endif
 }
 
-extern tabHwItem tabHwPtr[];
-QList<HardWare*> getHardwareList() {
-	QList<HardWare*> res;
-	tabHwItem* itm = tabHwPtr;
-	while(itm->id != HW_NULL) {
-		res.append(itm->core);
-		itm++;
-	}
-	return res;
-}
-
 SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	setModal(true);
 	ui.setupUi(this);
@@ -404,21 +392,12 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.tabz->setTabIcon(ui.tabz->indexOf(ui.tab_4), QGuiApplication::windowIcon());
 
 #ifdef XZXONLY
-	// the z80 is the only core built, so there is nothing to pick: name the row
-	// after it and let the clock and its multiplier take the box's place, or the
-	// row keeps a gap where the box was. The cell comes from the form rather than
-	// from constants, so moving the row in Designer cannot silently break this
-	ui.label_37->setText("Z80");
-	ui.sbFreq->setSuffix(" MHz");
+	// the z80 is the only core built, so there is nothing to pick: drop the row
+	// and let the clock row carry the name
+	ui.icoCpuType->hide();
+	ui.label_37->hide();
 	ui.cbCpu->hide();
-	int cpurow, cpucol, rspan, cspan;
-	ui.gridLayout->getItemPosition(ui.gridLayout->indexOf(ui.cbCpu), &cpurow, &cpucol, &rspan, &cspan);
-	QLayoutItem* frq = ui.gridLayout->itemAtPosition(cpurow, cpucol + 1);
-	if (frq) {
-		ui.gridLayout->removeItem(frq);
-		ui.gridLayout->addItem(frq, cpurow, cpucol, 1, 2);
-		ui.horizontalLayout_18->addStretch(1);	// keep the boxes their own size in the wider cell
-	}
+	ui.labCpuFreq->setText("CPU");
 #endif
 
 	spaceLedIcon(ui.cbKeysLed);
@@ -452,16 +431,10 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	kedit = new xKeyEditor(this);
 
 	int i;
-// machine
-	// fill hardware (motherboard) list
-	QList<HardWare*> lst = getHardwareList();
-	foreach(HardWare* hw, lst) {
-		if (hw != NULL) {
-			ui.machbox->addItem(hw->optName, QString::fromLocal8Bit(hw->name));
-		} else {
-			ui.machbox->insertSeparator(9999);
-		}
-	}
+	fill_machine_list(ui.machbox);
+
+	for (i = 1; i <= 6; i++)
+		ui.cbScale->addItem(QString("Scale x%0").arg(i), i);
 
 	ui.resbox->addItem("BASIC 48",RES_48);
 	ui.resbox->addItem("BASIC 128",RES_128);
@@ -491,7 +464,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbShader->setVisible(false);
 #endif
 	//fill_palette_list(ui.cbPalPreset);
-	fillComboBox(ui.cbPalPreset, conf.path.palDir.c_str(), QStringList() << "*.txt" << "*.pal", "default", conf.prof.cur->palette.c_str());
+	fillComboBox(ui.cbPalPreset, "palettes", QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
 	paleditor = new xPalEditor(this);
 	ui.cbNoflicMode->addItem("2-frames (fullscreen)", AF_2C_FULL);
 	ui.cbNoflicMode->addItem("2-frames (adaptive)", AF_2C_ADAPTIVE);
@@ -588,16 +561,32 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.apbut,SIGNAL(released()),this,SLOT(apply()));
 	connect(ui.cnbut,SIGNAL(released()),this,SLOT(reject()));
 // machine
-	connect(ui.rsetbox,SIGNAL(currentIndexChanged(int)),this,SLOT(buildrsetlist()));
 	connect(ui.machbox,SIGNAL(currentIndexChanged(int)),this,SLOT(setmszbox(int)));
 	connect(ui.tvRomset,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(editRom()));
-	connect(ui.addrset,SIGNAL(released()),this,SLOT(addNewRomset()));
-	connect(ui.rmrset,SIGNAL(released()),this,SLOT(rmRomset()));
+	// a rom set is the machine's own now, so there is none to add or delete
 	connect(rseditor,SIGNAL(complete(xRomFile)),this,SLOT(setRom(xRomFile)));
 	connect(ui.tbAddRom,SIGNAL(released()),this,SLOT(addRom()));
 	connect(ui.tbEditRom,SIGNAL(released()),this,SLOT(editRom()));
 	connect(ui.tbDelRom,SIGNAL(released()),this,SLOT(delRom()));
 	connect(ui.tbPreset,SIGNAL(released()),this,SLOT(romPreset()));
+	connect(ui.pbResetMachine,SIGNAL(released()),this,SLOT(resetMachine()));
+	connect(ui.pbAdvanced,SIGNAL(released()),this,SLOT(showAdvanced()));
+	connect(ui.pbSaveMachine,SIGNAL(released()),this,SLOT(saveMachine()));
+	connect(ui.pbDelMachine,SIGNAL(released()),this,SLOT(delMachine()));
+	connect(ui.pbCfgExport,SIGNAL(released()),this,SLOT(cfgExport()));
+	connect(ui.pbCfgImport,SIGNAL(released()),this,SLOT(cfgImport()));
+	connect(ui.pbCfgReset,SIGNAL(released()),this,SLOT(cfgReset()));
+
+	// The settings that define the machine rather than how it is used live in
+	// a window of their own. It is the same widgets, moved out of the page -
+	// so everything that reads and writes them stays as it is.
+	advWin = popOut(ui.advBox, "Machine: advanced settings");
+
+	// same for the set file by file: the page shows which file is in which
+	// slot, this window has the offsets and sizes behind it
+	romWin = popOut(ui.romAdvBox, "Machine: ROM files");
+	romWin->resize(620, 340);
+	connect(ui.pbRomAdvanced, SIGNAL(released()), this, SLOT(showRomFiles()));
 // video
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
@@ -756,10 +745,6 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 		i++;
 	}
 // profiles manager
-	connect(ui.tbNewProfile,SIGNAL(released()),this,SLOT(newProfile()));
-	connect(ui.tbCopyProfile,SIGNAL(released()),this,SLOT(copyProf()));
-	connect(ui.tbDelProfile,SIGNAL(released()),this,SLOT(rmProfile()));
-	connect(ui.twProfileList,SIGNAL(cellDoubleClicked(int, int)),this,SLOT(chProfile(int, int)));
 }
 
 void SetupWin::okay() {
@@ -827,14 +812,16 @@ static int gridColWidth(QGridLayout* grid, int col) {
 }
 
 void SetupWin::start() {
-	xProfile* prof = conf.prof.cur;
-	Computer* comp = prof->zx;
+	Computer* comp = conf.zx;
 	fillLogPage();
 // machine
 	int idx;
-	fill_romset_list(ui.rsetbox);
-	ui.machbox->setCurrentIndex(ui.machbox->findData(QString::fromUtf8(comp->hw->name)));
-	ui.rsetbox->setCurrentIndex(ui.rsetbox->findText(QString::fromUtf8(prof->rsName.c_str())));
+	fill_machine_list(ui.machbox);
+	ui.pbDelMachine->setEnabled(xm_is_users(conf.macId));
+	roms = conf.roms;
+	rsmodel->fill(&roms);
+	fillRomSlots();
+	ui.machbox->setCurrentIndex(ui.machbox->findData(QString::fromLocal8Bit(conf.macId.c_str())));
 	ui.resbox->setCurrentIndex(ui.resbox->findData(comp->resbank));
 	setmszbox(ui.machbox->currentIndex());
 	ui.mszbox->setCurrentIndex(ui.mszbox->findData(comp->mem->ramSize));
@@ -873,7 +860,7 @@ void SetupWin::start() {
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	ui.cbKeepRatio->setChecked(conf.vid.keepRatio);
-	ui.sbScale->setValue(conf.vid.scale);
+	setRFIndex(ui.cbScale, conf.vid.scale, 1);	// x2 if the file says something odd
 	ui.sldNoflic->setValue(noflic); chaflc();
 	ui.cbNoflicMode->setCurrentIndex(noflicMode);
 	ui.sbNoflicGamma->setValue(noflicGamma);
@@ -899,12 +886,12 @@ void SetupWin::start() {
 	foreach(xLayout lay, conf.layList) {
 		ui.geombox->addItem(QString::fromLocal8Bit(lay.name.c_str()));
 	}
-	ui.geombox->setCurrentIndex(ui.geombox->findText(QString::fromLocal8Bit(conf.prof.cur->layName.c_str())));
+	ui.geombox->setCurrentIndex(ui.geombox->findText(QString::fromLocal8Bit(conf.layName.c_str())));
 	ui.ulaPlus->setChecked(comp->vid->ula->enabled);
 	ui.cbDDp->setChecked(comp->flgDDP);
 	fill_shader_list(ui.cbShader);
 	//fill_palette_list(ui.cbPalPreset);
-	fillComboBox(ui.cbPalPreset, conf.path.palDir.c_str(), QStringList() << "*.txt" << "*.pal", "default", conf.prof.cur->palette.c_str());
+	fillComboBox(ui.cbPalPreset, "palettes", QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
 // sound
 	ui.cbGS->setChecked(comp->gs->enable);
 	ui.gsrbox->setChecked(comp->gs->reset);
@@ -947,7 +934,7 @@ void SetupWin::start() {
 	buildkeylist();
 	setRFIndex(ui.cbScanTab, comp->keyb->pcmode);
 	setRFIndex(ui.cbMouseType, comp->mouse->pcmode);
-	idx = ui.keyMapBox->findText(QString(prof->kmapName.c_str()));
+	idx = ui.keyMapBox->findText(QString(conf.kmapName.c_str()));
 	if (idx < 1) idx = 0;
 	ui.keyMapBox->setCurrentIndex(idx);
 	ui.ratEnable->setChecked(comp->mouse->enable);
@@ -955,8 +942,8 @@ void SetupWin::start() {
 	ui.cbSwapButtons->setChecked(comp->mouse->swapButtons);
 	ui.sldSensitivity->setValue(comp->mouse->sensitivity * 1000.0f);
 	ui.cbKbuttons->setChecked(comp->joy->extbuttons);
-	gpwid_a->update(prof->jmapNameA);
-	gpwid_b->update(prof->jmapNameB);
+	gpwid_a->update(conf.jmapNameA);
+	gpwid_b->update(conf.jmapNameB);
 //	ui.sldDeadZone->setValue(conf.joy.gpad->deadZone());
 //	ui.cbGamepad->blockSignals(true);
 //	fillRFBox(ui.cbGamepad, conf.joy.gpad->getList());
@@ -964,7 +951,7 @@ void SetupWin::start() {
 //	ui.cbGamepad->blockSignals(false);
 //	padModel->update();
 //	buildpadlist();
-//	setRFIndex(ui.cbPadMap, conf.prof.cur->jmapNameA.c_str());
+//	setRFIndex(ui.cbPadMap, conf.jmapNameA.c_str());
 // flp
 	ui.diskTypeBox->setCurrentIndex(ui.diskTypeBox->findData(comp->dif->type));
 	ui.bdtbox->setChecked(fdcFlag & FDC_FAST);
@@ -1052,33 +1039,31 @@ void SetupWin::start() {
 	ui.cbDbgSignals->setChecked(conf.dbg.showsig);
 	ui.cbDbgFrame->setChecked(conf.dbg.showfrm);
 	ui.cbDbgRay->setChecked(conf.dbg.showray);
-	portwid->setPorts(getWatchPorts(conf.prof.cur->zx));
+	portwid->setPorts(getWatchPorts(conf.zx));
 	dbgfnt = conf.dbg.font;
 	ui.leDbgFont->setText(QString("%0, %1 pt").arg(dbgfnt.family()).arg(dbgfnt.pointSize()));
 	ui.leDbgFont->setFont(dbgfnt);
 // palette
 	fillDbgPalette();
-	fillComboBox(ui.cbStyleSheet, conf.path.qssDir.c_str(), QStringList() << "*.qss", "System", conf.style.c_str());
-// profiles
-	ui.defstart->setChecked(conf.defProfile);
-	buildproflist();
+	fillComboBox(ui.cbStyleSheet, "styles", QStringList() << "*.qss", "System", conf.style.c_str());
 
 	show();
 }
 
 void SetupWin::apply() {
-	xProfile* prof = conf.prof.cur;
-	Computer* comp = prof->zx;
+	Computer* comp = conf.zx;
 // machine
-	emu_lock();		// machine, romset, memory size and cpu are rebuilt below
-	HardWare *oldmac = comp->hw;
-	std::string new_hwname = std::string(getRFSData(ui.machbox).toUtf8().data());
-	if (prof->hwName != new_hwname) {
-		prof->hwName = new_hwname;
-		prfSetHardware(prof, prof->hwName);
+	// another machine is not this page with different values in it: it has its
+	// own, so load it and show them rather than writing these over it
+	std::string mid = std::string(getRFSData(ui.machbox).toLocal8Bit().data());
+	if (!mid.empty() && (mid != conf.macId)) {
+		xm_set(mid);
+		start();
+		emit s_prf_changed();
+		return;
 	}
-	prof->rsName = getRFText(ui.rsetbox);
-	prfSetRomset(prof, prof->rsName);
+	emu_lock();		// roms, memory size and cpu are rebuilt below
+	xm_set_roms(roms);
 	comp->resbank = getRFIData(ui.resbox);
 	memSetSize(comp->mem, getRFIData(ui.mszbox), -1);
 	// cpu
@@ -1105,7 +1090,6 @@ void SetupWin::apply() {
 	compSetBaseFrq(comp, ui.sbFreq->value());
 	compSetTurbo(comp, ui.sbMult->value());
 	comp->flgEM1 = ui.scrpwait->isChecked();
-	if (comp->hw != oldmac) compReset(comp,RES_DEFAULT);
 	if (comp->hw->id == HW_ZX48) comp->mem->ramMask = MEM_128K - 1;		// TODO: find a better way
 	emu_unlock();
 // emulation
@@ -1114,7 +1098,7 @@ void SetupWin::apply() {
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
 	conf.vid.keepRatio = ui.cbKeepRatio->isChecked() ? 1 : 0;
-	conf.vid.scale = ui.sbScale->value();
+	conf.vid.scale = getRFIData(ui.cbScale);
 	noflic = ui.sldNoflic->value();
 	noflicMode = ui.cbNoflicMode->currentIndex();
 	noflicGamma = ui.sbNoflicGamma->value();
@@ -1140,7 +1124,7 @@ void SetupWin::apply() {
 		zx_set_vmode(comp);
 	comp->vid->ula->enabled = ui.ulaPlus->isChecked() ? 1 : 0;
 	comp->flgDDP = ui.cbDDp->isChecked() ? 1 : 0;
-	prfSetLayout(NULL, getRFText(ui.geombox));
+	xm_set_layout(getRFText(ui.geombox));
 	if (getRFIData(ui.cbShader) == 0) {
 		conf.vid.shader.clear();
 	} else {
@@ -1149,10 +1133,10 @@ void SetupWin::apply() {
 	QString str = getRFSData(ui.cbPalPreset);
 	if (str.isEmpty()) {
 		//conf.vid.palette.clear();
-		prof->palette.clear();
+		conf.palette.clear();
 	} else {
 		//conf.vid.palette = std::string(ui.cbPalPreset->currentText().toLocal8Bit().data());
-		prof->palette = str.toStdString();
+		conf.palette = str.toStdString();
 	}
 // sound
 	conf.snd.enabled = ui.senbox->isChecked() ? 1 : 0;
@@ -1226,7 +1210,7 @@ void SetupWin::apply() {
 */
 	std::string kmname = getRFText(ui.keyMapBox);
 	if (kmname == "none") kmname = "default";
-	prof->kmapName = kmname;
+	conf.kmapName = kmname;
 	loadKeys();
 // flp
 	difSetHW(comp->dif, getRFIData(ui.diskTypeBox));
@@ -1280,9 +1264,9 @@ void SetupWin::apply() {
 	comp->tape->detectOn = conf.tape.autostart;
 	comp->tape->autorew = conf.tape.rewind;
 // input
-	conf.prof.cur->jmapNameA = gpwid_a->getMapName();
-	conf.prof.cur->jmapNameB = gpwid_b->getMapName();
-//	conf.joy.gpad->loadMap(conf.prof.cur->jmapNameA);
+	conf.jmapNameA = gpwid_a->getMapName();
+	conf.jmapNameB = gpwid_b->getMapName();
+//	conf.joy.gpad->loadMap(conf.jmapNameA);
 // tools
 	conf.port = ui.sbPort->value() & 0xffff;
 	conf.confexit = ui.cbConfexit->isChecked() ? 1 : 0;
@@ -1306,7 +1290,7 @@ void SetupWin::apply() {
 	conf.dbg.showsig = ui.cbDbgSignals->isChecked() ? 1 : 0;
 	conf.dbg.showfrm = ui.cbDbgFrame->isChecked() ? 1 : 0;
 	conf.dbg.showray = ui.cbDbgRay->isChecked() ? 1 : 0;
-	setWatchPorts(conf.prof.cur->zx, portwid->getPorts());
+	setWatchPorts(conf.zx, portwid->getPorts());
 	name = getRFSData(ui.cbStyleSheet);
 	std::string style = name.isEmpty() ? std::string() : name.toStdString();
 	if (style != conf.style) {
@@ -1321,14 +1305,12 @@ void SetupWin::apply() {
 		fillDbgPalette();
 		ui.leDbgFont->setFont(dbgfnt);		// the new style sheet resets it
 	}
-// profiles
-	conf.defProfile = ui.defstart->isChecked() ? 1 : 0;
 	applyLogPage();
 
 	emit s_apply();
 
+	layouts_save();
 	saveConfig();
-	prfSave();
 }
 
 // LOG
@@ -1412,8 +1394,11 @@ void SetupWin::edLayout() {
 
 void SetupWin::delLayout() {
 	int eidx = ui.geombox->currentIndex();
-	if (eidx < 1) {
-		shitHappens("You can't delete this layout");
+	if (eidx < 0) return;
+	const xLayout* shp = layout_shipped(conf.layList[eidx].name);
+	if (shp) {
+		if (!areSure("Put this layout back the way it ships?")) return;
+		conf.layList[eidx] = *shp;
 		return;
 	}
 	if (areSure("Do you really want to delete this layout?")) {
@@ -1473,10 +1458,7 @@ void SetupWin::layEditorOK() {
 	vlay.scr.x = layUi.sbScrW->value();
 	vlay.scr.y = layUi.sbScrH->value();
 	if (eidx < 0) {						// new layout
-		if (nm == "default") {				// protected
-			showInfo("'default' layout cannot be changed");
-			ok = 0;
-		} else if (exlay == NULL) {			// new name
+		if (exlay == NULL) {				// new name
 			addLayout(name, vlay);
 			fill_layout_list(ui.geombox, nm);
 		} else {					// existing name
@@ -1484,18 +1466,18 @@ void SetupWin::layEditorOK() {
 			if (ok) exlay->lay = vlay;
 			fill_layout_list(ui.geombox, nm);
 		}
-	} else if (eidx > 0) {					// ==0 is 'default', not editable
+	} else {
 		std::string onm = conf.layList[eidx].name;
 		if (onm != name) {				// name changed
 			if (exlay == NULL) {			// no existing layout with new name
 				conf.layList[eidx].name = name;
 				conf.layList[eidx].lay = vlay;
-				prfChangeLayName(conf.layList[eidx].name, nlay.name);
+				if (conf.layName == onm) conf.layName = name;
 				fill_layout_list(ui.geombox, nm);
 			} else {
 				ok = areSure("Replace existing layout?");
 				if (ok) {
-					prfChangeLayName(conf.layList[eidx].name, nlay.name);
+					if (conf.layName == onm) conf.layName = name;
 					exlay->lay = vlay;		// replace new-name layout
 					rmLayout(onm);
 					fill_layout_list(ui.geombox, nm);
@@ -1508,90 +1490,304 @@ void SetupWin::layEditorOK() {
 	if (ok) layeditor->hide();
 }
 
-// ROMSETS
+// A box taken out of the page, in a window with one button to put it away.
+// The button wears the cross the main dialog's Cancel wears, so the three
+// windows read as one family.
 
-typedef struct {
-	int hwid;
-	std::string gsf;
-	std::string fnf;
-	xRomFile lst[8];
-} xRomPreset;
+QDialog* SetupWin::popOut(QWidget* box, const char* title) {
+	QDialog* win = new QDialog(this);
+	win->setWindowTitle(title);
+	QVBoxLayout* lay = new QVBoxLayout(win);
+	lay->addWidget(box);
+	QDialogButtonBox* bbox = new QDialogButtonBox(QDialogButtonBox::Close, win);
+	bbox->button(QDialogButtonBox::Close)->setIcon(QIcon(":/images/cancel.png"));
+	lay->addWidget(bbox);
+	connect(bbox, SIGNAL(rejected()), win, SLOT(hide()));
+	return win;
+}
 
-static xRomPreset presets[] = {
-	{HW_ZX48, "gs105b.rom", "", {{"48.rom",0,0,0},{"trdos504t.rom",0,0,16},{"",0,0,0}}},
-	{HW_PENT, "gs105b.rom", "", {{"128p-0.rom",0,0,0},{"128p-1.rom",0,0,16},{"gluck.rom",0,0,32},{"trdos504t.rom",0,0,48},{"",0,0,0}}},
-	{HW_P1024, "gs105b.rom", "", {{"128p-0.rom",0,0,0},{"128p-1.rom",0,0,16},{"gluck.rom",0,0,32},{"trdos504t.rom",0,0,48},{"",0,0,0}}},
-	{HW_SCORP, "gs105b.rom", "", {{"256s-0.rom",0,0,0},{"256s-1.rom",0,0,16},{"256s-2.rom",0,0,32},{"256s-3.rom",0,0,48},{"",0,0,0}}},
-	{HW_PLUS2, "", "", {{"plus3-0.rom",0,0,0},{"plus3-1.rom",0,0,16},{"plus3-2.rom",0,0,32},{"plus3-3.rom",0,0,48},{"",0,0,0}}},
-	{HW_PLUS3, "", "", {{"plus3-0.rom",0,0,0},{"plus3-1.rom",0,0,16},{"plus3-2.rom",0,0,32},{"plus3-3.rom",0,0,48},{"",0,0,0}}},
-	{HW_ATM2, "gs105b.rom", "sgen.rom", {{"atm2.rom",0,0,0},{"",0,0,0}}},
-	{HW_PENTEVO, "gs105b.rom", "sgen.rom", {{"zxevo-fe.rom",0,0,0},{"",0,0,0}}},
-	{HW_TSLAB, "gs105b.rom", "sgen.rom", {{"tsconf.rom",0,0,0},{"",0,0,0}}},
-	{HW_PROFI, "gs105b.rom", "", {{"profi.rom",0,0,0},{"",0,0,0}}},
-	{HW_PHOENIX, "gs105b.rom", "", {{"phoenix.rom",0,0,0},{"",0,0,0}}},
-	{HW_MSX, "", "", {{"MSX.ROM",0,0,0},{"",0,0,0}}},
-	{HW_MSX2, "", "", {{"msx2.rom",0,0,0},{"",0,0,0}}},
-	{HW_GBC, "", "", {{"GameBoyColorBIOS.rom",0,0,0},{"",0,0,0}}},
-	{HW_NES, "", "", {{"",0,0,0}}},
-	{HW_C64, "", "c64charset.rom", {{"commodore64.rom",0,0,0},{"",0,0,0}}},
-	{HW_BK0010, "", "", {{"MONIT10.ROM",0,0,0},{"BASIC10.ROM",0,0,8},{"",0,0,0}}},
-	{HW_BK0011M, "", "", {{"BAS11M_0.ROM",0,0,0},{"BAS11M_1.ROM",0,0,16},{"B11M_EXT.ROM",0,0,24},{"B11M_BOS.ROM",0,0,32},{"",0,0,0}}},
-	{HW_SPCLST, "", "", {{"specialist_boot2_1.rom",0,0,0},{"specialist_monitor2_2.rom",0,0,2},{"",0,0,0}}},
-	{HW_NULL, "", "", {{"",0,0,0}}}
-};
+void SetupWin::showAdvanced() {
+	advWin->show();
+	advWin->raise();
+}
+
+// THE WHOLE CONFIGURATION, IN AND OUT
+//
+// One text file with the settings, the layouts and the machines of your own.
+// Importing one or going back to the defaults reads the configuration again
+// under the running machine, so the page has to be filled from scratch after.
+
+#define	CFG_FILTER	"Xpeccy+ settings (*.conf);;All files (*)"
+#define	CFG_NAME	"xpeccy-settings.conf"
+
+void SetupWin::cfgExport() {
+	QString path = QFileDialog::getSaveFileName(this, tr("Export settings"),
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH CFG_NAME,
+		tr(CFG_FILTER));
+	if (path.isEmpty()) return;
+	apply();				// what is written is what the page shows
+	if (!xconf_export(path))
+		shitHappens("Could not write the settings file");
+}
+
+void SetupWin::cfgLoaded() {
+	start();
+	emit s_apply();
+	emit s_prf_changed();
+}
+
+void SetupWin::cfgImport() {
+	QString path = QFileDialog::getOpenFileName(this, tr("Import settings"),
+		QString::fromLocal8Bit(conf.path.confDir.c_str()) + SLASH CFG_NAME,
+		tr(CFG_FILTER));
+	if (path.isEmpty()) return;
+	if (!areSure("Take the settings out of this file?<br>"
+		"What you have now is replaced, this machine included.")) return;
+	if (!xconf_import(path)) {
+		shitHappens("Could not read the settings file");
+		return;
+	}
+	cfgLoaded();
+}
+
+void SetupWin::cfgReset() {
+	if (!areSure("Back to the settings the emulator ships with?<br>"
+		"Your own machines are left where they are.")) return;
+	if (!xconf_reset()) {
+		shitHappens("Could not read the settings");
+		return;
+	}
+	cfgLoaded();
+}
+
+// A machine of the user's own is this one with what was changed on it, kept
+// as a definition of its own. The machine it came from goes back to how it
+// ships - the settings did not disappear, they moved.
+
+void SetupWin::saveMachine() {
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	// a machine of your own starts as itself, so saving it again updates it
+	QString sug = QString::fromLocal8Bit(mac->name.c_str());
+	if (!xm_is_users(conf.macId)) sug += " (mine)";
+	bool ok = false;
+	QString name = QInputDialog::getText(this, "Save machine",
+		"Name for this machine:", QLineEdit::Normal, sug, &ok);
+	name = name.trimmed();
+	if (!ok || name.isEmpty()) return;
+	std::string nam = std::string(name.toLocal8Bit().data());
+	std::string id = xm_id_of_name(nam);
+	if (xm_find(id)) {
+		if (!xm_is_users(id)) {
+			shitHappens("A machine that ships is called that.<br>"
+				"Give this one a name of its own.");
+			return;
+		}
+		if (id == conf.macId) {
+			if (!areSure("Update this machine with what you changed on it?")) return;
+		} else if (!areSure("A machine of your own is already called that. Replace it?")) {
+			return;
+		}
+	}
+	// what is saved is what the page shows, so the page goes in first
+	std::string was = conf.macId;
+	apply();
+	if (conf.macId != was) return;		// that was a machine switch, not a save
+	if (!xm_save_as(id, nam)) {
+		shitHappens("Could not write the machine file");
+		return;
+	}
+	xm_over_forget(conf.macId);	// what was changed here lives in that machine now
+	xm_set(id);
+	start();
+	emit s_prf_changed();
+}
+
+void SetupWin::delMachine() {
+	if (!xm_is_users(conf.macId)) {
+		shitHappens("This machine ships with the emulator, so there is nothing to delete.<br>"
+			"Restore machine defaults drops what you changed on it.");
+		return;
+	}
+	if (!areSure("Delete this machine?")) return;
+	const xMachine* mac = xm_find(conf.macId);
+	std::string id = conf.macId;
+	std::string back = mac ? mac->parent : std::string();
+	if (!xm_delete(id)) {
+		shitHappens("Could not delete the machine file");
+		return;
+	}
+	// gone for good, or back as it ships: either way the list is rebuilt
+	if (!xm_find(id)) id = back;
+	if (!xm_find(id)) id = xm_list().isEmpty() ? std::string() : xm_list().first().id;
+	conf.macId.clear();		// nothing to save into a machine that is gone
+	if (!id.empty()) xm_set(id);
+	start();
+	emit s_prf_changed();
+}
+
+void SetupWin::resetMachine() {
+	if (!areSure("Take this machine as it ships, dropping everything you changed on it?")) return;
+	xm_reset_over();
+	start();
+	emit s_prf_changed();
+}
 
 void SetupWin::romPreset() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	QString hwn = getRFSData(ui.machbox);
-	HardWare* hw = findHardware(hwn.toLocal8Bit().data());
-	if (!hw) return;
-	int i = 0;
-	while ((presets[i].hwid != HW_NULL) && (presets[i].hwid != hw->id))
-		i++;
-	if (presets[i].hwid == HW_NULL) return;
-	xRomset rs = conf.rsList[idx];
-	rs.gsFile = presets[i].gsf;
-	rs.fntFile = presets[i].fnf;
-	rs.vBiosFile.clear();
-	rs.sBiosFile.clear();
-	rs.roms.clear();
-	int dx = 0;
-	while (presets[i].lst[dx].name != "") {
-		rs.roms.push_back(presets[i].lst[dx]);
-		dx++;
-	}
-	conf.rsList[idx] = rs;
-	rsmodel->fill(&conf.rsList[idx]);
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	roms = mac->roms;
+	rsmodel->fill(&roms);
+	fillRomSlots();
 }
 
-void SetupWin::rmRomset() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	if (areSure("Do you really want to delete this romset?")) {
-		delRomset(idx);
-		ui.rsetbox->removeItem(idx);
+// THE SET AS THE MACHINE WEARS IT
+//
+// One row per slot, with the files to put in it. Where a file starts, how much
+// of it is read and where it lands are in the window behind Advanced.
+
+#define	RSLOT_GS	-1
+#define	RSLOT_FONT	-2
+
+static QStringList rom_files() {
+	QDir dir(QString::fromLocal8Bit(conf.path.romDir.c_str()));
+	QStringList res;
+	QDirIterator it(dir.absolutePath(), QStringList() << "*.rom" << "*.bin",
+			QDir::Files, QDirIterator::Subdirectories);
+	while (it.hasNext()) {
+		it.next();
+		res << dir.relativeFilePath(it.filePath());
 	}
+	res.sort(Qt::CaseInsensitive);
+	return res;
 }
 
-void SetupWin::addNewRomset() {
-	QString nam = QInputDialog::getText(this, "Enter name", "Romset name");
-	if (nam.isEmpty()) return;
-	xRomset r;
-	r.name = std::string(nam.toLocal8Bit().data());
-	r.gsFile.clear();
-	r.fntFile.clear();
-	r.roms.clear();
-	if (addRomset(r)) {
-		fill_romset_list(ui.rsetbox, nam);
+void SetupWin::showRomFiles() {
+	romWin->show();
+	romWin->raise();
+}
+
+// how far a rom file reaches, in 16K banks
+
+static int rom_file_banks(const xRomFile& rf) {
+	int size = rf.fsize * 1024;
+	if (size <= 0) {
+		QFileInfo inf(QString::fromLocal8Bit(xm_rom_path(rf.name).c_str()));
+		size = inf.size() - rf.foffset * 1024;
+	}
+	return (size + MEM_16K - 1) / MEM_16K;
+}
+
+// a bank with no file of its own may still be covered by a big one in a bank
+// before it: for each bank, the slot it comes from, or -1
+
+static QVector<int> rom_slot_cover(const xRomset& rs, int banks) {
+	QVector<int> res(banks, -1);
+	foreach(xRomFile rf, rs.roms) {
+		int first = rf.roffset / 16;
+		int last = first + rom_file_banks(rf);
+		for (int i = first + 1; (i < last) && (i < banks); i++) {
+			if (res[i] < 0) res[i] = first;
+		}
+	}
+	return res;
+}
+
+void SetupWin::fillRomSlots() {
+	QLayoutItem* itm;
+	while ((itm = ui.gridRomSlots->takeAt(0)) != NULL) {
+		delete itm->widget();
+		delete itm;
+	}
+	const xMachine* mac = xm_find(conf.macId);
+	if (!mac) return;
+	QStringList files = rom_files();
+	QVector<int> from = rom_slot_cover(roms, mac->romBanks);
+	int row = 0;
+	for (int i = 0; i < mac->romBanks; i++)
+		addRomSlot(row++, QString("ROM %0").arg(i), i, files, true, from[i]);
+	addRomSlot(row++, "GS", RSLOT_GS, files, conf.zx->gs->enable, -1);
+	// only a machine with a text mode draws from a font rom
+	addRomSlot(row++, "Font", RSLOT_FONT, files, !mac->roms.fntFile.empty(), -1);
+	// spare height under the rows, so they do not spread out
+	ui.gridRomSlots->addItem(new QSpacerItem(20, 0, QSizePolicy::Minimum,
+		QSizePolicy::Expanding), row, 0);
+}
+
+// the file in a slot, or an empty string when there is none
+
+QString SetupWin::romSlotFileName(int slot) {
+	std::string res;
+	if (slot == RSLOT_GS) {
+		res = roms.gsFile;
+	} else if (slot == RSLOT_FONT) {
+		res = roms.fntFile;
 	} else {
-		shitHappens("Can't create romset with such name");
+		foreach(xRomFile rf, roms.roms) {
+			if (rf.roffset == slot * 16) res = rf.name;
+		}
 	}
+	return QString::fromLocal8Bit(res.c_str());
+}
+
+void SetupWin::addRomSlot(int row, QString name, int slot, const QStringList& files, bool has, int from) {
+	QLabel* lab = new QLabel(name);
+	lab->setMinimumWidth(60);
+	lab->setEnabled(has);
+	QComboBox* box = new QComboBox;
+	box->setMinimumWidth(200);
+	box->setMaximumWidth(200);
+	QString none = has ? tr("(empty)") : tr("(not fitted)");
+	if (from >= 0) none = tr("(from ROM %0)").arg(from);
+	box->addItem(none, QString());
+	foreach(QString f, files) {
+		box->addItem(f, f);
+	}
+	QString cur = romSlotFileName(slot);
+	// a file that is missing, or one of the user's own from elsewhere
+	if (!cur.isEmpty() && (box->findData(cur) < 0)) box->insertItem(1, cur, cur);
+	box->setCurrentIndex(qMax(0, box->findData(cur)));
+	box->setEnabled(has);
+	connect(box, QOverload<int>::of(&QComboBox::activated), this, [=](int idx){
+		romSlotPick(slot, box->itemData(idx).toString());
+	});
+	QToolButton* btn = new QToolButton;
+	btn->setIcon(QIcon(":/images/fileopen.png"));
+	btn->setToolTip(tr("Pick a ROM file"));
+	btn->setEnabled(has);
+	connect(btn, &QToolButton::released, this, [=](){ romSlotFile(box, slot); });
+	ui.gridRomSlots->addWidget(lab, row, 0);
+	ui.gridRomSlots->addWidget(box, row, 1);
+	ui.gridRomSlots->addWidget(btn, row, 2);
+}
+
+// a file from anywhere, which is kept as the path it is
+
+void SetupWin::romSlotFile(QComboBox* box, int slot) {
+	QString dir = QString::fromLocal8Bit(conf.path.romDir.c_str());
+	QString file = QFileDialog::getOpenFileName(this, tr("ROM file"), dir,
+		tr("ROM images (*.rom *.bin);;All files (*)"));
+	if (file.isEmpty()) return;
+	QString rel = QDir(dir).relativeFilePath(file);
+	if (!rel.startsWith("..")) file = rel;	// under the rom directory
+	if (box->findData(file) < 0) box->insertItem(1, file, file);
+	box->setCurrentIndex(box->findData(file));
+	romSlotPick(slot, file);
+}
+
+void SetupWin::romSlotPick(int slot, const QString& file) {
+	std::string name = std::string(file.toLocal8Bit().data());
+	if (slot == RSLOT_GS) {
+		roms.gsFile = name;
+	} else if (slot == RSLOT_FONT) {
+		roms.fntFile = name;
+	} else {
+		xm_rom_set_file(roms, slot, name);
+	}
+	rsmodel->fill(&roms);
 }
 
 void SetupWin::addRom() {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
 	xRomFile f;
 	f.name[0] = 0;
 	f.foffset = 0;
@@ -1602,68 +1798,66 @@ void SetupWin::addRom() {
 }
 
 void SetupWin::delRom() {
-	int idx = ui.rsetbox->currentIndex();
 	QModelIndexList qmil = ui.tvRomset->selectionModel()->selectedRows();
 	int row = (qmil.size() > 0) ? qmil.first().row() : -1;
-	if ((idx < 0) || (row < 0)) return;
-	int sz = conf.rsList[idx].roms.size();
+	if (row < 0) return;
+	int sz = roms.roms.size();
 	if (row < sz) {
-		conf.rsList[idx].roms.erase(conf.rsList[idx].roms.begin() + row);
+		roms.roms.erase(roms.roms.begin() + row);
 	} else if (row == sz) {
-		conf.rsList[idx].gsFile.clear();
+		roms.gsFile.clear();
 	} else if (row == sz+1) {
-		conf.rsList[idx].fntFile.clear();
+		roms.fntFile.clear();
 	} else if (row == sz+2) {
-		conf.rsList[idx].vBiosFile.clear();
+		roms.vBiosFile.clear();
 	} else if (row == sz+3) {
-		conf.rsList[idx].sBiosFile.clear();
+		roms.sBiosFile.clear();
 	}
-	rsmodel->fill(&conf.rsList[idx]);
+	rsmodel->fill(&roms);
+	fillRomSlots();
 }
 
 void SetupWin::editRom() {
-	int idx = ui.rsetbox->currentIndex();
 	QModelIndexList qmil = ui.tvRomset->selectionModel()->selectedRows();
 	int row = (qmil.size() > 0) ? qmil.first().row() : -1;
-	if ((idx < 0) || (row < 0)) return;
+	if (row < 0) return;
 	xRomFile f;
 	f.foffset = 0;
 	f.fsize = 0;
 	f.roffset = 0;
-	int sz = conf.rsList[idx].roms.size();
+	int sz = roms.roms.size();
 	if (row < sz) {
-		f = conf.rsList[idx].roms[row];
+		f = roms.roms[row];
 	} else if (row == sz) {
-		f.name = conf.rsList[idx].gsFile;
+		f.name = roms.gsFile;
 	} else if (row == sz+1) {
-		f.name = conf.rsList[idx].fntFile;
+		f.name = roms.fntFile;
 	} else if (row == sz+2) {
-		f.name = conf.rsList[idx].vBiosFile;
+		f.name = roms.vBiosFile;
 	} else if (row == sz+3) {
-		f.name = conf.rsList[idx].sBiosFile;
+		f.name = roms.sBiosFile;
 	}
 	eidx = row;
 	rseditor->edit(f);
 }
 
 void SetupWin::setRom(xRomFile f) {
-	int idx = ui.rsetbox->currentIndex();
-	if (idx < 0) return;
-	int sz = conf.rsList[idx].roms.size();
+	int sz = roms.roms.size();
 	if (eidx < 0) {
-		conf.rsList[idx].roms.push_back(f);
+		roms.roms.push_back(f);
 	} else if (eidx < sz) {
-		conf.rsList[idx].roms[eidx] = f;
+		roms.roms[eidx] = f;
 	} else if (eidx == sz) {
-		conf.rsList[idx].gsFile = f.name;
+		roms.gsFile = f.name;
 	} else if (eidx == sz+1) {
-		conf.rsList[idx].fntFile = f.name;
+		roms.fntFile = f.name;
 	} else if (eidx == sz+2) {
-		conf.rsList[idx].vBiosFile = f.name;
+		roms.vBiosFile = f.name;
 	} else if (eidx == sz+3) {
-		conf.rsList[idx].sBiosFile = f.name;
+		roms.sBiosFile = f.name;
 	}
-	rsmodel->fill(&conf.rsList[idx]);
+	rsmodel->fill(&roms);
+	fillRomSlots();
 }
 
 // lists
@@ -1675,12 +1869,8 @@ void SetupWin::buildpadlist() {
 }
 
 void SetupWin::buildkeylist() {
-	QDir dir(conf.path.confDir.c_str());
-	QStringList lst = dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name);
-	dir.setPath(dir.path().append("/keymaps/"));
-	lst.append(dir.entryList(QStringList() << "*.map",QDir::Files,QDir::Name));
-	lst.sort();
-	fillRFBox(ui.keyMapBox,lst);
+	fillComboBox(ui.keyMapBox, "keymaps", QStringList() << "*.map", "none",
+		QString::fromLocal8Bit(conf.kmapName.c_str()));
 }
 
 struct xMemName {
@@ -1704,8 +1894,10 @@ static xMemName memNameTab[] = {
 };
 
 void SetupWin::setmszbox(int idx) {
-	QList<HardWare*> list = getHardwareList();
-	int t = list[idx]->mask;
+	const xMachine* mac = xm_find(std::string(ui.machbox->itemData(idx).toString().toLocal8Bit().data()));
+	HardWare* hw = mac ? findHardware(mac->hw.c_str()) : NULL;
+	if (!hw) return;
+	int t = hw->mask;
 	QString oldText = ui.mszbox->currentText();
 	ui.mszbox->clear();
 	idx = 0;
@@ -1718,18 +1910,8 @@ void SetupWin::setmszbox(int idx) {
 	if (ui.mszbox->currentIndex() < 0) ui.mszbox->setCurrentIndex(ui.mszbox->count() - 1);
 }
 
-void SetupWin::buildrsetlist() {
-	if (ui.rsetbox->currentIndex() < 0) {
-		ui.tvRomset->setEnabled(false);
-	} else {
-		ui.tvRomset->setEnabled(true);
-		xRomset* rset = &conf.rsList[ui.rsetbox->currentIndex()];
-		rsmodel->fill(rset);
-	}
-}
-
 void SetupWin::buildtapelist() {
-	ui.tapelist->fill(conf.prof.cur->zx->tape);
+	ui.tapelist->fill(conf.zx->tape);
 }
 
 // TODO : make bookmarks & profiles list as view-model
@@ -1747,30 +1929,11 @@ void SetupWin::buildmenulist() {
 	ui.umlist->selectRow(0);
 }
 
-void SetupWin::buildproflist() {
-	ui.twProfileList->setRowCount(conf.prof.list.size());
-	QTableWidgetItem* itm;
-	// every row gets an icon slot, so the name doesn't shift on the current one
-	QSize isz(16, 16);
-	ui.twProfileList->setIconSize(isz);
-	QPixmap blank(isz);
-	blank.fill(Qt::transparent);
-	QIcon mark(":/images/checkbox.png");
-	for (int i = 0; i < conf.prof.list.size(); i++) {
-		itm = new QTableWidgetItem(QString::fromLocal8Bit(conf.prof.list[i]->name.c_str()));
-		itm->setIcon((conf.prof.list[i] == conf.prof.cur) ? mark : QIcon(blank));
-		ui.twProfileList->setItem(i,0,itm);
-		itm = new QTableWidgetItem(QString::fromLocal8Bit(conf.prof.list[i]->file.c_str()));
-		ui.twProfileList->setItem(i,1,itm);
-	}
-	ui.twProfileList->resizeColumnToContents(0);
-}
-
 void SetupWin::copyToTape() {
 	int dsk = ui.disktabs->currentIndex();
 	QModelIndexList idx = ui.disklist->selectionModel()->selectedRows();
 	if (idx.size() == 0) return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	TRFile cat[128];
 	diskGetTRCatalog(comp->dif->flp[dsk],cat);
 	int row;
@@ -1808,7 +1971,7 @@ void SetupWin::diskToHobeta() {
 	if (idx.size() == 0) return;
 	QString dir = QFileDialog::getExistingDirectory(this,"Save file(s) to...","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
 	if (dir == "") return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	std::string sdir = std::string(dir.toLocal8Bit().data()) + SLASH;
 	Floppy* flp = comp->dif->flp[ui.disktabs->currentIndex()];		// selected floppy
 	int savedFiles = 0;
@@ -1824,7 +1987,7 @@ void SetupWin::diskToRaw() {
 	if (idx.size() == 0) return;
 	QString dir = QFileDialog::getExistingDirectory(this,"Save file(s) to...","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
 	if (dir == "") return;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	std::string sdir = std::string(dir.toLocal8Bit().data()) + SLASH;
 	Floppy* flp = comp->dif->flp[ui.disktabs->currentIndex()];
 	int savedFiles = 0;
@@ -1878,7 +2041,7 @@ void SetupWin::copyToDisk() {
 	if (dsk > 3) dsk = 3;
 	int headBlock = -1;
 	int dataBlock = -1;
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (!comp->tape->blkData[blk].hasBytes) {
 		shitHappens("This is not standard block");
 		return;
@@ -1969,7 +2132,7 @@ void SetupWin::copyToDisk() {
 
 void SetupWin::fillDiskCat() {
 	int dsk = ui.disktabs->currentIndex();
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	Floppy* flp = comp->dif->flp[dsk];
 	TRFile ct[128];
 	QList<TRFile> cat;
@@ -1990,7 +2153,7 @@ void SetupWin::fillDiskCat() {
 // the label beside the slider says what the mode gives on this machine - the
 // fixed sizes are the same everywhere, overscan is not
 void SetupWin::chabsz() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int mode = brd_mode_for(comp, ui.bszsld->value());
 	vCoord sze = vid_crop_size(comp->vid, mode);
 	QString nam = (mode == VID_BRD_NATIVE) ? "native" : brd_mode_name(mode);
@@ -2036,14 +2199,14 @@ void SetupWin::palchoosecol(QPoint p) {
 void SetupWin::palstore() {
 	int i;
 	xColor xcol;
-	bool upd = !!vid_zx_palette(conf.prof.cur->zx->vid);
+	bool upd = !!vid_zx_palette(conf.zx->vid);
 	for (i = 0; (i < editpal.size()) && (i < 16); i++) {
 		qDebug() << editpal[i];
 		xcol.r = editpal[i].red();
 		xcol.g = editpal[i].green();
 		xcol.b = editpal[i].blue();
-		vid_set_bcol(conf.prof.cur->zx->vid, i, xcol);
-		if (upd) vid_set_col(conf.prof.cur->zx->vid, i, xcol);
+		vid_set_bcol(conf.zx->vid, i, xcol);
+		if (upd) vid_set_col(conf.zx->vid, i, xcol);
 	}
 	// save palette to file, cuz Settings OK will reload palette from file
 	saveColors(getRFSData(ui.cbPalPreset).toStdString(), editpal);
@@ -2052,7 +2215,7 @@ void SetupWin::palstore() {
 // disk
 
 void SetupWin::newdisk(int idx, int ask) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	Floppy *flp = comp->dif->flp[idx];
 	if (saveChangedDisk(comp,idx & 3) != ERR_OK) return;
 	flp_insert(flp, NULL);
@@ -2069,23 +2232,23 @@ void SetupWin::newb() {newdisk(1,1);}
 void SetupWin::newc() {newdisk(2,1);}
 void SetupWin::newd() {newdisk(3,1);}
 
-void SetupWin::loada() {load_file(conf.prof.cur->zx, NULL, FH_DRIVE_A, 0); updatedisknams();}
-void SetupWin::loadb() {load_file(conf.prof.cur->zx, NULL, FH_DRIVE_B, 1); updatedisknams();}
-void SetupWin::loadc() {load_file(conf.prof.cur->zx, NULL, FH_DRIVE_C, 2); updatedisknams();}
-void SetupWin::loadd() {load_file(conf.prof.cur->zx, NULL, FH_DRIVE_D, 3); updatedisknams();}
+void SetupWin::loada() {load_file(conf.zx, NULL, FH_DRIVE_A, 0); updatedisknams();}
+void SetupWin::loadb() {load_file(conf.zx, NULL, FH_DRIVE_B, 1); updatedisknams();}
+void SetupWin::loadc() {load_file(conf.zx, NULL, FH_DRIVE_C, 2); updatedisknams();}
+void SetupWin::loadd() {load_file(conf.zx, NULL, FH_DRIVE_D, 3); updatedisknams();}
 
-void SetupWin::savea() {Computer* comp = conf.prof.cur->zx; Floppy* flp = comp->dif->flp[0]; if (flp->insert) save_file(comp, flp->path, FG_DISK_A, 0); updatedisknams();}
-void SetupWin::saveb() {Computer* comp = conf.prof.cur->zx; Floppy* flp = comp->dif->flp[1]; if (flp->insert) save_file(comp, flp->path, FG_DISK_B, 1); updatedisknams();}
-void SetupWin::savec() {Computer* comp = conf.prof.cur->zx; Floppy* flp = comp->dif->flp[2]; if (flp->insert) save_file(comp, flp->path, FG_DISK_C, 2); updatedisknams();}
-void SetupWin::saved() {Computer* comp = conf.prof.cur->zx; Floppy* flp = comp->dif->flp[3]; if (flp->insert) save_file(comp, flp->path, FG_DISK_D, 3); updatedisknams();}
+void SetupWin::savea() {Computer* comp = conf.zx; Floppy* flp = comp->dif->flp[0]; if (flp->insert) save_file(comp, flp->path, FG_DISK_A, 0); updatedisknams();}
+void SetupWin::saveb() {Computer* comp = conf.zx; Floppy* flp = comp->dif->flp[1]; if (flp->insert) save_file(comp, flp->path, FG_DISK_B, 1); updatedisknams();}
+void SetupWin::savec() {Computer* comp = conf.zx; Floppy* flp = comp->dif->flp[2]; if (flp->insert) save_file(comp, flp->path, FG_DISK_C, 2); updatedisknams();}
+void SetupWin::saved() {Computer* comp = conf.zx; Floppy* flp = comp->dif->flp[3]; if (flp->insert) save_file(comp, flp->path, FG_DISK_D, 3); updatedisknams();}
 
-void SetupWin::ejcta() {Computer* comp = conf.prof.cur->zx; saveChangedDisk(comp,0); flp_eject(comp->dif->flp[0]); updatedisknams();}
-void SetupWin::ejctb() {Computer* comp = conf.prof.cur->zx; saveChangedDisk(comp,1); flp_eject(comp->dif->flp[1]); updatedisknams();}
-void SetupWin::ejctc() {Computer* comp = conf.prof.cur->zx; saveChangedDisk(comp,2); flp_eject(comp->dif->flp[2]); updatedisknams();}
-void SetupWin::ejctd() {Computer* comp = conf.prof.cur->zx; saveChangedDisk(comp,3); flp_eject(comp->dif->flp[3]); updatedisknams();}
+void SetupWin::ejcta() {Computer* comp = conf.zx; saveChangedDisk(comp,0); flp_eject(comp->dif->flp[0]); updatedisknams();}
+void SetupWin::ejctb() {Computer* comp = conf.zx; saveChangedDisk(comp,1); flp_eject(comp->dif->flp[1]); updatedisknams();}
+void SetupWin::ejctc() {Computer* comp = conf.zx; saveChangedDisk(comp,2); flp_eject(comp->dif->flp[2]); updatedisknams();}
+void SetupWin::ejctd() {Computer* comp = conf.zx; saveChangedDisk(comp,3); flp_eject(comp->dif->flp[3]); updatedisknams();}
 
 void SetupWin::updatedisknams() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	ui.apathle->setText(QString::fromLocal8Bit(comp->dif->flp[0]->path));
 	ui.bpathle->setText(QString::fromLocal8Bit(comp->dif->flp[1]->path));
 	ui.cpathle->setText(QString::fromLocal8Bit(comp->dif->flp[2]->path));
@@ -2096,28 +2259,28 @@ void SetupWin::updatedisknams() {
 // tape
 
 void SetupWin::loatape() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	load_file(comp, NULL, FG_TAPE, -1);
 	ui.tpathle->setText(QString::fromLocal8Bit(comp->tape->path));
 	buildtapelist();
 }
 
 void SetupWin::savtape() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if (comp->tape->blkCount != 0) {
 		save_file(comp, comp->tape->path, FG_TAPE, -1);
 	}
 }
 
 void SetupWin::ejctape() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	tapEject(comp->tape);
 	ui.tpathle->setText(QString::fromLocal8Bit(comp->tape->path));
 	buildtapelist();
 }
 
 void SetupWin::tblkup() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int ps = ui.tapelist->currentIndex().row();
 	if (ps > 0) {
 		tapSwapBlocks(comp->tape,ps,ps-1);
@@ -2127,7 +2290,7 @@ void SetupWin::tblkup() {
 }
 
 void SetupWin::tblkdn() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int ps = ui.tapelist->currentIndex().row();
 	if ((ps != -1) && (ps < comp->tape->blkCount - 1)) {
 		tapSwapBlocks(comp->tape,ps,ps+1);
@@ -2137,7 +2300,7 @@ void SetupWin::tblkdn() {
 }
 
 void SetupWin::tblkrm() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int ps = ui.tapelist->currentIndex().row();
 	if (ps != -1) {
 		tapDelBlock(comp->tape,ps);
@@ -2147,7 +2310,7 @@ void SetupWin::tblkrm() {
 }
 
 void SetupWin::chablock(QModelIndex idx) {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	int row = idx.row();
 	tapRewind(comp->tape,row);
 	buildtapelist();
@@ -2157,7 +2320,7 @@ void SetupWin::chablock(QModelIndex idx) {
 void SetupWin::tlistclick(QModelIndex idx) {
 	int row = idx.row();
 	int col = idx.column();
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	if ((row < 0) || (row >= comp->tape->blkCount)) return;
 	if (col != TCC_BRK) return;
 	comp->tape->blkData[row].breakPoint ^= 1;
@@ -2169,7 +2332,7 @@ void SetupWin::tlistclick(QModelIndex idx) {
 
 // show what the device reports after it was given an image or a folder
 void SetupWin::hddShowGeom(int wut) {
-	ATADev* dev = (wut == IDE_MASTER) ? conf.prof.cur->zx->ide->master : conf.prof.cur->zx->ide->slave;
+	ATADev* dev = (wut == IDE_MASTER) ? conf.zx->ide->master : conf.zx->ide->slave;
 	QSpinBox* cyl = (wut == IDE_MASTER) ? ui.hm_gcyl : ui.hs_gcyl;
 	QSpinBox* sec = (wut == IDE_MASTER) ? ui.hm_gsec : ui.hs_gsec;
 	QSpinBox* hds = (wut == IDE_MASTER) ? ui.hm_ghd : ui.hs_ghd;
@@ -2186,7 +2349,7 @@ void SetupWin::hddMasterImg() {
 	QString path = QFileDialog::getOpenFileName(this,"Image for master HDD","","All files (*)",NULL,QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
 	if (path.isEmpty()) return;
 	ui.hm_path->setText(path);
-	ide_mount(conf.prof.cur->zx->ide, IDE_MASTER, path);
+	ide_mount(conf.zx->ide, IDE_MASTER, path);
 	hddShowGeom(IDE_MASTER);
 }
 
@@ -2195,7 +2358,7 @@ void SetupWin::hddMasterDir() {
 	QString path = QFileDialog::getExistingDirectory(this,"Folder to serve as master HDD","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
 	if (path.isEmpty()) return;
 	ui.hm_path->setText(path);
-	ide_mount(conf.prof.cur->zx->ide, IDE_MASTER, path);
+	ide_mount(conf.zx->ide, IDE_MASTER, path);
 	hddShowGeom(IDE_MASTER);
 }
 
@@ -2203,7 +2366,7 @@ void SetupWin::hddSlaveDir() {
 	QString path = QFileDialog::getExistingDirectory(this,"Folder to serve as slave HDD","",QFileDialog::DontUseNativeDialog | QFileDialog::ShowDirsOnly);
 	if (path.isEmpty()) return;
 	ui.hs_path->setText(path);
-	ide_mount(conf.prof.cur->zx->ide, IDE_SLAVE, path);
+	ide_mount(conf.zx->ide, IDE_SLAVE, path);
 	hddShowGeom(IDE_SLAVE);
 }
 
@@ -2211,7 +2374,7 @@ void SetupWin::hddSlaveImg() {
 	QString path = QFileDialog::getOpenFileName(this,"Image for slave HDD","","All files (*)",NULL,QFileDialog::DontUseNativeDialog | QFileDialog::DontConfirmOverwrite);
 	if (path.isEmpty()) return;
 	ui.hs_path->setText(path);
-	ide_mount(conf.prof.cur->zx->ide, IDE_SLAVE, path);
+	ide_mount(conf.zx->ide, IDE_SLAVE, path);
 	hddShowGeom(IDE_SLAVE);
 }
 
@@ -2247,7 +2410,7 @@ void SetupWin::sdcPathChanged() {
 }
 
 void SetupWin::openSlot() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 //	QString fnam = QFileDialog::getOpenFileName(this,"Cartridge slot","","MSX cartridge (*.rom)");
 //	if (fnam.isEmpty()) return;
 //	ui.cSlotName->setText(fnam);
@@ -2260,7 +2423,7 @@ void SetupWin::openSlot() {
 int testSlotOn(Computer*);
 
 void SetupWin::ejectSlot() {
-	Computer* comp = conf.prof.cur->zx;
+	Computer* comp = conf.zx;
 	sltEject(comp->slot);
 	ui.cSlotName->clear();
 	if (testSlotOn(comp))
@@ -2435,63 +2598,6 @@ void SetupWin::umaconf() {
 	buildmenulist();
 	ui.umlist->selectRow(ui.umlist->rowCount()-1);
 }
-
-// profiles
-
-void SetupWin::newProfile() {
-	QString nam = QInputDialog::getText(this,"Enter...","New profile name");
-	if (nam.isEmpty()) return;
-	std::string nm = std::string(nam.toLocal8Bit().data());
-	std::string fp = nm + ".conf";
-	if (!addProfile(nm,fp))
-		shitHappens("Can't add such profile");
-	buildproflist();
-}
-
-void SetupWin::copyProf() {
-	int idx = ui.twProfileList->currentRow();
-	if (idx < 0) return;
-	QString nam = QInputDialog::getText(this,"Enter...","New profile name");
-	if (nam.isEmpty()) return;
-	std::string nm = std::string(nam.toLocal8Bit().data());
-	std::string pnam(ui.twProfileList->item(idx,0)->text().toLocal8Bit().data());
-	if (!copyProfile(pnam, nm))
-		shitHappens("Copying failed");
-	buildproflist();
-}
-
-void SetupWin::chProfile(int row, int col) {
-	if (row < 0) return;
-	if (row > conf.prof.list.size()) return;
-	std::string nm = conf.prof.list[row]->name;
-	prfSetCurrent(nm);
-	start();
-	emit s_prf_changed();
-}
-
-void SetupWin::rmProfile() {
-	int idx = ui.twProfileList->currentRow();
-	if (idx < 0) return;
-//	block = 1;
-	if (areSure("Do you really want to delete this profile?")) {
-		std::string pnam(ui.twProfileList->item(idx,0)->text().toLocal8Bit().data());
-		idx = delProfile(pnam);
-		switch(idx) {
-			case DELP_OK_CURR:
-//				conf.prof.changed = 1;
-				start();
-				emit s_prf_changed();
-				break;
-			case DELP_ERR:
-				shitHappens("Sorry, i can't delete this profile");
-				break;
-		}
-	}
-//	block = 0;
-	buildproflist();
-}
-
-// debuga
 
 void SetupWin::selectDbgFont() {
 	bool ok;

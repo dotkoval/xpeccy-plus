@@ -1,5 +1,7 @@
 #include <fstream>
 
+#include <QFile>
+
 #include <string.h>
 #include <math.h>
 
@@ -200,30 +202,23 @@ void initKeyMap() {
 }
 
 void loadKeys() {
-	xProfile* prf = conf.prof.cur;
-	if (!prf) return;
-	std::string sfnam = conf.path.confDir + SLASH + prf->kmapName;
 	initKeyMap();
-	if ((prf->kmapName == "") || (prf->kmapName == "default")) return;
-	std::ifstream file(sfnam);
-	if (!file.good()) {
-		sfnam = conf.path.confDir + SLASH + "keymaps" + SLASH + prf->kmapName;
-		file.open(sfnam);
-		if (!file.good()) {
-			xlog(XLG_INPUT, XLL_WARN, "can't open the keyboard layout, using the default one");
-			return;
-		}
+	if (conf.kmapName.empty() || (conf.kmapName == "default")) return;
+	QFile file(xres_path("keymaps", QString::fromLocal8Bit(conf.kmapName.c_str())));
+	if (!file.open(QFile::ReadOnly)) {
+		xlog(XLG_INPUT, XLL_WARN, "can't open the keyboard layout, using the default one");
+		return;
 	}
-	char buf[1024];
-//	std::pair<std::string,std::string> spl;
 	std::string line;
 	std::vector<std::string> vec;
 	char keys[8];
 	int rlen;
 	unsigned int i;
-	while (!file.eof()) {
-		file.getline(buf,1023);
-		line = std::string(buf);
+	while (!file.atEnd()) {
+		QByteArray ba = file.readLine();
+		while (ba.endsWith('\n') || ba.endsWith('\r'))		// a CRLF checkout, see CLAUDE.md
+			ba.chop(1);
+		line = std::string(ba.data());
 		vec = splitstr(line,"\t");
 		memset(keys, 0, 8);
 		rlen = 0;

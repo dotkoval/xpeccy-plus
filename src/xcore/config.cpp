@@ -26,21 +26,16 @@ enum {
 	SECT_ROMSETS,
 	SECT_SOUND,
 	SECT_TOOLS,
-	SECT_GAMEPAD,
 	SECT_GENERAL,
-	SECT_SCRSHOT,
-	SECT_DISK,
-	SECT_IDE,
-	SECT_MACHINE,
-	SECT_MENU,
 	SECT_TAPE,
 	SECT_LEDS,
 	SECT_INPUT,
-	SECT_SDC,
 	SECT_DEBUGA,
 	SECT_PALETTE,
 	SECT_KEYS,
 	SECT_LOG,
+	SECT_MACOVER,
+	SECT_MEDIA,
 };
 
 std::map<std::string, int> shotFormat;
@@ -68,15 +63,13 @@ void conf_init(char* wpath, char* confdir) {
 	conf.path.romDir = conf.path.confDir + "/roms";
 	mkdir(conf.path.romDir.c_str() ,0777);
 	conf.path.prfDir = conf.path.confDir + "/profiles";
-	mkdir(conf.path.prfDir.c_str() ,0777);
-	conf.path.shdDir = conf.path.confDir + "/shaders";
-	mkdir(conf.path.shdDir.c_str() ,0777);
+	conf.path.nvDir = conf.path.confDir + "/nvram";
+	mkdir(conf.path.nvDir.c_str() ,0777);
+	mkdir((conf.path.confDir + "/shaders").c_str() ,0777);
 	conf.path.palDir = conf.path.confDir + "/palettes";
 	mkdir(conf.path.palDir.c_str() ,0777);
 	conf.path.plgDir = conf.path.confDir + "/plugins";
-	mkdir(conf.path.plgDir.c_str() ,0777);
-	conf.path.qssDir = conf.path.confDir + "/styles";
-	mkdir(conf.path.qssDir.c_str() ,0777);
+	mkdir((conf.path.confDir + "/styles").c_str() ,0777);
 	conf.path.confFile = conf.path.confDir + "/config.conf";
 	conf.path.boot = conf.path.confDir + "/boot.$B";
 #elif defined(__WIN32)
@@ -92,26 +85,19 @@ void conf_init(char* wpath, char* confdir) {
 	}
 	conf.path.romDir = conf.path.confDir + "\\roms";
 	conf.path.prfDir = conf.path.confDir + "\\profiles";
-	conf.path.shdDir = conf.path.confDir + "\\shaders";
+	conf.path.nvDir = conf.path.confDir + "\\nvram";
 	conf.path.palDir = conf.path.confDir + "\\palettes";
 	conf.path.plgDir = conf.path.confDir + "\\plugins";
-	conf.path.qssDir = conf.path.confDir + "\\styles";
 	conf.path.confFile = conf.path.confDir + "\\config.conf";
 	conf.path.boot = conf.path.confDir + "\\boot.$B";
 	mkdir(conf.path.confDir.c_str());
 	mkdir(conf.path.romDir.c_str());
-	mkdir(conf.path.prfDir.c_str());
-	mkdir(conf.path.shdDir.c_str());
+	mkdir(conf.path.nvDir.c_str());
+	mkdir((conf.path.confDir + "\\shaders").c_str());
 	mkdir(conf.path.palDir.c_str());
-	mkdir(conf.path.plgDir.c_str());
-	mkdir(conf.path.qssDir.c_str());
+	mkdir((conf.path.confDir + "\\styles").c_str());
 #endif
 	conf.scrShot.format = "png";
-// Pentagon geometry:
-// rows: 16Vblk + (16 invis + 48 vis) top border + 192 screen + 48 bottom border = 320 rows
-// cols: 64Hblk + 72 left border + 256 screen + 56 right border = 448 dots (224T)
-	vLayout vlay = {{448,320},{72,64},{64,16},{256,192},{0,0},64};
-	addLayout("default", vlay);
 	conf.running = 0;
 	conf.boot = 1;
 	conf.autorun = 1;
@@ -119,7 +105,6 @@ void conf_init(char* wpath, char* confdir) {
 	conf.emu.pause = 0;
 	conf.emu.fast = 0;
 	conf.gpctrl = new xGamepadController;
-	addProfile("default","xpeccy.conf");
 
 	init_sin_tab();
 }
@@ -132,7 +117,9 @@ void saveConfig() {
 	}
 
 	fprintf(cfile,"[GENERAL]\n\n");
-	fprintf(cfile, "startdefault = %s\n", YESNO(conf.defProfile));
+	fprintf(cfile, "schema = 2\n");
+	fprintf(cfile, "machine = %s\n", conf.macId.c_str());
+	fprintf(cfile, "lastdir = %s\n", conf.lastDir.c_str());
 	fprintf(cfile, "savepaths = %s\n", YESNO(conf.storePaths));
 	fprintf(cfile, "fdcturbo = %s\n", YESNO(fdcFlag & FDC_FAST));
 	fprintf(cfile, "addboot = %s\n", YESNO(conf.boot));
@@ -150,22 +137,8 @@ void saveConfig() {
 		fprintf(cfile, "%s = %s\n", bkm.name.c_str(), bkm.path.c_str());
 	}
 
-	fprintf(cfile, "\n[PROFILES]\n\n");
-	foreach(xProfile* prf, conf.prof.list) {			// nr.0 skipped ('default' profile)
-		if (prf->name != "default")
-			fprintf(cfile, "%s = %s\n", prf->name.c_str(), prf->file.c_str());
-	}
-	fprintf(cfile, "current = %s\n", conf.prof.cur->name.c_str());
-
 	fprintf(cfile, "\n[VIDEO]\n\n");
-	foreach(xLayout lay, conf.layList) {
-		if (lay.name != "default") {
-			fprintf(cfile, "layout = %s:%i:%i:%i:%i:%i:%i:%i:%i:%i:%i:%i\n",lay.name.c_str(),\
-				lay.lay.full.x, lay.lay.full.y, lay.lay.bord.x, lay.lay.bord.y,\
-				lay.lay.blank.x, lay.lay.blank.y, lay.lay.intSize, lay.lay.intpos.y, lay.lay.intpos.x,\
-				lay.lay.scr.x, lay.lay.scr.y);
-		}
-	}
+	fprintf(cfile, "palette = %s\n", conf.palette.c_str());
 	fprintf(cfile, "scrDir = %s\n", conf.scrShot.dir.c_str());
 	fprintf(cfile, "scrFormat = %s\n", conf.scrShot.format.c_str());
 	fprintf(cfile, "scrCount = %i\n", conf.scrShot.count);
@@ -186,23 +159,6 @@ void saveConfig() {
 	fprintf(cfile, "noflick.mode = %i\n", noflicMode);
 	fprintf(cfile, "noflick.gamma = %f\n", noflicGamma);
 	fprintf(cfile, "shader = %s\n", conf.vid.shader.c_str());
-
-	fprintf(cfile, "\n[ROMSETS]\n");
-	foreach(xRomset rms, conf.rsList) {
-		fprintf(cfile, "\nname = %s\n", rms.name.c_str());
-		foreach(xRomFile rf, rms.roms) {
-			fprintf(cfile, "rom = %s:%i:%i:%i\n",rf.name.c_str(), rf.foffset, rf.fsize, rf.roffset);
-		}
-		if (!rms.gsFile.empty())
-			fprintf(cfile, "gs = %s\n", rms.gsFile.c_str());
-		if (!rms.fntFile.empty())
-			fprintf(cfile, "font = %s\n", rms.fntFile.c_str());
-		if (!rms.vBiosFile.empty())
-			fprintf(cfile, "vga = %s\n", rms.vBiosFile.c_str());
-		if (!rms.sBiosFile.empty())
-			fprintf(cfile, "snd = %s\n", rms.sBiosFile.c_str());
-	}
-
 	fprintf(cfile, "\n[SOUND]\n\n");
 	fprintf(cfile, "enabled = %s\n", YESNO(conf.snd.enabled));
 	fprintf(cfile, "soundsys = %s\n", sndOutput->name);
@@ -218,12 +174,28 @@ void saveConfig() {
 	fprintf(cfile, "volume.sdrv = %i\n", conf.snd.vol.sdrv);
 	fprintf(cfile, "volume.saa = %i\n", conf.snd.vol.saa);
 
+	fprintf(cfile, "psg.frq = %f\n", conf.zx->ts->chipA->frq);
+	fprintf(cfile, "psg.stereo = %i\n", conf.zx->ts->chipA->stereo);
+	fprintf(cfile, "psg.separation = %i\n", conf.zx->ts->chipA->sep);
+	fprintf(cfile, "gs.reset = %s\n", YESNO(conf.zx->gs->reset));
+	fprintf(cfile, "gs.stereo = %i\n", conf.zx->gs->stereo);
+
 	fprintf(cfile, "\n[TAPE]\n\n");
+	fprintf(cfile, "speed = %i\n", conf.zx->tape->speed);
 	fprintf(cfile, "autoplay = %s\n", YESNO(conf.tape.autostart));
 	fprintf(cfile, "fast = %s\n", YESNO(conf.tape.fast));
 	fprintf(cfile, "rewind = %s\n", YESNO(conf.tape.rewind));
 
 	fprintf(cfile, "\n[INPUT]\n\n");
+	fprintf(cfile, "mouse.wheel = %s\n", YESNO(conf.zx->mouse->hasWheel));
+	fprintf(cfile, "mouse.swapButtons = %s\n", YESNO(conf.zx->mouse->swapButtons));
+	fprintf(cfile, "mouse.sensitivity = %f\n", conf.zx->mouse->sensitivity);
+	fprintf(cfile, "mouse.pctype = %i\n", conf.zx->mouse->pcmode);
+	fprintf(cfile, "kbd.scantab = %i\n", conf.zx->keyb->pcmode);
+	fprintf(cfile, "keymap = %s\n", conf.kmapName.c_str());
+	fprintf(cfile, "gamepad.map = %s\n", conf.jmapNameA.c_str());
+	fprintf(cfile, "gamepad2.map = %s\n", conf.jmapNameB.c_str());
+	fprintf(cfile, "frq.mul = %f\n", conf.zx->frqMul);
 	// What each slot remembers, whether or not that pad is plugged in now.
 	// A sleeping wireless pad must read the same here as an awake one.
 	fprintf(cfile, "gamepad = %s\n", conf.gpctrl->gpada->padId().toConfig().toUtf8().data());
@@ -260,6 +232,9 @@ void saveConfig() {
 	fprintf(cfile, "show.frame = %s\n", YESNO(conf.dbg.showfrm));
 	fprintf(cfile, "font = %s\n", conf.dbg.font.toString().toUtf8().data());
 	fprintf(cfile, "window = %i:%i:%i:%i\n",conf.dbg.pos.x(),conf.dbg.pos.y(),conf.dbg.siz.width(),conf.dbg.siz.height());
+	QStringList pts = getWatchPorts(conf.zx, 0);
+	if (!pts.isEmpty())
+		fprintf(cfile, "ports = %s\n", pts.join(",").toLatin1().data());
 
 	fprintf(cfile, "\n[PALETTE]\n\n");
 	QStringList lst = conf.pal.keys();
@@ -281,6 +256,9 @@ void saveConfig() {
 		fprintf(cfile, "%s = %s\n", tab[i].name, tab[i].seq.toString().toLocal8Bit().data());
 		i++;
 	}
+
+	xm_save(cfile);
+	xm_save_media(cfile);
 	fclose(cfile);
 }
 
@@ -321,9 +299,8 @@ const char* dbgPaletteDefault(const char* name) {
 
 bool loadStylePalette(const std::string& style) {
 	if (style.empty()) return false;
-	QString path = QString::fromLocal8Bit(conf.path.qssDir.c_str()) + SLASH
-		+ QFileInfo(QString::fromLocal8Bit(style.c_str())).completeBaseName() + ".pal";
-	QFile file(path);
+	QFile file(xres_path("styles",
+		QFileInfo(QString::fromLocal8Bit(style.c_str())).completeBaseName() + ".pal"));
 	if (!file.open(QFile::ReadOnly | QFile::Text)) return false;
 	QTextStream strm(&file);
 	while (!strm.atEnd()) {
@@ -372,12 +349,11 @@ static QString sysConfigDir() {
 
 // add to the config directory whatever the installed configuration has and it
 // lacks, so files an update brings along show up. Files already there are left
-// alone, edits included. Returns false if there is nothing to copy from, so the
-// built-in defaults are used.
+// alone, edits included.
 
-static bool seedConfigDir(const QString& src) {
+static void seedConfigDir(const QString& src) {
 	QDir sdir(src);
-	if (src.isEmpty() || !sdir.exists()) return false;
+	if (src.isEmpty() || !sdir.exists()) return;
 	QString dst = QString::fromLocal8Bit(conf.path.confDir.c_str());
 	QDirIterator it(src, QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDirIterator::Subdirectories);
 	int cnt = 0;
@@ -393,31 +369,169 @@ static bool seedConfigDir(const QString& src) {
 		}
 	}
 	if (cnt) xlog(XLG_CONF, XLL_INFO, "%i files copied from %s", cnt, src.toLocal8Bit().data());
-	return true;
 }
 
 // emulator config
+
+// THE CONFIGURATION AS ONE FILE
+//
+// Everything a setup is made of, in one text file: the settings, the screen
+// layouts and the machines of the user's own. Plain text on purpose - it is
+// meant to be read, diffed and pasted into a bug report. Roms, palettes,
+// shaders, styles and keymaps are not in it: those are files a person put
+// there, not settings, and the ones that ship are in the binary anyway.
+//
+// A line of the form [[<name>]] at the left margin starts a file; everything
+// up to the next one is its content.
+
+#define	XCONF_MARK	"[["
+
+// the settings themselves; the machines come from the module that owns them
+
+static const char* xconfFile[] = {"config.conf", "layouts.conf", NULL};
+
+static QString xconf_dir() {
+	return QString::fromLocal8Bit(conf.path.confDir.c_str());
+}
+
+static QStringList xconf_files() {
+	QStringList res;
+	for (int i = 0; xconfFile[i]; i++)
+		res << xconfFile[i];
+	return res + xm_user_files();
+}
+
+// The caller commits what it has first: this writes the files as they stand.
+
+bool xconf_export(const QString& path) {
+	QFile out(path);
+	if (!out.open(QFile::WriteOnly)) {
+		xlog(XLG_CONF, XLL_ERROR, "can't write %s", path.toLocal8Bit().data());
+		return false;
+	}
+	QString head = QString("# " XPRODUCT " configuration, version " XVERSION "\n"
+		"# Import it in Options - Xpeccy+ - General.\n");
+	out.write(head.toLocal8Bit());
+	QString base = xconf_dir();
+	foreach(QString nam, xconf_files()) {
+		QFile in(base + SLASH + nam);
+		if (!in.open(QFile::ReadOnly)) continue;	// nothing of that kind here
+		out.write(QString("\n" XCONF_MARK "%1]]\n").arg(nam).toLocal8Bit());
+		out.write(in.readAll());
+		in.close();
+	}
+	out.close();
+	xlog(XLG_CONF, XLL_INFO, "configuration exported to %s", path.toLocal8Bit().data());
+	return true;
+}
+
+// the files of the config directory this one is allowed to write over. Not
+// the list above: a machine that is not here yet is exactly what an imported
+// file is expected to bring
+
+static bool xconf_may_write(const QString& nam) {
+	if (nam.contains("..") || nam.contains(':')) return false;
+	for (int i = 0; xconfFile[i]; i++) {
+		if (nam == xconfFile[i]) return true;
+	}
+	return xm_is_user_file(nam);
+}
+
+bool xconf_import(const QString& path) {
+	QFile in(path);
+	if (!in.open(QFile::ReadOnly | QFile::Text)) {
+		xlog(XLG_CONF, XLL_ERROR, "can't read %s", path.toLocal8Bit().data());
+		return false;
+	}
+	QMap<QString, QByteArray> part;
+	QString nam;
+	while (!in.atEnd()) {
+		QByteArray line = in.readLine();
+		QString txt = QString::fromLocal8Bit(line).trimmed();
+		if (txt.startsWith(XCONF_MARK) && txt.endsWith("]]")) {
+			nam = txt.mid(2, txt.size() - 4);
+			if (!xconf_may_write(nam)) {
+				xlog(XLG_CONF, XLL_WARN, "not importing '%s'", nam.toLocal8Bit().data());
+				nam.clear();
+			} else {
+				part[nam] = QByteArray();
+			}
+		} else if (!nam.isEmpty()) {
+			part[nam] += line;
+		}
+	}
+	in.close();
+	if (part.isEmpty()) {
+		xlog(XLG_CONF, XLL_ERROR, "%s holds no configuration", path.toLocal8Bit().data());
+		return false;
+	}
+	QString base = xconf_dir();
+	foreach(QString key, part.keys()) {
+		QString dst = base + SLASH + key;
+		QDir().mkpath(QFileInfo(dst).path());
+		QFile f(dst);
+		if (!f.open(QFile::WriteOnly)) {
+			xlog(XLG_CONF, XLL_ERROR, "can't write %s", dst.toLocal8Bit().data());
+			continue;
+		}
+		f.write(part.value(key));
+		f.close();
+	}
+	xlog(XLG_CONF, XLL_INFO, "configuration imported from %s", path.toLocal8Bit().data());
+	return reloadConfig();
+}
+
+// back to what the emulator ships with: the settings file and the layouts go,
+// and the next read takes the defaults out of the binary. Machines of the
+// user's own are content, not settings, and are left where they are.
+
+bool xconf_reset() {
+	for (int i = 0; xconfFile[i]; i++)
+		QFile::remove(xconf_dir() + SLASH + xconfFile[i]);
+	return reloadConfig();
+}
+
+// Reading the configuration again, into the machine and the windows that are
+// already up. loadConfig() is written to be able to do this - it clears every
+// list it fills and keeps conf.zx - and it throws when there is nothing to
+// read at all, which here would take the whole emulator down with it.
+
+bool reloadConfig() {
+	// loadConfig() is startup: it re-opens the sound output and rescans the
+	// gamepads as well as reading the files, and it does it under a machine
+	// that is already running
+	emu_lock();
+	conf.emu.pause |= PR_EXTRA;
+	try {
+		loadConfig();
+	} catch (...) {
+		xlog(XLG_CONF, XLL_ERROR, "the configuration could not be read");
+		conf.emu.pause &= ~PR_EXTRA;
+		emu_unlock();
+		return false;
+	}
+	conf.emu.pause &= ~PR_EXTRA;
+	emu_unlock();
+	return true;
+}
 
 void loadConfig() {
 	std::string soutnam = "NULL";
 	//printf("%s\n",conf.path.confFile);
 	// on every start, not only on the first one: this is how a new file added
 	// by an update reaches a config directory that already exists
-	bool installed = seedConfigDir(sysConfigDir());
+	seedConfigDir(sysConfigDir());
 	std::ifstream file(conf.path.confFile);
 	char fname[FILENAME_MAX];
 	if (!file.good()) {
 		xlog(XLG_CONF, XLL_WARN, "main config is missing, copying the default files");
-		if (!installed) {
-			copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
-			strcpy(fname, conf.path.confDir.c_str());
-			strcat(fname, SLASH);
-			strcat(fname, "xpeccy.conf");
-			copyFile(":/res/fallback/xpeccy.conf", fname);
-			strcpy(fname, conf.path.romDir.c_str());
-			strcat(fname, SLASH);
-			strcat(fname, "48.rom");
-			copyFile(":/config/roms/48.rom", fname);
+		// no file to copy from an install either: the defaults are in the
+		// binary, and so are the roms the machine they name needs
+		copyFile(":/res/fallback/config.conf", conf.path.confFile.c_str());
+		static const char* seedRom[] = {"48.rom", "128-0.rom", "128-1.rom", NULL};
+		for (int i = 0; seedRom[i]; i++) {
+			snprintf(fname, sizeof(fname), "%s" SLASH "%s", conf.path.romDir.c_str(), seedRom[i]);
+			copyFile((std::string(":/config/roms/") + seedRom[i]).c_str(), fname);
 		}
 		file.open(conf.path.confFile);
 		if (!file.good()) {
@@ -426,7 +540,13 @@ void loadConfig() {
 			throw(0);
 		}
 	}
-	clearProfiles();
+	layouts_load_all();
+	xm_load_all();
+	xm_over_clear();
+	if (!conf.zx) {
+		conf.zx = compCreate();
+		compSetHardware(conf.zx, "Dummy");
+	}
 	conf.bookmarkList.clear();
 	char buf[0x4000];
 	QColor col;
@@ -434,8 +554,10 @@ void loadConfig() {
 	std::string line,pnam,pval;
 	std::string pnm = "default";
 	int section = SECT_NONE;
+	int schema = 1;
+	std::string macover;
+	std::map<std::string, std::string> oldprf;
 	std::vector<std::string> vect;
-	vLayout vlay;
 	std::vector<xRomset> rsListist;
 	xRomset newrs;
 	xRomFile rfile;
@@ -453,6 +575,7 @@ void loadConfig() {
 	conf.keywin.dock = 0;
 	conf.keywin.width = 0;
 	conf.vid.border = VID_BRD_FULL;
+	conf.vid.scale = 2;		// a config with no scale must not make a zero-size window
 	conf.dbg.dbsize = 8;
 	conf.dbg.dwsize = 4;
 	conf.dbg.dmsize = 127;
@@ -494,9 +617,17 @@ void loadConfig() {
 		arg.s = pval.c_str();
 		arg.i = strtol(arg.s, NULL, 0);
 		arg.d = strtod(arg.s, NULL);
-		if (pval=="") {
+		if (pnam.empty()) continue;		// a blank line, or one that is all comment
+		// a line with nothing after the = is a value, not a section: an empty
+		// value is how a rom bank is emptied and a setting is cleared
+		if (pnam[0] == '[') {
 			if (pnam=="[BOOKMARKS]") section = SECT_BOOKMARK;
 			if (pnam=="[PROFILES]") section = SECT_PROFILES;
+			if (pnam=="[MEDIA]") section = SECT_MEDIA;
+			if (pnam.compare(0, 9, "[MACHINE.") == 0) {
+				section = SECT_MACOVER;
+				macover = pnam.substr(9, pnam.size() - 10);
+			}
 			if (pnam=="[VIDEO]") section = SECT_VIDEO;
 			if (pnam=="[ROMSETS]") section = SECT_ROMSETS;
 			if (pnam=="[SOUND]") section = SECT_SOUND;
@@ -541,6 +672,7 @@ void loadConfig() {
 					}
 					if ((pnam == "scr.zoom") && (arg.i > 0) && (arg.i < 4))
 						conf.dbg.scrzoom = arg.i;
+					if (pnam == "ports") xm_defer(pnam, pval);
 					if ((pnam == "regs.layout") && ((arg.i == DBG_REGS_AUTO) || (arg.i == DBG_REGS_1COL)
 							|| (arg.i == DBG_REGS_2COL) || (arg.i == DBG_REGS_WIDE)))
 						conf.dbg.reglayout = arg.i;
@@ -561,39 +693,35 @@ void loadConfig() {
 				case SECT_BOOKMARK:
 					addBookmark(pnam, pval);
 					break;
-				case SECT_PROFILES:
+				case SECT_PROFILES:		// only a config written before schema 2 has this
 					if (pnam == "current") {
 						pnm = pval;
 					} else {
-						addProfile(pnam, pval);
+						oldprf[pnam] = pval;
 					}
 					break;
+				case SECT_MACOVER:
+					xm_over_add(macover, pnam, pval);
+					break;
+				case SECT_MEDIA:
+					xm_defer(pnam, pval);
+					break;
 				case SECT_INPUT:
+					if (pnam=="keymap") conf.kmapName = pval;
+					if (pnam=="gamepad.map") conf.jmapNameA = pval;
+					if (pnam=="gamepad2.map") conf.jmapNameB = pval;
+					if ((pnam=="mouse.wheel") || (pnam=="mouse.swapButtons") || (pnam=="mouse.sensitivity")
+						|| (pnam=="mouse.pctype") || (pnam=="kbd.scantab") || (pnam=="frq.mul"))
+						xm_defer(pnam, pval);
 					if (pnam=="deadzone") conf.gpctrl->gpada->setDeadZone(arg.i);
 					if (pnam=="deadzone2") conf.gpctrl->gpadb->setDeadZone(arg.i);
 					if (pnam=="gamepad") conf.gpctrl->gpada->setPadId(xPadId::fromConfig(arg.s));
 					if (pnam=="gamepad2") conf.gpctrl->gpadb->setPadId(xPadId::fromConfig(arg.s));
 					break;
 				case SECT_VIDEO:
-					if (pnam=="layout") {
-						vect = splitstr(pval,":");
-						if (vect.size() > 8) {
-							vlay.full.x = atoi(vect[1].c_str());
-							vlay.full.y = atoi(vect[2].c_str());
-							vlay.bord.x = atoi(vect[3].c_str());
-							vlay.bord.y = atoi(vect[4].c_str());
-							vlay.blank.x = atoi(vect[5].c_str());
-							vlay.blank.y = atoi(vect[6].c_str());
-							vlay.intSize = atoi(vect[7].c_str());
-							vlay.intpos.y = atoi(vect[8].c_str());
-							vlay.intpos.x = (vect.size() > 9) ? atoi(vect[9].c_str()) : 0;
-							vlay.scr.x = (vect.size() > 10) ? atoi(vect[10].c_str()) : 256;
-							vlay.scr.y = (vect.size() > 11) ? atoi(vect[11].c_str()) : 192;
-							if (vlay.full.x > 512) vlay.full.x = 512;
-							if (vlay.full.y > 512) vlay.full.y = 512;
-							addLayout(vect[0], vlay);
-						}
-					}
+					// a config from before the layouts had a file of their own
+					if (pnam=="layout") addLayoutString(pval);
+					if (pnam=="palette") conf.palette = pval;
 					if (pnam=="scrDir") conf.scrShot.dir = pval;
 					if (pnam=="scrFormat") conf.scrShot.format = pval;
 					if (pnam=="scrCount") conf.scrShot.count = arg.i;
@@ -709,11 +837,15 @@ void loadConfig() {
 					if (pnam=="volume.gs") conf.snd.vol.gs = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.sdrv") conf.snd.vol.sdrv = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.saa") conf.snd.vol.saa = getRanged(arg.s, 0, 100);
+					if ((pnam=="psg.frq") || (pnam=="psg.stereo") || (pnam=="psg.separation")
+						|| (pnam=="gs.reset") || (pnam=="gs.stereo")) xm_defer(pnam, pval);
 					break;
 				case SECT_TOOLS:
 					break;
 				case SECT_GENERAL:
-					if (pnam=="startdefault") conf.defProfile = arg.b;
+					if (pnam=="schema") schema = arg.i;
+					if (pnam=="machine") conf.macId = pval;
+					if (pnam=="lastdir") conf.lastDir = pval;
 					if (pnam=="savepaths") conf.storePaths = arg.b;
 					if (pnam == "fdcturbo") setFlagBit(arg.b, &fdcFlag, FDC_FAST);
 					if (pnam == "port") conf.port = arg.i & 0xffff;
@@ -736,6 +868,7 @@ void loadConfig() {
 					if (pnam=="autoplay") conf.tape.autostart = arg.b;
 					if (pnam=="fast") conf.tape.fast = arg.b;
 					if (pnam=="rewind") conf.tape.rewind = arg.b;
+					if (pnam=="speed") xm_defer("tape.speed", pval);
 					break;
 				case SECT_LEDS:
 					if (pnam=="mouse") conf.led.mouse = arg.b;
@@ -755,20 +888,24 @@ void loadConfig() {
 	foreach(xRomset rs, rsListist) addRomset(rs);
 //	prfLoadAll();
 	setOutput(soutnam.c_str());
-	if (conf.defProfile) {
-		if (!prfSetCurrent("default")) {
-			xlog(XLG_CONF, XLL_ERROR, "can't set the default profile");
+	bool ok = false;
+	if (schema < 2) {			// a config from before the machines: bring it across
+		std::string file = oldprf.count(pnm) ? oldprf[pnm] : "xpeccy.conf";
+		ok = xm_migrate(pnm.empty() ? std::string("default") : pnm, file);
+	} else {
+		ok = xm_set(conf.macId);
+	}
+	if (!ok) {
+		xlog(XLG_CONF, XLL_WARN, "no machine to start, taking the first one");
+		if (xm_list().isEmpty() || !xm_set(xm_list().first().id)) {
+			xlog(XLG_CONF, XLL_ERROR, "there are no machines at all");
 			throw(0);
 		}
-	} else {
-		if (!prfSetCurrent(pnm.c_str())) {
-			xlog(XLG_CONF, XLL_WARN, "can't set profile '%s', using the default one", pnm.c_str());
-			if (!prfSetCurrent("default")) {
-				xlog(XLG_CONF, XLL_ERROR, "...and the default one fails too");
-				throw(0);
-			}
-		}
 	}
+	xm_finish_load();
+	conf.gpctrl->gpada->loadMap(conf.jmapNameA);
+	conf.gpctrl->gpadb->loadMap(conf.jmapNameB);
+	loadKeys();
 	// this must be after setCurrentProfile
 	vid_set_zoom(conf.vid.scale);
 	vid_set_fullscreen(conf.vid.fullScreen);

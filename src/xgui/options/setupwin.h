@@ -3,6 +3,7 @@
 #include <QDialog>
 #include <QKeyEvent>
 #include <QShortcut>
+#include <QComboBox>
 #include <QModelIndex>
 #include <QKeySequence>
 
@@ -29,6 +30,13 @@ class SetupWin : public QDialog {
 		void start();
 		void setPadName();
 	private:
+		QDialog* popOut(QWidget*, const char*);
+		void cfgLoaded();
+		void fillRomSlots();
+		void addRomSlot(int, QString, int, const QStringList&, bool, int);
+		QString romSlotFileName(int);
+		void romSlotPick(int, const QString&);
+		void romSlotFile(QComboBox*, int);
 		void fillDbgPalette();
 		void fillLogPage();
 		void applyLogPage();
@@ -38,7 +46,10 @@ class SetupWin : public QDialog {
 		Ui::LayEditor layUi;
 
 		xRomsetEditor* rseditor;
+		QDialog* advWin;		// the machine-defining settings
+		QDialog* romWin;		// the set, file by file
 		xRomsetModel* rsmodel;
+		xRomset roms;			// the set the page edits, until Apply
 
 		QDialog* layeditor;
 		QDialog* umadial;
@@ -65,7 +76,6 @@ class SetupWin : public QDialog {
 		void buildtapelist();
 		void buildmenulist();
 		void buildkeylist();
-		void buildproflist();
 		void buildpadlist();
 
 	signals:
@@ -76,7 +86,6 @@ class SetupWin : public QDialog {
 		void reject();
 		void apply();
 		void okay();
-		void buildrsetlist();
 		void setmszbox(int);
 		void selsspath();
 		void chabsz();
@@ -113,13 +122,19 @@ class SetupWin : public QDialog {
 		void openSlot();
 		void ejectSlot();
 
-		void addNewRomset();
-		void rmRomset();
 		void addRom();
 		void editRom();
 		void delRom();
 		void setRom(xRomFile);
 		void romPreset();
+		void resetMachine();
+		void showAdvanced();
+		void showRomFiles();
+		void saveMachine();
+		void cfgExport();
+		void cfgImport();
+		void cfgReset();
+		void delMachine();
 
 		void newPadMap();
 		void delPadMap();
@@ -136,10 +151,6 @@ class SetupWin : public QDialog {
 		void diskToHobeta();
 		void diskToRaw();
 
-		void newProfile();
-		void copyProf();
-		void chProfile(int, int);
-		void rmProfile();
 
 		void edLayout();
 		void addNewLayout();

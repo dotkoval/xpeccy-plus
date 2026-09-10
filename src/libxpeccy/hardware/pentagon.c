@@ -1,12 +1,7 @@
 #include "../spectrum.h"
 
 void penMapMem(Computer* comp) {
-	int pg = (comp->flgDOS ? 2 : 0) | ((comp->flgROM) ? 1 : 0);
-	memSetBank(comp->mem, 0x00, MEM_ROM, pg, MEM_16K, NULL, NULL, NULL);
-	pg = (comp->p7FFD & 7) | ((comp->p7FFD & 0xc0) >> 3);
-	memSetBank(comp->mem, 0x40, MEM_RAM, 5, MEM_16K, NULL, NULL, NULL);
-	memSetBank(comp->mem, 0x80, MEM_RAM, 2, MEM_16K, NULL, NULL, NULL);
-	memSetBank(comp->mem, 0xc0, MEM_RAM, pg, MEM_16K, NULL, NULL, NULL);
+	zx128_map_mem(comp, 0xc0);	// bits 6,7 of 0x7FFD extend the bank field
 }
 
 // in
