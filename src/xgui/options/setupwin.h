@@ -20,7 +20,6 @@
 
 #include "ui_rsedit.h"
 #include "ui_setupwin.h"
-#include "ui_umadial.h"
 #include "ui_layedit.h"
 
 class SetupWin : public QDialog {
@@ -43,7 +42,6 @@ class SetupWin : public QDialog {
 		void applyLogPage();
 
 		Ui::SetupWin ui;
-		Ui::UmaDial uia;
 		Ui::LayEditor layUi;
 
 		xRomsetEditor* rseditor;
@@ -55,7 +53,6 @@ class SetupWin : public QDialog {
 		xRomset roms;			// the set the page edits, until Apply
 
 		QDialog* layeditor;
-		QDialog* umadial;
 //		xPadMapModel* padModel;
 		xKeyEditor* kedit;
 		xPalEditor* paleditor;
@@ -75,9 +72,7 @@ class SetupWin : public QDialog {
 		QFont dbgfnt;
 
 		int bindidx;
-		int umidx;
 		void buildtapelist();
-		void buildmenulist();
 		void buildkeylist();
 		void buildpadlist();
 
@@ -105,9 +100,6 @@ class SetupWin : public QDialog {
 		void hddShowGeom(int);
 		void hddMasterImg(); void hddSlaveImg();
 		void hddMasterDir(); void hddSlaveDir();
-		void umadd(); void umdel(); void umup(); void umdn();
-		void umedit(QModelIndex);
-		void umaselp(); void umaconf();
 		void chablock(QModelIndex);
 		void tlistclick(QModelIndex);
 

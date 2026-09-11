@@ -303,6 +303,7 @@ enum {
 	XCUT_WAV_OUT,
 	XCUT_RELOAD_SHD,
 	XCUT_RELOAD,
+	XCUT_FAVORITE,
 
 	XCUT_STEPIN,
 	XCUT_STEPOVER,
@@ -379,6 +380,7 @@ typedef struct {
 } xBookmark;
 
 void addBookmark(std::string,std::string);
+int findBookmark(const QString&);		// -1 when the file is not in the list
 void setBookmark(int,std::string,std::string);
 void delBookmark(int);
 void swapBookmarks(int,int);
