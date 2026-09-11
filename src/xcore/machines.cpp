@@ -72,6 +72,11 @@ static xMacWord ideTab[] = {
 	{"profi", IDE_PROFI}, {NULL, 0}
 };
 
+// what a machine's PC keyboard talks; "none" leaves the core's own type alone
+static xMacWord scanTab[] = {
+	{"none", 0}, {"xt", KBD_XT}, {"at", KBD_AT}, {"ps2", KBD_PS2}, {NULL, 0}
+};
+
 static xMacWord resetTab[] = {
 	{"basic128", RES_128}, {"basic48", RES_48},
 	{"dos", RES_DOS}, {"shadow", RES_SHADOW}, {NULL, 0}
@@ -161,7 +166,7 @@ static const struct {
 	{"psg.count", "sound"}, {"psg.type", "sound"}, {"gs", "sound"},
 	{"saa", "sound"}, {"soundrive", "sound"},
 	{"disk", "storage"}, {"ide", "storage"},
-	{"mouse", "input"}, {"joy.buttons", "input"},
+	{"mouse", "input"}, {"joy.buttons", "input"}, {"kbd.scantab", "input"},
 	{NULL, NULL}
 };
 
@@ -195,6 +200,7 @@ static void mac_defaults(xMachine& mac) {
 	mac.ide = IDE_NONE;
 	mac.mouse = 0;
 	mac.joyButtons = 0;
+	mac.scantab = 0;
 	mac.gs = 0;
 	mac.saa = 0;
 	mac.ulaplus = 0;
@@ -243,6 +249,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 		} else if (ln.sect == "input") {
 			if (nam == "mouse") mac.mouse = arg.b;
 			else if (nam == "joy.buttons") mac.joyButtons = arg.b;
+			else if (nam == "kbd.scantab") mac.scantab = mac_word(scanTab, val, 0, id);
 		} else if (ln.sect == "rom") {
 			if (nam == "banks") mac.romBanks = toLimits(arg.i, 1, 4);
 			else if (nam == "gs") mac.roms.gsFile = val;
@@ -663,6 +670,7 @@ static void mac_from_def(const xMachine* mac) {
 	ide_set_type(comp->ide, mac->ide);
 	comp->mouse->enable = mac->mouse;
 	comp->joy->extbuttons = mac->joyButtons;
+	comp->keyb->pcmode = mac->scantab;
 	conf.layName = mac->geometry;
 }
 
@@ -774,6 +782,7 @@ static void mac_put_all(QStringList& out, const xMachine* mac) {
 	mac_put(out, "ide", mac_word_name(ideTab, comp->ide->type), mac_word_name(ideTab, mac->ide));
 	mac_put_yn(out, "mouse", comp->mouse->enable, mac->mouse);
 	mac_put_yn(out, "joy.buttons", comp->joy->extbuttons, mac->joyButtons);
+	mac_put(out, "kbd.scantab", mac_word_name(scanTab, comp->keyb->pcmode), mac_word_name(scanTab, mac->scantab));
 	mac_put_roms(out, mac);
 }
 

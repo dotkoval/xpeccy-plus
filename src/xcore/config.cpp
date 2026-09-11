@@ -195,7 +195,6 @@ void saveConfig() {
 	fprintf(cfile, "mouse.swapButtons = %s\n", YESNO(conf.zx->mouse->swapButtons));
 	fprintf(cfile, "mouse.sensitivity = %f\n", conf.zx->mouse->sensitivity);
 	fprintf(cfile, "mouse.pctype = %i\n", conf.zx->mouse->pcmode);
-	fprintf(cfile, "kbd.scantab = %i\n", conf.zx->keyb->pcmode);
 	fprintf(cfile, "keymap = %s\n", conf.kmapName.c_str());
 	fprintf(cfile, "gamepad.map = %s\n", conf.jmapNameA.c_str());
 	fprintf(cfile, "gamepad2.map = %s\n", conf.jmapNameB.c_str());
@@ -719,8 +718,10 @@ void loadConfig() {
 					if (pnam=="keymap") conf.kmapName = pval;
 					if (pnam=="gamepad.map") conf.jmapNameA = pval;
 					if (pnam=="gamepad2.map") conf.jmapNameB = pval;
+					// kbd.scantab belongs to the machine now and is not written here
+					// any more; an older config still sets it, the once
 					if ((pnam=="mouse.wheel") || (pnam=="mouse.swapButtons") || (pnam=="mouse.sensitivity")
-						|| (pnam=="mouse.pctype") || (pnam=="kbd.scantab") || (pnam=="frq.mul"))
+						|| (pnam=="mouse.pctype") || (pnam=="frq.mul") || (pnam=="kbd.scantab"))
 						xm_defer(pnam, pval);
 					if (pnam=="deadzone") conf.gpctrl->gpada->setDeadZone(arg.i);
 					if (pnam=="deadzone2") conf.gpctrl->gpadb->setDeadZone(arg.i);
