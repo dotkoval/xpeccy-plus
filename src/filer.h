@@ -103,8 +103,8 @@ int load_file(Computer* comp, const char* name, int id, int drv);
 #define RELOAD_SNAPSHOT	1
 #define RELOAD_LABELS	2
 int media_reload(Computer*);
-// what that call really loaded, empty when nothing
-QString file_last_loaded();
+// a snapshot loaded since the last call, empty when none
+QString file_take_snapshot();
 // the machine that file should be opened on, before it is (xcore/filemachine.h):
 // *mac comes back empty to keep the running one, false means do not open it
 bool media_machine(Computer*, const QString& path, int id, int drv, int run, std::string* mac);

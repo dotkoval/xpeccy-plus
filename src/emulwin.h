@@ -86,7 +86,6 @@ typedef struct {
 		void fillUserMenu();
 		void openMedia(const QString& path, int id, int drv, int run);
 		void setMachine(const std::string&);
-		void noteOpened();		// the file just loaded goes in the title
 	signals:
 		void s_options();
 		void s_debug();
@@ -159,7 +158,12 @@ typedef struct {
 		unsigned refit:1;	// geometry changed: re-read the frame before painting it
 
 		std::string shdLoaded;	// the shader the program is linked with now
-		QString mediaName;	// the last file the user opened, first in the title
+		QString mediaPath;	// the image in use, first in the title
+		int mediaSrc;		// where it is: a drive, the tape, or a snapshot
+		int mediaSeen;		// the drive motors (bits 0..3) and the tape playing, as last seen
+		QByteArray mediaRaw[5];	// what each drive and the tape held, as last seen
+		void watchMedia();
+		void showMedia(const QString&, int src);
 		std::string wantedShader();
 
 		QIcon icon;
