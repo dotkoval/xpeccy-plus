@@ -299,7 +299,9 @@ void opt_fill_psg_boxes(QComboBox* cbcount, QComboBox* cbtype, QComboBox* cbfrq,
 	cbfrq->clear();
 	cbfrq->addItem(QString::fromUtf8("1.773447 - ZX 128/+2/+3"));
 	cbfrq->addItem(QString::fromUtf8("1.75 - ZX 48/ZX-clones"));
+#ifndef XZXONLY
 	cbfrq->addItem(QString::fromUtf8("1.789773 - MSX"));
+#endif
 	cbfrq->addItem(QString::fromUtf8("3.5 - YM2203"));
 	cbstereo->clear();
 	cbstereo->addItem("Mono",AY_MONO);
@@ -557,6 +559,11 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.cbScanTab->addItem("Scanset 3 (PS/2)", KBD_PS2);
 	ui.cbMouseType->addItem("Serial", MOUSE_SERIAL);
 	ui.cbMouseType->addItem("PS/2", MOUSE_PS2);
+#ifdef XZXONLY
+	// only the PC reads the mouse as a serial or PS/2 device
+	ui.label_67->hide();
+	ui.cbMouseType->hide();
+#endif
 // all
 	connect(ui.okbut,SIGNAL(released()),this,SLOT(okay()));
 	connect(ui.apbut,SIGNAL(released()),this,SLOT(apply()));
