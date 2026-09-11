@@ -48,18 +48,19 @@
 // mainwin
 
 void MainWin::updateHead() {
-	QString title(XPTITLE);
+	QStringList parts;
+	if (!mediaName.isEmpty())
+		parts << mediaName;
+	parts << XPTITLE;
 #ifdef ISDEBUG
-	title.append(" | debug");
+	parts << "debug";
 #endif
 	const xMachine* mac = xm_find(conf.macId);
-	if (conf.zx && mac) {
-		title.append(" | ").append(mac->name.c_str());
-	}
-	if (conf.emu.fast) {
-		title.append(" | fast");
-	}
-	setWindowTitle(title);
+	if (conf.zx && mac)
+		parts << QString::fromLocal8Bit(mac->name.c_str());
+	if (conf.emu.fast)
+		parts << "fast";
+	setWindowTitle(parts.join(" - "));
 }
 
 void MainWin::updateWindow() {
@@ -929,6 +930,7 @@ void MainWin::openMedia(const QString& path, int id, int drv, int run) {
 		if (!mac.empty()) setMachine(mac);
 		QByteArray loc = fpath.toLocal8Bit();
 		load_file(comp, loc.data(), id, drv);
+		noteOpened();
 		media_autorun(comp, run);
 	}
 	pause(false, PR_FILE);
@@ -1347,6 +1349,16 @@ void MainWin::onPrfChange() {
 
 void MainWin::profileSelected(QAction* act) {
 	setMachine(QString(act->data().toByteArray()).toStdString());
+}
+
+// Only what the user opens counts - a menu, a drop, the command line - not a
+// disk the Options page mounts or what a restart puts back in the drives. It
+// stays until the next one, whatever happens to the drive meanwhile.
+void MainWin::noteOpened() {
+	QString path = file_last_loaded();
+	if (path.isEmpty()) return;
+	mediaName = QFileInfo(path).fileName();
+	updateHead();
 }
 
 void MainWin::setMachine(const std::string& id) {
