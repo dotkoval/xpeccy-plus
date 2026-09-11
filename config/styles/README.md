@@ -1,7 +1,7 @@
 # Bundled interface styles
 
 Qt style sheets for the emulator's own windows - menus, dialogs and the debugger. Pick one in
-Setup - Xpeccy+ - Debugger - Style Sheet, or set `style = <file>` in `config/config.conf`. `System` there,
+Setup - Xpeccy+ - General - Style, or set `style = <file>` in `config/config.conf`. `System` there,
 an empty `style =`, means no style sheet at all: every window looks the way the desktop tells
 it to, which on Windows is light and on most Linux desktops follows the system theme.
 
@@ -15,6 +15,9 @@ it to, which on Windows is light and on most Linux desktops follows the system t
 | `Solarized Light.qss` | the same palette on warm paper instead of white |
 | `Dracula.qss` | violet-tinted dark with purple and pink - Zeno Rocha and contributors |
 | `ZX Spectrum.qss` | near-black chrome, the machine's own magenta on top |
+
+These are built into the emulator (their sources are in `res/styles/`). A `.qss` of your own
+dropped in this folder joins the list, and one named like a built-in replaces it.
 
 Gruvbox, Solarized and Dracula are the work of their authors and carry the MIT license, same as
 the rest of Xpeccy+; the palettes are reproduced here, nothing else is taken from them.

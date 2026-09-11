@@ -5,7 +5,7 @@ A ZX Spectrum emulator with a built-in debugger.
 Xpeccy+ is a fork of [Xpeccy](https://github.com/samstyle/Xpeccy) by SAM style. All the
 emulation code comes from that project. This fork does not claim authorship of it.
 
-Current version: **2026.3.2**. Forked from upstream build `20260807`.
+Current version: **2026.4**. Forked from upstream build `20260807`.
 
 Windows, Linux and macOS are built by CI on every nightly and off every release tag. The
 macOS build is arm64 only and carries no developer signature, so a downloaded dmg has to be
@@ -46,15 +46,18 @@ On top of upstream build `20260807`:
 
 - **Timing.** Memory contention on the 48K, 128K, +2 and +2A/+3 matches a real machine, and
   frames are handed over at the machine's real rate rather than on a 20 ms timer.
-- **Input lag** on a par with Spectaculator, measured with a photosensor.
-- **Ready to use.** Releases carry rom sets and a profile per machine, so it runs straight
-  out of the archive. macOS builds included.
+- **Input lag** on a par with Spectaculator, measured with a photosensor, and run ahead
+  for less still.
+- **Ready to use.** Every machine is built in, ROMs and all, so it runs straight out of the
+  archive, and what you change is kept for that machine. macOS builds included.
 - **Media that starts itself.** A tape or disk opens and runs, from the menu, a drop or the
-  command line. A host folder can stand in for an SD card or a hard disk.
+  command line, on a machine that can run it. A host folder can stand in for an SD card or
+  a hard disk.
 - **A debugger worth using.** Movable panels, conditional breakpoints, a listing that reads
   like one, a memory heat map, register layouts to choose from.
 - **Looks.** Eight interface styles, five border sizes, a picture always at whole pixels.
-- **Fixes.** A working ZX Evo (TSConf), tape loading, sound that does not click.
+- **Fixes.** A working ZX Evo (TSConf), tape loading, disks with loaders of their own,
+  sound that does not click.
 
 See [CHANGELOG.md](CHANGELOG.md) for the full list.
 

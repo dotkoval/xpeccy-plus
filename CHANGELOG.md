@@ -7,161 +7,160 @@ Notable changes in Xpeccy+, newest first. The format follows
 Xpeccy+ starts from [Xpeccy](https://github.com/samstyle/Xpeccy) build `20260807`. Anything
 before that point is upstream's history and is not repeated here.
 
-## Unreleased
+## 2026.4 - 2026-09-11
 
 ### Added
 
-- Opening a file can switch to a machine that runs it: a `.spg` goes to the TSConf, a
-  128K snapshot off the 48K, a TR-DOS disk to a Pentagon and a `.dsk` to the +3. Options ->
-  Media -> File types sets it per format - switch only when needed, ask, keep the machine,
-  or always use one machine. A tape or a disk that is only mounted leaves the machine alone.
-  Any change of machine now says so at the bottom of the window.
-- The window title starts with the name of the tape, disk or snapshot in use - a tape
-  once it plays, a disk once the machine reads it.
-- That image can go straight into Favorites: the Favorites menu offers to add it, under
-  its file name or one you type, or to remove it when it is already there. A hotkey adds
-  it too, with no key set by default.
-- Reload snapshot and labels now works outside the debugger too. It has a hotkey of its
-  own, with no key set by default - pick one in Options -> Xpeccy+ -> Keys.
-- Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
-  so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
-  off by default. It doubles the emulation work, puts the picture slightly ahead of the
-  sound, and turns itself off while the tape, a disk or an RZX recording is running.
-- The virtual keyboard, on the menu and Alt+K, can be resized, and it can sit under the
-  emulator window at its width. Right-click an empty spot on it for the size and docking
-  choices.
-- A log, for when something goes wrong and a screenshot is not enough. Turn it on in
-  Options -> Xpeccy+ -> General, or start with `--log`, and every event lands in
-  `logs/<date>/` beside the emulator, with the version, the machine and the graphics
-  card at the top. Each line carries the time, the emulated frame and T-state, and the
-  part of the emulator it came from, so a video problem can be told apart from a sound
-  one at a glance. `--log-groups video:debug,sound:off` sets those parts one by one when
-  a bug needs it.
-- Sound now follows the sound card's own sample rate instead of asking for a fixed one,
-  which on Windows could be heard as a faint whistle in quiet moments. Options -> Sound ->
-  Rate is Auto by default; 44100 and 48000 can still be picked by hand, and the old 11025
-  and 22050 are gone.
-- Sound latency now looks after itself. It starts at 30 ms and moves as the machine needs:
-  up when the buffer starts running thin, back down after a long clean spell. The slider
-  in Options -> Sound shows where it settled and still sets it by hand, anywhere from 10 to
-  150 ms - bluetooth headphones need a good deal more of a buffer than wired ones. Untick
-  Auto adjust to keep it where you put it.
+- **Opening a file can switch to the machine that runs it** - a `.spg` to the TSConf, a 128K
+  snapshot off the 48K, a TR-DOS disk to a Pentagon, a `.dsk` to the +3. Options -> Media ->
+  File types sets it per format: switch when needed, ask, keep the machine, or always use
+  one. A tape or a disk that is only mounted leaves the machine alone, and any change of
+  machine says so at the bottom of the window.
+
+- **The window title names the tape, disk or snapshot in use** - a tape once it plays, a disk
+  once the machine reads it. That image goes straight into Favorites from the menu or a
+  hotkey, under its own name or one you type.
+
+- **Run ahead, experimental**: the emulator works a frame or two ahead of the screen, so a key
+  press lands about 20 ms sooner. Options -> Xpeccy+ -> Emulation, off by default. It doubles
+  the emulation work, puts the picture slightly ahead of the sound, and stands aside while a
+  tape, a disk or an RZX recording is running.
+
+- **A log, for when a screenshot is not enough.** `--log`, or Options -> Xpeccy+ -> General, and
+  every event lands in `logs/<date>/` beside the emulator, carrying the frame and T-state it
+  happened on and the part of the emulator it came from. `--log-groups video:debug,sound:off`
+  tunes those parts one by one.
+
+- **Sound follows the sound card's own sample rate** instead of asking for a fixed one, which
+  on Windows could be heard as a faint whistle in quiet moments. Rate is Auto by default;
+  44100 and 48000 can still be picked by hand, and the old 11025 and 22050 are gone.
+
+- **Sound latency looks after itself**: 30 ms to start with, up when the buffer runs thin,
+  back down after a long clean spell. The slider still sets it by hand, anywhere from 10 to
+  150 ms - bluetooth headphones want a good deal more than wired ones. Untick Auto adjust to
+  keep it where you put it.
+
+- The virtual keyboard, on the menu and Alt+K, can be resized, and can sit under the emulator
+  window at its width. Right-click an empty spot on it for those choices.
+
+- Reload snapshot and labels works outside the debugger too, with a hotkey of its own - pick
+  one in Options -> Xpeccy+ -> Keys.
 
 ### Changed
 
-- Profiles are gone: a machine is a machine again. The emulator knows what a 48K, a 128K,
-  a Pentagon or a Scorpion is, and what you change on one is kept for that one - so an
-  update can fix a machine without touching your settings. Your old profiles come across on
-  first start.
-  - The machine is picked from the Machine menu, or on Options -> Machine, which now holds
-    what a machine *is*: its CPU, memory, ROMs and the ROM it resets into.
-  - ROM sets are gone with them: a machine carries its ROMs, one row per slot, and another
-    TR-DOS is another file rather than another set.
-  - Machines of your own: set one up, Save machine, and it stands in the list beside the
-    ones that ship. Saving under the same name updates it, Delete drops it.
+- **Profiles are gone: a machine is a machine again.** The emulator knows what a 48K, a 128K,
+  a Pentagon or a Scorpion is, and what you change on one is kept for that one - so an update
+  can fix a machine without touching your settings. Your old profiles come across on first
+  start.
+  - Options -> Machine holds what a machine *is*: its CPU, memory, ROMs and the ROM it resets
+    into. ROM sets went with the profiles - a machine carries its ROMs, one row per slot, and
+    another TR-DOS is another file rather than another set.
+  - Machines of your own: set one up, Save machine, and it stands in the list beside the ones
+    that ship.
   - The whole configuration is one text file you can export, import, or reset to what the
     emulator ships with.
-  - Machines, screen layouts, palettes, shaders, styles and keymaps live inside the binary;
-    a file of the same name in the config directory replaces one, so a shipped fix reaches
+  - Machines, screen layouts, palettes, shaders, styles and keymaps live inside the binary; a
+    file of the same name in the config directory replaces one, so a shipped fix reaches
     everyone who has not touched it.
-  - The names are the hardware's, in family order. The +2 is a machine of its own; the two
-    Spectrums with a disk interface bolted on are not shipped any more - fit one yourself
-    and keep it.
-  - The 128K runs on a core of its own instead of the Pentagon's, and the screen layouts
-    are named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Pentagon`.
-- Options: the Video page has a group called Picture, holding what the picture is made of -
-  the border, the palette, the shader - and, in a column of its own, how the window shows
-  it: the scale, fullscreen, keep ratio and gray scale. The scale is a list of whole
-  numbers now, since that is what it always was.
-- Options: the interface style moved to Xpeccy+ -> General, since it styles the whole
-  application and not just the debugger.
-- Options: the Tools page is now called General and comes first, with the log settings
-  on it.
-- Options: the Low latency setting and the indicator switches moved to a page of their
-  own, Xpeccy+ -> Emulation.
-- Options: most settings now say what they do when the mouse rests on them, and the long
-  ones no longer run off the edge of the screen. The romset, layout, palette, gamepad and
-  favorites dialogs got the same.
-- Bookmarks are now called Favorites. The list has a window of its own, opened by
-  Manage... at the bottom of the Favorites menu or by Manage favorites in Options ->
-  Xpeccy+ -> General, instead of taking up room on that page.
-- Xpeccy+ is a ZX Spectrum emulator only now. MSX, Game Boy, NES, Commodore 64, BK0010,
-  IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in
-  the machine, CPU, disk and hard disk lists, in the romset editor, and in the debugger.
-- The tape player's block list now says what is on the tape: the name in bold, the size
-  in bytes, and what a header announces - `PROGRAM LINE 10`, `CODE 32768,2786`. TZX images
-  label their own blocks, so a game's levels are named too. The loading percentage is
-  readable in every interface style, and the stop mark of a block takes a click again in
-  Options -> Storage -> Tape map, which carries the same list.
-- Gamepad buttons can be bound by name - A, B, d-pad up, left stick - instead of by
-  number, so one map fits pads of different makes. Maps written the old way still
-  work, and a gamecontrollerdb.txt dropped in the config folder is picked up.
-- The border size is now a choice of fixed sizes - none (256x192), tiny (272x208),
-  small (288x224), medium (320x240), full (352x288) and overscan - instead of a
-  percentage. It starts on full, the whole PAL frame, which is what a TV of the day
-  showed. Every machine
-  shows the same size picture with the screen exactly in the middle of it, so switching
-  profiles no longer moves it around. Overscan is the one that varies: it shows every dot
-  the machine puts out, which is 400x320 on a Pentagon and 360x288 on a ZX Evolution.
-- In a window the picture is now always drawn at a whole number of pixels per dot. Some
-  border sizes used to come out with a few columns a pixel wider than the rest at x3 and
-  x5. Fullscreen still fits the picture to the screen.
-- Changing the border in Options now takes effect on Apply, window and all. It used to
-  leave the picture skewed until the dialog was closed.
-- The shader is skipped at size x1, where there is nothing for it to work on. The choice
-  is kept and comes back with the next size up.
-- Options -> Storage -> Disk: the interleave list now shows the order the sectors go in on
-  a track, and the default is the one TR-DOS formats its disks with (1, 9, 2, 10...).
-  Without fast disk access, the drive head now steps and settles as slowly as a real one.
-- Open... in the right-click menu goes straight to the file dialog, for any kind of image,
-  the way F3 does, instead of asking first whether it is a snapshot, a tape or a disk. The
-  file dialogs no longer cut long file names short.
+  - The names are the hardware's. The +2 is a machine of its own; the two Spectrums with a
+    disk interface bolted on are not shipped any more - fit one yourself and keep it.
+  - The 128K runs on a core of its own instead of the Pentagon's, and the screen layouts are
+    named after the ULA they belong to: `ULA.48`, `ULA.128`, `ULA.Pentagon`.
+
+- **Xpeccy+ is a ZX Spectrum emulator only now.** MSX, Game Boy, NES, Commodore 64, BK0010,
+  IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in the
+  machine, CPU, disk and hard disk lists, and in the debugger.
+
+- **The border is a choice of fixed sizes** - none (256x192), tiny (272x208), small (288x224),
+  medium (320x240), full (352x288) and overscan - instead of a percentage. It starts on full,
+  the whole PAL frame a TV of the day showed. Every machine shows the same size picture with
+  the screen exactly in the middle, so switching machines no longer moves it around; overscan
+  is the one that varies, showing every dot the machine puts out. Changing it now takes effect
+  on Apply, window and all.
+
+- **In a window the picture is always drawn at a whole number of pixels per dot** - some
+  border sizes used to come out a pixel wider in a few columns at x3 and x5. Fullscreen fits
+  the picture to the screen and fills the sides of a wide one with the machine's own border
+  instead of black bars. The shader is skipped at size x1, where there is nothing for it to
+  work on.
+
+- **The tape player's block list says what is on the tape**: the name in bold, the size in
+  bytes, and what a header announces - `PROGRAM LINE 10`, `CODE 32768,2786`. TZX images label
+  their own blocks, so a game's levels are named too. The same list is the tape map in
+  Options -> Media -> Tape, where the stop mark of a block takes a click again.
+
+- **Gamepad buttons can be bound by name** - A, B, d-pad up, left stick - instead of by
+  number, so one map fits pads of different makes. Maps written the old way still work, and a
+  `gamecontrollerdb.txt` dropped in the config folder is picked up.
+
+- **Options was rebuilt around the machine.** The Video page keeps what the picture is made of
+  apart from how the window shows it; the interface style moved to Xpeccy+ -> General, the old
+  Tools page is that General page now, Low latency and the indicators have a page of their own
+  (Emulation), Storage is called Media, and most settings say what they do when the mouse
+  rests on them.
+
+- **Bookmarks are now Favorites**, and the list has a window of its own - Manage... at the
+  bottom of the Favorites menu - instead of taking up room in Options.
+
+- Options -> Media -> Disk: the interleave list shows the order the sectors go in on a track,
+  TR-DOS's own (1, 9, 2, 10...) by default. Without fast disk access the drive head steps and
+  settles as slowly as a real one.
+
+- Open... in the right-click menu goes straight to the file dialog, for any kind of image, the
+  way F3 does, instead of asking first whether it is a snapshot, a tape or a disk. The file
+  dialogs no longer cut long file names short.
 
 ### Fixed
 
-- Disks with loaders of their own work again. CHORDOUT no longer hangs when it goes back
-  to the disk, Battle Command finishes loading and no longer stutters on the way, and the
-  Profi's service ROM gets past its disk check instead of hanging.
+- **Disks with loaders of their own work again.** CHORDOUT no longer hangs when it goes back
+  to the disk, Battle Command finishes loading without stuttering on the way, and the Profi's
+  service ROM gets past its disk check.
 
-- The Profi's keyboard works again: the cursor keys and the other PC keys no longer
-  stick. With Grab keyboard on, it takes the layout of the Profi's own PC keyboard -
-  Shift, Ctrl and Alt, F1-F10, Home, End, Page Up/Down, Insert, Delete and the symbols -
-  which is what the keyboard test in its service menu expects.
-- A tape stops at its end when "Rewind at end" is off. It rewound whatever the setting
-  said, so a tape the loader could make nothing of started itself over and over.
-- A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution, or a `.spg` that
-  asks for one - no longer leaves it on for the machine you switch to next, which ran at the
-  wrong speed. A `.spg` that asks for 14 MHz now gets 14 MHz, not 10.5.
-- `.z80` snapshots from a +2, +2A or +3 load now, and a 48K `.z80` no longer drops to the
-  128 menu on a Pentagon or any other 128K machine.
-- Cancel in Options now really cancels a ROM you picked on the Machine page.
-- Apply in Options leaves a whole picture on screen instead of half of one frame over half
-  of another.
-- Picking a palette preset changes the colors right away again on the ZX Spectrum
-  48K and 128K, where they only changed after a reset. The palette editor had the
-  same problem.
+- **The Profi's keyboard works again** - the cursor keys and the other PC keys no longer
+  stick. With Grab keyboard on it takes the layout of the Profi's own PC keyboard, which is
+  what the keyboard test in its service menu expects.
+
+- **The sound no longer clicks.** On the machines it happened to, part of the sound was never
+  made at all, so no latency setting could help - whether a machine was hit came down to how
+  two threads happened to be scheduled, which is why it plagued some people and never showed
+  up for others. The buffer also keeps a reserve now and holds it against the drift between
+  the sound card's clock and the computer's.
+
+- **A machine that turns its own turbo on** - Scorpion, ATM, ZX Evolution, or a `.spg` that
+  asks for one - no longer leaves it on for the machine you switch to next. A `.spg` that asks
+  for 14 MHz now gets 14 MHz, not 10.5.
+
+- `.z80` snapshots from a +2, +2A or +3 load now, and a 48K `.z80` no longer drops to the 128
+  menu on a Pentagon or any other 128K machine.
+
+- A tape stops at its end when "Rewind at end" is off. It rewound whatever the setting said,
+  so a tape the loader could make nothing of started itself over and over.
+
+- A gamepad keeps its setting while it is unplugged or asleep, two pads of the same model no
+  longer swap places, and a press reaches the machine right away instead of sitting for up to
+  40 ms.
+
+- Picking a palette preset changes the colors right away again on the 48K and 128K, where they
+  only changed after a reset. The palette editor had the same problem.
+
+- Recording to WAV writes the file at the rate and depth the emulator is really playing at -
+  it always claimed 44100 Hz, 8 bit - and the grainy beat that used to ride on the recording
+  is gone.
+
+- The emulator no longer crashes on some Intel graphics a moment after the options dialog is
+  closed.
+
+- Opening a tape or a disk starts it whatever keyboard layout is picked.
+
+- Cancel in Options really cancels a ROM picked on the Machine page, and Apply leaves a whole
+  picture on screen instead of half of one frame over half of another.
+
 - Holding a key down on the virtual keyboard with the right mouse button works again.
-- A gamepad keeps its setting while it is unplugged or asleep, and two pads of the
-  same model no longer swap places. Each slot now remembers the device itself, not
-  just its name.
-- Sound no longer clicks away steadily on the machines it happened to. Part of the sound
-  was never being made at all, so the buffer could not fill and no latency setting helped.
-  Whether a machine was hit came down to how it happened to schedule two threads, which is
-  why it plagued some people and never showed up for others.
-- Opening a tape or a disk starts it now whatever keyboard layout is picked.
-- The emulator no longer crashes on some Intel graphics a moment after the options
-  dialog is closed.
-- The gamepad responds right away now. A press used to sit for up to 40 ms before the
-  emulated machine saw it.
-- The ROM/RAM boxes in the debugger's memory map are no longer stretched wide when the
-  debugger opens.
-- Recording to WAV writes the file at the rate and depth the emulator is really playing
-  at - it always claimed 44100 Hz, 8 bit - and the grainy beat that used to ride on the
-  recording is gone.
-- The sound no longer clicks every so often. The buffer ran with no headroom at all, so
-  any hiccup left the sound card with nothing to play and it repeated the last 20 ms of
-  sound instead. It now keeps a small reserve and holds it steady against the drift
-  between the sound card's clock and the computer's.
+
+- **Smaller interface fixes**: sliders keep their tick marks under every interface style, the
+  Video and Emulation pages line up in columns, the ROM/RAM boxes in the debugger's memory map
+  are no longer stretched wide when it opens, and the smaller windows Options opens close with
+  the same red cross as the dialog itself.
 
 ## 2026.3.2 - 2026-09-03
 
