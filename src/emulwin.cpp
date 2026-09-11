@@ -1147,9 +1147,9 @@ void MainWin::initUserMenu() {
 	resMenu->addAction("ROMpage1")->setData(RES_48);
 	resMenu->addAction("ROMpage2")->setData(RES_SHADOW);
 	resMenu->addAction("ROMpage3")->setData(RES_DOS);
-#ifdef ISDEBUG
+#if defined(ISDEBUG) && !defined(XZXONLY)
 	userMenu->addSeparator();
-	dbgMenu = userMenu->addMenu(QIcon(":/images/debuga.png"),"Debug");
+	QMenu* dbgMenu = userMenu->addMenu(QIcon(":/images/debuga.png"),"Debug");
 	dbgMenu->addAction(QIcon(),QString("Save v9938 vram..."),this,SLOT(saveVRAM()));
 	dbgMenu->addAction(QIcon(),QString("Save GB VRAM..."), this, SLOT(saveGBVRAM()));
 //	dbgMenu->addAction(QIcon(),QString("Save GS RAM..."),this,SLOT(saveGSRAM()));
@@ -1401,6 +1401,7 @@ void MainWin::palSelected(QAction* act) {
 
 // debug stufffff
 
+#ifndef XZXONLY
 void MainWin::saveVRAM() {
 	QString path = QFileDialog::getSaveFileName(this,"Save VRAM");
 	if (path.isEmpty()) return;
@@ -1444,6 +1445,7 @@ void MainWin::saveNESPPU() {
 		file.close();
 	}
 }
+#endif
 
 void MainWin::debugAction() {
 	sndDebug();
