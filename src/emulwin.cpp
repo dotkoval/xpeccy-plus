@@ -40,6 +40,10 @@
 #define	XPTITLE	XPRODUCT " (" XVERSION ")"
 #define	FPS_TICK_MS	200		// the timer the fps readout is sampled on
 
+// where the image named in the title is (drives are 0..3)
+#define	MEDIA_TAPE	4
+#define	MEDIA_SNAP	-1
+
 #if defined(__WIN32)
 #include <windows.h>
 #include <winuser.h>
@@ -49,8 +53,8 @@
 
 void MainWin::updateHead() {
 	QStringList parts;
-	if (!mediaName.isEmpty())
-		parts << mediaName;
+	if (!mediaPath.isEmpty())
+		parts << QFileInfo(mediaPath).fileName();
 	parts << XPTITLE;
 #ifdef ISDEBUG
 	parts << "debug";
@@ -58,7 +62,7 @@ void MainWin::updateHead() {
 	const xMachine* mac = xm_find(conf.macId);
 	if (conf.zx && mac)
 		parts << QString::fromLocal8Bit(mac->name.c_str());
-	if (conf.emu.fast)
+	if (conf.emu.fast && !autostart_busy())		// autostart's own fast mode is not the user's
 		parts << "fast";
 	setWindowTitle(parts.join(" - "));
 }
@@ -156,6 +160,8 @@ MainWin::MainWin() {
 	block = 0;
 	hasPicture = 0;
 	refit = 0;
+	mediaSrc = MEDIA_SNAP;
+	mediaSeen = 0;
 //	relskip = 0;
 
 	msgTimer = 0;
@@ -477,6 +483,7 @@ void MainWin::timerEvent(QTimerEvent* ev) {
 			setMessage(QString(comp->msg));
 			comp->msg = NULL;
 		}
+		watchMedia();
 // satelites
 		updateSatellites();
 #if defined(__WIN32) && STICKY_KEY
@@ -930,7 +937,6 @@ void MainWin::openMedia(const QString& path, int id, int drv, int run) {
 		if (!mac.empty()) setMachine(mac);
 		QByteArray loc = fpath.toLocal8Bit();
 		load_file(comp, loc.data(), id, drv);
-		noteOpened();
 		media_autorun(comp, run);
 	}
 	pause(false, PR_FILE);
@@ -1351,14 +1357,50 @@ void MainWin::profileSelected(QAction* act) {
 	setMachine(QString(act->data().toByteArray()).toStdString());
 }
 
-// Only what the user opens counts - a menu, a drop, the command line - not a
-// disk the Options page mounts or what a restart puts back in the drives. It
-// stays until the next one, whatever happens to the drive meanwhile.
-void MainWin::noteOpened() {
-	QString path = file_last_loaded();
-	if (path.isEmpty()) return;
-	mediaName = QFileInfo(path).fileName();
+// The title names the image the machine is using. A snapshot is in use the
+// moment it loads; a tape once it plays, a disk once its drive's motor comes
+// on - so what a start puts back in the drives stays out of the title until
+// the machine gets to it. A tape or a disk leaves it when it leaves its drive.
+
+void MainWin::showMedia(const QString& path, int src) {
+	mediaSrc = src;
+	if (path == mediaPath) return;
+	mediaPath = path;
 	updateHead();
+}
+
+void MainWin::watchMedia() {
+	Computer* comp = conf.zx;
+	QString snap = file_take_snapshot();		// whoever loaded it
+	if (!snap.isEmpty())
+		showMedia(snap, MEDIA_SNAP);
+	// another image in a drive, or none: the name goes if it was this one,
+	// and a motor still running from the last one counts as a new start
+	for (int src = 0; src <= MEDIA_TAPE; src++) {
+		const char* raw = (src == MEDIA_TAPE) ? comp->tape->path : comp->dif->flp[src]->path;
+		if (qstrcmp(raw ? raw : "", mediaRaw[src].constData()) == 0) continue;
+		mediaRaw[src] = raw;
+		mediaSeen &= ~(1 << src);
+		if (src == mediaSrc)
+			showMedia(QString(), MEDIA_SNAP);
+	}
+	int seen = comp->tape->on ? (1 << MEDIA_TAPE) : 0;
+	for (int i = 0; i < 4; i++) {
+		if (comp->dif->flp[i]->motor && comp->dif->flp[i]->insert)
+			seen |= 1 << i;
+	}
+	int rose = seen & ~mediaSeen;
+	mediaSeen = seen;
+	// fast loading reads the tape without playing it, but it moves it on;
+	// updateSatellites() clears the flag later in this same tick
+	if (comp->tape->blkChange)
+		rose |= 1 << MEDIA_TAPE;
+	for (int src = MEDIA_TAPE; src >= 0; src--) {	// the tape first: it plays alone
+		if ((rose & (1 << src)) && !mediaRaw[src].isEmpty()) {
+			showMedia(QString::fromLocal8Bit(mediaRaw[src]), src);
+			break;
+		}
+	}
 }
 
 void MainWin::setMachine(const std::string& id) {
