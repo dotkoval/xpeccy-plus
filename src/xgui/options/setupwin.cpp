@@ -1894,11 +1894,11 @@ static xMemName memNameTab[] = {
 };
 
 void SetupWin::setmszbox(int idx) {
-	const xMachine* mac = xm_find(std::string(ui.machbox->itemData(idx).toString().toLocal8Bit().data()));
-	HardWare* hw = mac ? findHardware(mac->hw.c_str()) : NULL;
-	if (!hw) return;
-	int t = hw->mask;
-	QString oldText = ui.mszbox->currentText();
+	// the size that machine comes up with, not the one the last machine had:
+	// switching machines loads the new one, it does not carry this page over
+	int t = 0;
+	int size = xm_ram_size(std::string(ui.machbox->itemData(idx).toString().toLocal8Bit().data()), &t);
+	if (!t) return;
 	ui.mszbox->clear();
 	idx = 0;
 	while (memNameTab[idx].mask > 0) {
@@ -1906,8 +1906,7 @@ void SetupWin::setmszbox(int idx) {
 			ui.mszbox->addItem(memNameTab[idx].name, memNameTab[idx].mask);
 		idx++;
 	}
-	ui.mszbox->setCurrentIndex(ui.mszbox->findText(oldText));
-	if (ui.mszbox->currentIndex() < 0) ui.mszbox->setCurrentIndex(ui.mszbox->count() - 1);
+	ui.mszbox->setCurrentIndex(ui.mszbox->findData(size));
 }
 
 void SetupWin::buildtapelist() {

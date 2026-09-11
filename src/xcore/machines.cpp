@@ -588,12 +588,12 @@ int xm_set_hardware(std::string nm) {
 // the machine's own settings: first its definition, then the user's own block.
 // Both go through here, so what a key means is written once.
 
-static int mac_ram_size(int kb, Computer* comp) {
+static int mac_ram_size(int kb, int mask) {
 	int sz = kb ? kb : 64;
 	sz = toLimits(toPower(sz << 10), MEM_256, MEM_4M);
-	if ((comp->hw->mask != 0) && (~comp->hw->mask & sz)) {	// the core has no such size
+	if ((mask != 0) && (~mask & sz)) {	// the core has no such size
 		sz = MEM_4M;
-		while (!(comp->hw->mask & sz) && sz)
+		while (!(mask & sz) && sz)
 			sz >>= 1;
 	}
 	return sz;
@@ -645,7 +645,7 @@ static void mac_from_def(const xMachine* mac) {
 	xm_set_hardware(mac->hw);
 	mac_set_cpu(comp, mac->cpu);
 	compSetBaseFrq(comp, mac->cpufrq / 1e6);
-	memSetSize(comp->mem, mac_ram_size(mac->memory, comp), -1);
+	memSetSize(comp->mem, mac_ram_size(mac->memory, comp->hw->mask), -1);
 	comp->resbank = mac->resbank;
 	comp->flgCNTI = mac->contio;
 	comp->flgCNTM = mac->contmem;
@@ -664,6 +664,22 @@ static void mac_from_def(const xMachine* mac) {
 	comp->mouse->enable = mac->mouse;
 	comp->joy->extbuttons = mac->joyButtons;
 	conf.layName = mac->geometry;
+}
+
+// the RAM size a machine comes up with, before it is loaded: its own value with
+// the user's change over it, fitted to what the core can page. mask, when asked
+// for, takes every size that core has - the sizes that one is picked from, so
+// both come off the same lookup
+
+int xm_ram_size(std::string id, int* mask) {
+	if (mask) *mask = 0;
+	const xMachine* mac = xm_find(id);
+	if (!mac) return 0;
+	xMachine cur = mac_with_over(*mac);
+	HardWare* hw = findHardware(cur.hw.c_str());
+	if (!hw) return 0;
+	if (mask) *mask = hw->mask;
+	return mac_ram_size(cur.memory, hw->mask);
 }
 
 bool xm_set(std::string id) {
@@ -1041,7 +1057,7 @@ static void mac_set_old_key(int sect, const std::string& nam, const std::string&
 				compSetBaseFrq(comp, toLimits(frq, 100000, 28000000) / 1e6);
 			}
 			else if (nam == "frq.mul") compSetTurbo(comp, (arg.d < 0.1) ? 0.1 : (arg.d > 8.0) ? 8.0 : arg.d);
-			else if (nam == "memory") memSetSize(comp->mem, mac_ram_size(arg.i, comp), -1);
+			else if (nam == "memory") memSetSize(comp->mem, mac_ram_size(arg.i, comp->hw->mask), -1);
 			else if (nam == "contmem") comp->flgCNTM = arg.b;
 			else if (nam == "contio") comp->flgCNTI = arg.b;
 			else if (nam == "scrp.wait") comp->flgEM1 = arg.b;
