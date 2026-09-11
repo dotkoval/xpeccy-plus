@@ -98,6 +98,9 @@ before that point is upstream's history and is not repeated here.
 - Options -> Storage -> Disk: the interleave list now shows the order the sectors go in on
   a track, and the default is the one TR-DOS formats its disks with (1, 9, 2, 10...).
   Without fast disk access, the drive head now steps and settles as slowly as a real one.
+- Open... in the right-click menu goes straight to the file dialog, for any kind of image,
+  the way F3 does, instead of asking first whether it is a snapshot, a tape or a disk. The
+  file dialogs no longer cut long file names short.
 
 ### Fixed
 

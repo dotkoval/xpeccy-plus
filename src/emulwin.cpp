@@ -1102,8 +1102,11 @@ void MainWin::updateSatellites() {
 
 void MainWin::initUserMenu() {
 	userMenu = new QMenu(this);
+	// the same dialog as the Load hotkey, every kind of image at once
+	userMenu->addAction(QIcon(":/images/fileopen.png"), "Open...", this, [this]() {
+		openMedia(QString(), FG_ALL, -1, conf.autorun);
+	});
 // submenu
-	fileMenu = userMenu->addMenu(QIcon(":/images/fileopen.png"),"Open...");
 	bookmarkMenu = userMenu->addMenu(QIcon(":/images/star.png"),"Bookmarks");
 	profileMenu = userMenu->addMenu(QIcon(":/images/computer.png"),"Machine");
 	keyMenu = userMenu->addMenu(QIcon(":/images/keyboardzx.png"), "Keymap");
@@ -1127,14 +1130,9 @@ void MainWin::initUserMenu() {
 	connect(bookmarkMenu,SIGNAL(triggered(QAction*)),this,SLOT(bookmarkSelected(QAction*)));
 	connect(profileMenu,SIGNAL(triggered(QAction*)),this,SLOT(profileSelected(QAction*)));
 	connect(resMenu,SIGNAL(triggered(QAction*)),this,SLOT(reset(QAction*)));
-	connect(fileMenu,SIGNAL(triggered(QAction*)),this,SLOT(umOpen(QAction*)));
 	connect(shdMenu,SIGNAL(triggered(QAction*)),this,SLOT(shdSelected(QAction*)));
 	connect(keyMenu,SIGNAL(triggered(QAction*)),this,SLOT(keySelected(QAction*)));
 	connect(palMenu,SIGNAL(triggered(QAction*)),this,SLOT(palSelected(QAction*)));
-
-	fileMenu->addAction(QIcon(":/images/memory.png"),"Snapshot")->setData(FG_SNAPSHOT);
-	fileMenu->addAction(QIcon(":/images/tape.png"),"Tape")->setData(FG_TAPE);
-	fileMenu->addAction(QIcon(":/images/floppy.png"),"Floppy")->setData(FH_DISKS);
 
 	resMenu->addAction("default")->setData(RES_DEFAULT);
 	resMenu->addSeparator();
@@ -1358,10 +1356,6 @@ void MainWin::reset(QAction* act) {
 	emu_unlock();
 }
 
-
-void MainWin::umOpen(QAction* act) {
-	openMedia(QString(), act->data().toInt(), -1, conf.autorun);
-}
 
 void MainWin::keySelected(QAction* act) {
 	QString str = act->data().toString();

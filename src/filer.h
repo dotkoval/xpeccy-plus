@@ -86,7 +86,6 @@ enum {
 	FH_SPCLST,
 	FH_PC,
 	FH_98XX,
-	FH_DISKS,
 	FH_SLOTS,
 	FH_DRIVE_A,
 	FH_DRIVE_B,
@@ -95,6 +94,7 @@ enum {
 };
 
 void initFileDialog(QWidget*);
+void fitFileDialog(QWidget*);
 int load_file(Computer* comp, const char* name, int id, int drv);
 // AS_* the last loaded file would need to start, see xcore/autostart.h
 int file_autostart_kind();
