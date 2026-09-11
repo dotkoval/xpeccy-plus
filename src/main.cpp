@@ -89,12 +89,15 @@ void xApp::d_style() {
 }
 
 // catches every top-level window's first Show, so a titlebar gets its colour
-// without touching each of the dozen QDialog/QMainWindow classes individually
+// (and a file dialog its columns) without touching each of the dozen
+// QDialog/QMainWindow classes individually
 bool xApp::eventFilter(QObject* obj, QEvent* ev) {
 	if (ev->type() == QEvent::Show) {
 		QWidget* w = qobject_cast<QWidget*>(obj);
-		if (w && w->isWindow())
+		if (w && w->isWindow()) {
 			applyTitleBarStyle(w);
+			fitFileDialog(w);
+		}
 	}
 	return QApplication::eventFilter(obj, ev);
 }

@@ -5,6 +5,8 @@
 
 #include <QDebug>
 #include <QFileDialog>
+#include <QHeaderView>
+#include <QTreeView>
 
 static QFileDialog* filer;
 
@@ -130,7 +132,6 @@ static xFileGroupInfo fg_dum = {0, "", -1, NULL, NULL, {0}};
 
 static xFileHWInfo fh_tab[] = {
 	{FH_SPECTRUM, {FG_SNAPSHOT, FG_TAPE, FG_DISK_A, FG_DISK_B, FG_DISK_C, FG_DISK_D, FG_RAW, FG_RZX, FG_IF2_ROM, 0}},
-	{FH_DISKS, {FG_DISK_A, FG_DISK_B, FG_DISK_C, FG_DISK_D, 0}},
 #ifndef XZXONLY
 	{FH_ALF, {FG_IF2_ROM, FG_SNAPSHOT, 0}},
 	{FH_GAMEBOY, {FG_GAMEBOY, 0}},
@@ -597,6 +598,21 @@ void initFileDialog(QWidget* par) {
 	filer->setOption(QFileDialog::HideNameFilterDetails, false);
 	filer->setOption(QFileDialog::DontConfirmOverwrite, false);
 	filer->setOption(QFileDialog::DontUseNativeDialog, true);
+	filer->resize(700, 480);
+}
+
+// Every Qt file dialog restores the column widths any Qt program last left in
+// the shared QtProject settings, and a long image name gets cut in them. Give
+// the name all the room the other columns do not need, whatever was stored.
+// Called on Show, after that restore; a native dialog has no tree and is skipped
+void fitFileDialog(QWidget* w) {
+	QFileDialog* dlg = qobject_cast<QFileDialog*>(w);
+	QTreeView* tree = dlg ? dlg->findChild<QTreeView*>("treeView") : nullptr;
+	if (!tree) return;
+	QHeaderView* hdr = tree->header();
+	hdr->setSectionResizeMode(QHeaderView::ResizeToContents);
+	hdr->setSectionResizeMode(0, QHeaderView::Stretch);
+	hdr->setStretchLastSection(false);
 }
 
 int saveChangedDisk(Computer* comp,int id) {
