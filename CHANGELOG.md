@@ -17,6 +17,8 @@ before that point is upstream's history and is not repeated here.
   or always use one machine. A tape or a disk that is only mounted leaves the machine alone.
   Any change of machine now says so at the bottom of the window.
 - The window title starts with the name of the file you opened last.
+- Reload snapshot and labels now works outside the debugger too. It has a hotkey of its
+  own, with no key set by default - pick one in Options -> Xpeccy+ -> Keys.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the

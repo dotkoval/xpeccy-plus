@@ -600,6 +600,19 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 	return err;
 }
 
+int media_reload(Computer* comp) {
+	int res = 0;
+	if (comp->mem->snapath) {
+		load_file(comp, comp->mem->snapath, FG_SNAPSHOT, 0);
+		res |= RELOAD_SNAPSHOT;
+	}
+	if (!conf.labpath.isEmpty()) {
+		loadLabels(conf.labpath.toLocal8Bit().data());
+		res |= RELOAD_LABELS;
+	}
+	return res;
+}
+
 int save_file(Computer* comp, const char* name, int id, int drv) {
 	QString path = QString::fromLocal8Bit(name);
 	QString flt;
