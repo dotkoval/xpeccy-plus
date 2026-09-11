@@ -98,6 +98,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- The Profi's keyboard works again: the cursor keys and the other PC keys no longer
+  stick. With Grab keyboard on, it takes the layout of the Profi's own PC keyboard -
+  Shift, Ctrl and Alt, F1-F10, Home, End, Page Up/Down, Insert, Delete and the symbols -
+  which is what the keyboard test in its service menu expects.
 - A tape stops at its end when "Rewind at end" is off. It rewound whatever the setting
   said, so a tape the loader could make nothing of started itself over and over.
 - A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it

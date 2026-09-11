@@ -182,6 +182,7 @@ typedef struct {
 	int xtCode;		// set 1
 	int necCode;		// nec pc98xx code
 	int joyMask;
+	unsigned char extShKey[KEYSEQ_MAXLEN];	// profi xt keyboard with Shift held, if it differs
 } keyEntry;
 
 typedef struct Keyboard Keyboard;
@@ -235,7 +236,10 @@ struct Keyboard {
 	int mask;
 	int matrix[16][16];
 	int map[8];			// ZX keyboard half-row bits (0-5)
-	int extMap[8];	// Profi XT-keyboard extend
+	int extkey;			// profi: keys holding EXT (D5) down
+	unsigned grab:1;		// host keyboard grabbed: profi takes its xt layout
+	int prfshift;			// profi xt: Shift keys held
+	int prfsh[8];			// profi xt: keys that went down with their Shift pair
 	int msxMap[16];	// MSX keys map
 	// pc keyboard
 	unsigned lock:1;	// ps/2 keyboard disabled

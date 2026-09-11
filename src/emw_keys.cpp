@@ -127,6 +127,7 @@ void MainWin::xkey_press(int xkey) {
 	QSize wsz;
 	QString path;
 	Computer* comp = conf.zx;
+	comp->keyb->grab = pckAct->isChecked();
 	if (pckAct->isChecked()) {
 		// xt_press(comp->keyb, &kent);
 		if (comp->hw->keyp)
@@ -412,6 +413,7 @@ void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 void MainWin::xkey_release(int keyid) {
 	Computer* comp = conf.zx;
 	keyEntry kent = getKeyEntry(keyid);
+	comp->keyb->grab = pckAct->isChecked();
 	// xt_release(comp->keyb, &kent);
 	if (comp->hw->keyr)
 		comp->hw->keyr(comp, &kent);

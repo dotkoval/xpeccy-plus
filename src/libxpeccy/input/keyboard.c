@@ -23,8 +23,8 @@ void key_press(Keyboard* kbd, keyScan* tab, int* mtrx, unsigned char ch) {
 	kbd->mask = key.mask;
 	mtrx[key.row] &= ~key.mask;
 	// if (key.mask) printf("row %i : %X\n",key.row, mtrx[key.row]);
-	if (ch & 0x80)
-		mtrx[key.row] &= ~0x20;
+	if (ch & 0x80)			// profi EXT, see kbdScanProfi
+		kbd->extkey++;
 	// update matrix
 	for (int i = 0; i < 16; i++) {
 		if (key.mask & (1 << i))
@@ -43,6 +43,8 @@ void key_release(Keyboard* kbd, keyScan* tab, int* mtrx, unsigned char ch) {
 //	if (ch) printf("kbd_release_key %c\n", ch);
 	keyScan key = findKey(tab, ch & 0x7f);
 	key.row &= 0x0f;
+	if ((ch & 0x80) && (kbd->extkey > 0))
+		kbd->extkey--;
 	for (int i = 0; i < 16; i++) {
 		if (key.mask & (1 << i)) {
 			if (kbd->matrix[key.row][i] > 0)
@@ -63,7 +65,6 @@ void key_release_seq(Keyboard* kbd, keyScan* tab, int* mtrx, unsigned char* xk) 
 
 void key_trigger(Keyboard* kbd, keyScan* tab, int* mtrx, unsigned char ch) {
 	keyScan key = findKey(tab, ch & 0x7f);
-	if (ch & 0x80) key.mask |= 0x20;
 	mtrx[key.row] ^= key.mask;
 	for (int i = 0; i < 16; i++) {
 		if (key.mask & (1 << i)) {
@@ -122,28 +123,52 @@ int kbdScanZX(Keyboard* kbd, int port) {
 	return res;
 }
 
-// profi = zx + ext.keys
+// profi: a zx keyboard, and with the host keyboard grabbed the layout of its own
+// xt keyboard (the ext column), wherever a key has one. The xt keys the matrix
+// lacks are a letter plus EXT, a key wired to D5 of every half-row. Shift is SS
+// there, and the controller turns a shifted symbol into its own pair: = is SS+L,
+// Shift+= is SS+K. A key keeps the pair it went down with until it is released.
+
+static int prf_is_shift(keyEntry* ent) {
+	return (ent->key == XKEY_LSHIFT) || (ent->key == XKEY_RSHIFT);
+}
+
+static unsigned char* prf_keys(Keyboard* kbd, keyEntry* ent) {
+	return (kbd->grab && ent->extKey[0]) ? ent->extKey : ent->zxKey;
+}
 
 void kbd_prf_press(Keyboard* kbd, keyEntry* ent) {
-	key_press_seq(kbd, keyTab, kbd->extMap, ent->extKey);
-	key_press_seq(kbd, keyTab, kbd->map, ent->zxKey);
+	int i;
+	if (kbd->prfshift && ent->extShKey[0]) {		// counted in grab mode only
+		for (i = 0; (i < 8) && kbd->prfsh[i]; i++);
+		if (i < 8) {
+			kbd->prfsh[i] = ent->key;
+			key_press_seq(kbd, keyTab, kbd->map, ent->extShKey);
+			return;
+		}
+	}
+	if (kbd->grab && prf_is_shift(ent))
+		kbd->prfshift++;
+	key_press_seq(kbd, keyTab, kbd->map, prf_keys(kbd, ent));
 }
 
 void kbd_prf_release(Keyboard* kbd, keyEntry* ent) {
-	key_release_seq(kbd, keyTab, kbd->extMap, ent->extKey);
-	key_release_seq(kbd, keyTab, kbd->map, ent->zxKey);
+	for (int i = 0; i < 8; i++) {
+		if (kbd->prfsh[i] && (kbd->prfsh[i] == ent->key)) {
+			kbd->prfsh[i] = 0;
+			key_release_seq(kbd, keyTab, kbd->map, ent->extShKey);
+			return;
+		}
+	}
+	if (prf_is_shift(ent) && (kbd->prfshift > 0))
+		kbd->prfshift--;
+	key_release_seq(kbd, keyTab, kbd->map, prf_keys(kbd, ent));
 }
 
 int kbdScanProfi(Keyboard* kbd, int port) {
-	int res = 0x3f;
-	kbd_note_scan(kbd, port);
-	for (int i = 0; i < 8; i++) {
-		if (!(port & 0x8000)) {
-			res &= kbd->extMap[i];
-			res &= (kbd->map[i] | 0x20);
-		}
-		port <<= 1;
-	}
+	int res = kbdScanZX(kbd, port);
+	if (kbd->extkey && (~port & 0xff00))
+		res &= ~0x20;
 	return res;
 }
 
@@ -681,13 +706,15 @@ void kbdReleaseAll(Keyboard* kbd) {
 	int i;
 	for (i = 0; i < 8; i++) {
 		kbd->map[i] = -1;
-		kbd->extMap[i] = -1;
 		kbd->msxMap[i] = -1;
 		kbd->msxMap[i + 8] = -1;
 	}
 	for (i = 0; i < 16 * 8; i++) {
 		kbd->matrix[(i >> 3) & 15][i & 7] = 0;
 	}
+	kbd->extkey = 0;
+	kbd->prfshift = 0;
+	memset(kbd->prfsh, 0, sizeof(kbd->prfsh));
 	kbd->keycode = 0;
 	kbd->lastkey = 0;
 //	kbd->outbuf = 0;	//kbd->kbuf.pos = 0;
@@ -705,10 +732,7 @@ void kbdTrigger(Keyboard* kbd, keyEntry* ent) {
 	if (!kbd->core) return;
 	switch(kbd->core->id) {
 		case KBD_SPECTRUM:
-			key_trigger_seq(kbd, keyTab, kbd->map, ent->zxKey);
-			break;
 		case KBD_PROFI:
-			key_trigger_seq(kbd, keyTab, kbd->extMap, ent->extKey);
 			key_trigger_seq(kbd, keyTab, kbd->map, ent->zxKey);
 			break;
 		case KBD_MSX:
