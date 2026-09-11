@@ -166,7 +166,8 @@ enum {
 };
 
 enum {
-	TWS_PLAY = 1,
+	TWS_PLAY = 1,		// as a person pressing the button
+	TWS_AUTOPLAY,		// as a loader asking for the tape
 	TWS_REC,
 	TWS_STOP,
 	TWS_OPEN,

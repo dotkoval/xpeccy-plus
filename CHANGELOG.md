@@ -98,6 +98,8 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- A tape stops at its end when "Rewind at end" is off. It rewound whatever the setting
+  said, so a tape the loader could make nothing of started itself over and over.
 - A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it
   on for the machine you switch to next, which ran at the wrong speed.
 - Cancel in Options now really cancels a ROM you picked on the Machine page.

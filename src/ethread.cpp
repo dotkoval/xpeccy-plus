@@ -106,7 +106,7 @@ void xThread::tap_catch_load(Computer* comp) {
 		cpu_set_pc(comp->cpu, 0x5df);
 		free(blkData);
 	} else if (conf.tape.autostart) {
-		emit tapeSignal(TW_STATE,TWS_PLAY);
+		emit tapeSignal(TW_STATE,TWS_AUTOPLAY);
 	}
 }
 

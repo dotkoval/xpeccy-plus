@@ -515,7 +515,9 @@ void tapNextBlock(Tape* tap) {
 		tap->blkData[tap->block].vol = 0;
 		tap->volPlay = 0x7f;
 	} else {
-		tap->block = 0;
+		// past the last block: start over only if the tape is set to rewind at
+		// its end, else stay there so nothing plays until it is rewound by hand
+		tap->block = tap->autorew ? 0 : tap->blkCount;
 		tapStop(tap);
 	}
 	tap->xirq(IRQ_TAP_BLK, tap->xptr);
