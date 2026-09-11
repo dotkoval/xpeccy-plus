@@ -2988,7 +2988,7 @@ Off: the tape stops at the end</string>
                  <item row="1" column="0">
                   <widget class="QLabel" name="label_68">
                    <property name="toolTip">
-                    <string>Order the sectors are laid out on a track in</string>
+                    <string>The order a TRD or SCL image gets its sectors in on each track, taken when the image is opened. TR-DOS formats its disks 1, 9, 2, 10…</string>
                    </property>
                    <property name="text">
                     <string>Interleave</string>
@@ -2998,7 +2998,7 @@ Off: the tape stops at the end</string>
                  <item row="1" column="1">
                   <widget class="QComboBox" name="cbFlpInterleave">
                    <property name="toolTip">
-                    <string>Order the sectors are laid out on a track in</string>
+                    <string>The order a TRD or SCL image gets its sectors in on each track, taken when the image is opened. TR-DOS formats its disks 1, 9, 2, 10…</string>
                    </property>
                    <property name="maximumSize">
                     <size>

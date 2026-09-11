@@ -4,7 +4,7 @@
 
 #include "floppy.h"
 
-static int interleave = 3;
+static int interleave = 8;		// 1,9,2,10...: the order TR-DOS formats in
 
 Floppy* flpCreate(int id, cbflpirq cb, void* p) {
 	Floppy* flp = (Floppy*)malloc(sizeof(Floppy));

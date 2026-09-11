@@ -506,14 +506,15 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	ui.disklist->addAction(ui.actCopyToTape);
 	ui.disklist->addAction(ui.actSaveHobeta);
 	ui.disklist->addAction(ui.actSaveRaw);
-	ui.cbFlpInterleave->addItem("1:1", 1);
-	ui.cbFlpInterleave->addItem("1:2", 2);
-	ui.cbFlpInterleave->addItem("1:3", 3);
-	ui.cbFlpInterleave->addItem("1:4", 4);
-	ui.cbFlpInterleave->addItem("1:5", 5);
-	ui.cbFlpInterleave->addItem("1:6", 6);
-	ui.cbFlpInterleave->addItem("1:7", 7);
-	ui.cbFlpInterleave->addItem("1:8", 8);
+	// the order flp_format_trk_buf() lays the 16 sectors out in, for each value
+	ui.cbFlpInterleave->addItem("1, 9, 2, 10, 3… (TR-DOS)", 8);
+	ui.cbFlpInterleave->addItem("1, 2, 3, 4, 5… (in a row)", 1);
+	ui.cbFlpInterleave->addItem("1, 3, 5, 7, 9…", 2);
+	ui.cbFlpInterleave->addItem("1, 4, 7, 10, 13…", 3);
+	ui.cbFlpInterleave->addItem("1, 5, 9, 13, 2…", 4);
+	ui.cbFlpInterleave->addItem("1, 6, 11, 16, 2…", 5);
+	ui.cbFlpInterleave->addItem("1, 7, 13, 2, 8…", 6);
+	ui.cbFlpInterleave->addItem("1, 8, 15, 2, 9…", 7);
 // tape
 	ui.tapelist->addAction(ui.actCopyToDisk);
 // hdd

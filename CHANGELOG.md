@@ -95,6 +95,9 @@ before that point is upstream's history and is not repeated here.
   leave the picture skewed until the dialog was closed.
 - The shader is skipped at size x1, where there is nothing for it to work on. The choice
   is kept and comes back with the next size up.
+- Options -> Storage -> Disk: the interleave list now shows the order the sectors go in on
+  a track, and the default is the one TR-DOS formats its disks with (1, 9, 2, 10...).
+  Without fast disk access, the drive head now steps and settles as slowly as a real one.
 
 ### Fixed
 
