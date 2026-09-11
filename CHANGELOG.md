@@ -98,6 +98,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- Disks with loaders of their own work again. CHORDOUT no longer hangs when it goes back
+  to the disk, Battle Command finishes loading and no longer stutters on the way, and the
+  Profi's service ROM gets past its disk check instead of hanging.
+
 - The Profi's keyboard works again: the cursor keys and the other PC keys no longer
   stick. With Grab keyboard on, it takes the layout of the Profi's own PC keyboard -
   Shift, Ctrl and Alt, F1-F10, Home, End, Page Up/Down, Insert, Delete and the symbols -
