@@ -16,6 +16,7 @@ before that point is upstream's history and is not repeated here.
   Media -> File types sets it per format - switch only when needed, ask, keep the machine,
   or always use one machine. A tape or a disk that is only mounted leaves the machine alone.
   Any change of machine now says so at the bottom of the window.
+- The window title starts with the name of the file you opened last.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the

@@ -118,6 +118,7 @@ static void open_cli_file(MainWin& mwin, DebugWin& dbgw, const char* path, int d
 	if (!mac.empty())
 		cli_set_machine(mwin, dbgw, mac);
 	load_file(conf.zx, path, FG_ALL, drv);
+	mwin.noteOpened();
 }
 
 // for apple users

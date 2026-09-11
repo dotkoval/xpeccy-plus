@@ -389,14 +389,22 @@ static int boot_ft[] = {FL_SCL, FL_TRD, FL_TD0, FL_FDI, FL_UDI, FL_HOBETA, 0};
 // went to. The caller decides whether to act on it
 static int last_as_kind = AS_NONE;
 static int last_as_drv = 0;
+// and the file it really put somewhere: an ERR_OK is also what an unknown
+// file type and a disk the user would not give up come back with
+static QString last_loaded;
 
 int file_autostart_kind() {
 	return last_as_kind;
 }
 
+QString file_last_loaded() {
+	return last_loaded;
+}
+
 void media_autorun_forget() {
 	last_as_kind = AS_NONE;
 	last_as_drv = 0;
+	last_loaded.clear();
 }
 
 static char as_no_tape[] = "This machine cannot start a tape";
@@ -551,6 +559,7 @@ QString file_ask_open(Computer* comp, int* id, int* drv) {
 
 int load_file(Computer* comp, const char* name, int id, int drv) {
 	last_as_kind = AS_NONE;
+	last_loaded.clear();
 	QString path;
 	if (name) {
 		path = QFileInfo(QString::fromLocal8Bit(name)).canonicalFilePath();
@@ -570,6 +579,7 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 			if (err == ERR_OK) {
 				last_as_kind = as_kind_of(inf->id);
 				last_as_drv = drv;
+				last_loaded = path;
 			}
 		}
 	}

@@ -86,6 +86,7 @@ typedef struct {
 		void fillUserMenu();
 		void openMedia(const QString& path, int id, int drv, int run);
 		void setMachine(const std::string&);
+		void noteOpened();		// the file just loaded goes in the title
 	signals:
 		void s_options();
 		void s_debug();
@@ -156,6 +157,7 @@ typedef struct {
 		unsigned refit:1;	// geometry changed: re-read the frame before painting it
 
 		std::string shdLoaded;	// the shader the program is linked with now
+		QString mediaName;	// the last file the user opened, first in the title
 		std::string wantedShader();
 
 		QIcon icon;
