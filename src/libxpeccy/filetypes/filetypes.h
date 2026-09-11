@@ -155,12 +155,28 @@ void rzxGetFrame(Computer*);
 
 // memory (snapshot)
 
+// what a snapshot was taken on, read from the file without loading it
+enum {
+	SNAP_HW_UNKNOWN = 0,
+	SNAP_HW_48K,
+	SNAP_HW_128K,
+	SNAP_HW_PLUS2,
+	SNAP_HW_PLUS2A,
+	SNAP_HW_PLUS3,
+	SNAP_HW_PENTAGON,
+	SNAP_HW_SCORPION
+};
+
+int snapHwRuns(int snap, int hwid);
+
 int loadZ80(Computer*,const char*, int);
 int loadZ80_f(Computer*, FILE*);
+int z80GetHardware(const char*);
 
 int loadSNA(Computer*,const char*, int);
 int saveSNA(Computer*, const char*, int);
 int loadSNA_f(Computer*, FILE*, size_t);
+int snaGetHardware(const char*);
 
 int loadSPG(Computer*,const char*, int);
 

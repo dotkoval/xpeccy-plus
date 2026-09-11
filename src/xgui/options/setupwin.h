@@ -16,6 +16,7 @@
 #include "opt_hotkeytab.h"
 #include "opt_paledit.h"
 #include "opt_gamepad.h"
+#include "opt_filetypes.h"
 
 #include "ui_rsedit.h"
 #include "ui_setupwin.h"
@@ -48,6 +49,8 @@ class SetupWin : public QDialog {
 		xRomsetEditor* rseditor;
 		QDialog* advWin;		// the machine-defining settings
 		QDialog* romWin;		// the set, file by file
+		QDialog* ftWin;			// the machine each file type is opened on
+		xFileTypesBox* ftbox;
 		xRomsetModel* rsmodel;
 		xRomset roms;			// the set the page edits, until Apply
 

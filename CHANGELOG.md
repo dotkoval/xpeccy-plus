@@ -11,6 +11,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- Opening a file can switch to a machine that runs it: a `.spg` goes to the TSConf, a
+  128K snapshot off the 48K, a TR-DOS disk to a Pentagon and a `.dsk` to the +3. Options ->
+  Media -> File types sets it per format - switch only when needed, ask, keep the machine,
+  or always use one machine. A tape or a disk that is only mounted leaves the machine alone.
+  Any change of machine now says so at the bottom of the window.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
   so a key press lands about 20 ms sooner per frame. Options -> Xpeccy+ -> Emulation,
   off by default. It doubles the emulation work, puts the picture slightly ahead of the
@@ -114,8 +119,11 @@ before that point is upstream's history and is not repeated here.
   which is what the keyboard test in its service menu expects.
 - A tape stops at its end when "Rewind at end" is off. It rewound whatever the setting
   said, so a tape the loader could make nothing of started itself over and over.
-- A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution - no longer leaves it
-  on for the machine you switch to next, which ran at the wrong speed.
+- A machine that turns its own turbo on - Scorpion, ATM, ZX Evolution, or a `.spg` that
+  asks for one - no longer leaves it on for the machine you switch to next, which ran at the
+  wrong speed. A `.spg` that asks for 14 MHz now gets 14 MHz, not 10.5.
+- `.z80` snapshots from a +2, +2A or +3 load now, and a 48K `.z80` no longer drops to the
+  128 menu on a Pentagon or any other 128K machine.
 - Cancel in Options now really cancels a ROM you picked on the Machine page.
 - Apply in Options leaves a whole picture on screen instead of half of one frame over half
   of another.

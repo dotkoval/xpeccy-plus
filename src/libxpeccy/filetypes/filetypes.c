@@ -34,6 +34,20 @@ size_t fgetSize(FILE* file) {
 	return res;
 }
 
+// can a machine on that core run a snapshot taken on that hardware: the
+// paging has to be there, the rest is the machine's own business
+int snapHwRuns(int snap, int hwid) {
+	switch (snap) {
+		case SNAP_HW_128K:
+		case SNAP_HW_PLUS2:
+		case SNAP_HW_PENTAGON: return hwid != HW_ZX48;
+		case SNAP_HW_PLUS2A:
+		case SNAP_HW_PLUS3: return (hwid == HW_PLUS2A) || (hwid == HW_PLUS3);
+		case SNAP_HW_SCORPION: return hwid == HW_SCORP;
+	}
+	return 1;			// a 48K, or one nobody knows
+}
+
 int fgetw(FILE* file) {
 	int res = fgetc(file) & 0xff;
 	res |= ((fgetc(file) & 0xff) << 8);

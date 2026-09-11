@@ -13,6 +13,8 @@ enum {
 // arm() once, when the media is opened; frame() ticks it until it is done.
 // arm() answers 0 when this machine cannot start that kind of media at all
 int autostart_arm(Computer*, int kind);
+// could a machine of that core and disk interface (DIF_*) start it
+int autostart_can(int hwid, int dif, int kind);
 void autostart_frame(Computer*);
 // the machine is being driven to the media: nothing of it is to be shown
 int autostart_busy();

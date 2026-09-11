@@ -182,6 +182,9 @@ void zx_sync(Computer*, int);
 sndPair zx_vol(Computer*, sndVolume*);
 void zx_set_pal(Computer*);	// todo: called from zx_reset only
 
+// tsconf SYSCONF: the cpu speed (the .spg loader sets it too)
+void tsOut20AF(Computer*, int, int);
+
 // nes calls (need for deBUGa widget)
 int nes_apu_ext_rd(int, void*);
 int nes_ppu_ext_rd(int, void*);

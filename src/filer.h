@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QWidget>
+#include <string>
 
 #include "libxpeccy/filetypes/filetypes.h"
 #include "libxpeccy/spectrum.h"
@@ -95,7 +96,12 @@ enum {
 
 void initFileDialog(QWidget*);
 void fitFileDialog(QWidget*);
+// the open dialog alone: the path, with id and drv set to what was picked in it
+QString file_ask_open(Computer*, int* id, int* drv);
 int load_file(Computer* comp, const char* name, int id, int drv);
+// the machine that file should be opened on, before it is (xcore/filemachine.h):
+// *mac comes back empty to keep the running one, false means do not open it
+bool media_machine(Computer*, const QString& path, int id, int drv, int run, std::string* mac);
 // AS_* the last loaded file would need to start, see xcore/autostart.h
 int file_autostart_kind();
 // reset the machine and start what was just opened, if run says so

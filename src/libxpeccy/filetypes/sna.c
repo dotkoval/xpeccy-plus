@@ -15,14 +15,20 @@ typedef struct {
 
 #pragma pack (pop)
 
+// the size is all there is: 49179 bytes for a 48K, more for a 128K
+static int sna_hardware(size_t size) {
+	return (size < 49180) ? SNAP_HW_48K : SNAP_HW_128K;
+}
+
 int loadSNA_f(Computer* comp, FILE* file, size_t fileSize) {
 
 	unsigned char tmp, tmp2;
 	//unsigned short adr;
 	char pageBuf[0x4000];
 	char tmpgBuf[0x4000];
+	int is48 = (sna_hardware(fileSize) == SNAP_HW_48K);
 
-	compReset(comp, (fileSize < 49180) ? RES_48 : RES_128);
+	compReset(comp, is48 ? RES_48 : RES_128);
 	comp_heat_reset(comp);		// snapshot load teleports state; pre-load hit counts are no longer valid
 
 	snaHead hd;
@@ -62,7 +68,7 @@ int loadSNA_f(Computer* comp, FILE* file, size_t fileSize) {
 	memPutData(comp->mem,MEM_RAM,2,MEM_16K,pageBuf);
 	fread(tmpgBuf, 0x4000, 1, file);
 
-	if (fileSize < 49180) {
+	if (is48) {
 		comp->p7FFD = 0x10;
 		comp->pEFF7 = 0x00;
 		comp->flgROM = 1;		// set basic 48
@@ -115,6 +121,14 @@ int loadSNA(Computer* comp, const char* name, int drv) {
 		vid_reset_ray(comp->vid);
 	}
 	return res;
+}
+
+int snaGetHardware(const char* name) {
+	FILE* file = fopen(name, "rb");
+	if (!file) return SNAP_HW_UNKNOWN;
+	size_t size = fgetSize(file);
+	fclose(file);
+	return sna_hardware(size);
 }
 
 int saveSNA(Computer* comp, const char* name, int drv) {

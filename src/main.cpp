@@ -102,11 +102,22 @@ bool xApp::eventFilter(QObject* obj, QEvent* ev) {
 	return QApplication::eventFilter(obj, ev);
 }
 
-// A document the os hands over. Two ways in: the event itself, and the one kept
-// back until there was a machine to load it into.
-static void open_os_file(const QString& path) {
-	load_file(conf.zx, path.toLocal8Bit().data(), FG_ALL, 0);
-	media_autorun(conf.zx, conf.autorun);
+static MainWin* os_win = NULL;		// the window every open goes through, once there is one
+
+static void cli_set_machine(MainWin& mwin, DebugWin& dbgw, const std::string& id) {
+	mwin.setMachine(id);
+	dbgw.onPrfChange();
+}
+
+// A file on the command line: the machine it wants first, unless the command
+// line names the machine itself.
+static void open_cli_file(MainWin& mwin, DebugWin& dbgw, const char* path, int drv, int run, bool pinned) {
+	std::string mac;
+	if (!pinned && !media_machine(conf.zx, QString::fromLocal8Bit(path), FG_ALL, drv, run, &mac))
+		return;
+	if (!mac.empty())
+		cli_set_machine(mwin, dbgw, mac);
+	load_file(conf.zx, path, FG_ALL, drv);
 }
 
 // for apple users
@@ -119,10 +130,12 @@ bool xApp::event(QEvent* ev) {
 			path = fev->file();		// the url's path is still percent-encoded
 			if (path.isEmpty())
 				path = fev->url().toLocalFile();
-			if (conf.zx)
-				open_os_file(path);
+			// a document the os hands over goes the way any other open does,
+			// once there is a window for it; until then main() keeps it
+			if (os_win)
+				os_win->openMedia(path, FG_ALL, 0, conf.autorun);
 			else
-				pendingFile = path;	// no machine yet: main() picks it up
+				pendingFile = path;
 			break;
 		case QEvent::User:
 			emit s_frame();
@@ -205,12 +218,22 @@ int main(int ac,char** av) {
 	// windows holding values read from the first configuration.
 	// Same for the log switches: the file has to be open before the config is
 	// read, or the first thing worth logging is already past. One walk over
-	// argv for everything that has to be known this early.
+	// argv for everything that has to be known this early - and for what
+	// decides the machine a file on it is opened on, wherever that stands.
 	char* confdir = NULL;
+	int cli_astart = -1;		// --autostart / --no-autostart, -1: the option decides
+	bool pinned = false;		// the command line names the machine: files do not pick one
 	for (int n = 1; n < ac; ) {
 		const char* earg = av[n++];
 		if (!strcmp(earg, "--confdir")) {
 			if (n < ac) confdir = av[n++];	// eat it, or it reads as a switch
+		} else if (!strcmp(earg, "--autostart")) {
+			cli_astart = 1;
+		} else if (!strcmp(earg, "--no-autostart")) {
+			cli_astart = 0;
+		} else if (!strcmp(earg, "-m") || !strcmp(earg, "--machine")
+				|| !strcmp(earg, "-p") || !strcmp(earg, "--profile")) {
+			pinned = true;
 		} else {
 			log_arg(earg, n, ac, av);
 		}
@@ -243,6 +266,7 @@ int main(int ac,char** av) {
 	app.d_style();
 
 	MainWin mwin;
+	os_win = &mwin;
 	xThread ethread;
 	DebugWin dbgw(&mwin);
 	SetupWin optw(&mwin);
@@ -318,7 +342,7 @@ int main(int ac,char** av) {
 	int hlp = 0;
 	int drv = 0;
 	int lab = 1;
-	int astart = conf.autorun;	// the option is the default, the keys below override it
+	int astart = (cli_astart < 0) ? conf.autorun : cli_astart;
 	xAdr xadr;
 	int tmpi;
 #ifdef __APPLE__
@@ -335,10 +359,8 @@ int main(int ac,char** av) {
 			// already dealt with, before the config was read
 		} else if (!strcmp(parg,"--panic")) {
 			compflags |= CFLG_PANIC;
-		} else if (!strcmp(parg,"--autostart")) {
-			astart = 1;
-		} else if (!strcmp(parg,"--no-autostart")) {
-			astart = 0;
+		} else if (!strcmp(parg,"--autostart") || !strcmp(parg,"--no-autostart")) {
+			// read in the early walk
 #ifdef __WIN32
 		} else if (!strcmp(parg,"-c") || !strcmp(parg,"--console")) {
 			// attached above, before the log header was written
@@ -356,10 +378,8 @@ int main(int ac,char** av) {
 				if (mid.empty()) {
 					xlog(XLG_APP, XLL_ERROR, "no such machine: %s", av[i]);
 				} else {
-					xm_set(mid);
+					cli_set_machine(mwin, dbgw, mid);
 				}
-				mwin.onPrfChange();
-				dbgw.onPrfChange();
 				i++;
 			} else if (!strcmp(parg,"--pc")) {
 				conf.zx->cpu->regPC = strtol(av[i],NULL,0) & 0xffff;
@@ -430,19 +450,19 @@ int main(int ac,char** av) {
 			} else if (!strcmp(parg, "--confdir")) {
 				i++;		// handled before conf_init above
 			} else if (strlen(parg) > 0) {
-				load_file(conf.zx, parg, FG_ALL, drv);
+				open_cli_file(mwin, dbgw, parg, drv, astart, pinned);
 			}
 		} else if (strlen(parg) > 0) {
-			load_file(conf.zx, parg, FG_ALL, drv);
+			open_cli_file(mwin, dbgw, parg, drv, astart, pinned);
 		}
 	}
 	// tape or disk from the command line: mounting is not enough, so press
 	// what the user would press by hand. Here, after every option is known
 	media_autorun(conf.zx, astart);
 
-	// a document macOS handed over before there was a machine to load it into
+	// a document macOS handed over before there was a window to open it through
 	if (!app.pendingFile.isEmpty()) {
-		open_os_file(app.pendingFile);
+		mwin.openMedia(app.pendingFile, FG_ALL, 0, conf.autorun);
 		app.pendingFile.clear();
 	}
 

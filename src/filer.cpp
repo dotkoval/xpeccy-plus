@@ -1,12 +1,19 @@
 #include "filer.h"
 #include "xcore/xcore.h"
 #include "xcore/autostart.h"
+#include "xcore/filemachine.h"
 #include "xgui/xgui.h"
 
 #include <QDebug>
+#include <QDialog>
 #include <QFileDialog>
+#include <QHBoxLayout>
 #include <QHeaderView>
+#include <QLabel>
+#include <QListWidget>
+#include <QPushButton>
 #include <QTreeView>
+#include <QVBoxLayout>
 
 static QFileDialog* filer;
 
@@ -262,6 +269,13 @@ xFileTypeInfo* file_find_hw_ext(int hw, QString path) {
 	return inf;
 }
 
+// what a file opened as id is: the group's own type when it has one (a raw
+// file, a cartridge), otherwise whatever the extension says
+static xFileTypeInfo* file_type_of(Computer* comp, int id, const QString& path) {
+	xFileGroupInfo* grp = file_find_group(id);	// not a group: the empty one
+	return grp->fti ? grp->fti : file_find_hw_ext(comp->hw->id, path);
+}
+
 static QString allfilt;
 
 QString file_get_type_filter(int id, int sv) {
@@ -393,10 +407,15 @@ static char as_not_a[] = "Only drive A can be started";
 // started, so do what the command line does - reset and press the keys. A
 // machine that cannot take this kind of media keeps running, the image just
 // sits in its drive.
+// booting is drive A business
+static bool as_from_drive(int kind, int drv) {
+	return (kind == AS_TAPE) || (drv <= 0);
+}
+
 void media_autorun(Computer* comp, int run) {
 	int kind = file_autostart_kind();
 	if (!comp || !run || (kind == AS_NONE)) return;
-	if ((kind != AS_TAPE) && (last_as_drv != 0)) {	// booting is drive A business
+	if (!as_from_drive(kind, last_as_drv)) {
 		comp->msg = as_not_a;
 		xlog(XLG_FILE, XLL_INFO, "autostart: only drive A can be started");
 		return;
@@ -428,6 +447,67 @@ static int as_kind_of(int ftype) {
 	return AS_NONE;
 }
 
+// Ask: the machines that can take the file, the one it names first. false is
+// Cancel - the file is not opened at all
+static bool media_ask_machine(const QString& path, const std::vector<std::string>& ids, std::string* mac) {
+	const xMachine* cur = xm_find(conf.macId);
+	QString curName = QString::fromLocal8Bit(cur ? cur->name.c_str() : conf.macId.c_str());
+	QDialog dlg;
+	dlg.setWindowTitle("Choose a machine");
+	QVBoxLayout* lay = new QVBoxLayout(&dlg);
+	QLabel* lab = new QLabel(QString("<b>%1</b> does not run on %2.<br>Run it on:")
+		.arg(QFileInfo(path).fileName().toHtmlEscaped(), curName.toHtmlEscaped()));
+	lab->setWordWrap(true);
+	lay->addWidget(lab);
+	QListWidget* list = new QListWidget;
+	for (const std::string& id : ids) {
+		const xMachine* m = xm_find(id);
+		QListWidgetItem* it = new QListWidgetItem(QString::fromLocal8Bit(m ? m->name.c_str() : id.c_str()));
+		it->setData(Qt::UserRole, QString::fromLocal8Bit(id.c_str()));
+		list->addItem(it);
+	}
+	list->setCurrentRow(0);
+	// the whole list in view: it is never longer than the machines there are
+	list->setMinimumHeight(list->sizeHintForRow(0) * list->count() + 2 * list->frameWidth());
+	lay->addWidget(list);
+	QHBoxLayout* btns = new QHBoxLayout;
+	QPushButton* run = new QPushButton("Switch");
+	QPushButton* keep = new QPushButton(QString("Keep %1").arg(curName));
+	QPushButton* cancel = new QPushButton("Cancel");
+	run->setDefault(true);
+	btns->addStretch();
+	btns->addWidget(run);
+	btns->addWidget(keep);
+	btns->addWidget(cancel);
+	lay->addLayout(btns);
+	enum {ASK_CANCEL = 0, ASK_SWITCH, ASK_KEEP};
+	QObject::connect(run, &QPushButton::clicked, &dlg, [&dlg]() {dlg.done(ASK_SWITCH);});
+	QObject::connect(list, &QListWidget::itemDoubleClicked, &dlg, [&dlg]() {dlg.done(ASK_SWITCH);});
+	QObject::connect(keep, &QPushButton::clicked, &dlg, [&dlg]() {dlg.done(ASK_KEEP);});
+	QObject::connect(cancel, &QPushButton::clicked, &dlg, [&dlg]() {dlg.done(ASK_CANCEL);});
+	int res = dlg.exec();
+	if ((res == ASK_SWITCH) && list->currentItem())
+		*mac = list->currentItem()->data(Qt::UserRole).toString().toLocal8Bit().data();
+	return res != ASK_CANCEL;
+}
+
+// The machine a file is to be opened on, asked before it is opened: *mac comes
+// back empty to keep the running one. Only what is about to run gets a say - a
+// snapshot always, a tape or a disk only when it is started, and a disk only
+// from drive A, the one that boots. false: the user backed out of the question.
+bool media_machine(Computer* comp, const QString& path, int id, int drv, int run, std::string* mac) {
+	mac->clear();
+	xFileTypeInfo* inf = file_type_of(comp, id, path);
+	if (!inf) return true;
+	int kind = as_kind_of(inf->id);		// AS_NONE: a snapshot, or nothing that runs
+	if ((kind != AS_NONE) && (!run || !as_from_drive(kind, drv))) return true;
+	xFileMacPick pick = fm_pick(inf->id, path.toLocal8Bit().data());
+	if (!pick.ask.empty())
+		return media_ask_machine(path, pick.ask, mac);
+	*mac = pick.target;
+	return true;
+}
+
 void disk_boot(Computer* comp, int drv, int id) {
 	if (!conf.boot) return;
 	int idx = 0;
@@ -437,49 +517,50 @@ void disk_boot(Computer* comp, int drv, int id) {
 		loadBoot(comp, conf.path.boot.c_str(), drv);
 }
 
+// The open dialog, for the kind of file id asks for. What was picked in it
+// comes back through id and drv: the filter chosen is the group the file is
+// opened as, and a drive of its own when drv did not name one.
+QString file_ask_open(Computer* comp, int* id, int* drv) {
+	int fid = *id;
+	if (fid == FG_DISK)
+		fid = disk_id[*drv & 3];
+	if (fid == FG_ALL)
+		fid = detect_hw_id(comp->hw->id);
+	QString path;
+	QString flt = file_get_hw_filter(comp, fid, 0);
+	if (flt.isEmpty()) {
+		flt = file_get_group_filter(comp, fid, 0);
+		if (flt.isEmpty())
+			flt = file_get_type_filter(fid, 0);
+	}
+	if (flt.isEmpty()) return path;
+	filer->setWindowTitle("Open file");
+	filer->setNameFilter(flt);
+	filer->setDirectory(conf.lastDir.c_str());
+	filer->setAcceptMode(QFileDialog::AcceptOpen);
+	filer->setHistory(QStringList());
+	if (filer->exec()) {
+		path = filer->selectedFiles().first();
+		xFileGroupInfo* grp = file_detect_grp(filer->selectedNameFilter());
+		if (grp->id > 0) *id = grp->id;
+		if (*drv < 0) *drv = grp->drv;
+		conf.lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
+	}
+	return path;
+}
+
 int load_file(Computer* comp, const char* name, int id, int drv) {
 	last_as_kind = AS_NONE;
-	QString path = QString::fromLocal8Bit(name);
-	path = QFileInfo(path).canonicalFilePath();
-	if (path.isEmpty() && name) return ERR_CANT_OPEN;
-	// qDebug() << path;
-	QString flt;
-//	QString ext;
-	xFileTypeInfo* inf;
-	xFileGroupInfo* grp = &fg_dum;
-	if (id == FG_DISK)
-		id = disk_id[drv & 3];
-	if (id == FG_ALL)
-		id = detect_hw_id(comp->hw->id);
-	int err = ERR_OK;
-	if (path.isEmpty()) {
-		flt = file_get_hw_filter(comp, id, 0);
-		if (flt.isEmpty()) {
-			flt = file_get_group_filter(comp, id, 0);
-			if (flt.isEmpty())
-				flt = file_get_type_filter(id, 0);
-		}
-		if (!flt.isEmpty()) {
-			filer->setWindowTitle("Open file");
-			filer->setNameFilter(flt);
-			filer->setDirectory(conf.lastDir.c_str());
-			filer->setAcceptMode(QFileDialog::AcceptOpen);
-			filer->setHistory(QStringList());
-			if (filer->exec()) {
-				path = filer->selectedFiles().first();
-				flt = filer->selectedNameFilter();
-				grp = file_detect_grp(flt);
-				if (drv < 0) drv = grp->drv;
-				conf.lastDir = std::string(QFileInfo(path).dir().absolutePath().toLocal8Bit().data());
-			}
-		}
-	}
-	if (path.isEmpty()) return err;
-	if (grp->fti != NULL) {
-		inf = grp->fti;						// hardcoded file type (by group)
+	QString path;
+	if (name) {
+		path = QFileInfo(QString::fromLocal8Bit(name)).canonicalFilePath();
+		if (path.isEmpty()) return ERR_CANT_OPEN;
 	} else {
-		inf = file_find_hw_ext(comp->hw->id, path);		// detect file type by extension
+		path = file_ask_open(comp, &id, &drv);
+		if (path.isEmpty()) return ERR_OK;
 	}
+	xFileTypeInfo* inf = file_type_of(comp, id, path);
+	int err = ERR_OK;
 	if (drv < 0) drv = 0;
 	// a disk goes in only once the one it replaces is safe to lose
 	if (inf && inf->load) {
