@@ -83,6 +83,7 @@ struct FDC {
 	int cnt;
 	int wait;		// pause (ns)
 	int tns;
+	int hold;		// vg93 turbo: ns left in this command to wait for the cpu to take a byte
 	int drdy;		// time (ns) to replace fdc->insert signal by 0 (time between opening and closing a flp gate)
 
 	fdcCall* plan;		// current task

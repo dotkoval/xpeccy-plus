@@ -5,7 +5,17 @@
 // NOTE: cdb4 = crc for A1,A1,A1
 // init value of crc must be FFFF, accumulation starting from 1st A1
 
-static int pauses[4] = {6000,12000,20000,30000};	// pause in ns for 1st type commands
+// Times in ns, for the 1 MHz clock of the Beta disk interface. Turbo shortens the
+// steps but keeps a command busy for a moment: code that waits for BUSY to rise
+// after a command (the Profi's BIOS) must get to see it.
+static const int pauses[4] = {6000000,12000000,20000000,30000000};	// step rate, type I r bits
+#define VG_START	20000		// command start, before the first step
+#define VG_SETTLE	15000000	// head settling: verify, and the E flag of type II/III
+#define VG_TURBO_STEP	20000
+
+static int vg_step_time(FDC* fdc) {
+	return turbo ? VG_TURBO_STEP : pauses[fdc->com & 3];
+}
 
 // 1818vg93
 
@@ -105,14 +115,24 @@ int vgGetByte(FDC* fdc) {
 		fdc->data = 0x00;
 		res = 2;
 	} else if (turbo) {
+		// The disk spins far faster than a loader expects, so one that comes for the
+		// data after playing its music would miss every byte: a byte waits for the cpu,
+		// out of a budget of one real revolution per command (Unreal's fast mode does
+		// the same). A program that never takes the data loses it at the normal pace.
 		if (fdc->drq) {
-			if (fdc->tns > fdc->bytedelay) {
+			if (fdc->tns > fdc->bytedelay + fdc->hold) {
+				fdc->hold = 0;
 				fdc->state |= 0x04;
+				fdc->data = flpRd(fdc->flp, fdc->side);		// the next byte overwrites it, and goes into the CRC
 				flpNext(fdc->flp, fdc->side);
 				fdc->tns = 0;
 				res = 1;
 			}
 		} else {
+			if (fdc->tns > fdc->bytedelay) {
+				fdc->hold -= fdc->tns - fdc->bytedelay;
+				if (fdc->hold < 0) fdc->hold = 0;
+			}
 			fdc->data = flpRd(fdc->flp, fdc->side);
 			flpNext(fdc->flp, fdc->side);
 			fdc->drq = 1;
@@ -132,18 +152,6 @@ int vgGetByte(FDC* fdc) {
 		res = 1;
 	}
 	return res;
-}
-
-// wait fdc->cnt ms & spin flop if motor is on
-void vgwait(FDC* fdc) {
-	fdc->cnt -= fdc->bytedelay;
-	if (fdc->cnt < 0) {
-		fdc->pos++;
-	} else {
-		fdc->wait += fdc->bytedelay;
-		if (fdc->flp->motor)
-			flpNext(fdc->flp, fdc->side);
-	}
 }
 
 // idle : wait 15 IDX pulses & stop motor
@@ -190,6 +198,7 @@ void vgchk00(FDC* fdc) {
 		vgstp(fdc);
 	} else {
 		fdc->cnt = 9;		// try seek ADR in 9 spins
+		if (!turbo) fdc->wait += VG_SETTLE;
 		fdc->pos++;
 	}
 }
@@ -226,16 +235,12 @@ void vgchk(FDC* fdc) {
 // =======
 // restore
 
-// prepare, do start delay (h=1)
+void vgseek00(FDC*);
+
+// a seek down from track 255 that stops at TRK0
 void vgres00(FDC* fdc) {
-	fdc->fmode = 0;
 	fdc->trk = 0xff;
-	fdc->cnt = 1000000;		// delay for BV
-	if (fdc->com & 8) {		// if h=1 : start motor, pause 15 ms
-		fdc->wait += turbo ? 5000 : 15000;
-		fdc->flp->motor = 1;
-	}
-	fdc->pos++;
+	vgseek00(fdc);
 }
 
 // do step in until TRK0 or Rtrk=0
@@ -246,24 +251,22 @@ void vgres01(FDC* fdc) {
 		fdc->trk = 0;
 		fdc->pos++;
 	} else {
-		fdc->wait += turbo ? 1 : pauses[fdc->com & 3];
+		fdc->wait += vg_step_time(fdc);
 		fdc->trk--;
 		flpStep(fdc->flp, FLP_BACK);
 	}
 }
 
-static fdcCall vgRest[] = {&vgres00, &vgwait, &vgres01, &vgchk};
+static fdcCall vgRest[] = {&vgres00, &vgres01, &vgchk};
 
 // ====
 // seek
 
 void vgseek00(FDC* fdc) {
 	fdc->fmode = 0;
-	fdc->cnt = 1000000;		// 1ms delay for BV :)
-	if (fdc->com & 8) {
-		fdc->wait += turbo ? 1 : 15000;
+	if (fdc->com & 8)
 		fdc->flp->motor = 1;
-	}
+	fdc->wait += VG_START;
 	fdc->pos++;
 }
 
@@ -273,15 +276,15 @@ void vgseek01(FDC* fdc) {
 	} else if (fdc->trk < fdc->data) {
 		flpStep(fdc->flp, FLP_FORWARD);
 		fdc->trk++;
-		fdc->wait += turbo ? TURBOBYTE : fdc->bytedelay;
+		fdc->wait += vg_step_time(fdc);
 	} else {
 		flpStep(fdc->flp, FLP_BACK);
 		fdc->trk--;
-		fdc->wait += turbo ? TURBOBYTE : fdc->bytedelay;
+		fdc->wait += vg_step_time(fdc);
 	}
 }
 
-static fdcCall vgSeek[] = {&vgseek00, &vgwait, &vgseek01, &vgchk};
+static fdcCall vgSeek[] = {&vgseek00, &vgseek01, &vgchk};
 
 // ===========================
 // step/step forward/step back
@@ -298,7 +301,7 @@ void vgstpb(FDC* fdc) {
 
 void vgstep(FDC* fdc) {
 	flpStep(fdc->flp, fdc->step ? FLP_FORWARD : FLP_BACK);
-	fdc->wait += turbo ? 1 : pauses[fdc->com & 3];
+	fdc->wait += vg_step_time(fdc);
 	if (fdc->com & 0x10) {
 		if (fdc->step)
 			fdc->trk++;
@@ -328,7 +331,7 @@ void vgrds00(FDC* fdc) {
 		vgstp(fdc);
 	} else {
 		fdc->flp->motor = 1;
-		if (fdc->com & 4) fdc->wait += 15000;	// if (e=0) pause 15ms
+		if (fdc->com & 4) fdc->wait += VG_SETTLE;	// e=1, turbo too: loaders use the time
 		fdc->cnt = 5;				// seek sector in 5 spins
 		fdc->pos++;
 	}
@@ -605,6 +608,7 @@ void vgExec(FDC* fdc, unsigned char com) {
 				fdc->idle = 0;
 				fdc->state = 0;
 				fdc->irq = 0;
+				fdc->hold = fdc->bytedelay * fdc->flp->trklen;	// one revolution
 				break;
 			}
 			idx++;
