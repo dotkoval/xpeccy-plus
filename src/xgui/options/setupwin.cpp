@@ -31,6 +31,7 @@
 #include "filer.h"
 #include "setupwin.h"
 #include "xgui/xgui.h"
+#include "xgui/favorites.h"
 #include "xcore/gamepad.h"
 #include "xcore/xcore.h"
 #include "xcore/vscalers.h"
@@ -411,10 +412,6 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	spaceLedIcon(ui.cbHaltLed);
 	spaceLedIcon(ui.cbMessage);
 
-	umadial = new QDialog;
-	uia.setupUi(umadial);
-	umadial->setModal(true);
-
 	rseditor = new xRomsetEditor(this);
 	rsmodel = new xRomsetModel();
 	ui.tvRomset->setModel(rsmodel);
@@ -723,15 +720,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 //	connect(padial, SIGNAL(bindReady(xJoyMapEntry)), this, SLOT(bindAccept(xJoyMapEntry)));
 //	connect(ui.cbGamepad, SIGNAL(currentIndexChanged(int)),this,SLOT(setCurrentGamepad(int)));
 //tools
-	connect(ui.umlist,SIGNAL(doubleClicked(QModelIndex)),this,SLOT(umedit(QModelIndex)));
-	connect(ui.umaddtb,SIGNAL(released()),this,SLOT(umadd()));
-	connect(ui.umdeltb,SIGNAL(released()),this,SLOT(umdel()));
-	connect(ui.umuptb,SIGNAL(released()),this,SLOT(umup()));
-	connect(ui.umdntb,SIGNAL(released()),this,SLOT(umdn()));
-// bookmark add dialog
-	connect(uia.umasptb,SIGNAL(released()),this,SLOT(umaselp()));
-	connect(uia.umaok,SIGNAL(released()),this,SLOT(umaconf()));
-	connect(uia.umacn,SIGNAL(released()),umadial,SLOT(hide()));
+	connect(ui.pbFavorites, &QPushButton::clicked, this, [this]() {fav_manage(this);});
 // debuga
 	portwid = new xPortWatch;		// the same editor the debugger opens itself
 	ui.layDbgPorts->addWidget(portwid);
@@ -1036,7 +1025,6 @@ void SetupWin::start() {
 // tools
 	ui.sbPort->setValue(conf.port);
 	ui.cbConfexit->setChecked(conf.confexit);
-	buildmenulist();
 // leds
 	ui.cbMouseLed->setChecked(conf.led.mouse);
 	ui.cbJoyLed->setChecked(conf.led.joy);
@@ -1931,21 +1919,6 @@ void SetupWin::buildtapelist() {
 	ui.tapelist->fill(conf.zx->tape);
 }
 
-// TODO : make bookmarks & profiles list as view-model
-
-void SetupWin::buildmenulist() {
-	ui.umlist->setRowCount(conf.bookmarkList.size());
-	QTableWidgetItem* itm;
-	for (int i = 0; i < conf.bookmarkList.size(); i++) {
-		itm = new QTableWidgetItem(QString(conf.bookmarkList[i].name.c_str()));
-		ui.umlist->setItem(i,0,itm);
-		itm = new QTableWidgetItem(QString(conf.bookmarkList[i].path.c_str()));
-		ui.umlist->setItem(i,1,itm);
-	}
-	ui.umlist->setColumnWidth(0,100);
-	ui.umlist->selectRow(0);
-}
-
 void SetupWin::copyToTape() {
 	int dsk = ui.disktabs->currentIndex();
 	QModelIndexList idx = ui.disklist->selectionModel()->selectedRows();
@@ -2550,70 +2523,6 @@ void SetupWin::delBinding() {
 		padModel->update();
 		padSaveConfig(getRFSData(ui.cbPadMap).toStdString());
 */
-}
-
-// tools
-
-void SetupWin::umup() {
-	int ps = ui.umlist->currentRow();
-	if (ps > 0) {
-		swapBookmarks(ps,ps-1);
-		buildmenulist();
-		ui.umlist->selectRow(ps-1);
-	}
-}
-
-void SetupWin::umdn() {
-	int ps = ui.umlist->currentIndex().row();
-	if ((ps != -1) && (ps < (int)conf.bookmarkList.size() - 1)) {
-		swapBookmarks(ps, ps+1);
-		buildmenulist();
-		ui.umlist->selectRow(ps+1);
-	}
-}
-
-void SetupWin::umdel() {
-	int ps = ui.umlist->currentIndex().row();
-	if (ps != -1) {
-		delBookmark(ps);
-		buildmenulist();
-		if (ps == conf.bookmarkList.size()) {
-			ui.umlist->selectRow(ps-1);
-		} else {
-			ui.umlist->selectRow(ps);
-		}
-	}
-}
-
-void SetupWin::umadd() {
-	uia.namele->clear();
-	uia.pathle->clear();
-	umidx = -1;
-	umadial->show();
-}
-
-void SetupWin::umedit(QModelIndex idx) {
-	umidx = idx.row();
-	uia.namele->setText(ui.umlist->item(umidx,0)->text());
-	uia.pathle->setText(ui.umlist->item(umidx,1)->text());
-	umadial->show();
-}
-
-void SetupWin::umaselp() {
-	QString fpath = QFileDialog::getOpenFileName(NULL,"Select file","","Known formats (*.sna *.z80 *.tap *.tzx *.trd *.scl *.fdi *.udi)",nullptr,QFileDialog::DontUseNativeDialog);
-	if (fpath!="") uia.pathle->setText(fpath);
-}
-
-void SetupWin::umaconf() {
-	if ((uia.namele->text()=="") || (uia.pathle->text()=="")) return;
-	if (umidx == -1) {
-		addBookmark(std::string(uia.namele->text().toLocal8Bit().data()),std::string(uia.pathle->text().toLocal8Bit().data()));
-	} else {
-		setBookmark(umidx,std::string(uia.namele->text().toLocal8Bit().data()),std::string(uia.pathle->text().toLocal8Bit().data()));
-	}
-	umadial->hide();
-	buildmenulist();
-	ui.umlist->selectRow(ui.umlist->rowCount()-1);
 }
 
 void SetupWin::selectDbgFont() {

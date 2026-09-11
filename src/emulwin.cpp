@@ -31,6 +31,7 @@
 #include "emulwin.h"
 #include "filer.h"
 #include "watcher.h"
+#include "xgui/favorites.h"
 
 #include "xcore/vfilters.h"
 #include "xcore/vscalers.h"
@@ -53,8 +54,9 @@
 
 void MainWin::updateHead() {
 	QStringList parts;
-	if (!mediaPath.isEmpty())
-		parts << QFileInfo(mediaPath).fileName();
+	QString media = media_current();
+	if (!media.isEmpty())
+		parts << QFileInfo(media).fileName();
 	parts << XPTITLE;
 #ifdef ISDEBUG
 	parts << "debug";
@@ -1120,7 +1122,7 @@ void MainWin::initUserMenu() {
 		openMedia(QString(), FG_ALL, -1, conf.autorun);
 	});
 // submenu
-	bookmarkMenu = userMenu->addMenu(QIcon(":/images/star.png"),"Bookmarks");
+	bookmarkMenu = userMenu->addMenu(QIcon(":/images/star.png"),"Favorites");
 	profileMenu = userMenu->addMenu(QIcon(":/images/computer.png"),"Machine");
 	keyMenu = userMenu->addMenu(QIcon(":/images/keyboardzx.png"), "Keymap");
 	resMenu = userMenu->addMenu(QIcon(":/images/shutdown.png"),"Reset");
@@ -1140,7 +1142,6 @@ void MainWin::initUserMenu() {
 	userMenu->addAction(QIcon(":/images/bug.png"), "Debugger", this, SLOT(doDebug()));
 	userMenu->addAction(QIcon(":/images/other.png"),"Options",this,SLOT(doOptions()));
 
-	connect(bookmarkMenu,SIGNAL(triggered(QAction*)),this,SLOT(bookmarkSelected(QAction*)));
 	connect(profileMenu,SIGNAL(triggered(QAction*)),this,SLOT(profileSelected(QAction*)));
 	connect(resMenu,SIGNAL(triggered(QAction*)),this,SLOT(reset(QAction*)));
 	connect(shdMenu,SIGNAL(triggered(QAction*)),this,SLOT(shdSelected(QAction*)));
@@ -1164,17 +1165,39 @@ void MainWin::initUserMenu() {
 }
 
 void MainWin::fillUserMenu() {
-	// fill bookmark menu
+	// fill favorites menu: the image in use first, to add it or to take it out
 	bookmarkMenu->clear();
 	QAction* act;
-	if (conf.bookmarkList.size() == 0) {
-		bookmarkMenu->addAction("None")->setEnabled(false);
-	} else {
-		foreach(xBookmark bkm, conf.bookmarkList) {
-			act = bookmarkMenu->addAction(QString::fromLocal8Bit(bkm.name.c_str()));
-			act->setData(QVariant(QString::fromLocal8Bit(bkm.path.c_str())));
+	QString media = media_current();
+	if (!media.isEmpty()) {
+		QString name = QFileInfo(media).fileName().replace("&", "&&");
+		int idx = findBookmark(media);
+		if (idx < 0) {
+			bookmarkMenu->addAction(QIcon(":/images/add.png"), QString("Add \"%1\"...").arg(name), this, [this, media]() {
+				addFavorite(media);
+			});
+		} else {
+			bookmarkMenu->addAction(QIcon(":/images/cancel.png"), QString("Remove \"%1\"").arg(name), this, [idx]() {
+				delBookmark(idx);
+				saveConfig();
+			});
 		}
 	}
+	bookmarkMenu->addSeparator();		// separators with nothing between them collapse
+	foreach(xBookmark bkm, conf.bookmarkList) {
+		QString path = QString::fromLocal8Bit(bkm.path.c_str());
+		bookmarkMenu->addAction(QString::fromLocal8Bit(bkm.name.c_str()).replace("&", "&&"), this, [this, path]() {
+			openMedia(path, FG_ALL, 0, conf.autorun);
+			setFocus();
+		});
+	}
+	bookmarkMenu->addSeparator();
+	bookmarkMenu->addAction("Manage...", this, [this]() {
+		pause(true, PR_FILE);
+		fav_manage(this);
+		pause(false, PR_FILE);
+		setFocus();
+	});
 	// fill machine menu
 	profileMenu->clear();
 	std::string family;
@@ -1282,8 +1305,12 @@ void MainWin::dbgReturn() {
 	conf.zx->flgDBG = 0;
 }
 
-void MainWin::bookmarkSelected(QAction* act) {
-	openMedia(act->data().toString(), FG_ALL, 0, conf.autorun);
+// the name it goes under is asked first, starting from the file's own
+void MainWin::addFavorite(const QString& path) {
+	pause(true, PR_FILE);
+	if (fav_edit(this, -1, path))
+		saveConfig();
+	pause(false, PR_FILE);
 	setFocus();
 }
 
@@ -1364,8 +1391,8 @@ void MainWin::profileSelected(QAction* act) {
 
 void MainWin::showMedia(const QString& path, int src) {
 	mediaSrc = src;
-	if (path == mediaPath) return;
-	mediaPath = path;
+	if (path == media_current()) return;
+	media_set_current(path);
 	updateHead();
 }
 

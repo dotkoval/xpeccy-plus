@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>302</width>
+    <width>460</width>
     <height>98</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Add to user menu</string>
+   <string>Favorite</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -26,7 +26,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="label">
        <property name="toolTip">
-        <string>Name shown in the Bookmarks menu</string>
+        <string>Name shown in the Favorites menu</string>
        </property>
        <property name="text">
         <string>Name</string>
@@ -36,14 +36,14 @@
      <item row="0" column="1">
       <widget class="QLineEdit" name="namele">
        <property name="toolTip">
-        <string>Name shown in the Bookmarks menu</string>
+        <string>Name shown in the Favorites menu</string>
        </property>
       </widget>
      </item>
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
        <property name="toolTip">
-        <string>File the bookmark opens</string>
+        <string>File it opens</string>
        </property>
        <property name="text">
         <string>Path</string>
@@ -53,7 +53,7 @@
      <item row="1" column="1">
       <widget class="QLineEdit" name="pathle">
        <property name="toolTip">
-        <string>File the bookmark opens</string>
+        <string>File it opens</string>
        </property>
        <property name="readOnly">
         <bool>true</bool>

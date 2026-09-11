@@ -105,6 +105,9 @@ int load_file(Computer* comp, const char* name, int id, int drv);
 int media_reload(Computer*);
 // a snapshot loaded since the last call, empty when none
 QString file_take_snapshot();
+// the image in use, as the window title names it; empty when none
+QString media_current();
+void media_set_current(const QString& path);
 // the machine that file should be opened on, before it is (xcore/filemachine.h):
 // *mac comes back empty to keep the running one, false means do not open it
 bool media_machine(Computer*, const QString& path, int id, int drv, int run, std::string* mac);

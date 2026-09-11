@@ -18,6 +18,9 @@ before that point is upstream's history and is not repeated here.
   Any change of machine now says so at the bottom of the window.
 - The window title starts with the name of the tape, disk or snapshot in use - a tape
   once it plays, a disk once the machine reads it.
+- That image can go straight into Favorites: the Favorites menu offers to add it, under
+  its file name or one you type, or to remove it when it is already there. A hotkey adds
+  it too, with no key set by default.
 - Reload snapshot and labels now works outside the debugger too. It has a hotkey of its
   own, with no key set by default - pick one in Options -> Xpeccy+ -> Keys.
 - Run ahead, experimental: the emulator works a frame or two beyond what is on screen,
@@ -78,7 +81,10 @@ before that point is upstream's history and is not repeated here.
   own, Xpeccy+ -> Emulation.
 - Options: most settings now say what they do when the mouse rests on them, and the long
   ones no longer run off the edge of the screen. The romset, layout, palette, gamepad and
-  bookmark dialogs got the same.
+  favorites dialogs got the same.
+- Bookmarks are now called Favorites. The list has a window of its own, opened by
+  Manage... at the bottom of the Favorites menu or by Manage favorites in Options ->
+  Xpeccy+ -> General, instead of taking up room on that page.
 - Xpeccy+ is a ZX Spectrum emulator only now. MSX, Game Boy, NES, Commodore 64, BK0010,
   IBM PC, PC-9801, Specialist and ALF are gone, and so is everything only they used - in
   the machine, CPU, disk and hard disk lists, in the romset editor, and in the debugger.

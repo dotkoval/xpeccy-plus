@@ -402,6 +402,17 @@ QString file_take_snapshot() {
 	return res;
 }
 
+// the image named in the window title, which is what Favorites take
+static QString media_now;
+
+QString media_current() {
+	return media_now;
+}
+
+void media_set_current(const QString& path) {
+	media_now = path;
+}
+
 void media_autorun_forget() {
 	last_as_kind = AS_NONE;
 	last_as_drv = 0;

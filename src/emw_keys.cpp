@@ -241,6 +241,17 @@ void MainWin::xkey_press(int xkey) {
 				pause(false, PR_FILE);
 				setMessage(x ? " reloaded " : " nothing to reload ");
 				break;
+			case XCUT_FAVORITE:
+				// adds only: taking one out stays in the menu, where it can be seen
+				path = media_current();
+				if (path.isEmpty()) {
+					setMessage(" nothing to add ");
+				} else if (findBookmark(path) >= 0) {
+					setMessage(" already in Favorites ");
+				} else {
+					addFavorite(path);
+				}
+				break;
 			case XCUT_RATIO:
 				vid_set_ratio(!conf.vid.keepRatio);
 				updateWindow();

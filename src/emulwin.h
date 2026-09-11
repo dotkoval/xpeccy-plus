@@ -86,6 +86,7 @@ typedef struct {
 		void fillUserMenu();
 		void openMedia(const QString& path, int id, int drv, int run);
 		void setMachine(const std::string&);
+		void addFavorite(const QString& path);
 	signals:
 		void s_options();
 		void s_debug();
@@ -132,7 +133,6 @@ typedef struct {
 		void optApply();
 		void dbgReturn();
 		void rzxStateChanged(int);
-		void bookmarkSelected(QAction*);
 		void profileSelected(QAction*);
 		void shdSelected(QAction*);
 		void keySelected(QAction*);
@@ -158,8 +158,7 @@ typedef struct {
 		unsigned refit:1;	// geometry changed: re-read the frame before painting it
 
 		std::string shdLoaded;	// the shader the program is linked with now
-		QString mediaPath;	// the image in use, first in the title
-		int mediaSrc;		// where it is: a drive, the tape, or a snapshot
+		int mediaSrc;		// where the image in use is: a drive, the tape, or a snapshot
 		int mediaSeen;		// the drive motors (bits 0..3) and the tape playing, as last seen
 		QByteArray mediaRaw[5];	// what each drive and the tape held, as last seen
 		void watchMedia();
