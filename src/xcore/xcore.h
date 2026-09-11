@@ -461,6 +461,7 @@ bool xm_is_user_file(const QString&);
 const QList<xMachine>& xm_list();
 const xMachine* xm_find(std::string);
 const xMachine* xm_find_by_core(std::string);
+int xm_ram_size(std::string, int* mask = NULL);
 
 // layouts
 
