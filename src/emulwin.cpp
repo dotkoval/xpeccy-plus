@@ -917,15 +917,20 @@ void MainWin::dropAsk(QString path) {
 }
 
 // One way in for "the user opened a medium", whatever pointed at it: an empty
-// path asks the file dialog. The machine is held while the file is read, and
-// started right there - arming resets it anyway, so there is nothing to gain
-// from letting it run a cycle first.
+// path asks the file dialog. The machine the file wants is set up first, then
+// it is held while the file is read, and started right there - arming resets
+// it anyway, so there is nothing to gain from letting it run a cycle first.
 void MainWin::openMedia(const QString& path, int id, int drv, int run) {
 	Computer* comp = conf.zx;
-	QByteArray loc = path.toLocal8Bit();
 	pause(true, PR_FILE);
-	load_file(comp, path.isEmpty() ? NULL : loc.data(), id, drv);
-	media_autorun(comp, run);
+	QString fpath = path.isEmpty() ? file_ask_open(comp, &id, &drv) : path;
+	std::string mac;
+	if (!fpath.isEmpty() && media_machine(comp, fpath, id, drv, run, &mac)) {
+		if (!mac.empty()) setMachine(mac);
+		QByteArray loc = fpath.toLocal8Bit();
+		load_file(comp, loc.data(), id, drv);
+		media_autorun(comp, run);
+	}
 	pause(false, PR_FILE);
 	checkState();
 	emit s_tape_upd(comp->tape);
@@ -1341,9 +1346,12 @@ void MainWin::onPrfChange() {
 }
 
 void MainWin::profileSelected(QAction* act) {
-	std::string str = QString(act->data().toByteArray()).toStdString();
+	setMachine(QString(act->data().toByteArray()).toStdString());
+}
+
+void MainWin::setMachine(const std::string& id) {
 	emu_lock();		// onPrfChange resets the machine, keep it out of the emulation too
-	xm_set(str);
+	xm_set(id);
 	onPrfChange();
 	emu_unlock();
 }

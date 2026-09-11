@@ -2582,8 +2582,22 @@ thin, lower it again after a long clean spell</string>
            <property name="title">
             <string>General</string>
            </property>
-           <layout class="QVBoxLayout" name="verticalLayout_media">
-            <item>
+           <layout class="QGridLayout" name="gridLayout_media" columnstretch="1,0">
+            <item row="0" column="1">
+             <widget class="QPushButton" name="pbFileTypes">
+              <property name="toolTip">
+               <string>Which machine a snapshot, a tape or a disk is opened on</string>
+              </property>
+              <property name="text">
+               <string>File types...</string>
+              </property>
+              <property name="icon">
+               <iconset resource="../xpeccy.qrc">
+                <normaloff>:/images/computer.png</normaloff>:/images/computer.png</iconset>
+              </property>
+             </widget>
+            </item>
+            <item row="0" column="0">
              <widget class="QCheckBox" name="cbAutorun">
               <property name="toolTip">
                <string>Opening a tape or a disk resets the machine and starts it,
@@ -2594,7 +2608,7 @@ the way a snapshot starts itself</string>
               </property>
              </widget>
             </item>
-            <item>
+            <item row="1" column="0">
              <widget class="QCheckBox" name="mempaths">
               <property name="toolTip">
                <string>Keep the tape and disk paths in the profile,

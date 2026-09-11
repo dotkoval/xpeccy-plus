@@ -588,6 +588,14 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	romWin = popOut(ui.romAdvBox, "Machine: ROM files");
 	romWin->resize(620, 340);
 	connect(ui.pbRomAdvanced, SIGNAL(released()), this, SLOT(showRomFiles()));
+// media
+	ftbox = new xFileTypesBox;
+	ftWin = popOut(ftbox, "Media: file types");
+	ftWin->resize(520, ftWin->sizeHint().height());
+	connect(ui.pbFileTypes, &QPushButton::released, ftWin, [this]() {ftWin->show(); ftWin->raise();});
+	QPushButton* ftdef = ftWin->findChild<QDialogButtonBox*>()->addButton(QDialogButtonBox::RestoreDefaults);
+	ftdef->setToolTip("Every format back to Auto");
+	connect(ftdef, &QPushButton::released, ftbox, [this]() {ftbox->defaults();});
 // video
 	connect(ui.pathtb,SIGNAL(released()),this,SLOT(selsspath()));
 	connect(ui.bszsld,SIGNAL(valueChanged(int)),this,SLOT(chabsz()));
@@ -958,6 +966,7 @@ void SetupWin::start() {
 	ui.bdtbox->setChecked(fdcFlag & FDC_FAST);
 	ui.mempaths->setChecked(conf.storePaths);
 	ui.cbAutorun->setChecked(conf.autorun);
+	ftbox->fill();
 	ui.cbAddBoot->setChecked(conf.boot);
 	setRFIndex(ui.cbFlpInterleave, flp_get_interleave());
 	Floppy* flp = comp->dif->flp[0];
@@ -1219,6 +1228,7 @@ void SetupWin::apply() {
 	conf.boot = ui.cbAddBoot->isChecked() ? 1 : 0;
 	conf.storePaths = ui.mempaths->isChecked() ? 1 : 0;
 	conf.autorun = ui.cbAutorun->isChecked() ? 1 : 0;
+	ftbox->apply();
 	flp_set_interleave(getRFIData(ui.cbFlpInterleave));
 
 	Floppy* flp = comp->dif->flp[0];

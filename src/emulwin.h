@@ -84,6 +84,8 @@ typedef struct {
 		void checkState();
 		void loadLabels(const char*);
 		void fillUserMenu();
+		void openMedia(const QString& path, int id, int drv, int run);
+		void setMachine(const std::string&);
 	signals:
 		void s_options();
 		void s_debug();
@@ -214,7 +216,6 @@ typedef struct {
 		void initUserMenu();
 		void calcCoords(QMouseEvent*);
 		void dropAsk(QString);
-		void openMedia(const QString& path, int id, int drv, int run);
 
 		void xkey_press(int);
 		void xkey_release(int);

@@ -88,6 +88,47 @@ static const char* v3hardware[16] = {
 	"Spectrum +2","Spectrum +2A","TC1048","TC2068"
 };
 
+// What the hardware byte (34) of a v2/v3 header names, with the "modify
+// hardware" bit (37.7) folded in: it turns a 128K into a +2 and a +3 into a
+// +2A (and a 48K into a 16K, which loads as a 48K)
+
+static int z80_hardware(int v3, int hw, int mod) {
+	switch (hw) {
+		case 0:
+		case 1:
+		case 2: return SNAP_HW_48K;			// 2: SamRam, loads as a 48K
+		case 3: if (v3) return SNAP_HW_48K;		// v3: 48K + M.G.T.
+			return mod ? SNAP_HW_PLUS2 : SNAP_HW_128K;
+		case 4: return mod ? SNAP_HW_PLUS2 : SNAP_HW_128K;
+		case 5:
+		case 6: if (!v3) return SNAP_HW_UNKNOWN;
+			return mod ? SNAP_HW_PLUS2 : SNAP_HW_128K;
+		case 7:
+		case 8: return mod ? SNAP_HW_PLUS2A : SNAP_HW_PLUS3;
+		case 9: return SNAP_HW_PENTAGON;
+		case 10: return SNAP_HW_SCORPION;
+		case 12: return SNAP_HW_PLUS2;
+		case 13: return SNAP_HW_PLUS2A;
+	}
+	return SNAP_HW_UNKNOWN;		// Didaktik, Timex
+}
+
+int z80GetHardware(const char* name) {
+	FILE* file = fopen(name, "rb");
+	if (!file) return SNAP_HW_UNKNOWN;
+	unsigned char buf[38];
+	int res = SNAP_HW_UNKNOWN;
+	if (fread(buf, 1, sizeof(buf), file) == sizeof(buf)) {
+		if (buf[6] | buf[7]) {				// PC set: version 1, always a 48K
+			res = SNAP_HW_48K;
+		} else {
+			res = z80_hardware((buf[30] | (buf[31] << 8)) > 23, buf[34], buf[37] & 0x80);
+		}
+	}
+	fclose(file);
+	return res;
+}
+
 int loadZ80(Computer* comp, const char* name, int drv) {
 	FILE* file = fopen(name, "rb");
 	if (!file) return ERR_CANT_OPEN;
@@ -101,12 +142,15 @@ int loadZ80(Computer* comp, const char* name, int drv) {
 int loadZ80_f(Computer* comp, FILE* file) {
 	int btm;
 	int err = ERR_OK;
-	unsigned char tmp,tmp2,reg,lst;
+	unsigned char tmp,tmp2,reg,lst,pg;
 	unsigned short adr, twrd;
+	int hw;
+	int p1ffd = -1;
 //	CPU* cpu = comp->cpu;
 	char pageBuf[0xc000];
 	z80v1Header hd;
 	comp->p7FFD = 0x10;
+	comp->p1FFD = 0x00;
 	comp->pEFF7 = 0x00;
 	memSetBank(comp->mem,0x00,MEM_ROM,1,MEM_16K,NULL,NULL,NULL);
 	memSetBank(comp->mem,0xc0,MEM_RAM,0,MEM_16K,NULL,NULL,NULL);
@@ -149,11 +193,10 @@ int loadZ80_f(Computer* comp, FILE* file) {
 		twrd = fgetw(file);
 		comp->cpu->regPC = twrd;
 		lst = fgetc(file);			// 34: HW mode
-		tmp = fgetc(file);			// 35: 7FFD last out
-		comp->flgBDI = 0;
-		comp->hw->out(comp, 0x7ffd, tmp);
+		pg = fgetc(file);			// 35: 7FFD last out
 		tmp = fgetc(file);			// 36: skip (IF1)
-		tmp = fgetc(file);			// 37: skip (flags) TODO
+		tmp = fgetc(file);			// 37: flags
+		hw = z80_hardware(adr > 23, lst, tmp & 0x80);
 		reg = fgetc(file);			// 38: last out to fffd
 		for (tmp2 = 0; tmp2 < 16; tmp2++) {	// AY regs
 			tmp = fgetc(file);
@@ -166,33 +209,25 @@ int loadZ80_f(Computer* comp, FILE* file) {
 		if (adr > 23) {
 xlog(XLG_FILE, XLL_DEBUG, ".z80 version 3");
 			if (lst < 16) xlog(XLG_FILE, XLL_DEBUG, "Hardware: %s",v3hardware[lst]);
-			switch (lst) {
-				case 0:
-				case 1:
-				case 2: lst = 1; break;		// 48K
-				case 4:
-				case 5:
-				case 6:
-				case 9: lst = 2; break;		// 128K
-				case 10: lst = 3; break;	// 256K
-				default: lst = 0; break;	// undef
+			long base = ftell(file) - 55;		// where the snapshot starts, in an rzx too
+			if (adr > 54) {				// 86: last out to 1ffd
+				fseek(file, base + 86, SEEK_SET);
+				p1ffd = fgetc(file);
 			}
-			fseek(file, adr-23, SEEK_CUR);		// skip all other bytes
+			fseek(file, base + 32 + adr, SEEK_SET);	// skip all other bytes
 		} else {
 xlog(XLG_FILE, XLL_DEBUG, ".z80 version 2");
 			if (lst < 16) xlog(XLG_FILE, XLL_DEBUG, "Hardware: %s",v2hardware[lst]);
-			switch (lst) {
-				case 0:
-				case 1: lst = 1; break;
-				case 3:
-				case 4:
-				case 9: lst = 2; break;		// 128K
-				case 10: lst = 3; break;	// 256K
-				default: lst = 0; break;	// undef
-			}
 		}
-		switch (lst) {
-			case 1:
+		// a 48K has no paging, and byte 35 means nothing there: taking it
+		// as 7ffd would put the 128 rom in on a machine that has one
+		comp->hw->out(comp, 0x7ffd, (hw == SNAP_HW_48K) ? 0x10 : pg);
+		// 1ffd is a different port on each machine that has it
+		if ((p1ffd >= 0) && ((hw == SNAP_HW_PLUS2A) || (hw == SNAP_HW_PLUS3) || (hw == SNAP_HW_SCORPION))
+			&& snapHwRuns(hw, comp->hw->id))
+			comp->hw->out(comp, 0x1ffd, p1ffd);
+		switch (hw) {
+			case SNAP_HW_48K:
 				btm = 1;
 				do {
 					tmp = z80readblock(file,pageBuf);
@@ -204,7 +239,11 @@ xlog(XLG_FILE, XLL_DEBUG, ".z80 version 2");
 					}
 				} while (btm && !feof(file));
 				break;
-			case 2:
+			case SNAP_HW_128K:
+			case SNAP_HW_PLUS2:
+			case SNAP_HW_PLUS2A:
+			case SNAP_HW_PLUS3:
+			case SNAP_HW_PENTAGON:
 				btm = 1;
 				do {
 					tmp = z80readblock(file,pageBuf);
@@ -215,7 +254,7 @@ xlog(XLG_FILE, XLL_DEBUG, ".z80 version 2");
 					}
 				} while (btm && !feof(file));
 				break;
-			case 3:
+			case SNAP_HW_SCORPION:
 				btm = 1;
 				do {
 					tmp = z80readblock(file,pageBuf);

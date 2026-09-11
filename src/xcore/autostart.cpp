@@ -174,13 +174,11 @@ static void autostart_stop() {
 	as_comp = NULL;
 }
 
-// What this machine would do with that media, NULL if it can do nothing: it has
+// What a machine would do with that media, NULL if it can do nothing: it has
 // no key sequence for it, or no interface to read the image through.
-static const asAct* as_find(Computer* comp, int kind) {
-	if (!comp) return NULL;
-	if (comp->hw->grp != HWG_ZX) return NULL;	// zx only for now
+static const asAct* as_act(int hwid, int dif, int kind) {
 	const asMachine* mac = as_mtab;
-	while (mac->hwid && (mac->hwid != comp->hw->id))
+	while (mac->hwid && (mac->hwid != hwid))
 		mac++;
 	const asAct* act;
 	switch (kind) {
@@ -190,9 +188,19 @@ static const asAct* as_find(Computer* comp, int kind) {
 		default: return NULL;
 	}
 	if (!act->seq) return NULL;	// an AS_NOPE row: no such media on this machine
-	if ((kind == AS_DISK) && (comp->dif->type != DIF_BDI)) return NULL;
-	if ((kind == AS_DISK3) && (comp->dif->type != DIF_P3DOS)) return NULL;
+	if ((kind == AS_DISK) && (dif != DIF_BDI)) return NULL;
+	if ((kind == AS_DISK3) && (dif != DIF_P3DOS)) return NULL;
 	return act;
+}
+
+static const asAct* as_find(Computer* comp, int kind) {
+	if (!comp) return NULL;
+	if (comp->hw->grp != HWG_ZX) return NULL;	// zx only for now
+	return as_act(comp->hw->id, comp->dif->type, kind);
+}
+
+int autostart_can(int hwid, int dif, int kind) {
+	return as_act(hwid, dif, kind) != NULL;
 }
 
 int autostart_arm(Computer* comp, int kind) {

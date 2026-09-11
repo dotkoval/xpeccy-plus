@@ -78,11 +78,9 @@ int loadSPG(Computer* comp, const char* name, int drv) {
 	compReset(comp, RES_DEFAULT);
 	comp->cpu->regPC = (hd.pch << 8) | hd.pcl;
 	comp->cpu->regSP = (hd.sph << 8) | hd.spl;
-	switch (hd.flag35 & 0x03) {
-		case 0: compSetTurbo(comp, 1); break;
-		case 1: compSetTurbo(comp, 2); break;
-		default: compSetTurbo(comp, 3); break;
-	}
+	// the speed the program wants is the machine's own turbo, as if written
+	// to SYSCONF: the user's multiplier is not the file's business
+	tsOut20AF(comp, 0x20af, hd.flag35 & 0x03);
 	comp->cpu->flgIFF1 = (hd.flag35 & 0x04) ? 1 : 0;	// int enabled/disabled
 	comp->cpu->inten = Z80_NMI | (comp->cpu->flgIFF1 ? Z80_INT : 0);
 	comp->cpu->regIM = 1;				// im 1

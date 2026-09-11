@@ -624,7 +624,7 @@ static void mac_set_cpu(Computer* comp, const std::string& val) {
 // the machine as the user has it: the definition with what was changed on it
 // laid over, read the same way the definition itself is
 
-static xMachine mac_with_over(const xMachine& def) {
+xMachine xm_with_over(const xMachine& def) {
 	xMachine mac = def;
 	QList<xMacLine> lines;
 	xMacLine ln;
@@ -675,7 +675,7 @@ int xm_ram_size(std::string id, int* mask) {
 	if (mask) *mask = 0;
 	const xMachine* mac = xm_find(id);
 	if (!mac) return 0;
-	xMachine cur = mac_with_over(*mac);
+	xMachine cur = xm_with_over(*mac);
 	HardWare* hw = findHardware(cur.hw.c_str());
 	if (!hw) return 0;
 	if (mask) *mask = hw->mask;
@@ -690,13 +690,15 @@ bool xm_set(std::string id) {
 	}
 	emu_lock();
 	conf.emu.pause |= PR_EXTRA;
+	// the start and a machine put back to its defaults are not a change of machine
+	bool another = !conf.macId.empty() && (conf.macId != id);
 	if (!conf.macId.empty()) {			// what the machine we leave keeps
 		xm_save_nvram();
 		ideCloseFiles(conf.zx->ide);
 		sdcCloseFile(conf.zx->sdc);
 	}
 	conf.macId = id;
-	xMachine cur = mac_with_over(*mac);
+	xMachine cur = xm_with_over(*mac);
 	mac_from_def(&cur);
 	xm_set_roms(cur.roms);
 	if (!xm_set_layout(conf.layName)) xm_set_layout(LAY_DEFAULT);
@@ -705,6 +707,11 @@ bool xm_set(std::string id) {
 	comp_kbd_release(conf.zx);
 	mouseReleaseAll(conf.zx->mouse);
 	compReset(conf.zx, RES_DEFAULT);
+	if (another) {		// says so in the window, whoever asked for it
+		static std::string msg;
+		msg = " " + mac->name + " ";
+		conf.zx->msg = (char*)msg.c_str();
+	}
 	conf.emu.pause &= ~PR_EXTRA;
 	emu_unlock();
 	xlog(XLG_CONF, XLL_INFO, "machine: %s (%s)", conf.macId.c_str(), conf.zx->hw->name);
