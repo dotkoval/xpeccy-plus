@@ -996,14 +996,8 @@ void DebugWin::stopTrace() {
 
 void DebugWin::reload() {
 	Computer* comp = conf.zx;
-	if (comp->mem->snapath) {
-		load_file(comp, comp->mem->snapath, FG_SNAPSHOT, 0);
+	if (media_reload(comp) & RELOAD_SNAPSHOT)
 		ui_asm.dasmTable->setAdr(cpu_get_pc(comp->cpu) + comp->cpu->cs.base);
-	}
-	qDebug() << conf.labpath;
-	if (!conf.labpath.isEmpty()) {
-		loadLabels(conf.labpath.toLocal8Bit().data());
-	}
 	fillAll();
 }
 

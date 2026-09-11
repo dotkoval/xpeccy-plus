@@ -99,6 +99,10 @@ void fitFileDialog(QWidget*);
 // the open dialog alone: the path, with id and drv set to what was picked in it
 QString file_ask_open(Computer*, int* id, int* drv);
 int load_file(Computer* comp, const char* name, int id, int drv);
+// load the last snapshot and labels file again; returns which of them it did
+#define RELOAD_SNAPSHOT	1
+#define RELOAD_LABELS	2
+int media_reload(Computer*);
 // what that call really loaded, empty when nothing
 QString file_last_loaded();
 // the machine that file should be opened on, before it is (xcore/filemachine.h):
