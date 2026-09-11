@@ -40,8 +40,13 @@ void xTapeWidget::draw() {
 	pnt.setPen(Qt::green);
 	if (tape->blkCount > 0) {
 		bnr = tape->block;
+		if (bnr >= tape->blkCount) {		// a tape sitting past its last block
+			bnr = tape->blkCount - 1;
+			pos = tape->blkData[bnr].sigCount;
+		} else {
+			pos = tape->pos;
+		}
 		blk = &tape->blkData[bnr];
-		pos = tape->pos;
 		time = tape->sigLen + (wid / 2) * XTDSTEP;
 		while ((time >= 0) && (blk != NULL)) {
 			pos--;
