@@ -13,6 +13,11 @@ before that point is upstream's history and is not repeated here.
 
 - Pentagon starts with the memory pattern a real one comes up with, specks and all.
 
+### Fixed
+
+- A window opened from the settings, such as the advanced machine settings, no longer
+  lets the settings behind it close first.
+
 ## 2026.4.1 - 2026-09-12
 
 ### Changed
