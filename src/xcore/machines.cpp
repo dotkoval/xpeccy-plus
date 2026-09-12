@@ -431,7 +431,7 @@ std::string xm_rom_path(const std::string& name) {
 	return conf.path.romDir + SLASH + name;
 }
 
-static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std::string& gsf, const std::string& fntf) {
+static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std::string& gsf, const std::string& fntf, bool withfnt) {
 	std::string fpath;
 	int romsz = MEM_256;
 	int fsze;
@@ -483,7 +483,8 @@ static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std:
 			memset((char*)comp->gs->mem->romData, 0xff, MEM_32K);
 		}
 	}
-	if (fntf.empty()) {
+	if (!withfnt) {				// leave the font the machine put there
+	} else if (fntf.empty()) {
 		vid_fnt_del(comp->vid);
 	} else {
 		fpath = xm_rom_path(fntf);
@@ -498,16 +499,23 @@ void xm_rom_set_file(xRomset& rs, int bank, const std::string& name) {
 }
 
 // what conf.roms says, into the machine
+//
+// The text mode font is not rom: it is ram the machine fills itself - ZX Evo
+// through b2 of #BF, and its service rom does so at every reset - and the file
+// is only what that ram holds at power on. So it is loaded when the machine is
+// set up, and when the user picks a different file, but not on an Apply that
+// left it alone, which would otherwise wipe the font under a running program.
 
-void xm_set_roms(const xRomset& rs) {
+void xm_set_roms(const xRomset& rs, bool poweron) {
 	if (!conf.zx) return;
 	emu_lock();				// rom data is rewritten under the running machine
+	bool withfnt = poweron || (rs.fntFile != conf.roms.fntFile);
 	conf.roms = rs;
 	Computer* comp = conf.zx;
 	memset(comp->vid->bios, 0xff, MEM_64K);
 	comp->vid->vga.cga = 1;
 	tsSetRomSize(comp->ts, 0);
-	mac_load_rom(comp, rs.roms, rs.gsFile, rs.fntFile);
+	mac_load_rom(comp, rs.roms, rs.gsFile, rs.fntFile, withfnt);
 	emu_unlock();
 }
 
@@ -707,7 +715,7 @@ bool xm_set(std::string id) {
 	conf.macId = id;
 	xMachine cur = xm_with_over(*mac);
 	mac_from_def(&cur);
-	xm_set_roms(cur.roms);
+	xm_set_roms(cur.roms, true);
 	if (!xm_set_layout(conf.layName)) xm_set_layout(LAY_DEFAULT);
 	loadPalette();
 	xm_load_nvram();
@@ -1165,7 +1173,7 @@ static void mac_migrate_romset(const std::string& id) {
 	xRomset* rs = oldRomset.empty() ? NULL : findRomset(oldRomset);
 	oldRomset.clear();
 	if (!mac || !conf.zx) return;
-	xm_set_roms(mac->roms);		// what it ships with, before the old set
+	xm_set_roms(mac->roms, true);	// what it ships with, before the old set
 	if (!rs) return;
 	if (mac_same_roms(rs, &mac->roms)) return;
 	xRomset user = conf.roms;

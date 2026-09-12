@@ -411,7 +411,7 @@ bool addRomset(xRomset);
 std::string xm_rom_path(const std::string&);
 
 // what the machine loads, and putting a changed set back as the user's own
-void xm_set_roms(const xRomset&);
+void xm_set_roms(const xRomset&, bool poweron = false);
 void xm_rom_set_file(xRomset&, int, const std::string&);
 
 // machines

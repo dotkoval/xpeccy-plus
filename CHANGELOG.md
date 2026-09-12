@@ -20,6 +20,9 @@ before that point is upstream's history and is not repeated here.
 - **The bundled ZX Evo firmware is now EVO Reset Service 0.61 FE** (was 0.58.17), which
   brings NEO-DOS 0.60 and a file browser in the Magic menu.
 
+- **Both ZX Evo machines come with the Kempston mouse and the five-button Kempston
+  joystick switched on**, which is what the current BaseConf has.
+
 ### Added
 
 - **The Magic button works on ZX Evo.** NMI now reaches the machine, so the EVO Magic
@@ -34,6 +37,14 @@ before that point is upstream's history and is not repeated here.
 
 - ZX Evo: the text mode used by the Magic menu and by the firmware setup was drawn from the
   wrong place on screen, so it showed nothing.
+
+- The 320x200 modes of the ATM family - both text modes, EGA and hardware multicolor -
+  sat off centre: eight dots to the left and, on ZX Evo, sixteen lines too high. They now
+  follow the border like every other mode.
+
+- Applying settings no longer wipes the text mode font. The font is memory the machine
+  fills itself, and the file only holds what it starts with, so Apply left the Magic menu
+  and anything else in text mode drawn in the wrong characters.
 
 - ZX Evo: reading the palette, the font and the virtual drive mask back through the
   configuration ports returned the wrong value or none at all.
