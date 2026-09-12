@@ -9,66 +9,51 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+## 2026.4.1 - 2026-09-12
+
 ### Changed
 
-- **ZX Evo (BaseConf) is one machine again.** It used to be two, one for the firmware
-  before 2021 and one for the firmware after it, because the configuration ports look as if
-  they moved between the two. They did not really: the current FPGA still answers the old
-  port as well as the new one, so a single machine now runs every firmware. The second
-  entry, "ZX Evolution (BaseConf 2021)", is gone.
+- **ZX Evo is one machine again.** The two entries split by firmware generation are gone, and
+  the one that remains runs either. It ships with EVO Reset Service 0.61 FE and NEO-DOS 0.60.
 
-- **The bundled ZX Evo firmware is now EVO Reset Service 0.61 FE** (was 0.58.17), which
-  brings NEO-DOS 0.60 and a file browser in the Magic menu.
-
-- **Both ZX Evo machines come with the Kempston mouse and the five-button Kempston
-  joystick switched on**, which is what the current BaseConf has.
-
-- **Holding a key repeats it on ZX Evo.** Its PS/2 keyboard does that by itself on real
-  hardware, and programs that read the keyboard directly - the NedoOS commander, for one -
-  relied on it. Half a second before the first repeat, then about eleven a second.
-
-- **ZX Evo wakes up with something in its memory**, the way real hardware does: the service
-  ROM comes up striped instead of black, and switching video modes leaves specks of the old
-  contents behind. Machines carry the pattern in their own definition (`ram.cold`), and only
-  the two Evo ones have it - everything else still starts from zeroed memory. A byte here
-  and there comes up with something else in it, as on a real machine.
-
-- **ZX Evo says it is Xpeccy+.** Asked which FPGA and bootloader it has, the machine used
-  to name a NedoPC build from 2012 while behaving like a much later one. It now gives its
-  own name and build date, which is what the service ROM prints on the start screen. It
-  also answers the question about the machine flags, which used to read as rubbish.
+- Both ZX Evo machines start with the Kempston mouse, its wheel and the five-button joystick
+  switched on, and the machine now reports itself as Xpeccy+ rather than a 2012 FPGA build.
 
 ### Added
 
-- **The Magic button works on ZX Evo.** NMI now reaches the machine, so the EVO Magic
-  Service opens on F10, shows the registers and ports of the running program, and returns
-  to it. The hardware breakpoint of the BaseConf works too.
+- **The Magic button works on ZX Evo.** F10 opens the EVO Magic Service over the running
+  program and goes back to it.
 
-- **TR-DOS emulation in the FPGA.** A drive the firmware marks virtual is served by the
-  emulation page instead of the disk controller, the way a real BaseConf does it. A drive
-  with a disk in it is left alone, so an image you opened still boots.
+- **TR-DOS emulation.** A drive the firmware marks virtual is served the way a real BaseConf
+  serves it. A drive with a disk in it is left alone, so an image you opened still boots.
+
+- ZX Evo starts with a pattern in its memory, the way real hardware does.
+
+- Holding a key on ZX Evo repeats it, as its own keyboard does.
 
 ### Fixed
 
-- ZX Evo: the text mode used by the Magic menu and by the firmware setup was drawn from the
-  wrong place on screen, so it showed nothing.
+- **The SD card and the hard disks were lost whenever the machine was switched**, so booting
+  from them failed while the settings still named the image.
 
-- The 320x200 modes of the ATM family - both text modes, EGA and hardware multicolor -
-  sat off centre: eight dots to the left and, on ZX Evo, sixteen lines too high. They now
-  follow the border like every other mode.
+- **The machines had lost settings the old profiles carried.** Every clone is back to its YM
+  sound chip, its Covox, its mouse and Kempston buttons, and the hard disk interface it comes
+  with - SMUC on a Scorpion, Nemo on a ZX Evo. ZX Evo has its two-chip TurboSound again.
 
-- Applying settings no longer wipes the text mode font. The font is memory the machine
-  fills itself, and the file only holds what it starts with, so Apply left the Magic menu
-  and anything else in text mode drawn in the wrong characters.
+- **The AY clock and the stereo channel order follow the machine again.** They had become one
+  setting shared by every machine, so whichever was up last decided the clock for all of
+  them - and a 128K runs its AY faster than a clone does.
 
-- ZX Evo: reading the palette, the font and the virtual drive mask back through the
-  configuration ports returned the wrong value or none at all.
+- **ZX Evo's text mode was drawn in the wrong place** and showed nothing at all. The 320x200
+  modes of the ATM family were off center on every machine that has them.
 
-- ZX Evo: entering and leaving TR-DOS, holding TR-DOS on in CP/M mode, and keeping a page
-  write-protected across a paging write all followed the hardware only loosely.
+- Applying settings wiped the text mode font.
 
-- An NMI no longer leaves the Z80 stuck in HALT, and it is taken ahead of a maskable
-  interrupt instead of being dropped when one is pending.
+- ZX Evo: a number of hardware details the service ROM and NedoOS depend on - reading the
+  palette, the font and the virtual drive mask back, entering and leaving TR-DOS, and page
+  write protection.
+
+- An NMI no longer leaves the Z80 stuck in HALT.
 
 ## 2026.4 - 2026-09-11
 
