@@ -58,7 +58,7 @@ and with every emulator of them for decades.
 | `prof39f.rom` | Scorpion ZS 256 | ProfROM authors | grey | ProfROM 3.9f, 128K, `dcb8ebbe2d2f4c4afa58c43507987b9c` |
 | `profi.rom` | Profi | Profi authors (KONDOR) | grey | Profi v0.2 with TR-DOS 5.04T, `65dff86e995761ffaffd0fc137f31fb2` |
 | `atm2.rom` | ATM Turbo 2+ | MicroART | grey | `28ce89a88089417db4d3057de942a1bb` |
-| `zxevo-fe.rom` | ZX Evo (BaseConf) | NedoPC group | grey | `6cf50dacdf721174903550a3e25b59f4` |
+| `zxevo-fe.rom` | ZX Evo (BaseConf) | NedoPC group | grey | EVO Reset Service 0.61 FE, `4d440af2f2d746094527aa6789390705` |
 | `tsconf.rom` | ZX Evo (TSConf) | TS-Labs | grey | TS-BIOS, shipped elsewhere as `ts-bios.rom`, `d5f199df3832dc749fe0d12f1ce8f26f` |
 | `phoenix.rom` | ZXM-Phoenix | ZXM-Phoenix authors | grey | BIOS 5.03, `892a393093f373ad3b4c9453f529b523` |
 

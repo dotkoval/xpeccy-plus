@@ -128,4 +128,4 @@ ATM, Profi and both Evo sets name `font = sgen.rom`.
 
 The display names and machine ids are section 7.3 of the plan; nothing in this file competes
 with it. The core names phase 1 settles on are `ZX48`, `ZX128`, `Plus2A`, `Plus3`, `Pentagon`,
-`Pentagon1024SL`, `Scorpion`, `Profi`, `ATM2`, `Phoenix`, `Baseconf`, `Baseconf21`, `TSConf`.
+`Pentagon1024SL`, `Scorpion`, `Profi`, `ATM2`, `Phoenix`, `Baseconf`, `TSConf`.

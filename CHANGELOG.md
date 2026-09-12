@@ -9,6 +9,40 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Changed
+
+- **ZX Evo (BaseConf) is one machine again.** It used to be two, one for the firmware
+  before 2021 and one for the firmware after it, because the configuration ports look as if
+  they moved between the two. They did not really: the current FPGA still answers the old
+  port as well as the new one, so a single machine now runs every firmware. The second
+  entry, "ZX Evolution (BaseConf 2021)", is gone.
+
+- **The bundled ZX Evo firmware is now EVO Reset Service 0.61 FE** (was 0.58.17), which
+  brings NEO-DOS 0.60 and a file browser in the Magic menu.
+
+### Added
+
+- **The Magic button works on ZX Evo.** NMI now reaches the machine, so the EVO Magic
+  Service opens on F10, shows the registers and ports of the running program, and returns
+  to it. The hardware breakpoint of the BaseConf works too.
+
+- **TR-DOS emulation in the FPGA.** A drive the firmware marks virtual is served by the
+  emulation page instead of the disk controller, the way a real BaseConf does it. A drive
+  with a disk in it is left alone, so an image you opened still boots.
+
+### Fixed
+
+- ZX Evo: the text mode used by the Magic menu and by the firmware setup was drawn from the
+  wrong place on screen, so it showed nothing.
+
+- ZX Evo: reading the palette, the font and the virtual drive mask back through the
+  configuration ports returned the wrong value or none at all.
+
+- ZX Evo: entering and leaving TR-DOS, holding TR-DOS on in CP/M mode, and keeping a page
+  write-protected across a paging write all followed the hardware only loosely.
+
+- An NMI no longer leaves the Z80 stuck in HALT.
+
 ## 2026.4 - 2026-09-11
 
 ### Added

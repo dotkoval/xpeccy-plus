@@ -577,7 +577,6 @@ static const struct {
 	{"Spectrum +2",	"Plus2A"},	// that core has always been a +2A
 	{"Spectrum +3",	"Plus3"},
 	{"PentEvo",	"Baseconf"},
-	{"PentEvo21",	"Baseconf21"},
 	{"TSLab",	"TSConf"},	// TS-Labs is the group, not the machine
 	{NULL, NULL}
 };

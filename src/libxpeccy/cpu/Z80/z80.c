@@ -151,6 +151,10 @@ int z80_int(CPU* cpu) {
 			cpu->regR++;
 			cpu->flgIFF2 = cpu->flgIFF1;
 			cpu->flgIFF1 = 0;
+			if (cpu->flgHALT) {			// NMI leaves HALT the same way INT does
+				cpu->regPC++;
+				cpu->flgHALT = 0;
+			}
 			cpu->t = 5;
 			z80_push(cpu, cpu->regPC);
 			cpu->regPC = 0x0066;

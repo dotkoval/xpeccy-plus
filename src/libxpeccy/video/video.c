@@ -815,6 +815,7 @@ void vidDrawATMtext(Video* vid) {
 				col = vid->mrd(MADR(vid->vidPage ^ 4, adr + 1), vid->xptr) & 0xff;
 			}
 			scrbyte = vid_fnt_rd(vid, (scrbyte << 3) | (yscr & 7));	// vid->font[(scrbyte << 3) | (yscr & 7)];
+			vid->fntbyte = scrbyte & 0xff;
 			vidATMDoubleDot(vid,col);
 		}
 	}
@@ -848,8 +849,8 @@ void vidDrawATMhwmc(Video* vid) {
 // baseconf text
 
 void vidDrawEvoText(Video* vid) {
-	yscr = vid->ray.y - 76;
-	xscr = vid->ray.x - 96;
+	yscr = vid->ray.y - 76 + 32;
+	xscr = vid->ray.x - 96 + 64;
 	if ((yscr < 0) || (yscr > 199) || (xscr < 0) || (xscr > 319)) {
 		vid_dot_full(vid, vid->brdcol);
 	} else {
@@ -863,6 +864,7 @@ void vidDrawEvoText(Video* vid) {
 				col = vid->mrd(MADR(vid->vidPage + 3, adr + 0x2001), vid->xptr);
 			}
 			scrbyte = vid_fnt_rd(vid, (scrbyte << 3) | (yscr & 7)); // vid->font[(scrbyte << 3) | (yscr & 7)];
+			vid->fntbyte = scrbyte & 0xff;
 			vidATMDoubleDot(vid,col);
 		}
 	}
