@@ -722,6 +722,12 @@ bool xm_set(std::string id) {
 	comp_kbd_release(conf.zx);
 	mouseReleaseAll(conf.zx->mouse);
 	compReset(conf.zx, RES_DEFAULT);
+	// The images were closed above, when the machine we came from let go of
+	// them. Open them again for this one: what is mounted is a property of the
+	// emulator, not of the machine, and it stays mounted across a switch. A
+	// folder served as a disk is re-read here, which is the other half of it.
+	ide_remount(conf.zx->ide);
+	sdc_remount(conf.zx->sdc);
 	if (another) {		// says so in the window, whoever asked for it
 		static std::string msg;
 		msg = " " + mac->name + " ";
