@@ -277,6 +277,7 @@ void kbdTrigger(Keyboard*, keyEntry*);
 void kbdReleaseAll(Keyboard*);
 void kbd_reset(Keyboard*);
 void kbd_sync(Keyboard*, int);
+void kbd_set_repeat(Keyboard*, int);
 int kbd_rd(Keyboard*, int);
 void kbd_wr(Keyboard*, int, int);
 // TODO: terminate this:

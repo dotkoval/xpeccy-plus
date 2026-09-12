@@ -167,7 +167,8 @@ static const struct {
 	{"psg.count", "sound"}, {"psg.type", "sound"}, {"gs", "sound"},
 	{"saa", "sound"}, {"soundrive", "sound"},
 	{"disk", "storage"}, {"ide", "storage"},
-	{"mouse", "input"}, {"joy.buttons", "input"}, {"kbd.scantab", "input"},
+	{"mouse", "input"}, {"mouse.wheel", "input"}, {"joy.buttons", "input"},
+	{"kbd.scantab", "input"},
 	{NULL, NULL}
 };
 
@@ -201,6 +202,7 @@ static void mac_defaults(xMachine& mac) {
 	mac.disk = DIF_NONE;
 	mac.ide = IDE_NONE;
 	mac.mouse = 0;
+	mac.mouseWheel = 0;
 	mac.joyButtons = 0;
 	mac.scantab = 0;
 	mac.gs = 0;
@@ -251,6 +253,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 			else if (nam == "ide") mac.ide = mac_word(ideTab, val, IDE_NONE, id);
 		} else if (ln.sect == "input") {
 			if (nam == "mouse") mac.mouse = arg.b;
+			else if (nam == "mouse.wheel") mac.mouseWheel = arg.b;
 			else if (nam == "joy.buttons") mac.joyButtons = arg.b;
 			else if (nam == "kbd.scantab") mac.scantab = mac_word(scanTab, val, 0, id);
 		} else if (ln.sect == "rom") {
@@ -705,6 +708,7 @@ static void mac_from_def(const xMachine* mac) {
 	difSetHW(comp->dif, mac->disk);
 	ide_set_type(comp->ide, mac->ide);
 	comp->mouse->enable = mac->mouse;
+	comp->mouse->hasWheel = mac->mouseWheel;
 	comp->joy->extbuttons = mac->joyButtons;
 	comp->keyb->pcmode = mac->scantab;
 	conf.layName = mac->geometry;
@@ -823,6 +827,7 @@ static void mac_put_all(QStringList& out, const xMachine* mac) {
 	mac_put(out, "disk", mac_word_name(diskTab, comp->dif->type), mac_word_name(diskTab, mac->disk));
 	mac_put(out, "ide", mac_word_name(ideTab, comp->ide->type), mac_word_name(ideTab, mac->ide));
 	mac_put_yn(out, "mouse", comp->mouse->enable, mac->mouse);
+	mac_put_yn(out, "mouse.wheel", comp->mouse->hasWheel, mac->mouseWheel);
 	mac_put_yn(out, "joy.buttons", comp->joy->extbuttons, mac->joyButtons);
 	mac_put(out, "kbd.scantab", mac_word_name(scanTab, comp->keyb->pcmode), mac_word_name(scanTab, mac->scantab));
 	mac_put_roms(out, mac);

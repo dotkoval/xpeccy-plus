@@ -444,6 +444,7 @@ typedef struct {
 	int disk;			// DIF_*
 	int ide;			// IDE_*
 	unsigned mouse:1;
+	unsigned mouseWheel:1;
 	unsigned joyButtons:1;
 	int scantab;			// KBD_*, 0 = the keyboard core's own type
 	unsigned gs:1;			// General Sound

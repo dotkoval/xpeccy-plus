@@ -96,6 +96,7 @@ void evoReset(Computer* comp) {
 	comp->prt2 = 0x83;		// A14 = 1: palette closed; video mode 011
 	comp->sdc->on = 1;
 	sdcReset(comp->sdc);
+	kbd_set_repeat(comp->keyb, 0);		// what the avr asks the ps/2 keyboard for
 	comp->flgVDOS = 0;
 	comp->flgVNMI = 0;
 	comp->flgVDWP = 0;

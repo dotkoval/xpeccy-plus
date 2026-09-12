@@ -655,10 +655,20 @@ int kbd_ibm_rd(Keyboard* kbd, int adr) {
 
 // keyboard
 
+// A host that sends 0xF3 picks its own delay and rate: b6..5 of the parameter
+// are the delay in 250 ms steps and b4..0 the rate, 0 being the fastest at 30
+// a second. ZX Evolution's avr sends 0xF3 with a parameter of 0 at start-up
+// (PS2KEYBOARD_CMD_AUTOREPEAT in the avr's ps2.c), so that machine's keyboard
+// runs at the fastest setting there is.
+void kbd_set_repeat(Keyboard* kbd, int par) {
+	kbd->kdel = ((par >> 5) & 3) * 2.5e8 + 2.5e8;
+	kbd->kper = (33 + 7 * (par & 0x1f)) * 1e6;
+}
+
 void kbd_reset(Keyboard* kbd) {
 	kbd->com = -1;
-	kbd->kdel = 5e8;
-	kbd->kper = 9.2e7;		// ps/2 default: 10.9 a second until the host says otherwise
+	kbd->kdel = 5e8;		// ps/2 power-on default: 500 ms, then 10.9 a second
+	kbd->kper = 9.2e7;
 	if (kbd->core) {
 		if (kbd->core->reset) {
 			kbd->core->reset(kbd);
@@ -900,8 +910,7 @@ void kbd_ibm_wr(Keyboard* kbd, int adr, int d) {
 				}
 				break;
 			case 0xf3:
-				kbd->kdel = (((d >> 5) & 3) + 1) * 250e6;	// 1st delay - 250,500,750,1000ms
-				kbd->kper = (33 + 7 * (d & 0x1f)) * 1e6;	// repeat period: 33 to 250 ms
+				kbd_set_repeat(kbd, d);
 				xt_ack(kbd, 0xfa);
 				break;
 		}

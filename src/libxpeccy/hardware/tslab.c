@@ -60,6 +60,7 @@ void tslReset(Computer* comp) {
 	comp->flgROM = 0;
 	comp->flgDOS = 0;
 	comp->cmos.mode = 2;
+	kbd_set_repeat(comp->keyb, 0);		// what the avr asks the ps/2 keyboard for
 	comp->tsconf.p21af = 0x04;
 	comp->tsconf.Page0 = 0;
 	// #0FAF resets to 0 like every other TS register; white is a ROM's doing, not the machine's
