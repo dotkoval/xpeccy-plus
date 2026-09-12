@@ -23,10 +23,15 @@ before that point is upstream's history and is not repeated here.
 - **Both ZX Evo machines come with the Kempston mouse and the five-button Kempston
   joystick switched on**, which is what the current BaseConf has.
 
+- **Holding a key repeats it on ZX Evo.** Its PS/2 keyboard does that by itself on real
+  hardware, and programs that read the keyboard directly - the NedoOS commander, for one -
+  relied on it. Half a second before the first repeat, then about eleven a second.
+
 - **ZX Evo wakes up with something in its memory**, the way real hardware does: the service
   ROM comes up striped instead of black, and switching video modes leaves specks of the old
   contents behind. Machines carry the pattern in their own definition (`ram.cold`), and only
-  the two Evo ones have it - everything else still starts from zeroed memory.
+  the two Evo ones have it - everything else still starts from zeroed memory. A byte here
+  and there comes up with something else in it, as on a real machine.
 
 - **ZX Evo says it is Xpeccy+.** Asked which FPGA and bootloader it has, the machine used
   to name a NedoPC build from 2012 while behaving like a much later one. It now gives its

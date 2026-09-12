@@ -54,6 +54,7 @@ void zx_sync(Computer* comp, int ns) {
 	tsSync(comp->ts, ns);
 	tapSync(comp->tape, ns);
 	bcSync(comp->beep, ns);
+	kbd_sync(comp->keyb, ns);	// ps/2 auto-repeat, for the machines that have one
 	// nmi
 	if ((comp->cpu->regPC > 0x3fff) && comp->flgNMIRQ) {
 		comp->cpu->intrq |= Z80_NMI;	// request nmi

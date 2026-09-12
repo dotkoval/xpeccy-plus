@@ -658,7 +658,7 @@ int kbd_ibm_rd(Keyboard* kbd, int adr) {
 void kbd_reset(Keyboard* kbd) {
 	kbd->com = -1;
 	kbd->kdel = 5e8;
-	kbd->kper = 5e7;
+	kbd->kper = 9.2e7;		// ps/2 default: 10.9 a second until the host says otherwise
 	if (kbd->core) {
 		if (kbd->core->reset) {
 			kbd->core->reset(kbd);
@@ -808,6 +808,20 @@ void xt_sync(Keyboard* kbd, int ns) {
 //	return 1;
 }
 
+// A machine with a ps/2 keyboard beside its own matrix - ZX Evo - gets the
+// make code again while a key is held, because that is what the keyboard does
+// by itself. The matrix needs nothing: the key is simply still down. Nothing
+// is queued while the machine has not read what is already there, so a program
+// that stops reading does not come back to a burst.
+void xt_rpt_sync(Keyboard* kbd, int ns) {
+	if (kbd->per == 0) return;
+	kbd->per -= ns;
+	if (kbd->per > 0) return;
+	kbd->per = kbd->kper;
+	if (kbd->lock || kbd->outbuf) return;
+	kbd->outbuf = add_msb(kbd->outbuf, xt_get_code(kbd, &kbd->kent, 0));
+}
+
 void xt_press(Keyboard* kbd, keyEntry* kent) {
 	if (kbd->lock) return;
 	kbd->outbuf = add_msb(kbd->outbuf, xt_get_code(kbd, kent, 0));
@@ -923,7 +937,7 @@ void kbd_sync(Keyboard* kbd, int ns) {
 
 // id,flag,cbReset,cbRead,cbWrite,cbPress,cbRelease,cbSync
 xKbdCore kbdTypeTab[] = {
-	{KBD_SPECTRUM, 0, NULL, kbdScanZX, NULL, kbd_zx_press, kbd_zx_release, NULL},
+	{KBD_SPECTRUM, KF_AUTORPT, NULL, kbdScanZX, NULL, kbd_zx_press, kbd_zx_release, xt_rpt_sync},
 	{KBD_PROFI, 0, NULL, kbdScanProfi, NULL, kbd_prf_press, kbd_prf_release, NULL},
 	{KBD_ATM2_CODE, 0, NULL, kbd_atm2code_rd, NULL, kbd_atm2code_press, kbd_atm2code_release, NULL},
 	{KBD_ATM2_CPM, 0, NULL, kbd_atm2cpm_rd, NULL, kbd_atm2code_press, kbd_atm2code_release, NULL},
