@@ -428,6 +428,7 @@ typedef struct {
 	std::string hw;			// HardWare.name
 	std::string cpu;		// cpuCore.name
 	int memory;			// KB
+	std::string ramCold;		// power-on ram pattern, hex bytes; empty = zeroed
 	int cpufrq;			// Hz
 	int resbank;			// RES_*
 	unsigned contio:1;

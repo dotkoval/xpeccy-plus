@@ -159,7 +159,7 @@ static const struct {
 	const char* sect;
 } macSectTab[] = {
 	{"hw", "machine"}, {"cpu", "machine"}, {"cpu.frq", "machine"},
-	{"memory", "machine"}, {"reset", "machine"}, {"contio", "machine"},
+	{"memory", "machine"}, {"ram.cold", "machine"}, {"reset", "machine"}, {"contio", "machine"},
 	{"contmem", "machine"}, {"scrp.wait", "machine"},
 	{"geometry", "video"}, {"contPattern", "video"}, {"earlyTiming", "video"},
 	{"4t-border", "video"}, {"ULAplus", "video"}, {"DDpal", "video"},
@@ -193,6 +193,7 @@ static void mac_defaults(xMachine& mac) {
 	mac.contPattern = 0;
 	mac.early = 0;
 	mac.brd4t = 0;
+	mac.ramCold.clear();
 	mac.psgCount = 1;
 	mac.psgType = SND_AY;
 	mac.soundrive = SDRV_NONE;
@@ -223,6 +224,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 			else if (nam == "hw") mac.hw = val;
 			else if (nam == "cpu") mac.cpu = val;
 			else if (nam == "memory") mac.memory = arg.i;
+			else if (nam == "ram.cold") mac.ramCold = val;
 			else if (nam == "cpu.frq") mac.cpufrq = arg.i;
 			else if (nam == "reset") mac.resbank = mac_word(resetTab, val, RES_128, id);
 			else if (nam == "contio") mac.contio = arg.b;
@@ -654,12 +656,31 @@ xMachine xm_with_over(const xMachine& def) {
 	return mac;
 }
 
+// What the memory holds when the machine is switched on. Real ram comes up with
+// a pattern in it and software sees it: on a ZX Evo the service rom's screen
+// comes up striped, and switching video modes leaves specks of the old contents
+// behind. `ram.cold` is that pattern, hex bytes repeated over the whole of ram;
+// no key at all leaves memory as it was, which is what every machine did before.
+// Written when the machine is set up, not on reset - a reset does not clear the
+// ram of real hardware either.
+static void mac_cold_ram(Computer* comp, const std::string& pat) {
+	unsigned char byte[16];
+	int n = 0;
+	if (pat.empty()) return;
+	for (size_t i = 0; (i + 1 < pat.size()) && (n < (int)sizeof(byte)); i += 2)
+		byte[n++] = (unsigned char)strtol(pat.substr(i, 2).c_str(), NULL, 16);
+	if (n < 1) return;
+	for (size_t i = 0; i < sizeof(comp->mem->ramData); i++)
+		comp->mem->ramData[i] = byte[i % n];
+}
+
 static void mac_from_def(const xMachine* mac) {
 	Computer* comp = conf.zx;
 	xm_set_hardware(mac->hw);
 	mac_set_cpu(comp, mac->cpu);
 	compSetBaseFrq(comp, mac->cpufrq / 1e6);
 	memSetSize(comp->mem, mac_ram_size(mac->memory, comp->hw->mask), -1);
+	mac_cold_ram(comp, mac->ramCold);
 	comp->resbank = mac->resbank;
 	comp->flgCNTI = mac->contio;
 	comp->flgCNTM = mac->contmem;

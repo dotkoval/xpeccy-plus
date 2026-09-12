@@ -23,6 +23,11 @@ before that point is upstream's history and is not repeated here.
 - **Both ZX Evo machines come with the Kempston mouse and the five-button Kempston
   joystick switched on**, which is what the current BaseConf has.
 
+- **ZX Evo wakes up with something in its memory**, the way real hardware does: the service
+  ROM comes up striped instead of black, and switching video modes leaves specks of the old
+  contents behind. Machines carry the pattern in their own definition (`ram.cold`), and only
+  the two Evo ones have it - everything else still starts from zeroed memory.
+
 - **ZX Evo says it is Xpeccy+.** Asked which FPGA and bootloader it has, the machine used
   to name a NedoPC build from 2012 while behaving like a much later one. It now gives its
   own name and build date, which is what the service ROM prints on the start screen. It
