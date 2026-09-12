@@ -60,26 +60,35 @@ RAM is what the core's `mask` field allows; the bold size is what the shipped pr
 | machine | RAM | disk | HDD | sound | mouse |
 |---|---|---|---|---|---|
 | ZX Spectrum 48K | 16K, **64K** | none | none | beeper | no |
-| ZX Spectrum 48K + TR-DOS | 16K, **64K** | Beta Disk | none | beeper + 1 AY (Melodik) | yes |
-| ZX Spectrum 128K / +2 | **128K** | none | none | 1 AY | no |
-| ZX Spectrum 128K + TR-DOS | **128K** | Beta Disk | none | 1 AY + Covox | yes |
-| ZX Spectrum +2A | **128K** | none | none | 1 AY | no |
-| ZX Spectrum +3 | **128K** | uPD765 | none | 1 AY | no |
-| Pentagon | **128K**, 512K | Beta Disk | none | 1 AY | no |
-| Pentagon 1024 SL | **1M** | Beta Disk | none | 1 AY | no |
-| ZS Scorpion 256 | **256K**, 1M | Beta Disk | none | 1 AY | no |
-| Profi | 512K, **1M** | Beta Disk | none | 1 AY | no |
-| ATM Turbo 2+ | 128K, 256K, 512K, **1M** | Beta Disk | none | 1 AY | no |
-| ZXM-Phoenix | **2M** | Beta Disk | none | 1 AY | no |
-| ZX Evolution (BaseConf) | **4M** | Beta Disk | none | 1 AY | no |
-| ZX Evolution (TSConf) | **4M** | Beta Disk | none | 1 AY | no |
+| ZX Spectrum 128K / +2 | **128K** | none | none | 1 AY 1.773, mono | no |
+| ZX Spectrum +2A | **128K** | none | none | 1 AY 1.773, mono | no |
+| ZX Spectrum +3 | **128K** | uPD765 | none | 1 AY 1.773, mono | no |
+| Pentagon | **128K**, 512K | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| Pentagon 1024 SL | **1M** | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| ZS Scorpion 256 | **256K**, 1M | Beta Disk | SMUC | 1 YM 1.75, BAC + Covox | yes |
+| Profi | 512K, **1M** | Beta Disk | Profi | 1 YM 1.75, ACB + Covox | yes |
+| ATM Turbo 2+ | 128K, 256K, 512K, **1M** | Beta Disk | ATM | 1 YM 1.75, ABC + Covox | yes |
+| ZXM-Phoenix | **2M** | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| ZX Evolution (BaseConf) | **4M** | Beta Disk | NemoIDE | 2 YM 1.75, ABC (TurboSound) + Covox | yes |
+| ZX Evolution (TSConf) | **4M** | Beta Disk | NemoIDE | 2 YM 1.75, ABC (TurboSound) + Covox | yes |
 
-The two `+ TR-DOS` entries are **extended machines on purpose** - an interface and a sound
-card fitted, the way these were used. The shipped profile is the authority on what a machine
-carries (decided 2026-09-09); the 48K's AY is a Melodik or a Fuller Box and stays. The one
-correction: the 128K had a three-chip TurboSound, and is back to the one AY it comes with.
+The sound column gives the chip, its clock in MHz and the channel order. Both belong to the
+machine: decision 6 of the plan made them a global preference, which meant the clock no
+longer followed the machine, and that was reversed on 2026-09-12.
 
-Which TR-DOS version the 48K machines ran is unsettled, and does not matter yet.
+This table is what the definitions in `res/machines/` are generated from, so a row that is
+wrong silently becomes a machine that is wrong: the HDD column said "none" everywhere and
+the mouse column "no" for every clone until 2026-09-12, and the definitions shipped that way.
+
+**There is no separate `+ TR-DOS` machine.** The plan asked for one (5.1 and 7.3 there) and
+that was reversed: a Beta Disk on a 48K or a 128K is a setting, and once a machine of your
+own can be built on top of a shipped one, a second list entry says nothing. An old
+`+ TR-DOS` profile migrates to the bare machine, so the interface is switched on by hand.
+Section 4 still records which banks such a ROM set needs.
+
+The shipped profile is the authority on what a machine carries (decided 2026-09-09), with
+one correction: the 128K had a three-chip TurboSound, and is back to the one AY it comes
+with.
 
 ## 3. Port decode
 
@@ -128,4 +137,4 @@ ATM, Profi and both Evo sets name `font = sgen.rom`.
 
 The display names and machine ids are section 7.3 of the plan; nothing in this file competes
 with it. The core names phase 1 settles on are `ZX48`, `ZX128`, `Plus2A`, `Plus3`, `Pentagon`,
-`Pentagon1024SL`, `Scorpion`, `Profi`, `ATM2`, `Phoenix`, `Baseconf`, `Baseconf21`, `TSConf`.
+`Pentagon1024SL`, `Scorpion`, `Profi`, `ATM2`, `Phoenix`, `Baseconf`, `TSConf`.

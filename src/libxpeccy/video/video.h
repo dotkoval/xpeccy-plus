@@ -184,6 +184,7 @@ struct Video {
 	int fcnt;
 	int lcnt;
 	unsigned char atrbyte;
+	unsigned char fntbyte;			// font byte the text mode is showing: ZX Evo reads it back
 	size_t frmsz;
 	vRay ray;
 	vCoord full;

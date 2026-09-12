@@ -21,7 +21,6 @@ enum {
 	HW_ATM1,	// ATM 1
 	HW_ATM2,	// ATM 2+
 	HW_PENTEVO,	// ZX Evolution (BaseConf)
-	HW_PENTEVO21,	// ZX Evolution (BaseConf after 2021)
 	HW_TSLAB,	// ZX Evolution (TSConf)
 	HW_PROFI,	// Profi
 	HW_PHOENIX,	// ZXM Phoenix

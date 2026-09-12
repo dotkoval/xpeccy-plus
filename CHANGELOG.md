@@ -9,6 +9,52 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+## 2026.4.1 - 2026-09-12
+
+### Changed
+
+- **ZX Evo is one machine again.** The two entries split by firmware generation are gone, and
+  the one that remains runs either. It ships with EVO Reset Service 0.61 FE and NEO-DOS 0.60.
+
+- Both ZX Evo machines start with the Kempston mouse, its wheel and the five-button joystick
+  switched on, and the machine now reports itself as Xpeccy+ rather than a 2012 FPGA build.
+
+### Added
+
+- **The Magic button works on ZX Evo.** F10 opens the EVO Magic Service over the running
+  program and goes back to it.
+
+- **TR-DOS emulation.** A drive the firmware marks virtual is served the way a real BaseConf
+  serves it. A drive with a disk in it is left alone, so an image you opened still boots.
+
+- ZX Evo starts with a pattern in its memory, the way real hardware does.
+
+- Holding a key on ZX Evo repeats it, as its own keyboard does.
+
+### Fixed
+
+- **The SD card and the hard disks were lost whenever the machine was switched**, so booting
+  from them failed while the settings still named the image.
+
+- **The machines had lost settings the old profiles carried.** Every clone is back to its YM
+  sound chip, its Covox, its mouse and Kempston buttons, and the hard disk interface it comes
+  with - SMUC on a Scorpion, Nemo on a ZX Evo. ZX Evo has its two-chip TurboSound again.
+
+- **The AY clock and the stereo channel order follow the machine again.** They had become one
+  setting shared by every machine, so whichever was up last decided the clock for all of
+  them - and a 128K runs its AY faster than a clone does.
+
+- **ZX Evo's text mode was drawn in the wrong place** and showed nothing at all. The 320x200
+  modes of the ATM family were off center on every machine that has them.
+
+- Applying settings wiped the text mode font.
+
+- ZX Evo: a number of hardware details the service ROM and NedoOS depend on - reading the
+  palette, the font and the virtual drive mask back, entering and leaving TR-DOS, and page
+  write protection.
+
+- An NMI no longer leaves the Z80 stuck in HALT.
+
 ## 2026.4 - 2026-09-11
 
 ### Added

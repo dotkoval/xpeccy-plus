@@ -14,6 +14,10 @@
 // build date (YYYYMMDD) for dev builds, empty for release builds
 #define XBUILD_DATE	"@XBUILD_DATE@"
 
+// the same date as a number, set for a release too, and whether this is one
+#define XBUILD_YMD	@XBUILD_YMD@
+#define XRELEASE_BUILD	@XRELEASE_BUILD@
+
 // full version: "2026.0" for a release, "2026.0-dev+20260801" for a dev build
 // (SemVer: "-dev" pre-release tail, build date as build metadata)
 #define XVERSION	"@XVERSION@"

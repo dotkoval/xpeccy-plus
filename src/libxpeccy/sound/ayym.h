@@ -214,6 +214,7 @@ typedef struct {
 void initNoise();
 void init_sin_tab();
 
+const scDesc* find_chip_type(int);	// its nominal clock, for one
 void chip_set_type(aymChip*, int);
 void chip_set_xdev(aymChip*, ayxrd, ayxwr, void*);
 

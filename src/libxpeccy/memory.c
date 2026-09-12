@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 
 Memory* memCreate() {
 	Memory* mem = (Memory*)malloc(sizeof(Memory));
@@ -72,6 +73,22 @@ void memSetSize(Memory* mem, int ramSz, int romSz) {
 
 size_t mem_ram_extent(Memory* mem) {
 	return (size_t)mem->ramMask + 1;
+}
+
+// What ram holds when the machine is switched on: the pattern repeated over
+// all of it, with a byte in every few hundred coming up with something else
+// instead - ten to twenty specks in the 6912 bytes of a Spectrum screen, and
+// a different set of them every time, which is how real ram behaves.
+void mem_cold_fill(Memory* mem, const unsigned char* pat, int len) {
+	unsigned int seed = (unsigned int)time(NULL) | 1;
+	size_t size = mem_ram_extent(mem);
+	int k = 0;
+	if (!pat || (len < 1)) return;
+	for (size_t i = 0; i < size; i++) {
+		seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+		mem->ramData[i] = ((seed & 0x1ff) == 0) ? (unsigned char)(seed >> 9) : pat[k];
+		if (++k == len) k = 0;
+	}
 }
 
 int memRd(Memory* mem, int adr) {

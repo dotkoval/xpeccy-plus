@@ -55,7 +55,6 @@
         <file>res/layouts.conf</file>
         <file>res/machines/atm2.conf</file>
         <file>res/machines/evo-baseconf.conf</file>
-        <file>res/machines/evo-baseconf21.conf</file>
         <file>res/machines/evo-tsconf.conf</file>
         <file>res/machines/pent.conf</file>
         <file>res/machines/pent1024.conf</file>

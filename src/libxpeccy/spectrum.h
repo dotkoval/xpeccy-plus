@@ -144,6 +144,7 @@ typedef struct Computer {
 	long long nsPerTickFixed;
 	long long tickPerNsFixed;
 
+	unsigned char verblk[16];	// what the machine says it is (comp_set_identity)
 	bool flag[128];			// each machine have its own flags
 	bool sysflag[32];		// some common flags used by several machines or debuga
 	unsigned char reg[512];		// internal registers
@@ -260,6 +261,7 @@ static inline int ns_fixed_to_ticks_up(Computer* comp, long long ns_fixed) {
 #include "hardware/hardware.h"
 
 Computer* compCreate();
+void comp_set_identity(Computer*, const char*, int, int);
 void compDestroy(Computer*);
 void compReset(Computer*,int);
 int compExec(Computer*);

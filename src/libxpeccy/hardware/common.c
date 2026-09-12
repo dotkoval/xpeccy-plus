@@ -54,6 +54,7 @@ void zx_sync(Computer* comp, int ns) {
 	tsSync(comp->ts, ns);
 	tapSync(comp->tape, ns);
 	bcSync(comp->beep, ns);
+	if (comp->keyb->per) kbd_sync(comp->keyb, ns);		// a key is held: ps/2 auto-repeat
 	// nmi
 	if ((comp->cpu->regPC > 0x3fff) && comp->flgNMIRQ) {
 		comp->cpu->intrq |= Z80_NMI;	// request nmi
@@ -109,6 +110,9 @@ void zx_irq(Computer* comp, int t) {
 			break;
 		case IRQ_VID_IEND:			// frame int end (for tsconf see in tslab.c)
 			comp->cpu->intrq &= ~Z80_INT;
+			break;
+		case IRQ_NMI:				// zx_sync takes it from here
+			comp->flgNMIRQ = 1;
 			break;
 		case IRQ_CPU_CONT:			// memory cycle: contend it
 			zx_contend(comp, 1);

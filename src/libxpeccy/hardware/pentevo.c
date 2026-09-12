@@ -1,8 +1,14 @@
 #include "../spectrum.h"
+#include "../cpu/Z80/z80.h"
 
 #include <stdio.h>
 
-// NOTE: xxBD/xxBE ports are swaped in newer firmware. latest bios will not work
+// One core for every firmware. The 2021 baseconf moved the configuration block
+// from #xxBE to #xxBD, but it still answers reads on both - zports.v keeps #xxBE
+// with a "TODO: remove read capability" beside it - and writing #BE has meant
+// "leave NMI" since 2014. So reads are taken from either port, and the hardware
+// trap address is taken at its old place (#00BD/#01BD) as well as its new one
+// (#10BD/#11BD), which the other firmware leaves undecoded. Nothing collides.
 
 #define regBF	reg[16]
 #define reg2F	reg[17]
@@ -11,26 +17,17 @@
 #define reg8F	reg[20]
 #define regM1CNT reg[21]
 
-#define flgVDOS	flag[100]
-#define flgVNMI flag[101]
-#define flgBRKE	flag[102]	// hw brk enabled
+#define flgVDOS	flag[100]	// trd emulation: ram page FE @ 0x0000
+#define flgVNMI flag[101]	// in NMI: ram page FF @ 0x0000
+#define flgVDWP	flag[102]	// no writes to that page until the next M1
+#define flgNMIR	flag[103]	// NMI asked for, taken with the next frame int
+#define flgNMIS	flag[104]	// map the NMI page in on the next M1
 
+#define regPal(_n) reg[0xe0 + (_n)]	// what was last written to palette cell n
 #define memFlag(_n) reg[0xf0 + (_n)]
 #define memPage(_n) reg[0xf8 + (_n)]
 
 #define xregBRKA xreg[0]
-
-void evoReset(Computer* comp) {
-	comp->flgDOS = 1;
-	comp->regBF = 0;
-	comp->prt2 = 0x03;
-	comp->sdc->on = 1;
-	sdcReset(comp->sdc);
-	comp->flgVDOS = 0;
-	comp->flgVNMI = 0;
-	comp->flgBRKE = 0;
-	comp->regM1CNT = 0;
-}
 
 void evoSetVideoMode(Computer* comp) {
 	int mode = (comp->pEFF7 & 0x20) | ((comp->pEFF7 & 0x01) << 1) | (comp->prt2 & 0x07);	// z5.z0.0.b2.b1.b0	b:FF77, z:eff7
@@ -63,6 +60,19 @@ void evoSetBank(Computer* comp, int bank, int idx) { // memEntry me) {
 	memSetBank(comp->mem, bank, (comp->memFlag(idx) & 0x40) ? MEM_RAM : MEM_ROM, page, MEM_16K, NULL, NULL, NULL);
 }
 
+// The three things that can stand in window 0, in the pager's own order. Called
+// from the pager-on branch only: with A8 of #xx77 low there is no pager and every
+// window holds the service rom.
+static void evo_map_win0(Computer* comp) {
+	if (comp->flgVNMI) {			// while NMI
+		memSetBank(comp->mem,0x00,MEM_RAM,0xff,MEM_16K,NULL,NULL,NULL);
+	} else if (comp->flgVDOS) {		// trd emulation
+		memSetBank(comp->mem,0x00,MEM_RAM,0xfe,MEM_16K,NULL,NULL,NULL);
+	} else if (comp->pEFF7 & 8) {		// b3.EFF7: ram0 @ 0x0000
+		memSetBank(comp->mem,0x00,MEM_RAM,0x00, MEM_16K, NULL, NULL, NULL);
+	}
+}
+
 void evoMapMem(Computer* comp) {
 	if (comp->prt2 & 0x20) {		// A8.xx77
 		int adr = (comp->flgROM) ? 4 : 0;
@@ -70,6 +80,7 @@ void evoMapMem(Computer* comp) {
 		evoSetBank(comp, 0x40, adr+1); //comp->memMap[adr+1]);
 		evoSetBank(comp, 0x80, adr+2); //comp->memMap[adr+2]);
 		evoSetBank(comp, 0xc0, adr+3); //comp->memMap[adr+3]);
+		evo_map_win0(comp);
 	} else {
 		comp->flgDOS = 1;
 		memSetBank(comp->mem,0x00,MEM_ROM,0xff, MEM_16K, NULL, NULL, NULL);
@@ -77,37 +88,85 @@ void evoMapMem(Computer* comp) {
 		memSetBank(comp->mem,0x80,MEM_ROM,0xff, MEM_16K, NULL, NULL, NULL);
 		memSetBank(comp->mem,0xc0,MEM_ROM,0xff, MEM_16K, NULL, NULL, NULL);
 	}
-	if (comp->flgVNMI) {			// while NMI
-		memSetBank(comp->mem,0x00,MEM_RAM,0xff,MEM_16K,NULL,NULL,NULL);
-	} else if (comp->flgVDOS) {		// virtual DOS
-		memSetBank(comp->mem,0x00,MEM_RAM,0xfe,MEM_16K,NULL,NULL,NULL);
-	} else if (comp->pEFF7 & 8)				// b3.EFF7: ram0 @ 0x0000 : high priority
-		memSetBank(comp->mem,0x00,MEM_RAM,0x00, MEM_16K, NULL, NULL, NULL);
+}
+
+void evoReset(Computer* comp) {
+	comp->flgDOS = 1;
+	comp->regBF = 0;
+	comp->prt2 = 0x83;		// A14 = 1: palette closed; video mode 011
+	comp->sdc->on = 1;
+	sdcReset(comp->sdc);
+	kbd_set_repeat(comp->keyb, 0);		// what the avr asks the ps/2 keyboard for
+	comp->flgVDOS = 0;
+	comp->flgVNMI = 0;
+	comp->flgVDWP = 0;
+	comp->flgNMIR = 0;
+	comp->flgNMIS = 0;
+	comp->regM1CNT = 0;
+	for (int i = 0; i < 8; i++) {		// power-on pager: rom page 0 everywhere
+		comp->memFlag(i) = 0;
+		comp->memPage(i) = 0xff;
+	}
+	for (int i = 0; i < 4; i++) {
+		comp->dif->flp[i]->virt = 0;
+	}
+}
+
+// Raise the NMI and arrange for the handler's page to come with it. Both go
+// together or the handler runs out of whatever was mapped at 0x0000.
+static void evo_nmi(Computer* comp) {
+	comp->cpu->intrq |= Z80_NMI;
+	comp->flgNMIS = 1;
 }
 
 int evoMRd(Computer* comp, int adr, int m1) {
-	if (m1 && (comp->dif->type == DIF_BDI)) {
-		if (comp->flgDOS && (mem_get_page(comp->mem, adr)->type == MEM_RAM) && (comp->prt2 & 0x40)) {
+	if (!m1) return memRd(comp->mem, adr);
+	int nmient = 0;
+	if (comp->dif->type == DIF_BDI) {
+		int win = (adr >> 14) & 3;
+		// leave TR-DOS: M1 from a window the current map holds RAM in.
+		// A9 of #xx77 low holds the DOS signal on, so it blocks this.
+		if (comp->flgDOS && (comp->prt2 & 0x40) &&
+				(comp->memFlag((comp->flgROM << 2) | win) & 0x40)) {
 			comp->flgDOS = 0;
 			if (comp->flgROM) comp->hw->mapMem(comp);
 		}
-		if (!comp->flgDOS && ((adr & 0xff00) == 0x3d00) && (comp->flgROM)) {
+		// enter TR-DOS: M1 from offset #3Dxx of a window whose map 1
+		// entry is rom with the dos7ffd bit set
+		if (!comp->flgDOS && ((adr & 0x3f00) == 0x3d00) && comp->flgROM &&
+				((comp->memFlag(4 | win) & 0xc0) == 0x80)) {
 			comp->flgDOS = 1;
 			comp->hw->mapMem(comp);
 		}
 	}
-	if (m1 && comp->flgVNMI && comp->regM1CNT) {
+	// The NMI handler's page comes in on the fetch from 0x0066, and that fetch
+	// reads as NOP whatever is under it - the fpga drives 00 on the bus for it.
+	// So the handler's second opcode, at 0x0067, is the first byte that really
+	// comes from page FF.
+	if (comp->flgNMIS && (adr == 0x0066)) {
+		comp->flgNMIS = 0;
+		comp->flgVNMI = 1;
+		evoMapMem(comp);
+		nmient = 1;
+	}
+	// hardware trap: the NMI comes on the spot, not with the next frame int
+	if ((comp->regBF & 0x10) && (adr == comp->xregBRKA.w)) {
+		evo_nmi(comp);
+	}
+	comp->flgVDWP = 0;
+	int res = nmient ? 0x00 : memRd(comp->mem, adr);
+	// The second M1 after out (#BE) puts the map back - after this fetch, so
+	// that RETN's own opcode still comes from the handler's page. The count
+	// runs whether or not an NMI is up, the way the fpga does: left armed it
+	// would eat the next NMI two opcodes in.
+	if (comp->regM1CNT) {
 		comp->regM1CNT--;
-		if (comp->regM1CNT == 0) {
+		if ((comp->regM1CNT == 0) && comp->flgVNMI) {
 			comp->flgVNMI = 0;
 			evoMapMem(comp);
 		}
 	}
-	if (m1 && (comp->regBF & 0x40) && (adr == comp->xregBRKA.w)) {
-		// comp->flgNMIRQ = 1;
-	}
-
-	return memRd(comp->mem,adr);
+	return res;
 }
 
 // TODO: write protect, see xBF7)
@@ -117,6 +176,7 @@ void evoMWr(Computer* comp, int adr, int val) {
 	if (comp->regBF & 4) {
 		vid_fnt_wr(comp->vid, adr & 0x7ff, val & 0xff);		// PentEvo: write font byte
 	}
+	if (comp->flgVDWP && (adr < 0x4000)) return;		// trd emulation page just came in
 	if (comp->memFlag((comp->flgROM << 2) | ((adr >> 14) & 3)) & 0x20) return;		// write protect
 	memWr(comp->mem,adr,val);
 }
@@ -151,7 +211,6 @@ int memflag_collect(Computer* comp, int mask) {
 
 int evoInCfg(Computer* comp, int port) {
 	int res = -1;
-	int i;
 	if ((port & 0xf800) == 0x0000) {
 		res = comp->memPage((port >> 8) & 7); // comp->memMap[(port & 0x0700) >> 8].page;
 	} else {
@@ -161,17 +220,17 @@ int evoInCfg(Computer* comp, int port) {
 			case 0x0a00: res = comp->p7FFD; break;
 			case 0x0b00: res = comp->pEFF7; break;
 			case 0x0c00: res = comp->prt2 | (comp->flgDOS ? 0x10 : 0x00); break;
-			case 0x0d00: res = comp->vid->atrbyte; break;
-			case 0x0e00: res = -1; break;		// scrbyte?
-			case 0x0f00: res = comp->vid->brdcol; break;
+			// the palette cell the border colour points at, in the format
+			// it was written in through #FF - bits 2,3 read back as 1
+			case 0x0d00: res = (comp->regPal(comp->vid->brdcol & 0x0f) & 0xf3) | 0x0c; break;
+			case 0x0e00: res = comp->vid->fntbyte; break;	// font byte the text mode is showing
+			case 0x0f00: res = comp->vid->nextbrd & 0x0f; break;	// last one written
 			case 0x1000: res = comp->xregBRKA.l; break;
 			case 0x1100: res = comp->xregBRKA.h; break;
 			case 0x1200: res = memflag_collect(comp, 0x20); break;	// write protect
 			// new one:
-			case 0x1300: for (i = 0; i < 4; i++) {
-					if (comp->dif->flp[i]->virt)
-						res |= (1 << i);
-				}
+			case 0x1300: res = comp->dif->flp[0]->virt | (comp->dif->flp[1]->virt << 1)
+					| (comp->dif->flp[2]->virt << 2) | (comp->dif->flp[3]->virt << 3);
 				break;
 			case 0x1400:
 				break;
@@ -188,12 +247,12 @@ int evoInCfg(Computer* comp, int port) {
 	return res;
 }
 
-// 2021+ configuration only:
 void evoOutCfg(Computer* comp, int port, int val) {
 	int i = 0;
 	switch(port & 0xff00) {
-		case 0x1000: comp->xregBRKA.l = val; break;
-		case 0x1100: comp->xregBRKA.h = val; break;
+		// the trap address, at both the addresses it has ever had
+		case 0x0000: case 0x1000: comp->xregBRKA.l = val; break;
+		case 0x0100: case 0x1100: comp->xregBRKA.h = val; break;
 		case 0x1200:
 			for (i = 0; i < 8; i++) {
 				if (val & 1) {
@@ -223,10 +282,39 @@ int evoInBF(Computer* comp, int port) {
 	return comp->regBF;
 }
 
-// TODO: if flgDOS && flgROM && (pc < 0x400) && flp->virt -> flgVDOS = 1  <- check this
+// TR-DOS emulation. Touching a disk controller register with the selected
+// drive marked virtual (#13BD) swaps ram page FE in over the TR-DOS rom, and
+// it stays there until the rom writes #BE. The chip itself still sees the
+// access - on the board it sits on the bus either way. The page cannot be
+// written to for the rest of the instruction, which is what stops an INI from
+// landing in it.
+//
+// Writes to #FF are left out on purpose. The port is the controller's system
+// register, but it is also where the palette is written, and the ERS sets the
+// palette one colour at a time with drive A selected by the colour value - so
+// taking those would swap the page out from under the Magic Service while it
+// paints. Reads of #FF (the status register) still count, and so does every
+// register at #1F/#3F/#5F/#7F, which is what a loader actually drives.
+//
+// One thing here is ours rather than the hardware's: a drive with a disk in it
+// is left to the real controller even when the rom marks it virtual. The ERS
+// ships with drive A virtual, and on a real machine you would move that to a
+// free letter before putting a floppy in A; here the disk the user opened has
+// to be the one that boots.
+void evo_trdemu(Computer* comp) {
+	if (comp->flgVDOS || comp->flgVNMI) return;
+	if (!comp->flgDOS) return;
+	if (!comp->dif->fdc->flp->virt || comp->dif->fdc->flp->insert) return;
+	if (mem_get_page(comp->mem, 0x0000)->type != MEM_ROM) return;
+	comp->flgVDOS = 1;
+	comp->flgVDWP = 1;
+	evoMapMem(comp);
+}
+
 int evoInBDI(Computer* comp, int port) {
 	int res = -1;
 	difIn(comp->dif, port, &res, 1);
+	evo_trdemu(comp);
 	return res;
 }
 
@@ -291,20 +379,18 @@ int evoInFF(Computer* comp, int port) {
 
 // out
 
-void evoOutBD(Computer* comp, int port, int val) {
-	switch(port & 0xff00) {
-		case 0x00: comp->xregBRKA.l = val; break;
-		case 0x01: comp->xregBRKA.h = val; break;
-	}
-}
-
+// out (#BE),a - leave the NMI handler and the trd emulation both
 void evoStopVrt(Computer* comp, int port, int val) {
-	comp->flgVDOS = 0;
-	comp->regM1CNT = 2;		// 2 M1 after out (RETI?) -> exit NMI
+	if (comp->flgVDOS) {
+		comp->flgVDOS = 0;
+		evoMapMem(comp);
+	}
+	comp->regM1CNT = 2;		// 2 M1 after the out, so RETN pops from the real page
 }
 
 void evoOutBF(Computer* comp, int port, int val) {
-	// b3: 1->0 - generate NMI on next INT
+	if ((comp->regBF & ~val) & 8)	// b3: 1->0 - NMI comes with the next frame int
+		comp->flgNMIR = 1;
 	comp->regBF = val & 0xff;
 }
 
@@ -335,6 +421,7 @@ void evoOut77(Computer* comp, int port, int val) {
 
 void evoOut77d(Computer* comp, int port, int val) {
 	comp->prt2 = ((port & 0x4000) >> 7) | ((port & 0x0300) >> 3) | (val & 0x0f);	// a14.a9.a8.0.b3.b2.b1.b0
+	if (!(comp->prt2 & 0x40)) comp->flgDOS = 1;	// A9 low: hold TR-DOS on
 	compSetHwTurbo(comp,(val & 0x08) ? 4 : ((comp->pEFF7 & 0x10) ? 1 : 2));
 	evoSetVideoMode(comp);
 	evoMapMem(comp);
@@ -342,11 +429,10 @@ void evoOut77d(Computer* comp, int port, int val) {
 
 void evoOutF7(Computer* comp, int port, int val) {
 	int adr = ((comp->flgROM) ? 4 : 0) | ((port & 0xc000) >> 14);
-	if (port & 0x0800) {
-		comp->memFlag(adr) &= 0x3f;
-		comp->memFlag(adr) |= val & 0xc0;
-		comp->memPage(adr) = (val & 0xff) | 0xc0;
-	} else {
+	if (port & 0x0800) {			// #xFF7: page, ram/rom and the dos7ffd bit
+		comp->memFlag(adr) = (comp->memFlag(adr) & 0x20) | (val & 0xc0);
+		comp->memPage(adr) = (val & 0x3f) | 0xc0;
+	} else {				// #x7F7: full 8 bit ram page, dos7ffd untouched
 		comp->memFlag(adr) |= 0x40;		// ram
 		comp->memPage(adr) = val & 0xff;
 	}
@@ -362,6 +448,7 @@ void evoOutBF7(Computer* comp, int port, int val) {
 
 void evoOutBDI(Computer* comp, int port, int val) {		// dos
 	difOut(comp->dif, port, val, 1);
+	evo_trdemu(comp);
 }
 
 static const unsigned char atm3clev[16] = {0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa,0xbb,0xcc,0xdd,0xee,0xff};
@@ -369,9 +456,10 @@ static const unsigned char atm3clev[16] = {0x00,0x11,0x22,0x33,0x44,0x55,0x66,0x
 void evoOutFF(Computer* comp, int port, int val) {		// dos
 	difOut(comp->dif, 0xff, val, 1);
 	xColor xcol;
-	if (!(comp->prt2 & 0x80)) {	// pBF.b1 = 1 || p77.a14 = 1
-		val ^= 0xff;					// inverse colors
+	if (!(comp->prt2 & 0x80)) {	// A14 of #xx77 low: palette writes allowed
 		int adr = comp->vid->brdcol & 0x0f;
+		comp->regPal(adr) = val & 0xff;			// for the #0DBx readback
+		val ^= 0xff;					// inverse colors
 		port ^= 0xff00;
 		if (!comp->flgDDP) port = (port & 0xff) | ((val << 8) & 0xff00);
 		xcol.b = atm3clev[((val & 0x01) << 3) | ((val & 0x20) >> 3) | ((port & 0x0100) >> 7) | ((port & 0x2000) >> 13)];
@@ -433,10 +521,6 @@ void evoOutFE(Computer* comp, int port, int val) {
 static xPort evoPortMap[] = {
 	{0x00f7,0x00fe,2,2,2,xInFE,	evoOutFE},	// A3 = border bright
 //	{0x00ff,0x00fb,2,2,2,NULL,	evoOutFB},	// covox
-
-//	{0x00ff,0x00be,2,2,2,evoInBE,	NULL},
-//	{0x00ff,0x00bd,2,2,2,NULL,	evoOutBD},
-
 	{0x00ff,0x00bf,2,2,2,evoInBF,	evoOutBF},
 	{0xc0fe,0x7ffd,2,2,2,NULL,	evoOut7FFD},
 	{0xffff,0xfadf,2,2,2,xInFADF,	NULL},		// k-mouse (fadf,fbdf,ffdf)
@@ -477,41 +561,32 @@ int evoInCmn(Computer* comp, int port) {
 	return hwIn(evoPortMap, comp, port);
 }
 
-// ports for legacy: before 2021
-static xPort evo14PortMap[] = {
-	{0x00ff,0x00be,2,2,2,evoInCfg,	NULL},
-	{0x00ff,0x00bd,2,2,2,NULL,	evoOutBD},
+// the configuration block, serving both the port it used to be on and the one
+// it is on now (see the note at the top of this file)
+static xPort evoCfgPortMap[] = {
+	{0x00ff,0x00be,2,2,2,evoInCfg,	evoStopVrt},
+	{0x00ff,0x00bd,2,2,2,evoInCfg,	evoOutCfg},
 	{0x0000,0x0000,2,2,2,evoInCmn,	evoOutCmn}	// go to check common ports
 };
 
-// current configuration: after 2021
-static xPort evo21PortMap[] = {
-	{0x00ff,0x00bd,2,2,2,evoInCfg,	evoOutCfg},
-	{0x00ff,0x00be,2,2,2,NULL,	evoStopVrt},
-	{0x0000,0x0000,2,2,2,evoInCmn,	evoOutCmn}
-};
+// A9 of #xx77 low (cp/m mode) holds the DOS signal, and with it the shadow
+// ports, on. b0 of #BF opens them whatever else says.
+static void evo_shadow(Computer* comp) {
+	if ((comp->regBF & 0x01) || !(comp->prt2 & 0x40)) comp->flgBDI = 1;
+}
 
-void evo_out_ext(Computer* comp, int port, int val, xPort* extab) {
-	if (comp->regBF & 0x01) comp->flgBDI = 1;	// force open ports
-	if (!(comp->prt2 & 0x80)) comp->flgBDI = 1;
+void evoOut(Computer* comp, int port, int val) {
+	evo_shadow(comp);
 	zx_dev_wr(comp, port, val);
-	hwOut(extab, comp, port, val, 1);
+	hwOut(evoCfgPortMap, comp, port, val, 1);
 }
 
-void evoOut(Computer* comp, int port, int val) {evo_out_ext(comp, port, val, evo14PortMap);}
-void evoOutv2(Computer* comp, int port, int val) {evo_out_ext(comp, port, val, evo21PortMap);}
-
-int evo_in_ext(Computer* comp, int port, xPort* extab) {
+int evoIn(Computer* comp, int port) {
 	int res = -1;
-	if (comp->regBF & 1) comp->flgBDI = 1;	// open ports
-	if (!(comp->prt2 & 0x80)) comp->flgBDI = 1;
+	evo_shadow(comp);
 	if (zx_dev_rd(comp, port, &res)) return res;
-	res = hwIn(extab, comp, port);
-	return res;
+	return hwIn(evoCfgPortMap, comp, port);
 }
-
-int evoIn(Computer* comp, int port) {return evo_in_ext(comp, port, evo14PortMap);}
-int evoInv2(Computer* comp, int port) {return evo_in_ext(comp, port, evo21PortMap);}
 
 void xt_press(Keyboard*, keyEntry*);
 void xt_release(Keyboard*, keyEntry*);
@@ -542,6 +617,31 @@ void evo_keyr(Computer* comp, keyEntry* ent) {
 	xt_release(comp->keyb, ent);
 }
 
+// The NMI key and b3 of #BF going 1->0 only arm the NMI: it arrives with the
+// next frame interrupt, instead of it. The hardware trap does not wait - it
+// calls evo_nmi() from the fetch it caught.
+void evo_irq(Computer* comp, int t) {
+	switch (t) {
+		case IRQ_NMI:				// armed, waiting for the frame int
+			comp->flgNMIR = 1;
+			break;
+		case IRQ_VID_INT:
+			if (!comp->flgNMIR) {
+				zx_irq(comp, t);
+				break;
+			}
+			comp->flgNMIR = 0;		// the NMI comes instead of the frame int
+#if HAVEZLIB
+			if (!comp->rzx.play)
+#endif
+				evo_nmi(comp);
+			break;
+		default:
+			zx_irq(comp, t);
+			break;
+	}
+}
+
 xPortDsc evo_port_tab[] = {
 	{0x7ffd, REG_BYTE, offsetof(Computer, p7FFD)},
 	{0xeff7, REG_BYTE, offsetof(Computer, pEFF7)},
@@ -549,6 +649,4 @@ xPortDsc evo_port_tab[] = {
 };
 
 HardWare evo_hw_core = {HW_PENTEVO,HWG_ZX,"Baseconf","ZX Evolution (BaseConf)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
-			zx_init,evoMapMem,evoOut,evoIn,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};
-HardWare evo_v2_core = {HW_PENTEVO,HWG_ZX,"Baseconf21","ZX Evolution (BaseConf 2021)",16,MEM_4M,1.0,NULL,16,evo_port_tab,
-			zx_init,evoMapMem,evoOutv2,evoInv2,evoMRd,evoMWr,zx_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};
+			zx_init,evoMapMem,evoOut,evoIn,evoMRd,evoMWr,evo_irq,zx_ack,evoReset,zx_sync,evo_keyp,evo_keyr,zx_vol};

@@ -752,10 +752,20 @@ void vidDrawHwmc(Video* vid) {
 	vid_dot_full(vid, col);
 }
 
+// The 320x200 modes sit around the ZX screen: 32 dots more on each side and 4
+// lines above and below it. So their origin follows the layout's border rather
+// than a constant - BaseConf's raster starts the ATM window at hcount 108
+// against 140 for the ZX one, and at line 76 against 80 (video_sync_h.v,
+// video_sync_v.v). With a constant they came out 8 dots left and 16 lines high
+// of where the border puts them.
+static void vid_atm_org(Video* vid) {
+	xscr = vid->ray.x - vid->bord.x + 32;
+	yscr = vid->ray.y - vid->bord.y + 4;
+}
+
 // atm ega
 void vidDrawATMega(Video* vid) {
-	yscr = vid->ray.y - 76 + 32;	// ???
-	xscr = vid->ray.x - 96 + 64;
+	vid_atm_org(vid);
 	if ((yscr < 0) || (yscr > 199) || (xscr < 0) || (xscr > 319)) {
 		col = vid->brdcol;
 	} else {
@@ -800,8 +810,7 @@ void vidATMDoubleDot(Video* vid,unsigned char colr) {
 }
 
 void vidDrawATMtext(Video* vid) {
-	yscr = vid->ray.y - 76 + 32;
-	xscr = vid->ray.x - 96 + 64;
+	vid_atm_org(vid);
 	if ((yscr < 0) || (yscr > 199) || (xscr < 0) || (xscr > 319)) {
 		vid_dot_full(vid, vid->brdcol);
 	} else {
@@ -815,6 +824,7 @@ void vidDrawATMtext(Video* vid) {
 				col = vid->mrd(MADR(vid->vidPage ^ 4, adr + 1), vid->xptr) & 0xff;
 			}
 			scrbyte = vid_fnt_rd(vid, (scrbyte << 3) | (yscr & 7));	// vid->font[(scrbyte << 3) | (yscr & 7)];
+			vid->fntbyte = scrbyte & 0xff;
 			vidATMDoubleDot(vid,col);
 		}
 	}
@@ -822,13 +832,10 @@ void vidDrawATMtext(Video* vid) {
 
 // atm hardware multicolor
 void vidDrawATMhwmc(Video* vid) {
-	yscr = vid->ray.y - 76 + 32;
-	xscr = vid->ray.x - 96 + 64;
+	vid_atm_org(vid);
 	if ((yscr < 0) || (yscr > 199) || (xscr < 0) || (xscr > 319)) {
 		vid_dot_full(vid, vid->brdcol);
 	} else {
-		//xscr = vid->ray.x - 96;
-		//yscr = vid->ray.y - 76;
 		adr = (yscr * 40) + (xscr >> 3);
 		if ((xscr & 3) == 0) {
 			if ((xscr & 7) == 0) {
@@ -848,8 +855,7 @@ void vidDrawATMhwmc(Video* vid) {
 // baseconf text
 
 void vidDrawEvoText(Video* vid) {
-	yscr = vid->ray.y - 76;
-	xscr = vid->ray.x - 96;
+	vid_atm_org(vid);
 	if ((yscr < 0) || (yscr > 199) || (xscr < 0) || (xscr > 319)) {
 		vid_dot_full(vid, vid->brdcol);
 	} else {
@@ -863,6 +869,7 @@ void vidDrawEvoText(Video* vid) {
 				col = vid->mrd(MADR(vid->vidPage + 3, adr + 0x2001), vid->xptr);
 			}
 			scrbyte = vid_fnt_rd(vid, (scrbyte << 3) | (yscr & 7)); // vid->font[(scrbyte << 3) | (yscr & 7)];
+			vid->fntbyte = scrbyte & 0xff;
 			vidATMDoubleDot(vid,col);
 		}
 	}

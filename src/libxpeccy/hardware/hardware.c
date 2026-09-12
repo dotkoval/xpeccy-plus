@@ -21,7 +21,6 @@ extern HardWare atm_hw_core;
 extern HardWare prf_hw_core;
 extern HardWare phx_hw_core;
 extern HardWare evo_hw_core;
-extern HardWare evo_v2_core;
 extern HardWare tsl_hw_core;
 extern HardWare pl2_hw_core;
 extern HardWare pl3_hw_core;
@@ -54,7 +53,6 @@ tabHwItem tabHwPtr[] = {
 	{HW_PROFI, &prf_hw_core},
 	{HW_PHOENIX, &phx_hw_core},
 	{HW_PENTEVO, &evo_hw_core},
-	{HW_PENTEVO21, &evo_v2_core},
 	{HW_TSLAB, &tsl_hw_core},
 #ifndef XZXONLY
 	{HW_DUMMY, NULL},

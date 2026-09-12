@@ -411,7 +411,7 @@ bool addRomset(xRomset);
 std::string xm_rom_path(const std::string&);
 
 // what the machine loads, and putting a changed set back as the user's own
-void xm_set_roms(const xRomset&);
+void xm_set_roms(const xRomset&, bool poweron = false);
 void xm_rom_set_file(xRomset&, int, const std::string&);
 
 // machines
@@ -428,6 +428,7 @@ typedef struct {
 	std::string hw;			// HardWare.name
 	std::string cpu;		// cpuCore.name
 	int memory;			// KB
+	std::string ramCold;		// power-on ram pattern, hex bytes; empty = memory left alone
 	int cpufrq;			// Hz
 	int resbank;			// RES_*
 	unsigned contio:1;
@@ -439,10 +440,13 @@ typedef struct {
 	unsigned brd4t:1;
 	int psgCount;
 	int psgType;			// SND_*
+	double psgFrq;			// MHz, 0 = the chip type's own clock
+	int psgStereo;			// AY_*
 	int soundrive;			// SDRV_*
 	int disk;			// DIF_*
 	int ide;			// IDE_*
 	unsigned mouse:1;
+	unsigned mouseWheel:1;
 	unsigned joyButtons:1;
 	int scantab;			// KBD_*, 0 = the keyboard core's own type
 	unsigned gs:1;			// General Sound

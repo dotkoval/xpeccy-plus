@@ -497,9 +497,24 @@ void rzxStop(Computer* zx) {
 #endif
 }
 
-//				0   1   2   3   4   5   6   7   8   9   A   B   C    D    E    F
-const unsigned char blnm[] = {'x','B','o','o','t',000,000,000,000,000,000,000,0x38,0x98,0x00,0x00};
-const unsigned char bcnm[] = {'x','E','v','o',' ',000,000,000,000,000,000,000,0x89,0x99,0x00,0x00};
+// What the machine answers when asked what it is, through the version block of
+// the gluk clock (base configuration manual, 9.6.1): 12 bytes of name, then the
+// build date packed as day in b4..0 of byte 12, month across b7..5 of byte 12
+// and b0 of byte 13, year-2000 in b6..1 of byte 13, and b7 set for an official
+// release. On a real ZX Evo this is the fpga build and the bootloader build; an
+// emulator answers with its own, which is what unreal does too. Saying "xEvo
+// 09.12.2012" here, as this used to, claimed someone else's 2012 fpga while
+// implementing the behaviour of a much later one. Who we are is handed down
+// from the app, so the core does not have to know the product's name.
+void comp_set_identity(Computer* comp, const char* name, int ymd, int release) {
+	int day = ymd % 100;
+	int mon = (ymd / 100) % 100;
+	int year = ymd / 10000;
+	memset(comp->verblk, 0, sizeof(comp->verblk));
+	strncpy((char*)comp->verblk, name, 12);
+	comp->verblk[12] = (day & 0x1f) | ((mon & 0x07) << 5);
+	comp->verblk[13] = ((mon >> 3) & 0x01) | (((year - 2000) & 0x3f) << 1) | (release ? 0x80 : 0);
+}
 
 Computer* compCreate() {
 	Computer* comp = (Computer*)malloc(sizeof(Computer));
@@ -556,8 +571,6 @@ Computer* compCreate() {
 	comp->rtc = upd4990_create(comp_irq, comp);
 #endif
 // baseconf
-//	memcpy(comp->evo.blVer,blnm,16);
-//	memcpy(comp->evo.bcVer,bcnm,16);
 //tsconf
 	comp->tsconf.pwr_up = 1;
 // rzx
@@ -810,13 +823,22 @@ int compExec(Computer* comp) {
 
 // cmos
 
+// The flags the avr keeps for the machine, read back through the same block
+// (manual 9.6.4, and MODE_* in the avr's main.h, which has moved on since the
+// manual was written: b0 vga, b2 caps led, b3 tape out, b4..5 the raster on
+// BaseConf). Only cell 0 answers; the rest read as 0xFF. The picture here is
+// always progressive, so vga reads as set, and the raster bits stay at
+// pentagon - the one this emulator gives BaseConf, its layout being fixed.
+#define MODE_VGA	0x01
+
 unsigned char cmsRd(Computer* comp) {
 	unsigned char res = 0xff;
 	if (comp->cmos.adr >= 0x70) {
 		switch(comp->cmos.mode) {
-			case 0: res = bcnm[comp->cmos.adr & 0x0f]; break;
-			case 1: res = blnm[comp->cmos.adr & 0x0f]; break;
+			case 0:					// base configuration version
+			case 1: res = comp->verblk[comp->cmos.adr & 0x0f]; break;		// bootloader version
 			case 2: res = xt_read(comp->keyb); break; //keyReadCode(comp->keyb); break;		// read PC keyboard keycode (TODO: used here only)
+			case 3: if (!(comp->cmos.adr & 0x0f)) res = MODE_VGA; break;	// avr flags
 		}
 	} else {
 		res = cmos_rd(&comp->cmos, CMOS_DATA);
