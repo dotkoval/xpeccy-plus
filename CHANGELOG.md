@@ -41,7 +41,8 @@ before that point is upstream's history and is not repeated here.
 - ZX Evo: entering and leaving TR-DOS, holding TR-DOS on in CP/M mode, and keeping a page
   write-protected across a paging write all followed the hardware only loosely.
 
-- An NMI no longer leaves the Z80 stuck in HALT.
+- An NMI no longer leaves the Z80 stuck in HALT, and it is taken ahead of a maskable
+  interrupt instead of being dropped when one is pending.
 
 ## 2026.4 - 2026-09-11
 
