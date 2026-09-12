@@ -76,17 +76,54 @@ size_t mem_ram_extent(Memory* mem) {
 }
 
 // What ram holds when the machine is switched on: the pattern repeated over
-// all of it, with a byte in every few hundred coming up with something else
-// instead - ten to twenty specks in the 6912 bytes of a Spectrum screen, and
-// a different set of them every time, which is how real ram behaves.
-void mem_cold_fill(Memory* mem, const unsigned char* pat, int len) {
+// all of it, with a byte here and there coming up with something else instead.
+//
+// Those specks are not scattered evenly. On a photo of a real Pentagon coming
+// up cold, the fifteen bad bytes in the 768 of the attribute area sit at only
+// seven addresses mod 128, each one hit again 128 or 256 bytes further on - a
+// weak cell answers to the low address bits, so the same few of them go wrong
+// all over the memory, and not every time they are addressed. A cell is picked
+// weak once per power-on: the picture is the same shape every time but never
+// the same bytes, which is how real ram behaves. The pattern usually repeats
+// over the same address bits, so a weak cell keeps its place in it - always an
+// ff cell or always a 00 one, as on the photo.
+//
+// `noise` is how many bytes in a thousand come up wrong, which is the machine's
+// to say - what a board shows depends on its own ram. One weak cell is 2.7 of
+// those bytes, and that is the step: below three there is nothing in between.
+#define	COLD_WEAK_MASK	0x7f	// address bits a weak cell is known by
+#define	COLD_CELLS	(COLD_WEAK_MASK + 1)
+#define	COLD_BAD_PM	350	// how often a weak one is actually wrong, per thousand
+
+static unsigned int cold_rnd(unsigned int* seed) {
+	unsigned int s = *seed;
+	s ^= s << 13; s ^= s >> 17; s ^= s << 5;
+	*seed = s;
+	return s;
+}
+
+void mem_cold_fill(Memory* mem, const unsigned char* pat, int len, int noise) {
 	unsigned int seed = (unsigned int)time(NULL) | 1;
 	size_t size = mem_ram_extent(mem);
+	unsigned char weak[COLD_CELLS];
+	int pick = toLimits((noise * COLD_CELLS + COLD_BAD_PM / 2) / COLD_BAD_PM, 0, COLD_CELLS);
+	int left = COLD_CELLS;		// cells still to choose from
 	int k = 0;
+	int i;
 	if (!pat || (len < 1)) return;
-	for (size_t i = 0; i < size; i++) {
-		seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
-		mem->ramData[i] = ((seed & 0x1ff) == 0) ? (unsigned char)(seed >> 9) : pat[k];
+	for (i = 0; i < COLD_CELLS; i++) {	// exactly `pick` of them, evenly spread
+		weak[i] = ((int)(cold_rnd(&seed) % left) < pick);
+		if (weak[i]) pick--;
+		left--;
+	}
+	for (size_t adr = 0; adr < size; adr++) {
+		unsigned char val = pat[k];
+		if (weak[adr & COLD_WEAK_MASK]) {
+			unsigned int rnd = cold_rnd(&seed);
+			if ((rnd % 1000) < COLD_BAD_PM)
+				val = (unsigned char)(rnd >> 13);
+		}
+		mem->ramData[adr] = val;
 		if (++k == len) k = 0;
 	}
 }

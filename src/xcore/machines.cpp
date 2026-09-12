@@ -165,7 +165,8 @@ static const struct {
 	const char* sect;
 } macSectTab[] = {
 	{"hw", "machine"}, {"cpu", "machine"}, {"cpu.frq", "machine"},
-	{"memory", "machine"}, {"ram.cold", "machine"}, {"reset", "machine"}, {"contio", "machine"},
+	{"memory", "machine"}, {"ram.cold", "machine"}, {"ram.noise", "machine"},
+	{"reset", "machine"}, {"contio", "machine"},
 	{"contmem", "machine"}, {"scrp.wait", "machine"},
 	{"geometry", "video"}, {"contPattern", "video"}, {"earlyTiming", "video"},
 	{"4t-border", "video"}, {"ULAplus", "video"}, {"DDpal", "video"},
@@ -202,6 +203,7 @@ static void mac_defaults(xMachine& mac) {
 	mac.early = 0;
 	mac.brd4t = 0;
 	mac.ramCold.clear();
+	mac.ramNoise = 0;
 	mac.psgCount = 1;
 	mac.psgType = SND_AY;
 	mac.psgFrq = 0;
@@ -237,6 +239,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 			else if (nam == "cpu") mac.cpu = val;
 			else if (nam == "memory") mac.memory = arg.i;
 			else if (nam == "ram.cold") mac.ramCold = val;
+			else if (nam == "ram.noise") mac.ramNoise = toLimits(arg.i, 0, 1000);
 			else if (nam == "cpu.frq") mac.cpufrq = arg.i;
 			else if (nam == "reset") mac.resbank = mac_word(resetTab, val, RES_128, id);
 			else if (nam == "contio") mac.contio = arg.b;
@@ -686,10 +689,24 @@ xMachine xm_with_over(const xMachine& def) {
 // no key at all leaves memory as it was, which is what every machine did before.
 // Written when the machine is set up, not on reset - a reset does not clear the
 // ram of real hardware either.
-static void mac_cold_ram(Computer* comp, const std::string& pat) {
-	QByteArray bytes = QByteArray::fromHex(QByteArray(pat.c_str()));
+//
+// Groups are separated by spaces and a group may carry `*N` to repeat it, since
+// these patterns are runs of one byte - `ff*8 00*8` is eight ff then eight 00.
+// `ram.noise` is how many bytes in a thousand come up wrong in that pattern:
+// what a board shows depends on its own ram, so it is a number per machine.
+static void mac_cold_ram(Computer* comp, const std::string& pat, int noise) {
+	QByteArray bytes;
+	foreach(QString grp, QString::fromLatin1(pat.c_str()).split(' ', X_SkipEmptyParts)) {
+		int rep = 1;
+		int pos = grp.indexOf('*');
+		if (pos >= 0) {
+			rep = grp.mid(pos + 1).toInt();
+			grp = grp.left(pos);
+		}
+		bytes.append(QByteArray::fromHex(grp.toLatin1()).repeated(rep));
+	}
 	if (bytes.isEmpty()) return;
-	mem_cold_fill(comp->mem, (const unsigned char*)bytes.constData(), bytes.size());
+	mem_cold_fill(comp->mem, (const unsigned char*)bytes.constData(), bytes.size(), noise);
 }
 
 static void mac_from_def(const xMachine* mac) {
@@ -698,7 +715,7 @@ static void mac_from_def(const xMachine* mac) {
 	mac_set_cpu(comp, mac->cpu);
 	compSetBaseFrq(comp, mac->cpufrq / 1e6);
 	memSetSize(comp->mem, mac_ram_size(mac->memory, comp->hw->mask), -1);
-	mac_cold_ram(comp, mac->ramCold);
+	mac_cold_ram(comp, mac->ramCold, mac->ramNoise);
 	comp->resbank = mac->resbank;
 	comp->flgCNTI = mac->contio;
 	comp->flgCNTM = mac->contmem;

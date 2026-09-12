@@ -9,6 +9,10 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+### Added
+
+- Pentagon starts with the memory pattern a real one comes up with, specks and all.
+
 ## 2026.4.1 - 2026-09-12
 
 ### Changed
