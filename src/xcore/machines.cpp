@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -55,6 +56,11 @@ typedef struct {
 
 static xMacWord psgTypeTab[] = {
 	{"none", SND_NONE}, {"ay", SND_AY}, {"ym", SND_YM}, {"ym2203", SND_YM2203}, {NULL, 0}
+};
+
+static xMacWord stereoTab[] = {
+	{"mono", AY_MONO}, {"abc", AY_ABC}, {"acb", AY_ACB}, {"bac", AY_BAC},
+	{"bca", AY_BCA}, {"cab", AY_CAB}, {"cba", AY_CBA}, {NULL, 0}
 };
 
 static xMacWord sdrvTab[] = {
@@ -163,7 +169,8 @@ static const struct {
 	{"contmem", "machine"}, {"scrp.wait", "machine"},
 	{"geometry", "video"}, {"contPattern", "video"}, {"earlyTiming", "video"},
 	{"4t-border", "video"}, {"ULAplus", "video"}, {"DDpal", "video"},
-	{"psg.count", "sound"}, {"psg.type", "sound"}, {"gs", "sound"},
+	{"psg.count", "sound"}, {"psg.type", "sound"}, {"psg.frq", "sound"},
+	{"psg.stereo", "sound"}, {"gs", "sound"},
 	{"saa", "sound"}, {"soundrive", "sound"},
 	{"disk", "storage"}, {"ide", "storage"},
 	{"mouse", "input"}, {"mouse.wheel", "input"}, {"joy.buttons", "input"},
@@ -197,6 +204,8 @@ static void mac_defaults(xMachine& mac) {
 	mac.ramCold.clear();
 	mac.psgCount = 1;
 	mac.psgType = SND_AY;
+	mac.psgFrq = 0;
+	mac.psgStereo = AY_MONO;
 	mac.soundrive = SDRV_NONE;
 	mac.disk = DIF_NONE;
 	mac.ide = IDE_NONE;
@@ -220,6 +229,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 		arg.s = val.c_str();
 		arg.b = str2bool(val) ? 1 : 0;
 		arg.i = strtol(arg.s, NULL, 0);
+		arg.d = strtod(arg.s, NULL);
 		if (ln.sect == "machine") {
 			if (nam == "name") mac.name = val;
 			else if (nam == "family") mac.family = val;
@@ -244,6 +254,8 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 		} else if (ln.sect == "sound") {
 			if (nam == "psg.count") mac.psgCount = toLimits(arg.i, 0, 3);
 			else if (nam == "psg.type") mac.psgType = mac_word(psgTypeTab, val, SND_AY, id);
+			else if (nam == "psg.frq") mac.psgFrq = arg.d;
+			else if (nam == "psg.stereo") mac.psgStereo = mac_word(stereoTab, val, AY_MONO, id);
 			else if (nam == "soundrive") mac.soundrive = mac_word(sdrvTab, val, SDRV_NONE, id);
 			else if (nam == "gs") mac.gs = arg.b;
 			else if (nam == "saa") mac.saa = arg.b;
@@ -533,6 +545,10 @@ static void mac_put(QStringList& out, const char* nam, int val, int def) {
 	if (val != def) out << QString("%1 = %2").arg(nam).arg(val);
 }
 
+static void mac_put(QStringList& out, const char* nam, double val, double def) {
+	if (fabs(val - def) > 1e-6) out << QString("%1 = %2").arg(nam).arg(val, 0, 'g', 8);
+}
+
 static void mac_put_yn(QStringList& out, const char* nam, int val, int def) {
 	if (!val != !def) out << QString("%1 = %2").arg(nam).arg(YESNO(val));
 }
@@ -624,10 +640,13 @@ static int mac_psg_count(Computer* comp) {
 	return (comp->ts->type == TS_ZXNEXT) ? 3 : (comp->ts->type == TS_NEDOPC) ? 2 : 1;
 }
 
-static void mac_set_psg(Computer* comp, int count, int type) {
+static void mac_set_psg(Computer* comp, int count, int type, double frq, int stereo) {
 	aymChip* psg[3] = {comp->ts->chipA, comp->ts->chipB, comp->ts->chipC};
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 3; i++) {
+		psg[i]->frq = frq;		// 0: chip_set_type puts the chip's own clock in
+		psg[i]->stereo = stereo;
 		chip_set_type(psg[i], (i < count) ? type : SND_NONE);
+	}
 	comp->ts->type = (count > 2) ? TS_ZXNEXT : (count > 1) ? TS_NEDOPC : TS_NONE;
 }
 
@@ -689,7 +708,7 @@ static void mac_from_def(const xMachine* mac) {
 	comp->vid->ula->early = mac->early;
 	comp->vid->ula->enabled = mac->ulaplus;
 	comp->vid->brdstep = mac->brd4t ? 7 : 1;
-	mac_set_psg(comp, mac->psgCount, mac->psgType);
+	mac_set_psg(comp, mac->psgCount, mac->psgType, mac->psgFrq, mac->psgStereo);
 	comp->gs->enable = mac->gs;
 	comp->saa->enabled = mac->saa;
 	comp->sdrv->type = mac->soundrive;
@@ -807,8 +826,14 @@ static void mac_put_all(QStringList& out, const xMachine* mac) {
 	mac_put_yn(out, "ULAplus", comp->vid->ula->enabled, mac->ulaplus);
 	mac_put_yn(out, "DDpal", comp->flgDDP, mac->ddpal);
 	mac_put(out, "psg.count", mac_psg_count(comp), mac->psgCount);
-	if (mac_psg_count(comp) > 0)		// with no chips there is no type to keep
+	if (mac_psg_count(comp) > 0) {		// with no chips there is nothing to keep
 		mac_put(out, "psg.type", mac_word_name(psgTypeTab, comp->ts->chipA->type), mac_word_name(psgTypeTab, mac->psgType));
+		// an unnamed clock in the definition is the chip type's own
+		mac_put(out, "psg.frq", comp->ts->chipA->frq,
+			mac->psgFrq ? mac->psgFrq : find_chip_type(mac->psgType)->frq);
+		mac_put(out, "psg.stereo", mac_word_name(stereoTab, comp->ts->chipA->stereo),
+			mac_word_name(stereoTab, mac->psgStereo));
+	}
 	mac_put_yn(out, "gs", comp->gs->enable, mac->gs);
 	mac_put_yn(out, "saa", comp->saa->enabled, mac->saa);
 	mac_put(out, "soundrive", mac_word_name(sdrvTab, comp->sdrv->type), mac_word_name(sdrvTab, mac->soundrive));
@@ -1134,8 +1159,10 @@ static void mac_set_old_key(int sect, const std::string& nam, const std::string&
 			else if (nam == "palette") conf.palette = val;
 			break;
 		case PS_SOUND:
-			if (nam == "psg.count") mac_set_psg(comp, toLimits(arg.i, 0, 3), comp->ts->chipA->type);
-			else if (nam == "psg.type") mac_set_psg(comp, mac_psg_count(comp), arg.i);
+			if (nam == "psg.count") mac_set_psg(comp, toLimits(arg.i, 0, 3), comp->ts->chipA->type,
+					comp->ts->chipA->frq, comp->ts->chipA->stereo);
+			else if (nam == "psg.type") mac_set_psg(comp, mac_psg_count(comp), arg.i,
+					comp->ts->chipA->frq, comp->ts->chipA->stereo);
 			else if ((nam == "psg.frq") || (nam == "psg.stereo") || (nam == "psg.separation")
 				|| (nam == "gs.reset") || (nam == "gs.stereo")) xm_defer(nam, val);
 			else if (nam == "gs") comp->gs->enable = arg.b;

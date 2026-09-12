@@ -440,6 +440,8 @@ typedef struct {
 	unsigned brd4t:1;
 	int psgCount;
 	int psgType;			// SND_*
+	double psgFrq;			// MHz, 0 = the chip type's own clock
+	int psgStereo;			// AY_*
 	int soundrive;			// SDRV_*
 	int disk;			// DIF_*
 	int ide;			// IDE_*

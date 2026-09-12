@@ -41,6 +41,10 @@ Settled in discussion, so do not re-open them without a reason:
 6. **The machine-defining settings move behind an "Advanced" button**, except `psg.frq`,
    which stays on the Sound page - a sound card can be an add-on independent of the
    machine, whatever its clock is derived from.
+   **Reversed on 2026-09-12 for where the value is kept**: `psg.frq` and `psg.stereo` are
+   machine keys, because a 128K's AY runs at 1.773447 MHz and a clone's at 1.75, and as a
+   global preference the clock stopped following the machine. Only `psg.separation` stayed
+   global. Where the controls sit on the page is unchanged.
 7. **No "keep or reset" dialog on a machine switch.** Overrides are remembered per machine
    instead, which removes the question. See 5.3.
 8. **Play / developer / demo are runtime modes, not settings sets** - a hotkey toggle with
@@ -141,7 +145,8 @@ into the user's directory.**
 | tape `speed`, `frq.mul` (turbo) | profile | global preference |
 | tape `autoplay`, `fast`, `rewind` | global | global |
 | `psg.count`, `psg.type` | profile | **machine** |
-| `psg.frq`, `psg.stereo`, `psg.separation` | profile | global preference (decision 6) |
+| `psg.frq`, `psg.stereo` | profile | **machine** (decision 6, as revised) |
+| `psg.separation` | profile | global preference |
 | sound volumes | global | global |
 | video `border`, `shader`, `scale` | global | global |
 | `geometry`, `contPattern`, `earlyTiming`, `4t-border` | profile | **machine** |

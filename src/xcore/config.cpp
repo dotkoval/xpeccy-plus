@@ -176,8 +176,8 @@ void saveConfig() {
 	fprintf(cfile, "volume.sdrv = %i\n", conf.snd.vol.sdrv);
 	fprintf(cfile, "volume.saa = %i\n", conf.snd.vol.saa);
 
-	fprintf(cfile, "psg.frq = %f\n", conf.zx->ts->chipA->frq);
-	fprintf(cfile, "psg.stereo = %i\n", conf.zx->ts->chipA->stereo);
+	// psg.frq and psg.stereo belong to the machine now and are not written here
+	// any more; an older config still sets them, the once
 	fprintf(cfile, "psg.separation = %i\n", conf.zx->ts->chipA->sep);
 	fprintf(cfile, "gs.reset = %s\n", YESNO(conf.zx->gs->reset));
 	fprintf(cfile, "gs.stereo = %i\n", conf.zx->gs->stereo);
@@ -848,7 +848,9 @@ void loadConfig() {
 					if (pnam=="volume.gs") conf.snd.vol.gs = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.sdrv") conf.snd.vol.sdrv = getRanged(arg.s, 0, 100);
 					if (pnam=="volume.saa") conf.snd.vol.saa = getRanged(arg.s, 0, 100);
-					if ((pnam=="psg.frq") || (pnam=="psg.stereo") || (pnam=="psg.separation")
+					// psg.frq and psg.stereo are read no more: an old global value
+					// would land on whatever machine is up and stay there as its own
+					if ((pnam=="psg.separation")
 						|| (pnam=="gs.reset") || (pnam=="gs.stereo")) xm_defer(pnam, pval);
 					break;
 				case SECT_TOOLS:

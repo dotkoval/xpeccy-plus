@@ -60,17 +60,21 @@ RAM is what the core's `mask` field allows; the bold size is what the shipped pr
 | machine | RAM | disk | HDD | sound | mouse |
 |---|---|---|---|---|---|
 | ZX Spectrum 48K | 16K, **64K** | none | none | beeper | no |
-| ZX Spectrum 128K / +2 | **128K** | none | none | 1 AY | no |
-| ZX Spectrum +2A | **128K** | none | none | 1 AY | no |
-| ZX Spectrum +3 | **128K** | uPD765 | none | 1 AY | no |
-| Pentagon | **128K**, 512K | Beta Disk | none | 1 YM + Covox | yes |
-| Pentagon 1024 SL | **1M** | Beta Disk | none | 1 YM + Covox | yes |
-| ZS Scorpion 256 | **256K**, 1M | Beta Disk | SMUC | 1 YM + Covox | yes |
-| Profi | 512K, **1M** | Beta Disk | Profi | 1 YM + Covox | yes |
-| ATM Turbo 2+ | 128K, 256K, 512K, **1M** | Beta Disk | ATM | 1 YM + Covox | yes |
-| ZXM-Phoenix | **2M** | Beta Disk | none | 1 YM + Covox | yes |
-| ZX Evolution (BaseConf) | **4M** | Beta Disk | NemoIDE | 2 YM (TurboSound) + Covox | yes |
-| ZX Evolution (TSConf) | **4M** | Beta Disk | NemoIDE | 2 YM (TurboSound) + Covox | yes |
+| ZX Spectrum 128K / +2 | **128K** | none | none | 1 AY 1.773, mono | no |
+| ZX Spectrum +2A | **128K** | none | none | 1 AY 1.773, mono | no |
+| ZX Spectrum +3 | **128K** | uPD765 | none | 1 AY 1.773, mono | no |
+| Pentagon | **128K**, 512K | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| Pentagon 1024 SL | **1M** | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| ZS Scorpion 256 | **256K**, 1M | Beta Disk | SMUC | 1 YM 1.75, BAC + Covox | yes |
+| Profi | 512K, **1M** | Beta Disk | Profi | 1 YM 1.75, ACB + Covox | yes |
+| ATM Turbo 2+ | 128K, 256K, 512K, **1M** | Beta Disk | ATM | 1 YM 1.75, ABC + Covox | yes |
+| ZXM-Phoenix | **2M** | Beta Disk | none | 1 YM 1.75, ABC + Covox | yes |
+| ZX Evolution (BaseConf) | **4M** | Beta Disk | NemoIDE | 2 YM 1.75, ABC (TurboSound) + Covox | yes |
+| ZX Evolution (TSConf) | **4M** | Beta Disk | NemoIDE | 2 YM 1.75, ABC (TurboSound) + Covox | yes |
+
+The sound column gives the chip, its clock in MHz and the channel order. Both belong to the
+machine: decision 6 of the plan made them a global preference, which meant the clock no
+longer followed the machine, and that was reversed on 2026-09-12.
 
 This table is what the definitions in `res/machines/` are generated from, so a row that is
 wrong silently becomes a machine that is wrong: the HDD column said "none" everywhere and
