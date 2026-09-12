@@ -67,6 +67,7 @@ void memSetSize(Memory*, int, int);
 // a 128K mask (see the hand-set ramMask in profiles.cpp), so its screen bank
 // alone sits past ramSize.
 size_t mem_ram_extent(Memory*);
+void mem_cold_fill(Memory*, const unsigned char*, int);
 void memSetBank(Memory* mem, int page, int type, int bank, int siz, extmrd rd, extmwr wr, void* data);
 
 void memPutData(Memory*,int,int,int,char*);

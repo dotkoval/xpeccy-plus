@@ -2,12 +2,15 @@
 # Called from CMakeLists.txt as:
 #	cmake -DIN_FILE=... -DOUT_FILE=... -DXVERSION_BASE=... -DXRELEASE=... -P genversion.cmake
 
+string(TIMESTAMP XBUILD_YMD "%Y%m%d")
 if (XRELEASE)
 	set(XBUILD_DATE "")
 	set(XVERSION "${XVERSION_BASE}")
+	set(XRELEASE_BUILD 1)
 else()
-	string(TIMESTAMP XBUILD_DATE "%Y%m%d")
+	set(XBUILD_DATE "${XBUILD_YMD}")
 	set(XVERSION "${XVERSION_BASE}-dev+${XBUILD_DATE}")
+	set(XRELEASE_BUILD 0)
 endif()
 
 # write to a temp file and copy it only if the content changed: the date changes

@@ -191,7 +191,6 @@ void saveConfig() {
 	fm_save(cfile);
 
 	fprintf(cfile, "\n[INPUT]\n\n");
-	fprintf(cfile, "mouse.wheel = %s\n", YESNO(conf.zx->mouse->hasWheel));
 	fprintf(cfile, "mouse.swapButtons = %s\n", YESNO(conf.zx->mouse->swapButtons));
 	fprintf(cfile, "mouse.sensitivity = %f\n", conf.zx->mouse->sensitivity);
 	fprintf(cfile, "mouse.pctype = %i\n", conf.zx->mouse->pcmode);
@@ -548,6 +547,8 @@ void loadConfig() {
 	xm_over_clear();
 	if (!conf.zx) {
 		conf.zx = compCreate();
+		// what the machine says it is when software asks (ZX Evo does)
+		comp_set_identity(conf.zx, XPRODUCT, XBUILD_YMD, XRELEASE_BUILD);
 		compSetHardware(conf.zx, "Dummy");
 	}
 	conf.bookmarkList.clear();
@@ -718,8 +719,8 @@ void loadConfig() {
 					if (pnam=="keymap") conf.kmapName = pval;
 					if (pnam=="gamepad.map") conf.jmapNameA = pval;
 					if (pnam=="gamepad2.map") conf.jmapNameB = pval;
-					// kbd.scantab belongs to the machine now and is not written here
-					// any more; an older config still sets it, the once
+					// kbd.scantab and mouse.wheel belong to the machine now and are
+					// not written here any more; an older config still sets them, once
 					if ((pnam=="mouse.wheel") || (pnam=="mouse.swapButtons") || (pnam=="mouse.sensitivity")
 						|| (pnam=="mouse.pctype") || (pnam=="frq.mul") || (pnam=="kbd.scantab"))
 						xm_defer(pnam, pval);

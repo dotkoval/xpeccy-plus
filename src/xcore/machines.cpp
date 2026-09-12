@@ -1,5 +1,4 @@
 #include <ctype.h>
-#include <time.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -489,12 +488,13 @@ static void mac_load_rom(Computer* comp, const QList<xRomFile>& roms, const std:
 			memset((char*)comp->gs->mem->romData, 0xff, MEM_32K);
 		}
 	}
-	if (!withfnt) {				// leave the font the machine put there
-	} else if (fntf.empty()) {
-		vid_fnt_del(comp->vid);
-	} else {
-		fpath = xm_rom_path(fntf);
-		vid_fnt_load(comp->vid, fpath.c_str());
+	if (withfnt) {				// else leave the font the machine put there
+		if (fntf.empty()) {
+			vid_fnt_del(comp->vid);
+		} else {
+			fpath = xm_rom_path(fntf);
+			vid_fnt_load(comp->vid, fpath.c_str());
+		}
 	}
 }
 
@@ -668,21 +668,9 @@ xMachine xm_with_over(const xMachine& def) {
 // Written when the machine is set up, not on reset - a reset does not clear the
 // ram of real hardware either.
 static void mac_cold_ram(Computer* comp, const std::string& pat) {
-	unsigned char byte[16];
-	unsigned int seed = (unsigned int)time(NULL) | 1;
-	int n = 0;
-	if (pat.empty()) return;
-	for (size_t i = 0; (i + 1 < pat.size()) && (n < (int)sizeof(byte)); i += 2)
-		byte[n++] = (unsigned char)strtol(pat.substr(i, 2).c_str(), NULL, 16);
-	if (n < 1) return;
-	for (size_t i = 0; i < sizeof(comp->mem->ramData); i++) {
-		seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
-		// the pattern is not clean: a byte here and there comes up with
-		// something else in it, and a different set of them every time. On a
-		// real machine's screen that is ten to twenty specks in 6912 bytes,
-		// which is about one byte in five hundred.
-		comp->mem->ramData[i] = ((seed & 0x1ff) == 0) ? (unsigned char)(seed >> 9) : byte[i % n];
-	}
+	QByteArray bytes = QByteArray::fromHex(QByteArray(pat.c_str()));
+	if (bytes.isEmpty()) return;
+	mem_cold_fill(comp->mem, (const unsigned char*)bytes.constData(), bytes.size());
 }
 
 static void mac_from_def(const xMachine* mac) {

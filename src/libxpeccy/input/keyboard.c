@@ -661,14 +661,13 @@ int kbd_ibm_rd(Keyboard* kbd, int adr) {
 // (PS2KEYBOARD_CMD_AUTOREPEAT in the avr's ps2.c), so that machine's keyboard
 // runs at the fastest setting there is.
 void kbd_set_repeat(Keyboard* kbd, int par) {
-	kbd->kdel = ((par >> 5) & 3) * 2.5e8 + 2.5e8;
-	kbd->kper = (33 + 7 * (par & 0x1f)) * 1e6;
+	kbd->kdel = (((par >> 5) & 3) + 1) * 250e6;	// 1st delay: 250, 500, 750, 1000 ms
+	kbd->kper = (33 + 7 * (par & 0x1f)) * 1e6;	// repeat period: 33 to 250 ms
 }
 
 void kbd_reset(Keyboard* kbd) {
 	kbd->com = -1;
-	kbd->kdel = 5e8;		// ps/2 power-on default: 500 ms, then 10.9 a second
-	kbd->kper = 9.2e7;
+	kbd_set_repeat(kbd, 0x2b);	// ps/2 power-on default until a host says otherwise
 	if (kbd->core) {
 		if (kbd->core->reset) {
 			kbd->core->reset(kbd);
@@ -801,21 +800,18 @@ unsigned long xt_get_code(Keyboard* kbd, keyEntry* kent, int rel) {
 	return res;
 }
 
-void xt_sync(Keyboard* kbd, int ns) {
-	if (kbd->per == 0) return;
+// the held key is due to repeat, and the clock starts again for the next one
+static int xt_rpt_due(Keyboard* kbd, int ns) {
+	if (kbd->per == 0) return 0;
 	kbd->per -= ns;
-	if (kbd->per > 0) return;
-#if 1
-//	kbdRelease(kbd, &kbd->kent);
-	kbd_press(kbd, &kbd->kent);
-#else
-//	unsigned long relcode = xt_get_code(kbd, kbd->kent, 1);	// release
-	unsigned long prscode = xt_get_code(kbd, kbd->kent, 0); // press
-//	kbd->outbuf = add_msb(kbd->outbuf, relcode);
-	kbd->outbuf = add_msb(kbd->outbuf, prscode);
-#endif
+	if (kbd->per > 0) return 0;
 	kbd->per = kbd->kper;
-//	return 1;
+	return 1;
+}
+
+void xt_sync(Keyboard* kbd, int ns) {
+	if (xt_rpt_due(kbd, ns))
+		kbd_press(kbd, &kbd->kent);
 }
 
 // A machine with a ps/2 keyboard beside its own matrix - ZX Evo - gets the
@@ -824,10 +820,7 @@ void xt_sync(Keyboard* kbd, int ns) {
 // is queued while the machine has not read what is already there, so a program
 // that stops reading does not come back to a burst.
 void xt_rpt_sync(Keyboard* kbd, int ns) {
-	if (kbd->per == 0) return;
-	kbd->per -= ns;
-	if (kbd->per > 0) return;
-	kbd->per = kbd->kper;
+	if (!xt_rpt_due(kbd, ns)) return;
 	if (kbd->lock || kbd->outbuf) return;
 	kbd->outbuf = add_msb(kbd->outbuf, xt_get_code(kbd, &kbd->kent, 0));
 }
@@ -946,7 +939,7 @@ void kbd_sync(Keyboard* kbd, int ns) {
 
 // id,flag,cbReset,cbRead,cbWrite,cbPress,cbRelease,cbSync
 xKbdCore kbdTypeTab[] = {
-	{KBD_SPECTRUM, KF_AUTORPT, NULL, kbdScanZX, NULL, kbd_zx_press, kbd_zx_release, xt_rpt_sync},
+	{KBD_SPECTRUM, 0, NULL, kbdScanZX, NULL, kbd_zx_press, kbd_zx_release, xt_rpt_sync},
 	{KBD_PROFI, 0, NULL, kbdScanProfi, NULL, kbd_prf_press, kbd_prf_release, NULL},
 	{KBD_ATM2_CODE, 0, NULL, kbd_atm2code_rd, NULL, kbd_atm2code_press, kbd_atm2code_release, NULL},
 	{KBD_ATM2_CPM, 0, NULL, kbd_atm2cpm_rd, NULL, kbd_atm2code_press, kbd_atm2code_release, NULL},

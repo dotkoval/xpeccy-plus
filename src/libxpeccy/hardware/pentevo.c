@@ -211,7 +211,6 @@ int memflag_collect(Computer* comp, int mask) {
 
 int evoInCfg(Computer* comp, int port) {
 	int res = -1;
-	int i;
 	if ((port & 0xf800) == 0x0000) {
 		res = comp->memPage((port >> 8) & 7); // comp->memMap[(port & 0x0700) >> 8].page;
 	} else {
@@ -230,11 +229,8 @@ int evoInCfg(Computer* comp, int port) {
 			case 0x1100: res = comp->xregBRKA.h; break;
 			case 0x1200: res = memflag_collect(comp, 0x20); break;	// write protect
 			// new one:
-			case 0x1300: res = 0;
-				for (i = 0; i < 4; i++) {
-					if (comp->dif->flp[i]->virt)
-						res |= (1 << i);
-				}
+			case 0x1300: res = comp->dif->flp[0]->virt | (comp->dif->flp[1]->virt << 1)
+					| (comp->dif->flp[2]->virt << 2) | (comp->dif->flp[3]->virt << 3);
 				break;
 			case 0x1400:
 				break;
@@ -625,19 +621,25 @@ void evo_keyr(Computer* comp, keyEntry* ent) {
 // next frame interrupt, instead of it. The hardware trap does not wait - it
 // calls evo_nmi() from the fetch it caught.
 void evo_irq(Computer* comp, int t) {
-	if (t == IRQ_NMI) {			// armed, waiting for the frame int
-		comp->flgNMIR = 1;
-		return;
-	}
-	if ((t == IRQ_VID_INT) && comp->flgNMIR) {
-		comp->flgNMIR = 0;
+	switch (t) {
+		case IRQ_NMI:				// armed, waiting for the frame int
+			comp->flgNMIR = 1;
+			break;
+		case IRQ_VID_INT:
+			if (!comp->flgNMIR) {
+				zx_irq(comp, t);
+				break;
+			}
+			comp->flgNMIR = 0;		// the NMI comes instead of the frame int
 #if HAVEZLIB
-		if (!comp->rzx.play)
+			if (!comp->rzx.play)
 #endif
-			evo_nmi(comp);
-		return;
+				evo_nmi(comp);
+			break;
+		default:
+			zx_irq(comp, t);
+			break;
 	}
-	zx_irq(comp, t);
 }
 
 xPortDsc evo_port_tab[] = {
