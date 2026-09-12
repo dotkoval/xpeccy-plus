@@ -23,6 +23,11 @@ before that point is upstream's history and is not repeated here.
 - **Both ZX Evo machines come with the Kempston mouse and the five-button Kempston
   joystick switched on**, which is what the current BaseConf has.
 
+- **ZX Evo says it is Xpeccy+.** Asked which FPGA and bootloader it has, the machine used
+  to name a NedoPC build from 2012 while behaving like a much later one. It now gives its
+  own name and build date, which is what the service ROM prints on the start screen. It
+  also answers the question about the machine flags, which used to read as rubbish.
+
 ### Added
 
 - **The Magic button works on ZX Evo.** NMI now reaches the machine, so the EVO Magic
