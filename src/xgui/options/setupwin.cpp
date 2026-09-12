@@ -413,6 +413,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	spaceLedIcon(ui.cbMessage);
 
 	rseditor = new xRomsetEditor(this);
+	rseditor->setModal(true);
 	rsmodel = new xRomsetModel();
 	ui.tvRomset->setModel(rsmodel);
 
@@ -465,6 +466,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	//fill_palette_list(ui.cbPalPreset);
 	fillComboBox(ui.cbPalPreset, "palettes", QStringList() << "*.txt" << "*.pal", "default", conf.palette.c_str());
 	paleditor = new xPalEditor(this);
+	paleditor->setModal(true);
 	ui.cbNoflicMode->addItem("2-frames (fullscreen)", AF_2C_FULL);
 	ui.cbNoflicMode->addItem("2-frames (adaptive)", AF_2C_ADAPTIVE);
 	ui.cbNoflicMode->addItem("3-frames (fullscreen)", AF_3C_FULL);
@@ -1499,9 +1501,12 @@ void SetupWin::layEditorOK() {
 // A box taken out of the page, in a window with one button to put it away.
 // The button wears the cross the main dialog's Cancel wears, so the three
 // windows read as one family.
+//
+// Modal, so the page it came from cannot be closed out from under it.
 
 QDialog* SetupWin::popOut(QWidget* box, const char* title) {
 	QDialog* win = new QDialog(this);
+	win->setModal(true);
 	win->setWindowTitle(title);
 	QVBoxLayout* lay = new QVBoxLayout(win);
 	lay->addWidget(box);
