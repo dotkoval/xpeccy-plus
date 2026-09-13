@@ -101,7 +101,20 @@ int memrd(int adr, int m1, void* ptr) {
 		comp->brkt = ch.t;
 		comp->brka = ch.a;
 	}
-	int res = comp->hw->mrd(comp,adr,m1);
+	// the ULA took a refresh cycle from under this one and this machine's ram
+	// cannot take that (see zx_snow): the ram is left addressed the way the ULA
+	// left it, so an opcode fetched from a slow bank comes back from the wrong
+	// place - bits 6-0 out of R, exactly as the snow itself reads. Only the
+	// fetch is spoiled, and only in a slow bank: code running anywhere else is
+	// untouched, which is why a game that loads into the upper banks survives.
+	int radr = adr;
+	if (comp->snowBad) {
+		int low = comp->snowBad & 0x7f;
+		comp->snowBad = 0;
+		if (m1 && (zx_bank_of(comp, adr) & 1))
+			radr = (adr & ~0x7f) | low;
+	}
+	int res = comp->hw->mrd(comp,radr,m1);
 	// instruction bytes are not a data read, don't latch them as RD
 	if (comp->flgCOND && !isExecByte) {
 		comp->brkev.rd = adr;
@@ -432,6 +445,11 @@ void comp_irq(int t, void* ptr) {
 			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
 			res4 = comp->cpu->t;
 			break;
+		case IRQ_CPU_RFSH:
+			vid_sync_fixed(comp->vid, ticks_to_ns_fixed(comp, comp->cpu->t - res4));
+			res4 = comp->cpu->t;
+			zx_snow(comp);
+			return;			// not a machine's business
 	}
 	if (comp->hw->irq) comp->hw->irq(comp, t);
 }
@@ -670,6 +688,7 @@ void compReset(Computer* comp,int res) {
 	comp->cpu->ss.base = 0;
 	comp->cpu->cs.limit = 0xffff;
 	cpu_reset(comp->cpu);
+	comp_set_snow(comp, comp->flgSNOW);	// the cpu may have been swapped since
 	comp_heat_sync(comp);		// ram/rom size may have changed with hardware/romset
 }
 
@@ -721,6 +740,14 @@ void comp_set_layout(Computer* comp, vLayout* lay) {
 	if (comp->hw->lay)
 		lay = comp->hw->lay;
 	vid_set_layout(comp->vid, lay);
+}
+
+// The snow effect costs a video sync on every opcode fetch, so the cpu only
+// reports the refresh cycle while a machine actually wants it.
+void comp_set_snow(Computer* comp, int on) {
+	comp->flgSNOW = on ? 1 : 0;
+	if (comp->cpu)
+		comp->cpu->flgRFSH = comp->flgSNOW;
 }
 
 void comp_kbd_release(Computer* comp) {

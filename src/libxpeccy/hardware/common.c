@@ -83,6 +83,39 @@ void zx_contend(Computer* comp, int mreq) {
 	res4 = comp->cpu->t;
 }
 
+// The cpu is at T4 of an opcode fetch, with the refresh address on the bus.
+// It disturbs the ULA only if that address lands in the memory the ULA is
+// reading from - #4000..#7FFF on a 48K, plus an odd bank paged in at #C000 on
+// a 128K - which is the same "contended page" test the wait states use.
+//
+// Which bank the disturbed burst then reads is not simply the screen's: bit 2
+// of it comes from the bank the refresh address is in, bit 1 from the screen
+// the ULA is showing, and it is always an odd bank. So a 128K with I in bank 1
+// or 3 snows with bytes out of bank 1 (screen 0) or bank 3 (screen 1). Table
+// measured by Spectramine, hype.retroscene.org/blog/1089.html. What the burst
+// does with them is vid_snow's half.
+// The 16K bank an address sits in, 0 if it is not ram. The odd ones are the
+// slow banks the ULA shares with the cpu.
+int zx_bank_of(Computer* comp, int adr) {
+	MemPage* pg = mem_get_page(comp->mem, adr);
+	return (pg->type == MEM_RAM) ? ((pg->num << comp->mem->pgshift) >> 14) : 0;
+}
+
+void zx_snow(Computer* comp) {
+	int bank = zx_bank_of(comp, comp->cpu->regI << 8);
+	if (!(bank & 1)) return;		// not a contended bank
+	if (!vid_snow(comp->vid, z80_get_r(comp->cpu),
+			(bank & 4) | (comp->vid->vidPage & 2) | 1)) return;
+	// Some 128K machines hang or reset under snow and others take it without a
+	// murmur. Nobody has published the mechanism; what SpecEmu says about its
+	// own switch is that such a machine goes unstable while it runs code out of
+	// the slow memory, so that is the shape this takes - the cycle the ULA took
+	// over leaves the ram addressed the way the ULA left it, and the next
+	// opcode fetched from a slow bank comes back from the wrong place. memrd()
+	// is the other half; it wants the same address bits the snow used.
+	if (comp->flgSNOWX) comp->snowBad = 0x80 | (z80_get_r(comp->cpu) & 0x7f);
+}
+
 void zx_irq(Computer* comp, int t) {
 	switch(t) {
 		case IRQ_VID_INT:			// frame int start

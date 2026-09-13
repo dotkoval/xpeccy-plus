@@ -439,6 +439,8 @@ typedef struct {
 	int contPattern;
 	unsigned early:1;
 	unsigned brd4t:1;
+	unsigned snow:1;		// the ULA snow effect
+	unsigned snowcrash:1;		// ...and ram that cannot take it
 	int psgCount;
 	int psgType;			// SND_*
 	double psgFrq;			// MHz, 0 = the chip type's own clock

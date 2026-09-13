@@ -609,6 +609,7 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.sldPsgSep,SIGNAL(valueChanged(int)),this,SLOT(chapsg()));
 	connect(ui.sldSndLatency,SIGNAL(valueChanged(int)),this,SLOT(chasndlat()));
 	connect(ui.cbPsgCount,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
+	connect(ui.cbSnow,SIGNAL(toggled(bool)),this,SLOT(chasnow()));
 	connect(ui.cbPsgStereo,SIGNAL(currentIndexChanged(int)),this,SLOT(chapsg()));
 
 	connect(ui.layEdit,SIGNAL(released()),this,SLOT(edLayout()));
@@ -878,6 +879,9 @@ void SetupWin::start() {
 	ui.contIO->setChecked(comp->flgCNTI);
 	setRFIndex(ui.cbContPattern, comp->vid->ula->conttype);
 	ui.cbEarlyTiming->setChecked(comp->vid->ula->early);
+	ui.cbSnow->setChecked(comp->flgSNOW);
+	ui.cbSnowCrash->setChecked(comp->flgSNOWX);
+	chasnow();
 	// the border sizes are a ZX thing: everything else keeps its layout's own
 	// visible area, and the slider would say nothing true about it
 	ui.bszsld->setEnabled(comp->hw->grp == HWG_ZX);
@@ -1123,6 +1127,8 @@ void SetupWin::apply() {
 	comp->flgCNTI = ui.contIO->isChecked() ? 1 : 0;
 	comp->vid->ula->conttype = getRFIData(ui.cbContPattern);
 	comp->vid->ula->early = ui.cbEarlyTiming->isChecked();
+	comp_set_snow(comp, ui.cbSnow->isChecked() ? 1 : 0);
+	comp->flgSNOWX = ui.cbSnowCrash->isChecked() ? 1 : 0;
 	// The ula type also picks the screen drawer. The reset above ran before this
 	// line and saw the old type, so it has to be redone here - but only while a
 	// plain zx screen is up: a machine sitting in one of its own modes keeps it
@@ -2169,6 +2175,15 @@ void SetupWin::chapsg() {
 	ui.cbPsgStereo->setEnabled(chips > 0);
 	ui.sldPsgSep->setEnabled(split);
 	ui.labPsgSep->setEnabled(split);
+}
+
+// the crash is a property of the snow, not a setting of its own: it says nothing
+// while the snow is off, so it greys out with it and keeps what it was set to
+void SetupWin::chasnow() {
+	bool on = ui.cbSnow->isChecked();
+	ui.cbSnowCrash->setEnabled(on);
+	ui.nam_cbSnowCrash->setEnabled(on);
+	ui.lab_cbSnowCrash->setEnabled(on);
 }
 
 void SetupWin::chasndlat() {

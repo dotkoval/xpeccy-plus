@@ -87,6 +87,8 @@ typedef struct {
 #define flgBDI	sysflag[15]
 #define flgHEAT	sysflag[16]		// collect memory read/write/exec usage stats
 #define flgCOND	sysflag[17]		// breakpoint conditions in use: latch mem/io events
+#define flgSNOW	sysflag[18]		// ULA snow effect (zx)
+#define flgSNOWX sysflag[19]		// ...and this machine's ram cannot take it
 
 #define PWATCH_MAX	16		// ports the debugger can watch at once
 
@@ -128,6 +130,9 @@ typedef struct Computer {
 
 	char* msg;		// message ptr for displaying outside
 	int resbank;		// rompart active after reset
+
+	int snowBad;		// the ULA took a refresh cycle: the next opcode out of
+				// slow memory comes back wrong (flgSNOWX)
 
 	int frmCount;		// frames since reset (for breakpoint conditions)
 	int tickCount;		// accumulate T
@@ -276,6 +281,7 @@ void compSetTurbo(Computer*,double);
 void compSetHwTurbo(Computer*,double);
 int compSetHardware(Computer*,const char*);
 void comp_set_layout(Computer*, vLayout*);
+void comp_set_snow(Computer*, int);
 
 // read-write cmos
 unsigned char cmsRd(Computer*);

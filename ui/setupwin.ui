@@ -1005,28 +1005,80 @@ none for the clones</string>
                  </property>
                 </widget>
                </item>
-               <item row="6" column="0" colspan="3">
-                <widget class="Line" name="advline_1">
-                 <property name="orientation">
-                  <enum>Qt::Horizontal</enum>
+               <item row="6" column="0">
+                <widget class="QCheckBox" name="cbSnow">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="1">
+                <widget class="QLabel" name="nam_cbSnow">
+                 <property name="text">
+                  <string>ULA snow...</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="6" column="2">
+                <widget class="QLabel" name="lab_cbSnow">
+                 <property name="font">
+                  <font>
+                   <italic>true</italic>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Rubbish when the interrupt vector points at a screen bank</string>
                  </property>
                 </widget>
                </item>
                <item row="7" column="0">
-                <widget class="QCheckBox" name="ulaPlus">
+                <widget class="QCheckBox" name="cbSnowCrash">
                  <property name="text">
                   <string/>
                  </property>
                 </widget>
                </item>
                <item row="7" column="1">
+                <widget class="QLabel" name="nam_cbSnowCrash">
+                 <property name="text">
+                  <string>...and it crashes</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="7" column="2">
+                <widget class="QLabel" name="lab_cbSnowCrash">
+                 <property name="font">
+                  <font>
+                   <italic>true</italic>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>This machine's RAM gives up under it: hangs or resets</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="8" column="0" colspan="3">
+                <widget class="Line" name="advline_1">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="0">
+                <widget class="QCheckBox" name="ulaPlus">
+                 <property name="text">
+                  <string/>
+                 </property>
+                </widget>
+               </item>
+               <item row="9" column="1">
                 <widget class="QLabel" name="nam_ulaPlus">
                  <property name="text">
                   <string>ULA plus</string>
                  </property>
                 </widget>
                </item>
-               <item row="7" column="2">
+               <item row="9" column="2">
                 <widget class="QLabel" name="lab_ulaPlus">
                  <property name="font">
                   <font>
@@ -1038,21 +1090,21 @@ none for the clones</string>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="0">
+               <item row="10" column="0">
                 <widget class="QCheckBox" name="scrpwait">
                  <property name="text">
                   <string/>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="1">
+               <item row="10" column="1">
                 <widget class="QLabel" name="nam_scrpwait">
                  <property name="text">
                   <string>Even M1</string>
                  </property>
                 </widget>
                </item>
-               <item row="8" column="2">
+               <item row="10" column="2">
                 <widget class="QLabel" name="lab_scrpwait">
                  <property name="font">
                   <font>
@@ -1064,21 +1116,21 @@ none for the clones</string>
                  </property>
                 </widget>
                </item>
-               <item row="9" column="0">
+               <item row="11" column="0">
                 <widget class="QCheckBox" name="cbDDp">
                  <property name="text">
                   <string/>
                  </property>
                 </widget>
                </item>
-               <item row="9" column="1">
+               <item row="11" column="1">
                 <widget class="QLabel" name="nam_cbDDp">
                  <property name="text">
                   <string>DD palette</string>
                  </property>
                 </widget>
                </item>
-               <item row="9" column="2">
+               <item row="11" column="2">
                 <widget class="QLabel" name="lab_cbDDp">
                  <property name="font">
                   <font>

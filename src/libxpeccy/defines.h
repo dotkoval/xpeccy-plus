@@ -57,6 +57,7 @@ enum {
 	IRQ_CPU_CONTNM,	// same, for an internal cycle that only holds an address
 	IRQ_CPU_HALT,	// enter halt cycle
 	IRQ_CPU_ACK,	// = sync + set flgACK if interrupt (Z80)
+	IRQ_CPU_RFSH,	// = sync + the refresh address is on the bus (Z80 M1 T4)
 	IRQ_FDC,	// ibm, pc98
 	IRQ_FDC_RD,
 	IRQ_FDC_WR,

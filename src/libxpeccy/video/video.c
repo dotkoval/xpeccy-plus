@@ -98,6 +98,7 @@ Video* vidCreate(cbxrd cb, cbirq ci, void* dptr) {
 	vid->xirq = ci;
 	vid->xptr = dptr;
 	vid_set_dot_ns(vid, 150);
+	vid->snowLow = -1;
 	vid->res.x = -1;
 	vid->res.y = -1;
 	vid_set_mode(vid, VID_UNKNOWN);
@@ -514,6 +515,68 @@ int vid_wait_dots(Video* vid, int adr, int mreq, int dotofs) {
 	return contTab[xscr & 0x0f];			// wait length in dots
 }
 
+// ULA snow. At T4 of an opcode fetch the Z80 puts the refresh address on the
+// bus with MREQ, and on a machine with the original ULA that lands inside the
+// ULA's own memory cycle. The ULA reads a 16-pixel group as two bursts - one
+// column address, then a row address per byte - and what the refresh does to
+// it depends on which of the group's eight ticks T4 falls on:
+//
+//   3rd tick: bits 6-0 of the first burst's address come from R instead, for
+//     the pixel byte and its attribute alike, so both are read from wherever R
+//     points - that is the snow.
+//   5th tick: the column address of the first burst is held over the second,
+//     which therefore never happens, and the right half of the group repeats
+//     the left one.
+//
+// Everything else leaves the ULA alone, so snow shows up on odd columns only
+// and the doubles on even ones. Measured on real machines by Spectramine,
+// zx-pk.ru thread 34737; the hardware side is TheMartian's reading of the RAS
+// and CAS lines there, and zxdesign.info/dynamicRam.shtml for why it is bits
+// 6-0 - they are the row address of the 4116s, and the row is what fails to
+// latch.
+//
+// Those two ticks are also the wait table's entries worth 8 dots and 4, which
+// is why the phases take the same anchor as the wait states and sit two ticks
+// apart, the distance between the ULA's own two bursts.
+//
+// The count has to be in ticks and not dots: where a cpu tick falls against
+// the dot grid is not fixed - the layout can put it on an odd dot - and a
+// phase written as a single dot then never matches at all, which looks exactly
+// like the effect not being implemented. A tick out is just as bad, only
+// louder: code running on a 4T beat puts every one of its refresh cycles on
+// two of the eight phases, so it either snows on almost every character or not
+// at all. Measured against SpecEmu, counting spoiled character cells: snow128+
+// gives 561 snowed cells here against its 591, and Robocop 3's main menu 24
+// against 27. A tick earlier the same two come out 1049 and 25 - which is why
+// one test alone does not settle this.
+#define ULA_SNOW_PH	2
+#define ULA_DUP_PH	4
+
+// Where a byte of the first burst comes from: its own place, or - once the
+// refresh cycle has taken the burst over - the same bank and row the snow put
+// it in. Both bytes of the burst share it, as they share one row address.
+static int ula_burst_adr(Video* vid, int adr) {
+	if (vid->snowLow < 0) return MADR(vid->vidPage, adr);
+	return MADR(vid->snowBank, (adr & ~0x7f) | vid->snowLow);
+}
+
+// Returns 1 if the ULA's memory cycle was taken over, which is also the
+// refresh cycle the ram did not get.
+int vid_snow(Video* vid, int r, int bank) {
+	if (vid->ula->conttype != CONT_PATA) return 0;	// the Ferranti ULA and nothing else
+	if (vid->vbrd) return 0;
+	switch (((vid->ray.x - vid->bord.x + (vid->ula->early ? 10 : 8)) & 15) >> 1) {
+		case ULA_SNOW_PH:
+			vid->snowLow = r & 0x7f;
+			vid->snowBank = bank;
+			return 1;
+		case ULA_DUP_PH:
+			vid->snowDup = 1;
+			return 1;
+	}
+	return 0;
+}
+
 void vid_set_grey(int f) {
 	greyScale = f;
 }
@@ -636,24 +699,32 @@ void ula_dot(Video* vid) {
 	} else {
 		xscr = vid->ray.x - vid->bord.x;
 		yscr = vid->ray.y - vid->bord.y;
+		// dots 12/14 and 0/1 are the ULA's two bursts; vid_snow says whether a
+		// cpu refresh cycle caught one of them
 		switch(xscr & 15) {
 			case 12:
 				adr = (vid->idx & 0x181f) | ((vid->idx & 0x700) >> 3) | ((vid->idx & 0xe0) << 3);
-				nxtbyte = vid->mrd(MADR(vid->vidPage, adr), vid->xptr);
+				nxtbyte = vid->mrd(ula_burst_adr(vid, adr), vid->xptr);
 				break;		// 4dots before each even box: box pix
 			case 14:
 				adr = 0x1800 | ((vid->idx & 0x1f00) >> 3) | (vid->idx & 0x1f);
-				nxtatr = vid->mrd(MADR(vid->vidPage, adr), vid->xptr);
+				nxtatr = vid->mrd(ula_burst_adr(vid, adr), vid->xptr);
+				vid->snowLow = -1;	// the burst is over, and with it the address it was given
 				break;		// 2dots before each even box: box atr
 			case 0:
 				scrbyte = nxtbyte;
 				vid->atrbyte = nxtatr;
+				if (vid->snowDup) break;	// burst lost: nxtbyte/nxtatr stay as they are
 				vid->idx++;		// lame (idx is still not updated, but we need address of next box)
 				adr = (vid->idx & 0x181f) | ((vid->idx & 0x700) >> 3) | ((vid->idx & 0xe0) << 3);
 				nxtbyte = vid->mrd(MADR(vid->vidPage, adr), vid->xptr);
 				vid->idx--;
 				break;		// start of even box: next (odd) box pix
 			case 1:
+				if (vid->snowDup) {
+					vid->snowDup = 0;
+					break;
+				}
 				adr = 0x1800 | ((vid->idx & 0x1f00) >> 3) | (vid->idx & 0x1f);
 				nxtatr = vid->mrd(MADR(vid->vidPage, adr), vid->xptr);
 				break;		// 2nd dot of even box: next (odd) box atr
@@ -1059,6 +1130,8 @@ void vid_tick(Video* vid) {
 		vid_line(vid);					// next row of the image buffer
 		vid->hblank = 0;
 		vid->ray.x = 0;
+		vid->snowLow = -1;				// the ULA stops fetching at the line end
+		vid->snowDup = 0;
 		vid->ray.y++;
 		if (vid->ray.y == vid->vend.y) {		// vblank (@ start of line)
 			vid->vblank = 1;
