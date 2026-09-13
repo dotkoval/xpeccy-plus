@@ -185,6 +185,9 @@ struct Video {
 	int lcnt;
 	unsigned char atrbyte;
 	unsigned char fntbyte;			// font byte the text mode is showing: ZX Evo reads it back
+	int snowLow;				// ULA snow: address bits 6-0 the refresh cycle forced on this burst (-1 = none)
+	int snowBank;				// ULA snow: the bank that burst reads instead of the screen one
+	unsigned snowDup:1;			// ULA snow: this burst is lost, the ULA shows the previous one again
 	size_t frmsz;
 	vRay ray;
 	vCoord full;
@@ -377,6 +380,7 @@ void vid_reset_ray(Video*);
 void vid_set_ray(Video*, int);
 
 int vid_wait_dots(Video*, int, int, int);	// contention wait in dots, not ns
+int vid_snow(Video*, int, int);			// cpu refresh cycle: disturb the ULA if it is fetching now
 void vid_dark_tail(Video*);
 
 void vid_clear_image(void);

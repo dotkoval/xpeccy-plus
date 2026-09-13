@@ -187,6 +187,7 @@ enum {
 #define flgACK	flags[58]		// Z80: acknowledge INT after execution (prevent last-1T INT)
 #define flgLOCK flags[57]		// LR35902: CPU locked
 #define flgRetBRK flags[56]
+#define flgRFSH	flags[55]		// Z80: report M1 T4 (IRQ_CPU_RFSH); the ULA snow effect needs it
 
 #define regCallCnt regs[63].ih
 #define regExcCode regs[63].l		// exception code if flgEXC

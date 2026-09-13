@@ -170,6 +170,7 @@ static const struct {
 	{"contmem", "machine"}, {"scrp.wait", "machine"},
 	{"geometry", "video"}, {"contPattern", "video"}, {"earlyTiming", "video"},
 	{"4t-border", "video"}, {"ULAplus", "video"}, {"DDpal", "video"},
+	{"snow", "video"}, {"snow.crash", "video"},
 	{"psg.count", "sound"}, {"psg.type", "sound"}, {"psg.frq", "sound"},
 	{"psg.stereo", "sound"}, {"gs", "sound"},
 	{"saa", "sound"}, {"soundrive", "sound"},
@@ -202,6 +203,8 @@ static void mac_defaults(xMachine& mac) {
 	mac.contPattern = 0;
 	mac.early = 0;
 	mac.brd4t = 0;
+	mac.snow = 0;
+	mac.snowcrash = 0;
 	mac.ramCold.clear();
 	mac.ramNoise = 0;
 	mac.psgCount = 1;
@@ -252,6 +255,8 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 			else if (nam == "contPattern") mac.contPattern = arg.i;
 			else if (nam == "earlyTiming") mac.early = arg.b;
 			else if (nam == "4t-border") mac.brd4t = arg.b;
+			else if (nam == "snow") mac.snow = arg.b;
+			else if (nam == "snow.crash") mac.snowcrash = arg.b;
 			else if (nam == "ULAplus") mac.ulaplus = arg.b;
 			else if (nam == "DDpal") mac.ddpal = arg.b;
 		} else if (ln.sect == "sound") {
@@ -725,6 +730,8 @@ static void mac_from_def(const xMachine* mac) {
 	comp->vid->ula->early = mac->early;
 	comp->vid->ula->enabled = mac->ulaplus;
 	comp->vid->brdstep = mac->brd4t ? 7 : 1;
+	comp_set_snow(comp, mac->snow);
+	comp->flgSNOWX = mac->snowcrash;
 	mac_set_psg(comp, mac->psgCount, mac->psgType, mac->psgFrq, mac->psgStereo);
 	comp->gs->enable = mac->gs;
 	comp->saa->enabled = mac->saa;
@@ -840,6 +847,8 @@ static void mac_put_all(QStringList& out, const xMachine* mac) {
 	mac_put(out, "contPattern", comp->vid->ula->conttype, mac->contPattern);
 	mac_put_yn(out, "earlyTiming", comp->vid->ula->early, mac->early);
 	mac_put_yn(out, "4t-border", comp->vid->brdstep & 0x06, mac->brd4t);
+	mac_put_yn(out, "snow", comp->flgSNOW, mac->snow);
+	mac_put_yn(out, "snow.crash", comp->flgSNOWX, mac->snowcrash);
 	mac_put_yn(out, "ULAplus", comp->vid->ula->enabled, mac->ulaplus);
 	mac_put_yn(out, "DDpal", comp->flgDDP, mac->ddpal);
 	mac_put(out, "psg.count", mac_psg_count(comp), mac->psgCount);
@@ -1169,6 +1178,8 @@ static void mac_set_old_key(int sect, const std::string& nam, const std::string&
 		case PS_VIDEO:
 			if (nam == "geometry") conf.layName = val;
 			else if (nam == "4t-border") comp->vid->brdstep = arg.b ? 7 : 1;
+			else if (nam == "snow") comp_set_snow(comp, arg.b);
+			else if (nam == "snow.crash") comp->flgSNOWX = arg.b;
 			else if (nam == "ULAplus") comp->vid->ula->enabled = arg.b;
 			else if (nam == "contPattern") comp->vid->ula->conttype = arg.i;
 			else if (nam == "earlyTiming") comp->vid->ula->early = arg.b;

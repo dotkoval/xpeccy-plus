@@ -79,7 +79,6 @@ void z80_wait(CPU* cpu, int adr, int n) {
 
 int z80_fetch(CPU* cpu) {
 	return z80_mrdx(cpu, cpu->regPC++, 1) & 0xff;
-	// TODO: @T4 IR on adr bus + MREQ = ULA snow effect, if video read data at same time
 }
 
 int z80_mrd(CPU* cpu, int adr) {
@@ -188,6 +187,10 @@ int z80_exec(CPU* cpu) {
 			// Anything past that is an internal cycle with IR on the bus -
 			// inc/dec rr, add hl,rr, push, rst, ret cc, ld a,i - and the
 			// ULA contends those one tick at a time.
+			// T4 is also the refresh cycle: IR goes on the bus with MREQ, and
+			// a machine that emulates ULA snow wants to know when
+			if (cpu->flgRFSH)
+				cpu->xirq(IRQ_CPU_RFSH, cpu->xptr);
 			cpu->t++;				// T4
 			if (cpu->op->t > 4)
 				z80_wait(cpu, z80_get_ir(cpu), cpu->op->t - 4);

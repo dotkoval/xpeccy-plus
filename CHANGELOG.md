@@ -12,6 +12,10 @@ before that point is upstream's history and is not repeated here.
 ### Added
 
 - Pentagon starts with the memory pattern a real one comes up with, specks and all.
+- The ULA snow effect: the rubbish a 48K or 128K puts on screen when the interrupt
+  vector points at a screen bank. On for those two machines, off for the rest, with a
+  switch per machine in the advanced settings, and under it a second one, off by
+  default, for the machines whose RAM gives up under snow and hangs or resets.
 
 ### Fixed
 
