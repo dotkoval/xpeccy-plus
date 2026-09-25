@@ -216,15 +216,8 @@ int loadZ80_f(Computer* comp, FILE* file) {
 //	CPU* cpu = comp->cpu;
 	char pageBuf[0xc000];
 	z80v1Header hd;
-	comp->p7FFD = 0x10;
-	comp->p1FFD = 0x00;
-	comp->pEFF7 = 0x00;
-	memSetBank(comp->mem,0x00,MEM_ROM,1,MEM_16K,NULL,NULL,NULL);
-	memSetBank(comp->mem,0xc0,MEM_RAM,0,MEM_16K,NULL,NULL,NULL);
-	comp_snap_map(comp);
-	comp->vid->vidPage = 5;
-	comp_heat_reset(comp);		// snapshot load teleports state; pre-load hit counts are no longer valid
-	bcReset(comp->beep);		// no #FE bit 4 in the format, so the old program's level would stay
+	// a 128K reset, not a 48K one: that locks paging on a +2A, and byte 35 is still to come
+	comp_snap_reset(comp, RES_128);
 
 	fread((char*)&hd, sizeof(z80v1Header), 1, file);
 	if (hd.flag12 == 0xff) hd.flag12 = 0x01;	// Because of compatibility, if byte 12 is 255, it has to be regarded as being 1.
@@ -329,6 +322,7 @@ xlog(XLG_FILE, XLL_DEBUG, ".z80 version 2");
 		}
 	} else {			// version 1
 xlog(XLG_FILE, XLL_DEBUG, ".z80 version 1");
+		comp->hw->out(comp, 0x7ffd, 0x10);	// a 48K snapshot: the 48 rom in
 		if (hd.flag12 & 0x20) {
 			xlog(XLG_FILE, XLL_DEBUG, "data is compressed");
 			z80uncompress(file,pageBuf,0xc000);
@@ -345,7 +339,6 @@ xlog(XLG_FILE, XLL_DEBUG, ".z80 version 1");
 			memPutData(comp->mem,MEM_RAM,0,MEM_16K,pageBuf);
 		}
 	}
-	tsReset(comp->ts);
 	comp_set_frame_tick(comp, z80_frame_tick(comp, (err == ERR_OK) ? tlow : -1, thi));
 	return err;
 }

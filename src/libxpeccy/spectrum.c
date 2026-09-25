@@ -744,6 +744,21 @@ void comp_snap_map(Computer* comp) {
 		comp->hw->snapmap(comp);
 }
 
+// The reset a snapshot loader starts from. A recording being played is left
+// playing: the snapshot may be the one inside it, read from its open file.
+void comp_snap_reset(Computer* comp, int res) {
+#ifdef HAVEZLIB
+	int play = comp->rzx.play;
+	comp->rzx.play = 0;
+	compReset(comp, res);
+	comp->rzx.play = play;
+#else
+	compReset(comp, res);
+#endif
+	comp_snap_map(comp);
+	comp_heat_reset(comp);
+}
+
 // cpu freq
 
 void comp_update_timings(Computer* comp) {

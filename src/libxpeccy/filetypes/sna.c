@@ -28,9 +28,7 @@ int loadSNA_f(Computer* comp, FILE* file, size_t fileSize) {
 	char tmpgBuf[0x4000];
 	int is48 = (sna_hardware_of(fileSize) == SNAP_HW_48K);
 
-	compReset(comp, is48 ? RES_48 : RES_128);
-	comp_snap_map(comp);
-	comp_heat_reset(comp);		// snapshot load teleports state; pre-load hit counts are no longer valid
+	comp_snap_reset(comp, is48 ? RES_48 : RES_128);
 
 	snaHead hd;
 	fread((char*)&hd, sizeof(snaHead), 1, file);
@@ -105,7 +103,6 @@ int loadSNA_f(Computer* comp, FILE* file, size_t fileSize) {
 		}
 		memPutData(comp->mem, MEM_RAM, tmp & 7, MEM_16K, tmpgBuf);
 	}
-	tsReset(comp->ts);
 	return ERR_OK;
 }
 
