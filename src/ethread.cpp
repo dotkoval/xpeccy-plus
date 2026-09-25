@@ -175,6 +175,16 @@ void xThread::tap_hand_over(Computer* comp, int blk, int base, int dir) {
 	bool overdata = (inf.size < de);
 	int len = overdata ? inf.size : de;
 	int i;
+	// LD-BYTES leaves on a flag byte other than the one asked for (A'), having
+	// loaded nothing, and the tape plays the rest of the block to no one: how a
+	// loader passes over the blocks it does not want (Popeye 3's levels)
+	bool other = (blkData[0] != (comp->cpu->regAa & 0xff));
+	if (other) {
+		data = blkData[0];
+		crc = 0xff;
+		len = 0;
+		overdata = false;
+	}
 	for (i = 0; i < len; i++) {
 		data = blkData[i + 1];		// 1st data byte is type, not data
 		crc ^= data;
@@ -182,7 +192,9 @@ void xThread::tap_hand_over(Computer* comp, int blk, int base, int dir) {
 		ix += dir;
 		de--;
 	}
-	if (!overdata) {
+	if (other) {
+		// out through LD-BYTES' tail with H not 0: NC, NZ, as its RET NZ leaves
+	} else if (!overdata) {
 		crc ^= blkData[i + 1];		// xor with tape crc (next byte after de|inf.size bytes)
 	} else if (copy) {
 		// Asked for more than the block holds, LD-BYTES reads its checksum
