@@ -285,6 +285,7 @@ void comp_set_layout(Computer*, vLayout*);
 void comp_set_snow(Computer*, int);
 void comp_set_cont(Computer*, int);
 void comp_snap_map(Computer*);
+void comp_snap_reset(Computer*, int);
 int comp_frame_ticks(Computer*);
 void comp_set_frame_tick(Computer*, int);
 

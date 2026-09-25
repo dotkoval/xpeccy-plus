@@ -36,6 +36,9 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **A .z80 snapshot loads onto a reset machine**, as a .sna does. The SAA1099, General Sound
+  and the disk controller no longer carry on from the program before, and the AY keeps the
+  registers saved in the snapshot. A reset now silences the SAA1099 too.
 - **ZX Spectrum 48K and 128K timings match Fuse.** Slow memory, ports and the floating bus
   were a tick early, and an interrupt still held was not taken again after EI. Butler's
   timing tests now pass in full on the 48K and on the 128K with late timings, and Mark
