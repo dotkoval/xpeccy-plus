@@ -31,22 +31,12 @@ void saaDestroy(saaChip* saa) {
 	free(saa);
 }
 
+// every register back to zero: sound off (#1C bit 0), no amplitude, no envelope
 void saaReset(saaChip* saa) {
-	int i;
-	for (i = 0; i < 6; i++) {
-		saa->chan[i].freqEn = 0;
-		saa->chan[i].noizEn = 0;
-		saa->chan[i].period = 0;
-		saa->chan[i].count = 0;
-	}
-	for (i = 0; i < 2; i++) {
-		saa->noiz[i].period = 0;
-		saa->env[i].period = 0;
-		saa->env[i].form = 0;
-		saa->env[i].count = 0;
-		saa->env[i].pos = 0;
-		saa->env[i].enable = 0;
-	}
+	int en = saa->enabled;
+	memset(saa, 0x00, sizeof(saaChip));
+	saa->enabled = en;
+	saa->off = 1;
 }
 
 // 0 : 0x100 ticks = 31250 KHz
