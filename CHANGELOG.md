@@ -9,6 +9,8 @@ before that point is upstream's history and is not repeated here.
 
 ## Unreleased
 
+## 2026.5.1 - 2026-09-26
+
 ### Added
 
 - **Arrow buttons on the debugger's stack panel** step it a word at a time.
