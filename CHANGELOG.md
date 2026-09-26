@@ -11,49 +11,29 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
-- **Arrow buttons on the debugger's stack panel** move it up or down a word at a time, the
-  same offset as in Setup.
-- **SAA1099 is back** in the machine's Sound devices, with its own volume. Setup had hidden it
-  in 2026.5.
-- **Flash loading works for games that carry their own copy of the ROM loader**, such as
-  Scooby Doo and Biggles, and a game reading its keys no longer starts the tape.
-- **Every TZX block is played**: CSW recordings, generalized data, jumps, loops and calls.
-  A "stop the tape if 48K" block stops it on a 48K only, and the tape list says so.
+- **Arrow buttons on the debugger's stack panel** step it a word at a time.
 
 ### Changed
 
-- **No Kempston joystick on the stock ZX Spectrum 48K, 128K and +2**, as they came. Switch it
-  on in the machine's settings for a game that wants one.
-- **The emulation runs about a tenth faster** in fast mode, 15% on a Pentagon, with the
-  machine behaving exactly as before.
-- **Fast loading takes about half the time**, and shows the loading screen as it comes
-  in, 30 times a second, with the loader's border stripes - also when the tape was started
-  from the command line, where a 48K showed nothing until the load was over. With
-  TurboSound FM it no longer runs at half the speed of a plain AY. Edge detection knows
-  TOPSOFT's loader, so their Pentagon releases load on a 48K and 128K as well. It lets go
-  the moment the tape stops or runs into the last block's closing pause, and the fps readout settles within a second. Opening another
-  image while one loads fast no longer types LOAD "" at normal speed.
+- **Faster tape loading.** Fast loading takes about half the time and shows the loading
+  screen as it comes in, and Flash loading also works for games that carry their own copy
+  of the ROM loader.
+- **Better TZX support**: every block type is played, and tapes that lost blocks or reset
+  after loading now start.
+- **Reliable tape automatics**: auto play and stop follow the loader, known or not, and the
+  tape stops once the game has taken over.
+- **Faster emulation** in fast mode, about 15% on a Pentagon.
+- **No Kempston joystick on the stock 48K, 128K and +2**, as they came. Switch it on in the
+  machine's settings for a game that wants one.
 
 ### Fixed
 
-- **A .z80 snapshot loads onto a reset machine**, as a .sna does. The SAA1099, General Sound
-  and the disk controller no longer carry on from the program before, and the AY keeps the
-  registers saved in the snapshot. A reset now silences the SAA1099 too.
-- **ZX Spectrum 48K and 128K timings match Fuse.** Slow memory, ports and the floating bus
-  were a tick early, and an interrupt still held was not taken again after EI. Butler's
-  timing tests now pass in full on the 48K and on the 128K with late timings, and Mark
-  Woodmass's IR Contention tests pass on both. A switched-off Kempston mouse, or a missing
-  AY, now leaves its ports to the floating bus instead of answering #FF.
-- **The PSG clock follows the chips.** Switching between one AY, TurboSound and TurboSound
-  FM keeps the clock chosen and shows it as the chip's own - 1.773447 MHz on an AY is
-  3.546894 MHz on the YM2203 - instead of leaving an FM clock on an AY.
-- **TZX tapes that lost blocks or reset after loading now start**, Dark Fusion, 48 Irons,
-  Highway Encounter, Spy vs Spy, Plummet, Chuckie Egg, Cosmopolice, Aliens, Saigon Combat
-  Unit and the AGAS, DIGGERSOFT and ATOSSOFT releases among them. Every block after a "stop the
-  tape if 48K" block was dropped, a pilot tone given as separate pulses before its data
-  was lost, the last edge of a block with no pause after it went missing, and the ROM trap
-  held up or stopped a custom loader that took over from the ROM, or handed it the block
-  it was already reading. Freddy Hardest and Mambo end on a blue border again.
+- **More accurate 48K and 128K timings**: Richard Butler's timing tests pass in full, the
+  128K with late timings.
+- **The PSG clock follows the chip type** when switching between AY, TurboSound and
+  TurboSound FM.
+- **SAA1099 is back** among the machine's Sound devices, lost from Setup in 2026.5.
+- **A `.z80` snapshot loads onto a reset machine**, as a `.sna` does.
 
 ## 2026.5 - 2026-09-23
 

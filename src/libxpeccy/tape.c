@@ -408,6 +408,7 @@ void tapEject(Tape* tap) {
 	blkClear(&tap->tmpBlock);		// a part-recorded block goes with the tape
 	tap->isData = 1;
 	tap->armed = 0;
+	tap->paused.ok = 0;
 	tap->userStop = 0;
 	tap->block = 0;
 	tap->pos = 0;
@@ -431,6 +432,11 @@ void tapStop(Tape* tap) {
 	if (tap->on) {
 		xlog(XLG_TAPE, XLL_INFO, "stop, block %i of %i", tap->block, tap->blkCount);
 		tap->on = 0;
+		tap->paused.ok = !tap->rec && !tap->tail;
+		tap->paused.block = tap->block;
+		tap->paused.pos = tap->pos;
+		tap->paused.sigLen = tap->sigLen;
+		tap->paused.vol = tap->volPlay;
 		if (tap->rec)
 			tapStoreBlock(tap);
 		tap->volPlay = (tap->volPlay & 0x80) ? 0x7f : 0x81;
@@ -451,21 +457,40 @@ void tapUserStop(Tape* tap) {
 	tap->userStop = 1;
 }
 
-int tapPlay(Tape* tap) {
+// aut: the automatics press Play, not a person - a tape a person plays is
+// theirs, and is not stopped before a block the rom trap reads
+static int tap_play(Tape* tap, int aut) {
 	tape_settle(tap);
 	if (tap->userStop) return tap->on;
+	if (!aut)
+		tap->autoPlay = 0;
 	if ((tap->block < tap->blkCount) && !tap->on) {
 		xlog(XLG_TAPE, XLL_INFO, "play, block %i of %i", tap->block, tap->blkCount);
 		tap->rec = 0;
 		tap->on = 1;
-		tap->blkData[tap->block].vol = 0;
+		tap->autoPlay = aut;
 		tap->tail = 0;
-		tap->sigLen = TAPTPS / 2;	// .5 sec
+		if (tap->paused.ok && (tap->paused.block == tap->block) && (tap->paused.pos == tap->pos)) {
+			// nothing has moved it since it stopped: it goes on from the
+			// same point of the same pulse, as a deck does - the loader
+			// detector stops and starts it that way (Fuse)
+			tap->sigLen = tap->paused.sigLen;
+			tap->volPlay = tap->paused.vol;
+		} else {
+			tap->blkData[tap->block].vol = 0;
+			tap->sigLen = TAPTPS / 2;	// .5 sec
+		}
+		tap->paused.ok = 0;
+		tap->alien = 0;
 		// tap->volPlay = (tap->volPlay & 0x80) ? 0x7f : 0x81;
 	}
 	tap->armed = 0;
 	tap->detectReads = 0;
 	return tap->on;
+}
+
+int tapPlay(Tape* tap) {
+	return tap_play(tap, 1);
 }
 
 // "Rewind at end": a tape read to its end goes back to the start the next time it
@@ -485,7 +510,7 @@ int tap_rewind_at_end(Tape* tap) {
 int tapUserPlay(Tape* tap) {
 	tap->userStop = 0;
 	tap_rewind_at_end(tap);
-	return tapPlay(tap);
+	return tap_play(tap, 0);
 }
 
 // Flash loading hands a block over without the tape ever moving, so a loader
@@ -498,39 +523,82 @@ void tapArmPlay(Tape* tap) {
 		tap->armed = 1;
 }
 
-// Detect loaders that bypass the ROM (custom in-game loaders): a tight loop reading
-// port 0xFE a fixed number of T-states apart, with B changing by exactly 1 each time,
-// is a strong sign of a bit-timing loop, so treat it as "a loader started" and play the
-// tape. No matching auto-stop: the same pattern is also produced by ordinary DJNZ-timed
-// delay/keyboard-wait loops, and once gameplay is scanning the keyboard port 0xFE never
-// goes quiet either - so neither an irregular-read count nor an idle timeout can tell
-// "loading is over" from "unrelated code is also hitting this port". TZX #20 stop
-// markers and the manual Brk/Stop controls cover stopping instead.
-// Not every loader counts in B: Styx calls a one-read edge test and counts
-// elsewhere. So a read whose code tests the ear bit (earTest) counts as well.
-void tapDetectLoader(Tape* tap, int tick, int regB, int earTest, int fromUser) {
+// Auto play / stop, after Fuse's loader_detect_loader(). Ten reads in a row
+// within 500 T of each other, from the same place with one register moved at
+// most, start a stopped tape: an edge loop moves its counter and that is all
+// (ZXMAK2 asks the same; DeciLoad counts in D and reloads it), where code that
+// samples the port for a signal stores what it reads (Popeye 3's title, which
+// Spectaculator leaves the tape stopped for). Not every loader counts: Styx
+// calls a one-read edge test, so a read whose code tests the ear bit is a
+// loader's too. A keyboard scan never starts the tape, however it steps B (Black
+// Tiger's key definition), and the rom's edge routine never does: the trap
+// serves it.
+// Fuse stops a playing tape on two reads in a row unlike a loader's. Here it
+// takes a whole frame of reads unlike a loader's, and none like it: an interrupt
+// that scans the keys halfway through a load (Joe Blade 2), or a loader whose B
+// jumps between its ear tests (Speedlock), would otherwise stop the tape in the
+// middle of a pulse. The test for a loader's read is looser here than for a
+// start: a wrong stop costs a load, a wrong start only a play. A loader busy
+// between blocks, or unpacking what it has read (DeciLoad with ZX0), reads
+// nothing, and is waited for. Basic between two LOADs does stop it, as in Fuse:
+// the pilot is kept for a loader that sits out the rom's second of LD-WAIT
+// (Saigon Combat Unit's).
+void tapDetectLoader(Tape* tap, int tick, int pc, const unsigned char* regs, int kind, int fromRam) {
+	int tickDiff = tick - tap->detectLastTick;
+	int bDiff = (regs[1] - tap->detectRegs[1]) & 0xff;
+	int step = (bDiff == 1) || (bDiff == 0xff);
+	// a counter alone moved, or nothing, since a read from the same place
+	int moved = 0;
+	for (int i = 0; i < 7; i++)
+		moved += (regs[i] != tap->detectRegs[i]);
+	int turn = (pc == tap->detectLastPc) && (moved < 2);
+	tap->detectLastTick = tick;
+	tap->detectLastPc = pc;
+	memcpy(tap->detectRegs, regs, 7);
 	// the arm is flash loading's own doing, so it answers whether or not "auto
 	// play / stop" is on. Stop by hand still blocks it, through tapArmPlay
-	if (!tap->on && tap->armed && fromUser) {
+	if (!tap->on && tap->armed && fromRam && (kind != TAPE_RD_KEYS)) {
 		tap->armed = 0;
 		tapPlay(tap);
 		return;
 	}
-	if (tap->on || !tap->detectOn) {
-		tap->detectReads = 0;
-		return;
-	}
-	int tickDiff = tick - tap->detectLastTick;
-	int bDiff = (regB - tap->detectLastB) & 0xff;
-	tap->detectLastTick = tick;
-	tap->detectLastB = regB & 0xff;
-	if ((tickDiff <= 500) && (earTest || (bDiff == 1) || (bDiff == 0xff))) {
-		tap->detectReads++;
-		if (tap->detectReads >= 10)
+	if (tap->rec) return;
+	if (tap->on) {
+		int loader = (kind == TAPE_RD_EDGE) || (kind == TAPE_RD_EAR)
+			|| ((kind != TAPE_RD_KEYS) && (tickDiff <= 1000) && (step || !bDiff));
+		if (loader) {
+			tap->alien = 0;
+			tap->loaderReads++;		// fast loading's too: where the loader left
+		} else if (!tap->detectOn) {
+			return;
+		} else if (!tap->alien) {
+			tap->alien = 1;
+			tap->detectAlien = tick;
+		} else if (tick - tap->detectAlien > TAPE_GONE_TICKS) {
+			xlog(XLG_TAPE, XLL_INFO, "auto stop: the tape port is read as no loader reads it");
+			tapStop(tap);
+		}
+	} else if (tap->detectOn && (kind != TAPE_RD_EDGE) && (kind != TAPE_RD_KEYS) && (tickDiff <= 500)
+			&& ((kind == TAPE_RD_EAR) || turn)) {
+		if (++tap->detectReads >= 10)
 			tapPlay(tap);
 	} else {
 		tap->detectReads = 0;
 	}
+}
+
+// Fast loading counted the turns of an edge loop instead of running them: to
+// the detector they were a loader's reads, as Fuse's acceleration has it
+void tap_detect_skipped(Tape* tap, int tick, int regB) {
+	tap->detectLastTick = tick;
+	tap->detectRegs[1] = regB & 0xff;
+	tap->alien = 0;
+}
+
+// A block the rom's LD-BYTES reads: standard timings, and bytes in it
+int tap_block_rom(TapeBlock* blk) {
+	return blk->hasBytes && (blk->plen == PILOTLEN) && (blk->s1len == SYNC1LEN) && (blk->s2len == SYNC2LEN)
+		&& (blk->len0 == SIGN0LEN) && (blk->len1 == SIGN1LEN);
 }
 
 void tapRec(Tape* tap) {
@@ -561,7 +629,8 @@ void tap_copy_pos(Tape* dst, const Tape* src) {
 	dst->tickAcc = src->tickAcc;
 	dst->volPlay = src->volPlay;
 	dst->detectLastTick = src->detectLastTick;
-	dst->detectLastB = src->detectLastB;
+	dst->detectLastPc = src->detectLastPc;
+	memcpy(dst->detectRegs, src->detectRegs, sizeof(dst->detectRegs));
 	dst->detectReads = src->detectReads;
 }
 
@@ -569,6 +638,7 @@ void tapRewind(Tape* tap, int blk) {
 	tape_settle(tap);
 	xlog(XLG_TAPE, XLL_INFO, "rewind to block %i of %i", blk, tap->blkCount);
 	tap->armed = 0;
+	tap->paused.ok = 0;
 	tap->userStop = 0;
 	if (blk < tap->blkCount) {
 		tap->block = blk;
@@ -694,6 +764,12 @@ void tap_sync_slow(Tape* tap, int ns) {
 						tap->pos = 0;
 						if (tap->tail) {
 							tap->tail = 0;
+							tapStop(tap);
+						} else if (tap->autoPlay && tap->flash && (tap->block < tap->blkCount)
+								&& tap_block_rom(&tap->blkData[tap->block])) {
+							// the automatics play what the rom trap cannot
+							// read, and it reads this one when asked (Fuse)
+							xlog(XLG_TAPE, XLL_INFO, "auto stop: block %i is the rom trap's", tap->block);
 							tapStop(tap);
 						}
 						tap->xirq(IRQ_TAP_BLK, tap->xptr);

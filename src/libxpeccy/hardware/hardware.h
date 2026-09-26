@@ -154,6 +154,7 @@ static inline int zx_rom_active(Computer* comp) {
 void zx_tape_detect(Computer*);
 enum {ZX_IN_EAR = 1, ZX_IN_KEYS};
 int zx_in_use(Computer*, int);
+int zx_rom_code(Computer*, int pc);
 
 void xOutFE(Computer*, int, int);
 void xOutBFFD(Computer*, int, int);

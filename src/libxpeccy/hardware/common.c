@@ -226,7 +226,7 @@ sndPair zx_vol(Computer* comp, sndVolume* sv) {
 	// what a machine with nothing running was sitting on.
 	if (comp->tape->rec) {
 		lev = (comp->tape->levRec ? 0x800 : -0x800) * sv->tape / 100;
-	} else {
+	} else if (!comp->tape->mute) {
 		lev = ((comp->tape->volPlay - 0x80) << 8) * sv->tape / 1600;
 	}
 	// 2:beeper. The tape reaches the speaker on the same wire and is one level
@@ -366,8 +366,8 @@ static int zx_ld_edge(Computer* comp) {
 // from rom. Asked of the memory map rather than of the address, and of the map
 // rather than of the 48 rom being in: a 128 sits in its editor rom while it
 // starts a tape, and its keyboard poll is no more a loader than #05ED is.
-static int zx_rom_code(Computer* comp) {
-	return mem_get_page(comp->mem, comp->cpu->regPC)->type == MEM_ROM;
+int zx_rom_code(Computer* comp, int pc) {
+	return mem_get_page(comp->mem, pc)->type == MEM_ROM;
 }
 
 // What the code right after an IN from #FE looks at: the ear bit (AND #40,
@@ -400,28 +400,27 @@ int zx_in_use(Computer* comp, int pc) {
 // what a #FE read owes the tape, for a machine whose port handler is its own
 void zx_tape_detect(Computer* comp) {
 	Tape* tap = comp->tape;
-	if (zx_ld_edge(comp)) {
-		tap->portReads++;
-		return;
+	int kind = TAPE_RD_EDGE;
+	int ram = 0;
+	if (!zx_ld_edge(comp)) {
+		// A loader reads from one IN over and over, so what it is is asked
+		// once a frame
+		int pc = comp->cpu->regPC;
+		if ((pc != tap->inPc) || (comp->frmCount != tap->inFrame)) {
+			tap->inPc = pc;
+			tap->inFrame = comp->frmCount;
+			tap->inUse = zx_in_use(comp, pc);
+		}
+		ram = !zx_rom_code(comp, pc);
+		kind = (tap->inUse == ZX_IN_KEYS) ? TAPE_RD_KEYS
+			: ((ram && (tap->inUse == ZX_IN_EAR)) ? TAPE_RD_EAR : TAPE_RD_OTHER);
 	}
-	// A keyboard scan is no loader, however it steps B: it neither starts the
-	// tape nor counts for fast loading (Black Tiger's key definition). A loader
-	// reads from one IN over and over, so what it is is asked once a frame.
-	int pc = comp->cpu->regPC;
-	if ((pc != tap->inPc) || (comp->frmCount != tap->inFrame)) {
-		tap->inPc = pc;
-		tap->inFrame = comp->frmCount;
-		tap->inUse = zx_in_use(comp, pc);
-	}
-	int use = tap->inUse;
-	if (use == ZX_IN_KEYS) return;
-	tap->portReads++;	// the rom's own reads too: fast loading counts them
-	int ram = !zx_rom_code(comp);
-	// only a stopped tape needs it, only from a loader in ram, and only for a
-	// read that came soon enough after the last to count at all
-	int ear = ram && !tap->on && tap->detectOn
-		&& (comp->tickCount - tap->detectLastTick <= 500) && (use == ZX_IN_EAR);
-	tapDetectLoader(tap, comp->tickCount, comp->cpu->regB, ear, ram);
+	if (kind != TAPE_RD_KEYS)
+		tap->portReads++;	// the rom's own reads too: fast loading counts them
+	CPU* cpu = comp->cpu;
+	unsigned char regs[7] = {(unsigned char)cpu->regA, (unsigned char)cpu->regB, (unsigned char)cpu->regC,
+		(unsigned char)cpu->regD, (unsigned char)cpu->regE, (unsigned char)cpu->regH, (unsigned char)cpu->regL};
+	tapDetectLoader(tap, comp->tickCount, cpu->regPC, regs, kind, ram);
 }
 
 int xInFE(Computer* comp, int port) {

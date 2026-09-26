@@ -16,6 +16,7 @@ extern "C" {
 #define TAPE_PAUSE_TICKS (TAPTPS / 5)	// a gap this long is the end of a block
 #define TAPE_TAIL_TICKS  (TAPTPS / 10)	// run-out played after the last pulse
 #define TAPE_RATE_BITS	32		// fraction bits of ticksPerNsFixed
+#define TAPE_GONE_TICKS	69888		// a frame of the port read, and never as a loader: it has gone
 
 // ZX spectrum signal timings
 // 1T ~ 284ns ~ 0.284mks @ 3.51MHz
@@ -123,14 +124,29 @@ typedef struct {
 	unsigned armed:1;	// play as soon as a loader outside the rom asks for the tape
 	unsigned tail:1;	// playing out the level change the last pulse ends on
 	unsigned is48:1;	// the machine is a 48K, for stop48
+	unsigned mute:1;	// a playing tape is not heard (fast loading has it)
 	unsigned userStop:1;	// stopped by hand: the automatics may not start it again
 	unsigned autorew:1;	// play starts the tape over once it has run to the end
 	unsigned changed:1;	// blocks added, moved or taken out since the image was read or saved
-	unsigned detectOn:1;	// auto play by CPU port-0xFE polling pattern (for loaders that bypass the ROM)
+	unsigned detectOn:1;	// auto play / stop: the tape follows how the tape port is read
+	unsigned autoPlay:1;	// the automatics started it, not Play
+	unsigned flash:1;	// flash loading is on: the rom trap reads the standard blocks
 	int detectLastTick;
-	int detectLastB;
-	int detectReads;
+	int detectLastPc;
+	unsigned char detectRegs[7];	// A B C D E H L at the last read
+	int detectReads;	// reads in a row like a loader's, on a stopped tape
+	int detectAlien;	// on a playing tape: tick of the first read unlike a loader's since its last
+	unsigned alien:1;	// ...and there has been one
+	// where the last stop left the tape, for a play that finds it there
+	struct {
+		int ok;
+		int block;
+		int pos;
+		int sigLen;
+		unsigned char vol;
+	} paused;
 	int portReads;		// reads of the tape port, cleared by the one counting them per frame
+	int loaderReads;	// those like a loader's on a playing tape, the same way
 	int ldBase;		// a copy of LD-BYTES in ram flash loading answers for, -1: none
 	int ldDir;		// its INC IX (+1) or DEC IX (-1)
 	int ldBlock;		// the block its edge routine was last checked on
@@ -213,7 +229,16 @@ int tap_play_on(Tape*, int);
 void tape_set_speed(Tape*, int);
 void tapNextBlock(Tape*);
 void tap_copy_pos(Tape*, const Tape*);
-void tapDetectLoader(Tape*, int tick, int regB, int earTest, int fromUser);
+// what a read of the tape port is, for tapDetectLoader
+enum {
+	TAPE_RD_OTHER = 0,
+	TAPE_RD_EDGE,		// the rom's edge routine, or a copy's the trap answers for
+	TAPE_RD_EAR,		// code in ram that tests the ear bit
+	TAPE_RD_KEYS,		// a keyboard scan
+};
+void tapDetectLoader(Tape*, int tick, int pc, const unsigned char* regs, int kind, int fromRam);
+int tap_block_rom(TapeBlock*);
+void tap_detect_skipped(Tape*, int tick, int regB);
 void tapArmPlay(Tape*);
 
 TapeBlockInfo tapGetBlockInfo(Tape*,int);
