@@ -124,6 +124,7 @@ typedef struct {
 	unsigned armed:1;	// play as soon as a loader outside the rom asks for the tape
 	unsigned tail:1;	// playing out the level change the last pulse ends on
 	unsigned is48:1;	// the machine is a 48K, for stop48
+	unsigned mute:1;	// a playing tape is not heard (fast loading has it)
 	unsigned userStop:1;	// stopped by hand: the automatics may not start it again
 	unsigned autorew:1;	// play starts the tape over once it has run to the end
 	unsigned changed:1;	// blocks added, moved or taken out since the image was read or saved

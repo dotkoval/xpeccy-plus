@@ -604,5 +604,6 @@ static void fl_frame(Computer* comp) {
 
 void fastload_frame(Computer* comp) {
 	fl_frame(comp);
+	comp->tape->mute = fl_held;		// a tape sped through is only noise
 	fastload_on = fl_held || fl_bench;
 }

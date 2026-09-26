@@ -226,7 +226,7 @@ sndPair zx_vol(Computer* comp, sndVolume* sv) {
 	// what a machine with nothing running was sitting on.
 	if (comp->tape->rec) {
 		lev = (comp->tape->levRec ? 0x800 : -0x800) * sv->tape / 100;
-	} else {
+	} else if (!comp->tape->mute) {
 		lev = ((comp->tape->volPlay - 0x80) << 8) * sv->tape / 1600;
 	}
 	// 2:beeper. The tape reaches the speaker on the same wire and is one level
