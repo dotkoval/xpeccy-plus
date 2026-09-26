@@ -400,28 +400,27 @@ int zx_in_use(Computer* comp, int pc) {
 // what a #FE read owes the tape, for a machine whose port handler is its own
 void zx_tape_detect(Computer* comp) {
 	Tape* tap = comp->tape;
-	if (zx_ld_edge(comp)) {
-		tap->portReads++;
-		return;
+	int kind = TAPE_RD_EDGE;
+	int ram = 0;
+	if (!zx_ld_edge(comp)) {
+		// A loader reads from one IN over and over, so what it is is asked
+		// once a frame
+		int pc = comp->cpu->regPC;
+		if ((pc != tap->inPc) || (comp->frmCount != tap->inFrame)) {
+			tap->inPc = pc;
+			tap->inFrame = comp->frmCount;
+			tap->inUse = zx_in_use(comp, pc);
+		}
+		ram = !zx_rom_code(comp, pc);
+		kind = (tap->inUse == ZX_IN_KEYS) ? TAPE_RD_KEYS
+			: ((ram && (tap->inUse == ZX_IN_EAR)) ? TAPE_RD_EAR : TAPE_RD_OTHER);
 	}
-	// A keyboard scan is no loader, however it steps B: it neither starts the
-	// tape nor counts for fast loading (Black Tiger's key definition). A loader
-	// reads from one IN over and over, so what it is is asked once a frame.
-	int pc = comp->cpu->regPC;
-	if ((pc != tap->inPc) || (comp->frmCount != tap->inFrame)) {
-		tap->inPc = pc;
-		tap->inFrame = comp->frmCount;
-		tap->inUse = zx_in_use(comp, pc);
-	}
-	int use = tap->inUse;
-	if (use == ZX_IN_KEYS) return;
-	tap->portReads++;	// the rom's own reads too: fast loading counts them
-	int ram = !zx_rom_code(comp, comp->cpu->regPC);
-	// only a stopped tape needs it, only from a loader in ram, and only for a
-	// read that came soon enough after the last to count at all
-	int ear = ram && !tap->on && tap->detectOn
-		&& (comp->tickCount - tap->detectLastTick <= 500) && (use == ZX_IN_EAR);
-	tapDetectLoader(tap, comp->tickCount, comp->cpu->regB, ear, ram);
+	if (kind != TAPE_RD_KEYS)
+		tap->portReads++;	// the rom's own reads too: fast loading counts them
+	CPU* cpu = comp->cpu;
+	unsigned char regs[7] = {(unsigned char)cpu->regA, (unsigned char)cpu->regB, (unsigned char)cpu->regC,
+		(unsigned char)cpu->regD, (unsigned char)cpu->regE, (unsigned char)cpu->regH, (unsigned char)cpu->regL};
+	tapDetectLoader(tap, comp->tickCount, cpu->regPC, regs, kind, ram);
 }
 
 int xInFE(Computer* comp, int port) {

@@ -64,16 +64,6 @@ void xThread::stop() {
 #endif
 }
 
-// A block with no bytes in it is a signal the rom cannot read: a custom
-// loader's data, a lead-out tone, a recording that did not decode. Nothing here
-// will ever start the tape for one - the port-#FE detector only knows the rom's
-// edge loop, and a loader like DeciLoad holds B still - so the automatics have
-// to run the tape on into such a block instead of stopping at it.
-static int tap_next_is_signal(Tape* tap) {
-	int n = tap->block + 1;
-	return (n < tap->blkCount) && !tap->blkData[n].hasBytes;
-}
-
 // The rom's load has returned with the tape near the end of the block, not in
 // the middle of it: a loader that has the rom read only part of a block reads
 // the rest itself, so the tape must go on. A few pulses are the checksum's
@@ -224,9 +214,11 @@ void xThread::tap_hand_over(Computer* comp, int blk, int base, int dir) {
 		comp->cpu->regHL = 0xff00;		// error
 	}
 #endif
-	// the block is in memory and the tape never moved for it, so the loader
-	// that comes next would be handed silence: give it the tape when it asks
-	int sig = tap_next_is_signal(tap);
+	// the block is in memory and the tape never moved for it, so a loader of
+	// its own that reads the next one is handed the tape when it asks - one
+	// the trap reads waits for the rom (Fuse leaves it at the block's pause)
+	int nxt = blk + 1;
+	int arm = (nxt < tap->blkCount) && !tap_block_rom(&tap->blkData[nxt]);
 	// A block with no pause after it runs straight into the next one, and a
 	// loader that reads that one is timing it from here: play it now, with
 	// no lead-in, from the level the handed-over block ended on.
@@ -236,7 +228,7 @@ void xThread::tap_hand_over(Computer* comp, int blk, int base, int dir) {
 	fastload_forget();
 	if (!TAP_VOL_PAUSE(last) && (tap->block < tap->blkCount)) {
 		tap_play_on(tap, last);
-	} else if (sig) {
+	} else if (arm) {
 		tapArmPlay(tap);
 	}
 	if (copy)
@@ -423,12 +415,6 @@ void xThread::emuCycle(Computer* comp) {
 					tap_catch_load(comp, pc == LD_ROM_BASE + LDC_START);
 				} else if (pc == 0x4d0) {				// save: ix:addr, de:len, a:block type(b7), hl:pilot len (1f80/0c98)?
 					tap_catch_save(comp);
-				}
-				if (conf.tape.autostart && !tape_flash() && ((pc == 0x5df) || (pc == 0x53a))
-						&& !tap_next_is_signal(comp->tape) && tap_block_done(comp->tape)) {
-					tape_set_sig_len(comp->tape, 1000000);
-					tapNextBlock(comp->tape);
-					tapStop(comp->tape);
 				}
 			}
 			// a copy of LD-BYTES in ram is trapped as the rom's is, once seen

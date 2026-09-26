@@ -276,6 +276,7 @@ void tape_apply_options(Tape* tap) {
 	if (!tap) return;
 	tap->autorew = conf.tape.rewind;
 	tap->detectOn = conf.tape.autostart;
+	tap->flash = tape_flash();
 }
 
 int tape_running(Tape* tap) {
