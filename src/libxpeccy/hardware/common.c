@@ -366,8 +366,8 @@ static int zx_ld_edge(Computer* comp) {
 // from rom. Asked of the memory map rather than of the address, and of the map
 // rather than of the 48 rom being in: a 128 sits in its editor rom while it
 // starts a tape, and its keyboard poll is no more a loader than #05ED is.
-static int zx_rom_code(Computer* comp) {
-	return mem_get_page(comp->mem, comp->cpu->regPC)->type == MEM_ROM;
+int zx_rom_code(Computer* comp, int pc) {
+	return mem_get_page(comp->mem, pc)->type == MEM_ROM;
 }
 
 // What the code right after an IN from #FE looks at: the ear bit (AND #40,
@@ -416,7 +416,7 @@ void zx_tape_detect(Computer* comp) {
 	int use = tap->inUse;
 	if (use == ZX_IN_KEYS) return;
 	tap->portReads++;	// the rom's own reads too: fast loading counts them
-	int ram = !zx_rom_code(comp);
+	int ram = !zx_rom_code(comp, comp->cpu->regPC);
 	// only a stopped tape needs it, only from a loader in ram, and only for a
 	// read that came soon enough after the last to count at all
 	int ear = ram && !tap->on && tap->detectOn

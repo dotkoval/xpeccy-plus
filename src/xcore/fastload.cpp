@@ -388,6 +388,10 @@ static int fl_delay_shape(Computer* comp, int pc) {
 // leaves 1. Nothing else in the machine moves, as with the edge loop.
 static void fl_delay_step(Computer* comp, int pc) {
 	CPU* cpu = comp->cpu;
+	// Only a loader's own: the rom has one delay worth skipping, LD-WAIT's second,
+	// and moved past on the tape alone it throws the loader the rom brings in
+	// next (RiverRaid+'s OTLA)
+	if (zx_rom_code(comp, pc)) return;
 	int kind = fl_delay_shape(comp, pc);
 	if (!kind) return;		// the other opcode of a two-opcode loop
 	if ((pc != fl_delay.pc) || (kind != fl_delay.kind)) {
