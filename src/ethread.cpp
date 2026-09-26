@@ -81,6 +81,19 @@ static int tap_past_pilot(Tape* tap) {
 	return (blk->dataPos > 0) && (tap->pos > blk->dataPos);
 }
 
+// The return address on top of the stack - or the one under it, when the top
+// one is skip: a routine the loader's own code calls through on the way
+static int tap_caller(Computer* comp, int skip) {
+	int sp = comp->cpu->regSP;
+	int ret = cpu_peek_word(tap_peek, comp, sp);
+	return (ret == skip) ? cpu_peek_word(tap_peek, comp, sp + 2) : ret;
+}
+
+// the SA/LD-RET address the LD-BYTES at base pushes
+static int tap_ld_ret(Computer* comp, int base) {
+	return cpu_peek_word(tap_peek, comp, base + LDC_RET_OP);
+}
+
 // The edge routine was called by the LD-BYTES it belongs to, not by a loader of
 // its own (Krakout, calling the rom's), which never comes back to LD_START to be
 // handed a block and is played to instead. LD-EDGE-2 calls LD-EDGE-1 itself: its
@@ -88,13 +101,16 @@ static int tap_past_pilot(Tape* tap) {
 // whoever called LD-BYTES, or to a loader that jumped straight into it for a
 // block with no sync (Tutankhamun).
 static int tap_rom_caller(Computer* comp, int base) {
-	int sp = comp->cpu->regSP;
-	int ret = cpu_peek_word(tap_peek, comp, sp);
-	if (ret == ((base + LDC_EDGE2_RET) & 0xffff))
-		ret = cpu_peek_word(tap_peek, comp, sp + 2);
+	int ret = tap_caller(comp, (base + LDC_EDGE2_RET) & 0xffff);
 	if (ret == ((base + LDC_BITS_RET) & 0xffff)) return 0;
 	if (base == LD_ROM_BASE) return ret < 0x4000;
 	return ((ret - base) & 0xffff) < LDC_LEN;		// a copy is called by itself
+}
+
+// The load was asked for by basic: the rom's LD-BYTES, called from the rom -
+// through SA/LD-RET, which it pushes, or straight.
+static int tap_basic_load(Computer* comp, int base) {
+	return (base == LD_ROM_BASE) && (tap_caller(comp, tap_ld_ret(comp, base)) < 0x4000);
 }
 
 // atStart says the rom is at LD_START, the top of LD_BYTES, rather than inside
@@ -109,10 +125,11 @@ void xThread::tap_catch_load(Computer* comp, int atStart, int base, int dir) {
 	// included, which moves it on without ever playing it. Play, a rewind or
 	// another tape hands it back.
 	if (tap->userStop) return;
-	// the rom is asking for a tape that has run out: "Rewind at end" puts it back
-	// to the start here too, not only under the Play button. Nothing to rewind
-	// for if neither of the automatics is on - Play does it then.
-	if (atStart && (tape_flash() || conf.tape.autostart))
+	// basic's LOAD asks for a tape that has run out: "Rewind at end" puts it
+	// back to the start here too, not only under the Play button. Not for a
+	// program's own loader, which wants a part that is not there (Saigon's).
+	// Nothing to rewind for if neither of the automatics is on - Play does it.
+	if (atStart && (tape_flash() || conf.tape.autostart) && tap_basic_load(comp, base))
 		tap_rewind_at_end(tap);
 	int blk = tap->block;
 	if (blk >= tap->blkCount) return;
@@ -154,8 +171,7 @@ void xThread::tap_hand_over(Computer* comp, int blk, int base, int dir) {
 	unsigned short de = comp->cpu->regDE;
 	unsigned short ix = comp->cpu->regIX;
 	// read before the block lands: it may cover the stack
-	int ldret = (cpu_peek_word(tap_peek, comp, comp->cpu->regSP)
-		== cpu_peek_word(tap_peek, comp, base + LDC_RET_OP));
+	int ldret = (cpu_peek_word(tap_peek, comp, comp->cpu->regSP) == tap_ld_ret(comp, base));
 	TapeBlockInfo inf = tapGetBlockInfo(tap,blk);
 	unsigned char* blkData = (unsigned char*)malloc(inf.size + 2);
 	tapGetBlockData(tap,blk,blkData, inf.size + 2);
