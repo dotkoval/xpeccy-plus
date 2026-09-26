@@ -18,11 +18,15 @@ before that point is upstream's history and is not repeated here.
 - **Faster tape loading.** Fast loading takes about half the time and shows the loading
   screen as it comes in, and Flash loading also works for games that carry their own copy
   of the ROM loader.
+
 - **Better TZX support**: every block type is played, and tapes that lost blocks or reset
   after loading now start.
+
 - **Reliable tape automatics**: auto play and stop follow the loader, known or not, and the
   tape stops once the game has taken over.
+
 - **Faster emulation** in fast mode, about 15% on a Pentagon.
+
 - **No Kempston joystick on the stock 48K, 128K and +2**, as they came. Switch it on in the
   machine's settings for a game that wants one.
 
@@ -30,9 +34,12 @@ before that point is upstream's history and is not repeated here.
 
 - **More accurate 48K and 128K timings**: Richard Butler's timing tests pass in full, the
   128K with late timings.
+
 - **The PSG clock follows the chip type** when switching between AY, TurboSound and
   TurboSound FM.
+
 - **SAA1099 is back** among the machine's Sound devices, lost from Setup in 2026.5.
+
 - **A `.z80` snapshot loads onto a reset machine**, as a `.sna` does.
 
 ## 2026.5 - 2026-09-23
