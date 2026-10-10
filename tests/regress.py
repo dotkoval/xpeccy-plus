@@ -115,11 +115,16 @@ def load_golden(golden, suite):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
+def matches(name, key, patterns):
+    """-k: a case is picked by its name or its suite/name, against any pattern"""
+    return not patterns or any(fnmatch.fnmatch(name, k) or fnmatch.fnmatch(key, k) for k in patterns)
+
+
 def pick(args):
     suites = args.suite or all_suites()
     cases = [c for s in suites for c in load_suite(s)]
     if args.k:
-        cases = [c for c in cases if any(fnmatch.fnmatch(c.name, k) or fnmatch.fnmatch(c.key, k) for k in args.k)]
+        cases = [c for c in cases if matches(c.name, c.key, args.k)]
     if not cases:
         sys.exit("no cases match")
     return cases
@@ -214,13 +219,13 @@ def cmd_quick(args):
     sys.path.insert(0, str(Path(__file__).resolve().parent / "core"))
     sys.dont_write_bytecode = True
     import quick
-    return quick.run(args)
+    return quick.run(args, matches)
 
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("command", choices=("run", "bless", "list", "quick"))
-    ap.add_argument("suite", nargs="*", help=f"suites in tests/suites (default: all)")
+    ap.add_argument("suite", nargs="*", help="suites in tests/suites (default: all)")
     ap.add_argument("-k", action="append", help="only cases whose name matches (glob, repeatable)")
     ap.add_argument("--app", help="staged build folder (default: newest dev build in build/dist)")
     ap.add_argument("--corpus", help="image folder (default: $XPECCY_CORPUS)")

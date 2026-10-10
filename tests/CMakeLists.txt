@@ -35,11 +35,10 @@ target_include_directories(xpeccycore PUBLIC ${XLIB} ${ZLIB_INCLUDE_DIR})
 target_compile_definitions(xpeccycore PUBLIC ${XENDIAN})
 target_link_libraries(xpeccycore PUBLIC ${ZLIB_LIBRARY} Threads::Threads)
 
-add_executable(tsconf-bench core/tsconf/main.c)
-add_executable(baseconf-bench core/baseconf/main.c)
-add_executable(tape-bench core/tape/main.c)
-foreach(BENCH tsconf-bench baseconf-bench tape-bench)
-	target_link_libraries(${BENCH} xpeccycore)
+set(BENCHES tsconf baseconf tape)
+foreach(BENCH ${BENCHES})
+	add_executable(${BENCH}-bench core/${BENCH}/main.c)
+	target_link_libraries(${BENCH}-bench xpeccycore)
 endforeach()
 
 # GPL v2+ (see tools/z80test/LICENSE): the Z80 sources only, never the library
@@ -47,8 +46,9 @@ file(GLOB Z80_SOURCES ${XLIB}/cpu/Z80/*.c)
 add_executable(z80-coretest ${XROOT}/tools/z80test/coretest.c ${Z80_SOURCES})
 
 # no MinGW runtime on PATH needed to run them
-if(WIN32)
-	foreach(EXE tsconf-bench baseconf-bench tape-bench z80-coretest)
-		target_link_options(${EXE} PRIVATE -static)
+if(MINGW)
+	foreach(BENCH ${BENCHES})
+		target_link_options(${BENCH}-bench PRIVATE -static)
 	endforeach()
+	target_link_options(z80-coretest PRIVATE -static)
 endif()

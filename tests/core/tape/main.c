@@ -19,17 +19,24 @@
 #define CPU_HZ	3500000.0
 #define POLL_T	16
 
-static unsigned fnv(const unsigned char* p, int n) {
-	unsigned h = 2166136261u;
+#define FNV_START	2166136261u
+
+static unsigned fnv_add(unsigned h, const unsigned char* p, int n) {
 	for (int i = 0; i < n; i++) h = (h ^ p[i]) * 16777619u;
 	return h;
+}
+
+// a machine whose tape counts T at CPU_HZ
+static Computer* new_comp(void) {
+	Computer* comp = compCreate();
+	tape_set_tick_ns(comp->tape, 1e9 / CPU_HZ);
+	return comp;
 }
 
 static Computer* load(const char* dir, const char* name) {
 	char path[4096];
 	snprintf(path, sizeof(path), "%s/%s", dir, name);
-	Computer* comp = compCreate();
-	tape_set_tick_ns(comp->tape, 1e9 / CPU_HZ);
+	Computer* comp = new_comp();
 	const char* ext = strrchr(name, '.');
 	int err = (ext && !strcmp(ext, ".tzx")) ? loadTZX(comp, path, 0) : loadTAP(comp, path, 0);
 	if (err != ERR_OK) {
@@ -44,11 +51,11 @@ static void print_blocks(Tape* tape) {
 	for (int i = 0; i < tape->blkCount; i++) {
 		TapeBlock* b = &tape->blkData[i];
 		TapeBlockInfo inf = tapGetBlockInfo(tape, i);
-		unsigned h = 2166136261u;
+		unsigned h = FNV_START;
 		for (int j = 0; j < b->sigCount; j++) {
 			unsigned char s[5] = {b->data[j].size & 0xff, (b->data[j].size >> 8) & 0xff,
 				(b->data[j].size >> 16) & 0xff, b->data[j].size >> 24, b->data[j].vol};
-			for (int k = 0; k < 5; k++) h = (h ^ s[k]) * 16777619u;
+			h = fnv_add(h, s, 5);
 		}
 		printf("%2d: sig=%d pilot=%d s1=%d s2=%d l0=%d l1=%d data@%d time=%d hdr=%d bytes=%d stop=%d stop48=%d size=%d",
 			i, b->sigCount, b->plen, b->s1len, b->s2len, b->len0, b->len1, b->dataPos, b->time,
@@ -86,7 +93,7 @@ static void check_bytes(Tape* tape, const char* dir, const char* name) {
 		if (!b->hasBytes) continue;
 		// size counts the bytes between the flag and the checksum
 		int n = tapGetBlockData(tape, i, buf, tapGetBlockInfo(tape, i).size + 2);
-		unsigned h = fnv(buf, n);
+		unsigned h = fnv_add(FNV_START, buf, n);
 		int wlen;
 		unsigned wfnv;
 		if (fscanf(f, "%d %x", &wlen, &wfnv) != 2) {
@@ -143,12 +150,11 @@ static void replay(Tape* tape) {
 	}
 }
 
-static long fsize(const char* path, unsigned char** data) {
+// the whole file, -1 when it cannot be read
+static long read_file(const char* path, unsigned char** data) {
 	FILE* f = fopen(path, "rb");
 	if (!f) return -1;
-	fseek(f, 0, SEEK_END);
-	long n = ftell(f);
-	fseek(f, 0, SEEK_SET);
+	long n = (long)fgetSize(f);
 	*data = malloc(n ? n : 1);
 	n = (long)fread(*data, 1, n, f);
 	fclose(f);
@@ -164,8 +170,7 @@ static void wav_round_trip(Computer* comp, const char* dir) {
 		printf("saveWAV failed\n");
 		return;
 	}
-	Computer* c2 = compCreate();
-	tape_set_tick_ns(c2->tape, 1e9 / CPU_HZ);
+	Computer* c2 = new_comp();
 	if (loadWAV(c2, wav, 0) != ERR_OK) {
 		printf("loadWAV failed\n");
 		return;
@@ -176,7 +181,7 @@ static void wav_round_trip(Computer* comp, const char* dir) {
 		return;
 	}
 	unsigned char *a, *b;
-	long na = fsize(tap, &a), nb = fsize(back, &b);
+	long na = read_file(tap, &a), nb = read_file(back, &b);
 	long i = 0;
 	while ((i < na) && (i < nb) && (a[i] == b[i])) i++;
 	if ((na == nb) && (i == na))
@@ -192,21 +197,21 @@ int main(int argc, char** argv) {
 		return 2;
 	}
 	const char* dir = argv[1];
-	static const char* imgs[] = {"test.tap", "test.tzx"};
+	static const struct {const char* file; const char* tag;} imgs[] = {{"test.tap", "tap"}, {"test.tzx", "tzx"}};
 	for (int i = 0; i < 2; i++) {
-		Computer* comp = load(dir, imgs[i]);
+		Computer* comp = load(dir, imgs[i].file);
 		if (!comp) return 1;
-		const char* tag = (i == 0) ? "tap" : "tzx";
+		const char* tag = imgs[i].tag;
 		printf("== %s_blocks\n", tag);
 		print_blocks(comp->tape);
 		printf("== %s_bytes\n", tag);
-		check_bytes(comp->tape, dir, imgs[i]);
+		check_bytes(comp->tape, dir, imgs[i].file);
 		printf("== %s_replay\n", tag);
 		replay(comp->tape);
 		compDestroy(comp);
 	}
 	printf("== tap_wav\n");
-	Computer* tapComp = load(dir, imgs[0]);
+	Computer* tapComp = load(dir, imgs[0].file);
 	if (tapComp) wav_round_trip(tapComp, dir);
 	fflush(stdout);
 	return 0;

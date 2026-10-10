@@ -5,8 +5,8 @@
 
 Each `bin` line of <bench>/cases.txt says the file, its source in asm/ and the
 defines. A .spg is the program wrapped as an SPG 1.0 (one uncompressed block in
-page 2, started at #8000). Needs sjasmplus: --sjasmplus, $SJASMPLUS, PATH, or
-C:\\bin\\sjasmplus. regress.py quick never runs this - the .bin files are committed.
+page 2, started at #8000). Needs sjasmplus: --sjasmplus, $SJASMPLUS or PATH.
+regress.py quick never runs this - the .bin files are committed.
 """
 
 import argparse
@@ -26,7 +26,7 @@ PROG_BENCHES = ("tsconf", "baseconf")
 
 
 def find_sjasmplus(arg):
-    for c in (arg, os.environ.get("SJASMPLUS"), shutil.which("sjasmplus"), r"C:\bin\sjasmplus\sjasmplus.exe"):
+    for c in (arg, os.environ.get("SJASMPLUS"), shutil.which("sjasmplus")):
         if c and Path(c).is_file():
             return c
     return None

@@ -13,7 +13,6 @@ The programs are committed assembled; core/mkbins.py rebuilds them with sjasmplu
 
 import concurrent.futures as cf
 import difflib
-import fnmatch
 import os
 import shlex
 import shutil
@@ -73,10 +72,10 @@ def toolchain(args):
         if (mingw / "bin" / "gcc.exe").exists():
             env["PATH"] = f"{mingw / 'bin'};{env['PATH']}"
             cfg += ["-G", "MinGW Makefiles"]
-            for zlib in mingw.glob("*-w64-mingw32/lib/libz.a"):
+            zlib = next(mingw.glob("*-w64-mingw32/lib/libz.a"), None)
+            if zlib:
                 inc = zlib.parent.parent / "include"
                 cfg += [f"-DZLIB_LIBRARY={zlib.as_posix()}", f"-DZLIB_INCLUDE_DIR={inc.as_posix()}"]
-                break
         elif not shutil.which("gcc"):
             return None, None, f"no MinGW at {mingw}: pass --mingw or set XPECCY_MINGW"
         if not cmake and (WIN_CMAKE / "cmake.exe").exists():
@@ -107,12 +106,12 @@ def build(args):
     return True
 
 
-def run_prog(bench, case, jobs_env):
+def run_prog(bench, case):
     """One run of a mailbox bench, in a folder of its own."""
     name, file, frames, cenv = case
     exe = BUILD / f"{bench}-bench{EXE}"
     with tempfile.TemporaryDirectory(prefix="xquick-") as tmp:
-        env = dict(jobs_env)
+        env = dict(os.environ)
         env["XPECCY_ROOT"] = str(ROOT)
         for k, v in cenv.items():
             if v.endswith(".img"):
@@ -128,13 +127,11 @@ def run_prog(bench, case, jobs_env):
 
 def bench_prog(bench, jobs):
     _, runs = parse_cases(bench)
-    env = dict(os.environ)
     with cf.ThreadPoolExecutor(jobs) as pool:
-        res = dict(pool.map(lambda c: run_prog(bench, c, env), runs))
-    return {c[0]: res[c[0]] for c in runs}
+        return dict(pool.map(lambda c: run_prog(bench, c), runs))
 
 
-def bench_tape(jobs):
+def bench_tape():
     with tempfile.TemporaryDirectory(prefix="xquick-") as tmp:
         subprocess.run([sys.executable, str(CORE / "tape" / "mktape.py"), tmp], check=True)
         p = subprocess.run([str(BUILD / f"tape-bench{EXE}"), tmp], capture_output=True, text=True, errors="replace", timeout=120)
@@ -166,11 +163,8 @@ def show_diff(exp, got):
         print(f"           ... {len(lines) - 10} more")
 
 
-def picked(key, name, ks):
-    return not ks or any(fnmatch.fnmatch(name, k) or fnmatch.fnmatch(key, k) for k in ks)
-
-
-def run(args):
+def run(args, matches):
+    """matches(name, key, patterns): regress.py's -k test"""
     benches = args.suite or list(BENCHES)
     bad = [b for b in benches if b not in BENCHES]
     if bad:
@@ -181,7 +175,7 @@ def run(args):
     passed = failed = 0
     for bench in benches:
         if bench == "z80":
-            if not picked("z80/fuse", "fuse", args.k):
+            if not matches("fuse", "z80/fuse", args.k):
                 continue
             ok, summary, report = bench_z80()
             print(f"{'PASS' if ok else 'FAIL':8} z80/fuse  {summary}")
@@ -189,16 +183,15 @@ def run(args):
                 print(report)
             passed, failed = passed + ok, failed + (not ok)
             continue
-        got = bench_tape(args.jobs) if bench == "tape" else bench_prog(bench, args.jobs)
-        got = {k: v for k, v in got.items() if picked(f"{bench}/{k}", k, args.k)}
+        got = bench_tape() if bench == "tape" else bench_prog(bench, args.jobs)
+        got = {k: v for k, v in got.items() if matches(k, f"{bench}/{k}", args.k)}
         exp_path = CORE / bench / "expected.txt"
+        exp = read_sections(exp_path.read_text(encoding="utf-8")) if exp_path.exists() else {}
         if args.bless:
-            old = read_sections(exp_path.read_text(encoding="utf-8")) if exp_path.exists() else {}
-            old.update(got)
-            exp_path.write_text("".join(f"== {k}\n{v}\n" for k, v in old.items()), encoding="utf-8")
+            exp.update(got)
+            exp_path.write_text("".join(f"== {k}\n{v}\n" for k, v in exp.items()), encoding="utf-8")
             print(f"blessed  {bench}: {len(got)} cases")
             continue
-        exp = read_sections(exp_path.read_text(encoding="utf-8")) if exp_path.exists() else {}
         for name, out in got.items():
             key = f"{bench}/{name}"
             if name not in exp:
