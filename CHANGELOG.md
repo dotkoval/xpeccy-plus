@@ -54,9 +54,9 @@ before that point is upstream's history and is not repeated here.
   - The RZX player has a bookmark button and lists the recording as it is made.
     *(thanks to Volutar)*
 
-- **Input overlay** (View, Input Overlay, experimental): the ZX keyboard, a Kempston joystick and mouse
-  drawn over the picture, lit as they are used - for streams and videos. In an RZX replay it
-  shows what the player pressed.
+- **Input overlay** (View, Input Overlay, experimental): the ZX keyboard, a Kempston joystick
+  and mouse drawn over the picture, lit as they are used - for streams and videos. In an RZX
+  replay it shows what the player pressed.
 
 - **Hotkey layouts**: Modern, the new default, and Classic, the keys as they were. Keys you
   change are kept as Custom over either, and an older config keeps them too.
@@ -90,8 +90,6 @@ before that point is upstream's history and is not repeated here.
   next file your own machine can run goes back to it, and the next start takes yours too. The
   first start asks.
 
-- **Advanced settings for a machine** is the gear beside the model.
-
 - **A Gamepads window**, from the toolbar, the new Input menu or Options, Input: for each player
   a device and the joystick it stands for - Kempston, either Sinclair port, Cursor/Protek/AGF,
   QAOP or keys of your own. A pad plays at once. *(thanks to Volutar for the design)*
@@ -121,13 +119,13 @@ before that point is upstream's history and is not repeated here.
 - **Two floppy drives** unless a machine says otherwise, and Fast Disk Access in the disk
   manager too.
 
+- **Advanced settings for a machine** is the gear beside the model.
+
 - **Names**: menus and window titles in Title Case, hotkeys named as in the menus, styles
   without `.qss`, and Run ahead no longer marked experimental.
 
-- **The keyboard and HALT indicators** are off in a new configuration.
-
-- **The sound devices start at 80% each** in a new configuration, so the AY is no longer
-  buried under the beeper.
+- **A new configuration** starts the sound devices at 80% each, so the AY is no longer buried
+  under the beeper, and leaves the keyboard and HALT indicators off.
 
 - **About** names the maintainer and the license, and no longer stops the machine.
   *(thanks to Volutar)*
@@ -175,8 +173,8 @@ before that point is upstream's history and is not repeated here.
   *(thanks to Volutar for the report)*
 
 - **The virtual keyboard**, docked, shows over the picture in fullscreen with Low latency on; it
-  took clicks without being seen. *(thanks to Volutar for the report)* After a resize the
-  mouse pointer over it is no longer left as the sizing arrow.
+  took clicks without being seen. After a resize the pointer over it is no longer left as the
+  sizing arrow. *(thanks to Volutar for the report)*
 
 - **A folder as an SD card or a hard disk** always has the files in its root, takes ten times
   as many files, mounts fast and says what does not fit. *(thanks to nodeus for the report)*
