@@ -1473,6 +1473,8 @@ void MainWin::initIosdMenu(QMenu* mnu) {
 			saveConfig();
 		});
 	};
+	mnu->addAction("EXPERIMENTAL")->setEnabled(false);
+	mnu->addSeparator();
 	add(mnu, "Show", &conf.iosd.on, -1);
 	mnu->addSeparator();
 	add(mnu, "Keyboard", &conf.iosd.keys, -1);
