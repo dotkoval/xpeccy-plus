@@ -27,8 +27,7 @@ Tape* tape_create(cbirq cb, void* p) {
 }
 
 void tape_destroy(Tape* tap) {
-	if (tap->path) free(tap->path);
-	tapEject(tap);
+	tapEject(tap);		// frees the path too
 	if (tap->tmpBlock.data)
 		free(tap->tmpBlock.data);
 	free(tap);
