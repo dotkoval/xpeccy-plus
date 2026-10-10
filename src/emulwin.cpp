@@ -1473,6 +1473,8 @@ void MainWin::initIosdMenu(QMenu* mnu) {
 			saveConfig();
 		});
 	};
+	mnu->addAction("EXPERIMENTAL")->setEnabled(false);
+	mnu->addSeparator();
 	add(mnu, "Show", &conf.iosd.on, -1);
 	mnu->addSeparator();
 	add(mnu, "Keyboard", &conf.iosd.keys, -1);
@@ -2110,7 +2112,7 @@ void MainWin::initMenuBar() {
 	sbShowAct->setCheckable(true);
 	viewMenu->addSeparator();
 	cutAction(viewMenu, "Virtual Keyboard", XCUT_KEYBOARD, "keyboardzx");
-	initIosdMenu(viewMenu->addMenu("Input Overlay (experimental)"));
+	initIosdMenu(viewMenu->addMenu("Input Overlay"));
 
 	QMenu* help = new xMenu("Help", this);
 	helpMenu = help;
