@@ -183,7 +183,7 @@ static void wav_round_trip(Computer* comp, const char* dir) {
 		printf("tap -> wav -> tap: identical, %ld bytes\n", na);
 	else
 		printf("tap -> wav -> tap: DIFFERS at byte %ld (%ld vs %ld bytes)\n", i, na, nb);
-	// TODO: compDestroy(c2) once tape_destroy() no longer frees the path twice
+	compDestroy(c2);
 }
 
 int main(int argc, char** argv) {
@@ -203,7 +203,7 @@ int main(int argc, char** argv) {
 		check_bytes(comp->tape, dir, imgs[i]);
 		printf("== %s_replay\n", tag);
 		replay(comp->tape);
-		// TODO: compDestroy(comp) once tape_destroy() no longer frees the path twice
+		compDestroy(comp);
 	}
 	printf("== tap_wav\n");
 	Computer* tapComp = load(dir, imgs[0]);
