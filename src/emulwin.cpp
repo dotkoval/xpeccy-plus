@@ -2110,7 +2110,7 @@ void MainWin::initMenuBar() {
 	sbShowAct->setCheckable(true);
 	viewMenu->addSeparator();
 	cutAction(viewMenu, "Virtual Keyboard", XCUT_KEYBOARD, "keyboardzx");
-	initIosdMenu(viewMenu->addMenu("Input Overlay"));
+	initIosdMenu(viewMenu->addMenu("Input Overlay (experimental)"));
 
 	QMenu* help = new xMenu("Help", this);
 	helpMenu = help;

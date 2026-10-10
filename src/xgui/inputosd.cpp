@@ -8,9 +8,8 @@
 #include "inputosd.h"
 #include "../xcore/xcore.h"
 
-// a tap of one frame is held lit this long, then fades out over the next
-#define OSD_HOLD_MS	90
-#define OSD_FADE_MS	160
+// the wheel and the movement have no up, so each turn or move is shown this long
+#define OSD_EVENT_MS	150
 
 // all in key pitches
 #define KBD_W		10.75
@@ -45,12 +44,11 @@ xInputOsd::xInputOsd() {
 	memset(&drawnLit, 0, sizeof(drawnLit));
 }
 
-double xInputOsd::glow(qint64 at) {
-	if (at == 0) return 0.0;
-	qint64 dt = now - at;
-	if (dt <= OSD_HOLD_MS) return 1.0;
-	dt -= OSD_HOLD_MS;
-	return (dt >= OSD_FADE_MS) ? 0.0 : 1.0 - double(dt) / OSD_FADE_MS;
+// a key is lit while it is down and goes out the moment it is up
+double xInputOsd::glow(int idx) {
+	qint64 at = litAt[idx];
+	qint64 hold = (idx >= LIT_WHEEL) ? OSD_EVENT_MS : 0;
+	return (at && (now - at <= hold)) ? 1.0 : 0.0;
 }
 
 // light with a dark rim, the way the label of every key is drawn
@@ -349,7 +347,7 @@ void xInputOsd::paint(QPainter& pnt, const QRect& pic, const InState& st, qreal 
 	Lit lit;
 	memset(&lit, 0, sizeof(lit));
 	for (int i = 0; i < LIT_COUNT; i++)
-		lit.lit[i] = glow(litAt[i]);
+		lit.lit[i] = glow(i);
 	lit.wheelDir = wheelDir;
 	lit.moveX = moveX;
 	lit.moveY = moveY;

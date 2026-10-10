@@ -18,7 +18,7 @@ class xInputOsd {
 		xInputOsd();
 		void paint(QPainter&, const QRect& pic, const InState&, qreal dpr);
 	private:
-		// when each thing was last seen down, ms; a tap is held lit a while
+		// when each thing was last seen down, ms
 		qint64 litAt[LIT_COUNT];
 		int wheelDir;
 		unsigned char wheelWas;
@@ -45,7 +45,7 @@ class xInputOsd {
 		QImage baseImg;
 		QImage osdImg;		// what goes on the window, whole
 
-		double glow(qint64 at);
+		double glow(int);
 		void stamp(const InState&);
 		void paintBlocks(QPainter&, const Layout&, const Lit*);
 		void paintKeys(QPainter&, QPointF org, double u, const Lit*);

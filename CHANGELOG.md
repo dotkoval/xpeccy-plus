@@ -54,7 +54,7 @@ before that point is upstream's history and is not repeated here.
   - The RZX player has a bookmark button and lists the recording as it is made.
     *(thanks to Volutar)*
 
-- **Input overlay** (View, Input Overlay): the ZX keyboard, a Kempston joystick and mouse
+- **Input overlay** (View, Input Overlay, experimental): the ZX keyboard, a Kempston joystick and mouse
   drawn over the picture, lit as they are used - for streams and videos. In an RZX replay it
   shows what the player pressed.
 
