@@ -1,0 +1,68 @@
+# TSConf bench cases, see README.md.
+#
+#   bin  <file in bin/>  <source in asm/>  [DEFINE=value ...]   how mkbins.py assembles it
+#   run  <case>  <file in bin/>  <frames>  [ENV=value ...]      one run of tsconf-bench
+#
+# A .spg file is the program assembled at #8000 and wrapped as an SPG.
+
+bin t01_frameint14.bin   t01_frameint14.asm
+bin t02_lineint.bin      t02_lineint.asm
+bin t02_lineint14.bin    t02_lineint.asm      CLK=2
+bin t03_lineint_im1.bin  t03_lineint_im1.asm
+bin t04_dma.bin          t04_dma.asm
+bin t05_dos_vdos.bin     t05_dos_vdos.asm
+bin t06_vsint.bin        t06_vsint.asm
+bin t06_vsint_junk.bin   t06_vsint.asm        VSH=2
+bin t07_7ffd.bin         t07_7ffd.asm
+bin t08_fmaps_16c.bin    t08_fmaps_16c.asm
+bin t09_spg.spg          t09_spg.asm
+bin t10_layers_m0.bin    t10_layers.asm       MODE=0
+bin t10_layers_m1.bin    t10_layers.asm       MODE=1
+bin t10_layers_m2.bin    t10_layers.asm       MODE=2
+bin t10_layers_m3.bin    t10_layers.asm       MODE=3
+bin t10_layers_m4.bin    t10_layers.asm       MODE=4
+bin t10_layers_m5.bin    t10_layers.asm       MODE=5
+bin t11_fddopen.bin      t11_fddopen.asm
+bin t12_c0a0.bin         t12_cache.asm        CACHE=0 AYIN=0
+bin t12_c1a0.bin         t12_cache.asm        CACHE=1 AYIN=0
+bin t12_c0a1.bin         t12_cache.asm        CACHE=0 AYIN=1
+bin t12_c1a1.bin         t12_cache.asm        CACHE=1 AYIN=1
+bin t13_dmatime_c0.bin   t13_dmatime.asm      CLK=0
+bin t13_dmatime_c6.bin   t13_dmatime.asm      CLK=6
+bin t14_dmareg.bin       t14_dmareg.asm
+bin t15_tiles_y0.bin     t15_tiles.asm        YOFS=0
+bin t15_tiles_y4.bin     t15_tiles.asm        YOFS=4
+bin t16_sprreuse.bin     t16_sprreuse.asm
+bin t17_text_m0.bin      t17_text.asm         MODE=0
+bin t17_text_m1.bin      t17_text.asm         MODE=1
+
+run t01_frameint14   t01_frameint14.bin   300
+run t02_lineint      t02_lineint.bin      300
+run t02_lineint14    t02_lineint14.bin    300
+run t03_lineint_im1  t03_lineint_im1.bin  300
+run t04_dma          t04_dma.bin          5
+run t05_dos_vdos     t05_dos_vdos.bin     30
+run t06_vsint        t06_vsint.bin        10
+run t06_vsint_junk   t06_vsint_junk.bin   10
+run t07_7ffd         t07_7ffd.bin         5
+run t08_fmaps_16c    t08_fmaps_16c.bin    3
+run t09_spg          t09_spg.spg          3
+run t10_layers_m0    t10_layers_m0.bin    4  "PIX=54,60 58,60 62,60 66,60"
+run t10_layers_m1    t10_layers_m1.bin    4  "PIX=54,60 58,60 62,60 66,60"
+run t10_layers_m2    t10_layers_m2.bin    4  "PIX=54,60 58,60 62,60 66,60"
+run t10_layers_m4    t10_layers_m4.bin    4  "PIX=54,60 58,60 62,60 66,60"
+run t10_layers_m3    t10_layers_m3.bin    4  "PIX=12,12 40,12"
+run t10_layers_m5    t10_layers_m5.bin    4
+run t11_fddopen      t11_fddopen.bin      3
+run t12_c0a0         t12_c0a0.bin         20
+run t12_c1a0         t12_c1a0.bin         20
+run t12_c0a1         t12_c0a1.bin         20
+run t12_c1a1         t12_c1a1.bin         20
+run t13_dmatime_c0   t13_dmatime_c0.bin   10
+run t13_dmatime_c6   t13_dmatime_c6.bin   10
+run t14_dmareg       t14_dmareg.bin       5
+run t15_tiles_y0     t15_tiles_y0.bin     12  "PIX=26,18 26,15 22,18 42,3"
+run t15_tiles_y4     t15_tiles_y4.bin     12  "PIX=26,13 26,20 42,1"
+run t16_sprreuse     t16_sprreuse.bin     4   "PIX=104,7 104,8 104,9 204,7 204,8 204,9"
+run t17_text_m0      t17_text_m0.bin      4   "PIX=40,40" "PIXH=104,48 105,48 106,48 107,48 108,48 136,48 137,48"
+run t17_text_m1      t17_text_m1.bin      4   "PIX=40,40" "PIXH=104,48 105,48 106,48 107,48 108,48 136,48 137,48"

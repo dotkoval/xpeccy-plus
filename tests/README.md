@@ -28,3 +28,24 @@ A difference is not a failure by itself: a change meant to alter timing moves th
 the machines it touches, and those are blessed once the change is checked against real
 hardware. A change that should alter nothing - a refactor, a speed-up - must leave every
 hash where it was.
+
+## Quick tier
+
+```
+python tests/regress.py quick                 # build, run every bench, PASS/FAIL per case
+python tests/regress.py quick tsconf -k 't1*'
+python tests/regress.py quick tape --bless    # take the current output as expected
+python tests/core/mkbins.py                   # reassemble the Z80 programs (needs sjasmplus)
+```
+
+Seconds, no Qt and no app: `tests/CMakeLists.txt` is a project of its own that builds
+libxpeccy as a static library and the benches in `core/` against it, into
+`build/out/tests` (on Windows with the qt6-x64 MinGW of `packaging/make-dist.ps1`, or
+`--mingw`). Each bench's output is compared, case by case, with `expected.txt` beside it.
+
+- **z80** - `tools/z80test`, Fuse's per-instruction tests.
+- **tsconf**, **baseconf** - small Z80 programs on the TSConf and BaseConf cores, each
+  checking one thing the hardware's RTL says; `cases.txt` lists them. The programs are
+  committed assembled in `bin/` beside their sources in `asm/`, so a run needs no assembler.
+- **tape** - TAP and TZX images written by `core/tape/mktape.py`: the blocks as read, the
+  bytes decoded back, the pulse lengths a loader measures, and a TAP -> WAV -> TAP round trip.

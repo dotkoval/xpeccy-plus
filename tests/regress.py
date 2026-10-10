@@ -8,6 +8,7 @@ builds that print the same hashes ran the machine identically.
   regress.py run [suite...] [-k PATTERN]   compare with the reference, exit 1 on a difference
   regress.py bless [suite...] [-k PATTERN] take the current results as the reference
   regress.py list [suite...]
+  regress.py quick [bench...] [-k PATTERN]  the headless libxpeccy benches, no app needed
 
 The images and the references are not in this repository: --corpus/XPECCY_CORPUS and
 --golden/XPECCY_GOLDEN point at them. Needs a build without XRELEASE (no --bench there).
@@ -114,11 +115,16 @@ def load_golden(golden, suite):
     return json.loads(p.read_text(encoding="utf-8")) if p.exists() else {}
 
 
+def matches(name, key, patterns):
+    """-k: a case is picked by its name or its suite/name, against any pattern"""
+    return not patterns or any(fnmatch.fnmatch(name, k) or fnmatch.fnmatch(key, k) for k in patterns)
+
+
 def pick(args):
     suites = args.suite or all_suites()
     cases = [c for s in suites for c in load_suite(s)]
     if args.k:
-        cases = [c for c in cases if any(fnmatch.fnmatch(c.name, k) or fnmatch.fnmatch(c.key, k) for k in args.k)]
+        cases = [c for c in cases if matches(c.name, c.key, args.k)]
     if not cases:
         sys.exit("no cases match")
     return cases
@@ -209,10 +215,17 @@ def cmd_list(args):
     return 0
 
 
+def cmd_quick(args):
+    sys.path.insert(0, str(Path(__file__).resolve().parent / "core"))
+    sys.dont_write_bytecode = True
+    import quick
+    return quick.run(args, matches)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("command", choices=("run", "bless", "list"))
-    ap.add_argument("suite", nargs="*", help=f"suites in tests/suites (default: all)")
+    ap.add_argument("command", choices=("run", "bless", "list", "quick"))
+    ap.add_argument("suite", nargs="*", help="suites in tests/suites (default: all)")
     ap.add_argument("-k", action="append", help="only cases whose name matches (glob, repeatable)")
     ap.add_argument("--app", help="staged build folder (default: newest dev build in build/dist)")
     ap.add_argument("--corpus", help="image folder (default: $XPECCY_CORPUS)")
@@ -223,8 +236,11 @@ def main():
     ap.add_argument("--twice", action="store_true", help="run every case twice and flag any that differ")
     ap.add_argument("--json", help="write the raw results here")
     ap.add_argument("-v", "--verbose", action="store_true")
+    ap.add_argument("--no-build", action="store_true", help="quick: use what build/out/tests holds")
+    ap.add_argument("--bless", action="store_true", help="quick: take the current output as expected")
+    ap.add_argument("--mingw", help="quick, Windows: MinGW folder (default: $XPECCY_MINGW, then the qt6-x64 one)")
     args = ap.parse_args()
-    return {"run": cmd_run, "bless": cmd_bless, "list": cmd_list}[args.command](args)
+    return {"run": cmd_run, "bless": cmd_bless, "list": cmd_list, "quick": cmd_quick}[args.command](args)
 
 
 if __name__ == "__main__":

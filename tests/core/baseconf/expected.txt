@@ -1,0 +1,133 @@
+== t01_vmode_3_00
+t01_vmode_3_00.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 14 E3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_3_01
+t01_vmode_3_01.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 15 E3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 2  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_3_20
+t01_vmode_3_20.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 34 E3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 6  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_3_21
+t01_vmode_3_21.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 35 E3 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_0_00
+t01_vmode_0_00.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 14 E0 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 3  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_0_01
+t01_vmode_0_01.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 15 E0 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 3  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_2_01
+t01_vmode_2_01.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 15 E2 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 5  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_6_20
+t01_vmode_6_20.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 34 E6 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 4  TURBO: 1  BEEP: 0  COVOX: 00
+== t01_vmode_7_21
+t01_vmode_7_21.bin: 51 bytes, done after 0 frames, pc=8032
+BF01: 35 E7 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 7  TURBO: 1  BEEP: 0  COVOX: 00
+== t02_hwmc
+t02_hwmc.bin: 67 bytes, done after 5 frames, pc=8042
+PIX  : 80,84=02 280,184=02
+BRD  : 00  MODE: 6  TURBO: 1  BEEP: 0  COVOX: 00
+== t03_alco
+t03_alco.bin: 82 bytes, done after 2 frames, pc=8051
+PIX  : 52,48=0F 53,48=00 54,48=00 55,48=0F 56,48=02 57,48=02 58,48=01 59,48=04
+BRD  : 00  MODE: 2  TURBO: 1  BEEP: 0  COVOX: 00
+== t04_ps2log_k0
+t04_ps2log.bin: 43 bytes, done after 0 frames, pc=802A
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t04_ps2log_k1
+t04_ps2log.bin: 43 bytes, done after 0 frames, pc=802A
+BF01: 1C F0 1C 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t04_ps2log_k5
+t04_ps2log.bin: 43 bytes, done after 0 frames, pc=802A
+BF01: 1C F0 1C 1C F0 1C 1C F0 1C 1C F0 1C 1C F0 1C 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t04_ps2log_k6
+t04_ps2log.bin: 43 bytes, done after 0 frames, pc=802A
+BF01: FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t05_idec8
+t05_idec8.bin: 45 bytes, done after 0 frames, pc=802C
+BF01: E0 50 50 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t06_nmi_nest
+t06_nmi_nest.bin: 4211 bytes, done after 2 frames, pc=8030
+BF01: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t07_nmi_ei
+t07_nmi_ei.bin: 4211 bytes, done after 0 frames, pc=8026
+BF01: 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t08_ideident
+t08_ideident.bin: 83 bytes, done after 0 frames, pc=8047
+BF01: 02 00 10 00 3F 00 02 00 10 00 3F 00 E0 07 00 00
+BF11: 00 08 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t09_ideslave
+t09_ideslave.bin: 45 bytes, done after 0 frames, pc=802C
+BF01: 00 00 50 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t10_reset
+t10_reset.bin: 35 bytes, done after 0 frames, pc=8022
+BRD  : 00  MODE: 3  TURBO: 1  BEEP: 0  COVOX: 00
+RESET: MODE: 0  TURBO: 2
+== t11_intonce
+t11_intonce.bin: 63 bytes, done after 10 frames, pc=803E
+BF01: 0A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 2  BEEP: 0  COVOX: 00
+== t12_floatbus
+t12_floatbus.bin: 38 bytes, done after 2 frames, pc=8025
+BF01: FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t13_palette
+t13_palette.bin: 104 bytes, done after 0 frames, pc=8067
+BF01: 21 FF 0C 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 03  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+PAL  : FF0000 EF0810 CCCCCC FFFFFF BF2040 AF2850 9F3060 8F3870 7F4080 6F4890 5F50A0 4F58B0 3F60C0 2F68D0 1F70E0 0F78F0
+== t14_fefd
+t14_fefd.bin: 75 bytes, done after 0 frames, pc=804A
+BF01: 13 03 0D 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 0D  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t15_pager
+t15_pager.bin: 139 bytes, done after 0 frames, pc=808A
+BF01: 01 5A 5A 09 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t16_cmos
+t16_cmos.bin: 174 bytes, done after 0 frames, pc=80AD
+BF01: 2A 06 01 33 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t17_dosports
+t17_dosports.bin: 82 bytes, done after 0 frames, pc=8051
+BF01: 3C 00 FF 00 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 77
+== t18_sdwrite
+t18_sdwrite.bin: 221 bytes, done after 1 frames, pc=80A6
+BF01: 11 22 A5 05 00 00 00 00 00 00 00 00 00 00 00 00
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t19_timing_m0
+t19_timing_m0.bin: 39 bytes, done after 0 frames, pc=8026
+TICKS: 8345
+BRD  : 00  MODE: 0  TURBO: 4  BEEP: 0  COVOX: 00
+== t19_timing_m1
+t19_timing_m1.bin: 44 bytes, done after 0 frames, pc=802B
+TICKS: 18074
+BRD  : 00  MODE: 0  TURBO: 4  BEEP: 0  COVOX: 00
+== t19_timing_m2
+t19_timing_m2.bin: 24 bytes, done after 0 frames, pc=8017
+TICKS: 11841
+BRD  : 00  MODE: 0  TURBO: 1  BEEP: 0  COVOX: 00
+== t19_timing_m3
+t19_timing_m3.bin: 38 bytes, done after 0 frames, pc=8025
+TICKS: 15502
+BRD  : 00  MODE: 0  TURBO: 4  BEEP: 0  COVOX: 00
