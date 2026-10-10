@@ -2083,7 +2083,11 @@ void MainWin::initMenuBar() {
 		grp->addAction(act);
 		sizeActs.append(act);
 	}
-	fullAct = cutAction(viewMenu, "Fullscreen", XCUT_FULLSCR, "grp-picture");
+	fullAct = cutAction(viewMenu, "Fullscreen", XCUT_FULLSCR, "");
+	QIcon fullIcon;		// drawn at each size the toolbar can take, 32 for a scaled screen
+	for (int px : {16, 24, 32})
+		fullIcon.addFile(QString(":/images/fullscreen_icon_%0.png").arg(px));
+	fullAct->setIcon(fullIcon);
 	fullAct->setCheckable(true);
 	ratioAct = cutAction(viewMenu, "Keep Aspect Ratio", XCUT_RATIO, "display");
 	ratioAct->setCheckable(true);

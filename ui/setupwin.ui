@@ -65,7 +65,7 @@
           </property>
           <property name="icon">
            <iconset resource="../xpeccy.qrc">
-            <normaloff>:/images/display.png</normaloff>:/images/display.png</iconset>
+            <normaloff>:/images/grp-picture.png</normaloff>:/images/grp-picture.png</iconset>
           </property>
          </item>
          <item>
