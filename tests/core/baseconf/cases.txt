@@ -1,0 +1,71 @@
+# BaseConf bench cases, see README.md.
+#
+#   bin  <file in bin/>  <source in asm/>  [DEFINE=value ...]   how mkbins.py assembles it
+#   run  <case>  <file in bin/>  <frames>  [ENV=value ...]      one run of baseconf-bench
+#
+# An ENV value ending in .img names a blank 1 MB image made for the run.
+
+bin t01_vmode_3_00.bin   t01_vmode.asm      M77=3 EFF=#00
+bin t01_vmode_3_01.bin   t01_vmode.asm      M77=3 EFF=#01
+bin t01_vmode_3_20.bin   t01_vmode.asm      M77=3 EFF=#20
+bin t01_vmode_3_21.bin   t01_vmode.asm      M77=3 EFF=#21
+bin t01_vmode_0_00.bin   t01_vmode.asm      M77=0 EFF=#00
+bin t01_vmode_0_01.bin   t01_vmode.asm      M77=0 EFF=#01
+bin t01_vmode_2_01.bin   t01_vmode.asm      M77=2 EFF=#01
+bin t01_vmode_6_20.bin   t01_vmode.asm      M77=6 EFF=#20
+bin t01_vmode_7_21.bin   t01_vmode.asm      M77=7 EFF=#21
+bin t02_hwmc.bin         t02_hwmc.asm
+bin t03_alco.bin         t03_alco.asm
+bin t04_ps2log.bin       t04_ps2log.asm
+bin t05_idec8.bin        t05_idec8.asm
+bin t06_nmi_nest.bin     t06_nmi_nest.asm
+bin t07_nmi_ei.bin       t07_nmi_ei.asm
+bin t08_ideident.bin     t08_ideident.asm
+bin t09_ideslave.bin     t09_ideslave.asm
+bin t10_reset.bin        t10_reset.asm
+bin t11_intonce.bin      t11_intonce.asm
+bin t12_floatbus.bin     t12_floatbus.asm
+bin t13_palette.bin      t13_palette.asm
+bin t14_fefd.bin         t14_fefd.asm
+bin t15_pager.bin        t15_pager.asm
+bin t16_cmos.bin         t16_cmos.asm
+bin t17_dosports.bin     t17_dosports.asm
+bin t18_sdwrite.bin      t18_sdwrite.asm
+bin t19_timing_m0.bin    t19_timing.asm     MODE=0
+bin t19_timing_m1.bin    t19_timing.asm     MODE=1
+bin t19_timing_m2.bin    t19_timing.asm     MODE=2
+bin t19_timing_m3.bin    t19_timing.asm     MODE=3
+
+run t01_vmode_3_00   t01_vmode_3_00.bin   3
+run t01_vmode_3_01   t01_vmode_3_01.bin   3
+run t01_vmode_3_20   t01_vmode_3_20.bin   3
+run t01_vmode_3_21   t01_vmode_3_21.bin   3
+run t01_vmode_0_00   t01_vmode_0_00.bin   3
+run t01_vmode_0_01   t01_vmode_0_01.bin   3
+run t01_vmode_2_01   t01_vmode_2_01.bin   3
+run t01_vmode_6_20   t01_vmode_6_20.bin   3
+run t01_vmode_7_21   t01_vmode_7_21.bin   3
+run t02_hwmc         t02_hwmc.bin         10  "PIX=80,84 280,184"
+run t03_alco         t03_alco.bin         10  "PIX=52,48 53,48 54,48 55,48 56,48 57,48 58,48 59,48"
+run t04_ps2log_k0    t04_ps2log.bin       3   KEYS=0
+run t04_ps2log_k1    t04_ps2log.bin       3   KEYS=1
+run t04_ps2log_k5    t04_ps2log.bin       3   KEYS=5
+run t04_ps2log_k6    t04_ps2log.bin       3   KEYS=6
+run t05_idec8        t05_idec8.bin        3   HDD=hdd.img
+run t06_nmi_nest     t06_nmi_nest.bin     10
+run t07_nmi_ei       t07_nmi_ei.bin       10
+run t08_ideident     t08_ideident.bin     3   HDD=hdd.img
+run t09_ideslave     t09_ideslave.bin     3   HDD=hdd.img
+run t10_reset        t10_reset.bin        3   RESETAFTER=1
+run t11_intonce      t11_intonce.bin      20
+run t12_floatbus     t12_floatbus.bin     5
+run t13_palette      t13_palette.bin      3   PAL=1
+run t14_fefd         t14_fefd.bin         3
+run t15_pager        t15_pager.bin        3
+run t16_cmos         t16_cmos.bin         3
+run t17_dosports     t17_dosports.bin     3
+run t18_sdwrite      t18_sdwrite.bin      5   SDCARD=sd.img
+run t19_timing_m0    t19_timing_m0.bin    5   TICKS=1
+run t19_timing_m1    t19_timing_m1.bin    5   TICKS=1
+run t19_timing_m2    t19_timing_m2.bin    5   TICKS=1
+run t19_timing_m3    t19_timing_m3.bin    5   TICKS=1

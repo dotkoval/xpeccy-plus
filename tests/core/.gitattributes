@@ -1,0 +1,3 @@
+# assembled Z80 programs: bytes, never line-ending converted
+*.bin binary
+*.spg binary
