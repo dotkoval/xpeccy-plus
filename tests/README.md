@@ -44,6 +44,25 @@ the machines it touches, and those are blessed once the change is checked agains
 hardware. A change that should alter nothing - a refactor, a speed-up - must leave every
 hash where it was.
 
+## System/Next archive reader
+
+The Next's card is unpacked inside the program, so this target tests that reader
+(`src/xcore/sysnext_unpack.cpp`) on its own: Qt Core and zlib, no emulator, and no
+external archiver. It is a project of its own rather than a bench of the quick tier,
+which builds libxpeccy with no Qt at all.
+
+```
+cmake -S tests/sysnext -B build/out/sysnext -DQTVERSION=6 -DCMAKE_PREFIX_PATH=<Qt prefix>
+cmake --build build/out/sysnext
+ctest --test-dir build/out/sysnext --output-on-failure
+```
+
+`-DQTVERSION=5` builds it against Qt 5. The fixtures cover USTAR, GNU and pax names and
+sizes, stored and deflated entries, byte progress, cancellation, corrupt and truncated
+gzip, tar and zip data, paths that would land outside the folder, links and special
+files, versions of the formats that are refused (ZIP64, encrypted zips, sparse tar), and
+a destination that is not empty.
+
 ## Quick tier
 
 ```

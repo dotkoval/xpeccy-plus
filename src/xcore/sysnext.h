@@ -28,6 +28,12 @@ QString sn_archive_name(const snRelease&);	// tbblue-system-next_24.11.tar.gz
 QString sn_repo_url();
 QString sn_cache_dir();				// <config>/downloads/: archives downloaded, kept for the next card
 
+// A .tar.gz or a .zip, by the name the archive goes by: both are read here, so making a
+// card needs no tar, unzip or PowerShell on the machine. The destination must be empty;
+// the caller discards it on failure or cancellation. tick(done, total) false stops it.
+bool sn_unpack_archive(const QString& archive, const QString& dir, QString* err,
+	std::function<bool(qint64, qint64)> tick = nullptr);
+
 // the checksum of a tree: sha256 over the sorted "sha256  path" lines of its files, as
 // sha256sum prints them - the same whatever packed them. tick() false stops it.
 QString sn_tree_hash(const QString& dir, std::function<bool()> tick = nullptr);

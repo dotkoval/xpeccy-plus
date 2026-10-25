@@ -286,7 +286,7 @@ bool xNextCard::tick() {
 
 void xNextCard::run(const QString& prog, const QStringList& args, std::function<void()> next) {
 	if (prog.isEmpty()) {
-		fail("A tool this needs is missing: curl and tar");
+		fail("Downloading needs curl, and there is none on this machine");
 		return;
 	}
 	if (prc) prc->deleteLater();
@@ -417,17 +417,21 @@ void xNextCard::verify() {
 
 void xNextCard::unpack() {
 	lab->setText("Unpacking");
-	bar->setRange(0, 0);
-	QString dst = QDir::toNativeSeparators(tmp + "x");
-	QString arc = QDir::toNativeSeparators(archive);
-#if !defined(_WIN32) && !defined(__APPLE__)
-	// GNU tar reads no zip
-	if (archive.endsWith(".zip")) {
-		run(nc_tool("unzip"), QStringList() << "-q" << arc << "-d" << dst, [this]() {place();});
+	bar->setRange(0, 1000);
+	QString err;
+	bool ok = sn_unpack_archive(archive, tmp + "x", &err, [this](qint64 done, qint64 total) {
+		bar->setValue(total ? int(1000.0 * done / total) : 0);
+		return tick();
+	});
+	if (!running) {
+		QDir(tmp).removeRecursively();
 		return;
 	}
-#endif
-	run(nc_tool("tar"), QStringList() << "-xf" << arc << "-C" << dst, [this]() {place();});
+	if (!ok) {
+		fail(err);
+		return;
+	}
+	place();
 }
 
 void xNextCard::place() {

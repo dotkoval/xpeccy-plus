@@ -65,8 +65,9 @@ unchanged. A release with no checksum known to Xpeccy+ is marked **(not checked)
 **A card I have**, the button is **Use**: pick a folder or an image that already has
 System/Next on it.
 
-The new card goes in at once, and the Next starts from it. The download uses the `curl` and
-`tar` of the system.
+The new card goes in at once, and the Next starts from it. The archive is unpacked inside
+Xpeccy+, with a progress bar and Cancel; only the download itself uses the system's
+`curl`. A `.tar.gz` or a `.zip` beside the program needs no download at all.
 
 ```{index} SD card; Next's own card
 ```

@@ -11,6 +11,12 @@ before that point is upstream's history and is not repeated here.
 
 ### Fixed
 
+- **The Next's card comes out of the program's own archive reader**: System/Next is
+  unpacked inside Xpeccy+ - `.tar.gz` and `.zip` both, with progress, Cancel, and the
+  same checks on where a file may land - so making a card needs no `tar`, `unzip` or
+  PowerShell on the machine. Windows 8.1, where the report came from, has none of them:
+  with an archive beside the program it makes a card now. The download itself still uses
+  the system's `curl`. *(thanks to janko-jj)*
 - **macOS windows close on the first click**: SDL no longer starts a second native video
   event pump just to read gamepads. Qt alone handles the title-bar mouse events; gamepad
   input and hotplug continue to work.
