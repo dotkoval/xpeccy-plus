@@ -21,6 +21,7 @@
 
 #include "xcore.h"
 #include "gamepad.h"
+#include "arcpath.h"
 
 #define VIRTKEYBASE 12
 
@@ -1998,8 +1999,7 @@ void xGamepadController::rescan() {
 }
 
 QString pad_game_file(const QString& image) {
-	QFileInfo fi(image);
-	return fi.dir().filePath(fi.completeBaseName() + ".pad");
+	return arc_beside(image, ".pad");		// an archive's: beside the archive
 }
 
 // The player's own table comes back first, whatever the image: a game's

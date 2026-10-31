@@ -6,13 +6,16 @@
 #include "xcore/filemachine.h"
 #include "xcore/cheats.h"
 #include "xcore/sound.h"
+#include "xcore/arcpath.h"
 #include "libxpeccy/cpu/Z80/z80.h"
 #include "libxpeccy/filetypes/szx.h"
 #include "libxpeccy/xstate.h"
 #include "xgui/xgui.h"
 
+#include <QAbstractItemDelegate>
 #include <QDebug>
 #include <QDialog>
+#include <QDialogButtonBox>
 #include <QFileDialog>
 #include <QHBoxLayout>
 #include <QHeaderView>
@@ -22,9 +25,15 @@
 #include <QMessageBox>
 #include <QPushButton>
 #include <QScrollBar>
+#include <QSet>
 #include <QSplitter>
+#include <QStyleOptionViewItem>
 #include <QTreeView>
+#include <QTreeWidget>
+#include <QTimer>
 #include <QVBoxLayout>
+
+#include <algorithm>
 
 static QFileDialog* fileDlg = nullptr;
 static QWidget* fileDlgParent = nullptr;
@@ -411,6 +420,8 @@ QString file_get_group_filter(Computer* comp, int id, int sv) {
 				i++;
 			}
 			ftf = ftf.trimmed();
+			if (!sv && !ftf.isEmpty() && (inf->id != FG_RAW) && (inf->id != FG_POK))
+				ftf.append(" " ARC_FILTER);
 			if (!ftf.isEmpty())
 				flt.append(QString("%0 (%1)").arg(inf->name, ftf));
 			flt.append(exf);
@@ -435,7 +446,7 @@ QString file_get_hw_filter(Computer* comp, int id, int sv) {
 		}
 	}
 	if ((flt.size() > 1) && !sv)
-		flt.prepend(QString("All files (%0)").arg(allfilt));
+		flt.prepend(QString("All files (%0)").arg(allfilt + ARC_FILTER));
 	return flt.join(";;");
 }
 
@@ -645,7 +656,7 @@ static bool media_ask_machine(const QString& path, const std::vector<std::string
 	dlg.setWindowTitle("Choose a Machine");
 	QVBoxLayout* lay = new QVBoxLayout(&dlg);
 	QLabel* lab = new QLabel(QString("<b>%1</b> does not run on %2.<br>Run it on:")
-		.arg(QFileInfo(path).fileName().toHtmlEscaped(), curName.toHtmlEscaped()));
+		.arg(arc_name(path).toHtmlEscaped(), curName.toHtmlEscaped()));
 	lab->setWordWrap(true);
 	lay->addWidget(lab);
 	QListWidget* list = new QListWidget;
@@ -690,7 +701,10 @@ bool media_machine(Computer* comp, const QString& path, int id, int drv, int run
 	if (!inf) return true;
 	int kind = as_kind_of(inf->id);		// AS_NONE: a snapshot, or nothing that runs
 	if ((kind != AS_NONE) && (!run || !as_runnable(kind, drv))) return true;
-	xFileMacPick pick = fm_pick(inf->id, path.toLocal8Bit().data());
+	QString err;
+	QString local = arc_local(path, &err);		// its bytes say which machine
+	if (local.isEmpty()) return true;			// opening it says why not
+	xFileMacPick pick = fm_pick(inf->id, local.toLocal8Bit().data());
 	if (!pick.ask.empty())
 		return media_ask_machine(path, pick.ask, mac);
 	*mac = pick.target;
@@ -863,11 +877,221 @@ static void szx_warn() {
 	mbx.exec();
 }
 
+/* Images in archives
+ *
+ * The images of an archive a request can take are the entries whose extension a
+ * loader of that request knows: Disk A's Open takes disks, the tape player's tapes.
+ * Left out: folders, archives in it, cheats, files that are only raw bytes, and what
+ * the World of Spectrum layout puts beside an image (SCRSHOT/, INFO/, POKES/). A
+ * cartridge only when one is asked for: a release's .bin is rarely one.
+ */
+
+// the file types a request may be opened as
+static void id_types(Computer* comp, int id, int drv, QSet<int>* types) {
+	if (id == FG_DISK) id = disk_id[(drv < 0 ? 0 : drv) & 3];
+	if (id == FG_ALL) id = detect_hw_id(comp->hw->id);
+	QVector<int> groups;
+	xFileHWInfo* hw = file_find_hw(id);
+	if (hw->id > 0) {
+		for (int i = 0; hw->child[i]; i++) groups.append(hw->child[i]);
+	} else if (file_find_group(id)->id > 0) {
+		groups.append(id);
+	} else {
+		types->insert(id);
+	}
+	for (int grp : groups) {
+		xFileGroupInfo* inf = file_find_group(grp);
+		for (int i = 0; inf->child[i]; i++) types->insert(inf->child[i]);
+	}
+	types->remove(FL_POK);
+	types->remove(FL_RAW);
+	bool cart = (id == FH_SLOTS) || (id == FG_IF2_ROM) || (id == FH_ALF);
+	if (!cart) {
+		types->remove(FL_SLT_BIN);
+		types->remove(FL_SLT_ROM);
+	}
+}
+
+static bool arc_beside_image(const QString& entry) {
+	const QStringList parts = entry.split('/');
+	for (int i = 0; i < parts.size() - 1; i++) {
+		for (const char* dir : {"SCRSHOT", "INFO", "POKES"})
+			if (!parts[i].compare(dir, Qt::CaseInsensitive)) return true;
+	}
+	return false;
+}
+
+// numbers as numbers, the rest as text whatever its case: Side 2 before Side 10
+static bool natural_less(const QString& a, const QString& b) {
+	int i = 0, j = 0;
+	while ((i < a.size()) && (j < b.size())) {
+		if (a[i].isDigit() && b[j].isDigit()) {
+			int ei = i, ej = j;
+			while ((ei < a.size()) && a[ei].isDigit()) ei++;
+			while ((ej < b.size()) && b[ej].isDigit()) ej++;
+			QString na = a.mid(i, ei - i), nb = b.mid(j, ej - j);
+			while ((na.size() > 1) && (na[0] == '0')) na.remove(0, 1);
+			while ((nb.size() > 1) && (nb[0] == '0')) nb.remove(0, 1);
+			if (na.size() != nb.size()) return na.size() < nb.size();
+			if (na != nb) return na < nb;
+			i = ei;
+			j = ej;
+			continue;
+		}
+		const QChar ca = a[i].toCaseFolded(), cb = b[j].toCaseFolded();
+		if (ca != cb) return ca < cb;
+		i++;
+		j++;
+	}
+	if ((a.size() - i) != (b.size() - j)) return (a.size() - i) < (b.size() - j);
+	return a < b;
+}
+
+QStringList media_candidates(Computer* comp, const QString& archive, int id, int drv, QString* err) {
+	QStringList res;
+	const QVector<arcEntry>* list = arc_entries(archive, err);
+	if (!list) {
+		*err = QFileInfo(archive).fileName() + ": " + *err;
+		return res;
+	}
+	QSet<int> types;
+	id_types(comp, id, drv, &types);
+	for (const arcEntry& entry : *list) {
+		if (entry.folder || arc_beside_image(entry.name) || (arc_type(entry.name) != ARC_NONE)) continue;
+		xFileTypeInfo* inf = file_find_hw_ext(comp->hw->id, entry.name);
+		if (inf && types.contains(inf->id)) res.append(entry.name);
+	}
+	std::stable_sort(res.begin(), res.end(), natural_less);
+	if (res.isEmpty())
+		*err = QString("%1 holds no image this machine can open here").arg(QFileInfo(archive).fileName());
+	return res;
+}
+
+static QString arc_size_text(qint64 size) {
+	if (size < 0) return QString();
+	if (size < 1024) return QString("%1 bytes").arg(size);
+	return QString("%1 KB").arg((size + 1023) / 1024);
+}
+
+// Several images: the user picks one, the first in natural order ready
+static QString media_pick(Computer* comp, const QString& archive, const QStringList& names) {
+	QMap<QString, qint64> sizes;
+	QString err;
+	if (const QVector<arcEntry>* list = arc_entries(archive, &err)) {
+		for (const arcEntry& entry : *list) sizes.insert(entry.name, entry.size);
+	}
+	QDialog dlg;
+	dlg.setWindowTitle("Open from Archive");
+	QVBoxLayout* lay = new QVBoxLayout(&dlg);
+	QLabel* lab = new QLabel(QString("<b>%1</b> holds %2 images. Open:")
+		.arg(QFileInfo(archive).fileName().toHtmlEscaped()).arg(names.size()));
+	lab->setWordWrap(true);
+	lay->addWidget(lab);
+	QTreeWidget* tree = new QTreeWidget;
+	tree->setColumnCount(3);
+	tree->setHeaderLabels({"Name", "Kind", "Size"});
+	tree->setRootIsDecorated(false);
+	tree->setUniformRowHeights(true);
+	tree->setAllColumnsShowFocus(true);
+	for (const QString& name : names) {
+		xFileTypeInfo* inf = file_find_hw_ext(comp->hw->id, name);
+		QTreeWidgetItem* it = new QTreeWidgetItem({name, inf ? QString(inf->name) : QString(),
+			arc_size_text(sizes.value(name, -1))});
+		it->setTextAlignment(2, Qt::AlignRight | Qt::AlignVCenter);
+		tree->addTopLevelItem(it);
+	}
+	tree->setCurrentItem(tree->topLevelItem(0));
+	// as tall as its rows, up to 12 of them; more scroll
+	QHeaderView* hdr = tree->header();
+	hdr->setStretchLastSection(false);
+	const int rows = qMin(int(names.size()), 12);
+	const bool more = names.size() > rows;
+	tree->setFixedHeight(hdr->sizeHint().height() + 2 * tree->frameWidth()
+		+ tree->sizeHintForRow(0) * rows + 2);
+	// Each column as wide as what it holds, every row of it, with the style's margins:
+	// the delegate's measure, as the view itself only measures the rows in sight. Done
+	// once the window is up - showing it puts every column back to the default width -
+	// and the window then fits them; the name takes what is left over
+	QTimer::singleShot(0, &dlg, [&dlg, tree, hdr, more]() {
+		QStyleOptionViewItem opt;
+		opt.initFrom(tree->viewport());
+		opt.widget = tree;
+		int width = 2 * tree->frameWidth() + (more ? tree->verticalScrollBar()->sizeHint().width() : 0);
+		for (int i = 0; i < 3; i++) {
+			int w = hdr->sectionSizeHint(i);
+			for (int r = 0; r < tree->topLevelItemCount(); r++)
+				w = qMax(w, tree->itemDelegate()->sizeHint(opt, tree->model()->index(r, i)).width());
+			hdr->resizeSection(i, w);
+			width += w;
+		}
+		hdr->setSectionResizeMode(0, QHeaderView::Stretch);
+		tree->setMinimumWidth(qMin(width, 720));
+		const QPoint mid = dlg.geometry().center();
+		dlg.adjustSize();
+		dlg.move(dlg.pos() + mid - dlg.geometry().center());
+	});
+	lay->addWidget(tree);
+	QDialogButtonBox* btns = new QDialogButtonBox;
+	QPushButton* open = btns->addButton("Open", QDialogButtonBox::AcceptRole);
+	btns->addButton(QDialogButtonBox::Cancel);
+	open->setDefault(true);
+	lay->addWidget(btns);
+	QObject::connect(btns, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+	QObject::connect(btns, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+	QObject::connect(tree, &QTreeWidget::itemDoubleClicked, &dlg, &QDialog::accept);
+	if ((dlg.exec() != QDialog::Accepted) || !tree->currentItem()) return QString();
+	return tree->currentItem()->text(0);
+}
+
+QString media_from_archive(Computer* comp, const QString& archive, int id, int drv, bool ask) {
+	QString err;
+	const QStringList names = media_candidates(comp, archive, id, drv, &err);
+	if (names.isEmpty()) {
+		xlog(XLG_FILE, XLL_WARN, "%s: %s", archive.toLocal8Bit().constData(), err.toLocal8Bit().constData());
+		shitHappens(err.toLocal8Bit().constData());
+		return QString();
+	}
+	QString name = names.first();
+	if (ask && (names.size() > 1)) {
+		name = media_pick(comp, archive, names);
+		if (name.isEmpty()) return QString();
+	}
+	return arc_join(archive, name);
+}
+
+// what the loader named after the copy it read is named after the archive path
+static void media_rename(Computer* comp, const QString& local, const QString& path) {
+	QByteArray from = local.toLocal8Bit();
+	QByteArray to = path.toLocal8Bit();
+	if (comp->tape->path && (from == comp->tape->path)) {
+		int changed = comp->tape->changed;
+		tape_set_path(comp->tape, to.constData());
+		comp->tape->changed = changed;
+	}
+	if (comp->slot->path && (from == comp->slot->path)) sltSetPath(comp->slot, to.constData());
+	for (int i = 0; i < 4; i++) {
+		Floppy* flp = comp->dif->flp[i];
+		if (flp->path && (from == flp->path)) flp_set_path(flp, to.constData());
+	}
+}
+
 int load_file(Computer* comp, const char* name, int id, int drv) {
 	last_as_kind = AS_NONE;
 	xspeed_modes_off();
-	QString path = QFileInfo(QString::fromLocal8Bit(name)).canonicalFilePath();
+	QString path = arc_canonical(QString::fromLocal8Bit(name));
 	if (path.isEmpty()) return ERR_CANT_OPEN;
+	// an archive given as it is: its first image, nothing asked (the gui asked already)
+	if (arc_bare(path) && (id != FG_RAW)) {
+		path = media_from_archive(comp, path, id, drv, false);
+		if (path.isEmpty()) return ERR_CANCEL;		// said why
+	}
+	QString why;
+	QString local = arc_local(path, &why);	// the bytes, unpacked when in an archive
+	if (local.isEmpty()) {
+		xlog(XLG_FILE, XLL_WARN, "open %s: %s", path.toLocal8Bit().constData(), why.toLocal8Bit().constData());
+		shitHappens(why.toLocal8Bit().constData());
+		return ERR_CANCEL;
+	}
 	xFileTypeInfo* inf = file_type_of(comp, id, path);
 	if (inf && (inf->id == FL_POK)) inf = NULL;	// not a medium: see file_is_pok
 	int err = inf ? ERR_OK : ERR_FILE_TYPE;
@@ -882,7 +1106,8 @@ int load_file(Computer* comp, const char* name, int id, int drv) {
 				rzxr_stop(comp);		// playing one ends the one being made
 			else if (comp->rzx.play)
 				rzxStop(comp);			// the recording would go on feeding what was opened
-			err = inf->load(comp, path.toLocal8Bit().data(), drv);
+			err = inf->load(comp, local.toLocal8Bit().data(), drv);
+			if (local != path) media_rename(comp, local, path);
 			if ((err == ERR_OK) && (inf->id == FL_SZX)) {
 				szx_mount(comp, path);
 				szx_warn();
@@ -962,7 +1187,7 @@ static int snap_align(Computer* comp) {
 	return done;
 }
 
-int save_file(Computer* comp, const char* name, int id, int drv, int live) {
+int save_file(Computer* comp, const char* name, int id, int drv, int live, const QString& suggest) {
 	QString path = QString::fromLocal8Bit(name);
 	QString flt;
 	QString ext;
@@ -988,7 +1213,12 @@ int save_file(Computer* comp, const char* name, int id, int drv, int live) {
 			filer->setWindowTitle("Save File");
 			filer->setNameFilter(flt);
 			filer->setAcceptMode(QFileDialog::AcceptSave);
-			filer->setDirectory(conf.lastDir.c_str());
+			if (suggest.isEmpty()) {
+				filer->setDirectory(conf.lastDir.c_str());
+			} else {
+				filer->setDirectory(QFileInfo(suggest).absolutePath());
+				filer->selectFile(QFileInfo(suggest).fileName());
+			}
 			filer->setHistory(QStringList());
 			if (filer->exec()) {
 				path = filer->selectedFiles().first();
@@ -1058,14 +1288,18 @@ int save_file(Computer* comp, const char* name, int id, int drv, int live) {
 	return err;
 }
 
+// never into an archive: an image from one is saved as a file of its own
 static bool file_can_save(Computer* comp, const char* path) {
-	if (!path || !*path) return false;
+	if (!path || !*path || arc_split(QString::fromLocal8Bit(path))) return false;
 	xFileTypeInfo* inf = file_find_hw_ext(comp->hw->id, QString::fromLocal8Bit(path));
 	return inf && inf->save && !ft_export(inf);
 }
 
+// an image from an archive is offered beside the archive, under the entry's name
 int save_back(Computer* comp, const char* path, int id, int drv) {
-	return save_file(comp, file_can_save(comp, path) ? path : "", id, drv);
+	if (file_can_save(comp, path)) return save_file(comp, path, id, drv);
+	QString img = path ? QString::fromLocal8Bit(path) : QString();
+	return save_file(comp, "", id, drv, 0, arc_split(img) ? arc_beside(img, QString()) : QString());
 }
 
 
@@ -1228,7 +1462,7 @@ void fitFileDialog(QWidget* w) {
 // ERR_OK once the changed medium is safe to lose: saved, or the user said No
 static int ask_save_changed(Computer* comp, QString what, const char* path, int id, int drv) {
 	if (path && *path)
-		what += ": " + QFileInfo(QString::fromLocal8Bit(path)).fileName();
+		what += ": " + arc_name(QString::fromLocal8Bit(path));
 	QMessageBox mbox;
 	mbox.setText(QString("<b>%0 has been changed</b>").arg(what.toHtmlEscaped()));
 	mbox.setInformativeText("Do you want to save it?");

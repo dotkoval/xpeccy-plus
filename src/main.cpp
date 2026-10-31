@@ -32,6 +32,7 @@
 #include "titlebar.h"
 #include "emulwin.h"
 #include "xcore/cheats.h"
+#include "xcore/arcpath.h"
 #include "xgui/debuga/debuger.h"
 #include "xgui/scrwin.h"
 #include "xgui/sndwin.h"
@@ -309,22 +310,28 @@ static void open_pending(xApp& app, MainWin& mwin) {
 
 // A file on the command line: the machine it wants first, unless the command
 // line names the machine itself.
-static void open_cli_file(MainWin& mwin, const char* path, int drv, int run, bool pinned) {
-	if (file_is_pok(QString::fromLocal8Bit(path))) {
-		mwin.openCheats(QString::fromLocal8Bit(path));
+// An archive: its first image, as it would be opened bare.
+static void open_cli_file(MainWin& mwin, const char* name, int drv, int run, bool pinned) {
+	QString path = QString::fromLocal8Bit(name);
+	if (file_is_pok(path)) {
+		mwin.openCheats(path);
 		return;
 	}
+	if (arc_bare(path)) {
+		path = media_from_archive(conf.zx, path, FG_ALL, drv, false);
+		if (path.isEmpty()) return;
+	}
 	std::string mac;
-	if (!pinned && !media_machine(conf.zx, QString::fromLocal8Bit(path), FG_ALL, drv, run, &mac))
+	if (!pinned && !media_machine(conf.zx, path, FG_ALL, drv, run, &mac))
 		return;
 	if (!mac.empty())
 		mwin.setMachine(mac);
-	if (load_file(conf.zx, path, FG_ALL, drv) != ERR_OK) return;
+	if (load_file(conf.zx, path.toLocal8Bit().constData(), FG_ALL, drv) != ERR_OK) return;
 	if (drv < 1) {
-		mwin.padGame(QString::fromLocal8Bit(path));
-		cheats_pick(QString::fromLocal8Bit(path));
+		mwin.padGame(path);
+		cheats_pick(path);
 	}
-	media_opened(QString::fromLocal8Bit(path), FG_ALL, drv, run, pinned);
+	media_opened(path, FG_ALL, drv, run, pinned);
 }
 
 // What the command line got wrong goes to the log at once and, once the
@@ -469,6 +476,7 @@ int main(int ac,char** av) {
 	if (SDL_Init(sdlFlags) < 0)		// the subsystems that did start stay up
 		xlog(XLG_APP, XLL_WARN, "SDL_Init: %s", SDL_GetError());
 	atexit(SDL_Quit);
+	arc_start();		// a crashed run's unpacked images go
 
 	// fallback icon for every window that doesn't set its own (options, tape,
 	// rzx, watcher). Windows takes it from the exe resource, X11 has nothing
@@ -1003,6 +1011,7 @@ int main(int ac,char** av) {
 		pacingClose();
 		sndClose();
 		brk_trace_done(true);
+		arc_finish();
 		log_done();
 		console_hold();
 		return ret;
@@ -1065,6 +1074,7 @@ int main(int ac,char** av) {
 	pacingClose();
 	sndClose();
 	brk_trace_done();
+	arc_finish();
 	log_done();
 	// The smoke tests grep stdout for this to tell "main() returned" from
 	// "a destructor crashed on the way out" - it is a contract with
