@@ -18,6 +18,9 @@ name: itch
 # Needs the secret BUTLER_API_KEY (itch.io > Settings > API keys).
 
 on:
+  # TEMP (itch-publish tests): dropped before the merge
+  push:
+    branches: [wip/itch-publish]
   release:
     types: [published]
   workflow_dispatch:
@@ -44,7 +47,7 @@ jobs:
     name: push to itch.io
     runs-on: ubuntu-latest
     env:
-      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      TAG: ${{ github.event.release.tag_name || inputs.tag || 'v2026.8.2' }}
       GAME: ${{ vars.ITCH_GAME }}
       # nothing is checked out, and gh reads the repository off a git remote
       # unless it is told which one
