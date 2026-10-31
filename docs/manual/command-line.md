@@ -29,7 +29,8 @@ warning, and the option is ignored.
 
 Every word that is not an option is a file to open: a snapshot, a tape, a disk or anything
 else **File > Open...** can open. Name several to open several, a disk and a tape for
-instance.
+instance. An archive opens its first image; name one image in it after the archive's
+name, as `game.zip/Side B.tzx`.
 
 The command line is read from left to right, and an option acts on the files after it.
 

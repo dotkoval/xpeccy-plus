@@ -1,0 +1,10 @@
+{
+  "config": {"GENERAL": {"recent": "{media}/demo.zip"}},
+  "steps": [
+    ["wait", 3000],
+    ["run", "open-menu File/Recent"],
+    ["wait", 800],
+    ["run", "menu-action File/Recent/1  demo.zip"],
+    ["wait", 2000]
+  ]
+}
