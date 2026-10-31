@@ -63,6 +63,12 @@ gzip, tar and zip data, a zip entry that unpacks past its stated size, paths tha
 land outside the folder, links and special files, versions of the formats that are refused
 (ZIP64, encrypted zips, sparse tar), and a destination that is not empty.
 
+The same target tests the readers an image packed in an archive is opened with
+(`src/xcore/archive.cpp`): listing and one entry out of a zip, a gz and a 7z, zip names
+in UTF-8, CP866 and CP437, the size limit, and damaged or encrypted archives refused.
+Python cannot write 7z, so those fixtures are kept in `tests/sysnext/data`, made by
+`data/make7z.py` with 7-Zip.
+
 ## Quick tier
 
 Label imports and expressions also have an optional Qt test, built against the program's

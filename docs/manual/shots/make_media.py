@@ -2,11 +2,13 @@
 
 Made here rather than taken from a real program, so a picture of the Tape Player or
 the Disk Manager shows nobody's work. demo.tap holds a BASIC program, a screen and a
-code block; demo.trd a TR-DOS disk with the same files and a label.
+code block; demo.trd a TR-DOS disk with the same files and a label; demo.zip both tapes
+of a two-sided "game" and its disk, as an archive the open dialog lists.
 """
 
 import struct
 import sys
+import zipfile
 from pathlib import Path
 
 
@@ -129,6 +131,10 @@ def main(out):
     out.mkdir(parents=True, exist_ok=True)
     (out / "demo.tap").write_bytes(make_tap())
     (out / "demo.trd").write_bytes(make_trd())
+    with zipfile.ZipFile(out / "demo.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        for name, data in (("Demo - Side A.tap", make_tap()), ("Demo - Side B.tap", make_tap()),
+                           ("Demo.trd", make_trd())):
+            z.writestr(zipfile.ZipInfo(name, (2026, 10, 31, 12, 0, 0)), data, zipfile.ZIP_DEFLATED)
     (out / "timing.bin").write_bytes(TIMING_BIN)
     (out / "timing.lab").write_text(TIMING_LAB, encoding="ascii")
     (out / "timing.xbrk").write_text(TIMING_XBRK, encoding="ascii")

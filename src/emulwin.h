@@ -182,6 +182,7 @@ class MainWin : public QWidget {
 		void esxCheck();		// says when card 1 and the EEPROM are different esxDOS releases
 		QString esxSeen;		// the power cycle and card it looked at last
 		void fillDrivesMenu();
+		void archiveImages(QMenu*, const char* path, int id, int drv);
 		void driveOp(std::function<void()>);
 		void diskOp(int, int);
 		void diskNew(int);

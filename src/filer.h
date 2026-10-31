@@ -70,6 +70,12 @@ QString file_ask_save(const char* title, const char* filter, const char* ext, co
 QString file_ask_open(Computer*, int* id, int* drv);
 QString file_ask_load(const char* title, const char* filter);
 int load_file(Computer* comp, const char* name, int id, int drv);
+// An archive's images the request can take (id and drv as load_file has them), in
+// natural order; empty, err set, when none
+QStringList media_candidates(Computer*, const QString& archive, int id, int drv, QString* err);
+// the image to open from an archive, as an archive path: the only one, the one picked
+// when ask, the first otherwise; empty when none or the user cancelled (said why)
+QString media_from_archive(Computer*, const QString& archive, int id, int drv, bool ask);
 // the last open the user made, which Reload makes again
 typedef struct {
 	QString path;
@@ -103,8 +109,9 @@ void media_autorun(Computer*, int run);
 void media_autorun_headless(int on);
 // drop that record: media a profile puts back was not opened by the user
 void media_autorun_forget();
-// live: the machine was running, so a snapshot may run it on to a better moment
-int save_file(Computer* comp, const char* name, int id, int drv, int live = 0);
+// live: the machine was running, so a snapshot may run it on to a better moment;
+// suggest: where the save dialog starts, folder and name, when name is empty
+int save_file(Computer* comp, const char* name, int id, int drv, int live = 0, const QString& suggest = QString());
 // write back to path, or ask where when its format cannot be written
 int save_back(Computer*, const char* path, int id, int drv);
 // One slot per machine: kept in memory, and as an .szx too, so it outlives the

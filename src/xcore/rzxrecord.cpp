@@ -9,6 +9,7 @@
 
 #include "xcore.h"
 #include "rzxrecord.h"
+#include "arcpath.h"
 #include "pacing.h"
 #include "rewind.h"
 #include "../filer.h"
@@ -93,8 +94,7 @@ QString rzxr_suggest() {
 	if (img.isEmpty()) img = media_last_open().path;
 	if (img.isEmpty())
 		return QDir(QString::fromLocal8Bit(conf.lastDir.c_str())).filePath(QString::fromStdString(conf.macId) + ".rzx");
-	QFileInfo fi(img);
-	return fi.dir().filePath(fi.completeBaseName() + ".rzx");
+	return arc_beside(img, ".rzx");		// an archive's: beside the archive
 }
 
 int rzxr_start(Computer* comp, const QString& path) {

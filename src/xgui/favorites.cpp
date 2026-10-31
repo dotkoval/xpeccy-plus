@@ -9,6 +9,7 @@
 #include "ui_favorites.h"
 #include "filer.h"
 #include "xcore/xcore.h"
+#include "xcore/arcpath.h"
 
 bool fav_edit(QWidget* parent, int idx, const QString& path) {
 	QDialog dia(parent);
@@ -16,7 +17,7 @@ bool fav_edit(QWidget* parent, int idx, const QString& path) {
 	ui.setupUi(&dia);
 	if (idx < 0) {
 		dia.setWindowTitle("Add to Favorites");
-		ui.namele->setText(QFileInfo(path).fileName());
+		ui.namele->setText(arc_name(path));
 		ui.pathle->setText(path);
 	} else {
 		ui.namele->setText(QString::fromLocal8Bit(conf.bookmarkList[idx].name.c_str()));
@@ -31,7 +32,7 @@ bool fav_edit(QWidget* parent, int idx, const QString& path) {
 		if (fpath.isEmpty()) return;
 		ui.pathle->setText(fpath);
 		if (ui.namele->text().isEmpty())
-			ui.namele->setText(QFileInfo(fpath).fileName());
+			ui.namele->setText(arc_name(fpath));
 	});
 	QObject::connect(ui.umaok, &QPushButton::clicked, &dia, [&dia, &ui]() {
 		if (!ui.namele->text().isEmpty() && !ui.pathle->text().isEmpty())

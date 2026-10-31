@@ -1,4 +1,5 @@
 #include "xcore.h"
+#include "arcpath.h"
 
 #include <QDir>
 #include <QFile>
@@ -346,8 +347,7 @@ void labels_image(const QString& image) {
 		imgSet.clear();
 	}
 	if (!conf.dbg.imglabels || image.isEmpty()) return;
-	QFileInfo fi(image);
-	QString path = fi.dir().filePath(fi.completeBaseName() + ".labels");
+	QString path = arc_beside(image, ".labels");		// an archive's: beside the archive
 	if (!QFileInfo(path).isFile()) return;
 	QString before = conf.curlabset ? conf.curlabset->name : QString();
 	if (!labels_read(path)) return;

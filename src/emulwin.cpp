@@ -53,6 +53,7 @@
 #include "emulwin.h"
 #include "xcore/cheats.h"
 #include "filer.h"
+#include "xcore/arcpath.h"
 #include "watcher.h"
 #include "xgui/favorites.h"
 #include "xgui/xgui.h"
@@ -96,7 +97,7 @@ void MainWin::updateHead() {
 	QStringList parts;
 	QString media = media_current();
 	if (!media.isEmpty())
-		parts << QFileInfo(media).fileName();
+		parts << arc_name(media);
 	parts << XPTITLE;
 #ifdef ISDEBUG
 	parts << "debug";
@@ -1968,7 +1969,7 @@ int MainWin::askRun() {
 // Ask in Options: the same choice, for a tape or a disk, and it can be kept for good
 int MainWin::askRunKeep(const QString& path) {
 	QMessageBox box(QMessageBox::Question, "Open Media",
-		QString("Run <b>%1</b> or just mount it?").arg(QFileInfo(path).fileName().toHtmlEscaped()),
+		QString("Run <b>%1</b> or just mount it?").arg(arc_name(path).toHtmlEscaped()),
 		QMessageBox::NoButton, this);
 	QPushButton* run = box.addButton("Run", QMessageBox::AcceptRole);
 	QPushButton* mount = box.addButton("Mount", QMessageBox::AcceptRole);
@@ -1999,6 +2000,9 @@ void MainWin::openMedia(const QString& path, int id, int drv, int run, bool pinn
 	Computer* comp = conf.zx;
 	pause(true, PR_FILE);
 	QString fpath = path.isEmpty() ? file_ask_open(comp, &id, &drv) : path;
+	// an archive: the image in it, picked when it holds several
+	if (arc_bare(fpath) && (id != FG_RAW))
+		fpath = media_from_archive(comp, fpath, id, drv, true);
 	// cheats only fill their window: nothing is reset, replaced or started
 	if (file_is_pok(fpath)) {
 		if (openCheats(fpath)) recent_add(fpath);
@@ -3033,9 +3037,9 @@ void MainWin::fillRecent() {
 	int n = 0;
 	foreach(QString path, conf.recentList) {
 		n++;
-		QString name = QFileInfo(path).fileName().replace("&", "&&");
+		QString name = arc_name(path).replace("&", "&&");
 		QAction* act = recentMenu->addAction(QString("%0  %1").arg(n % 10).arg(name), this, [this, path]() {
-			if (!QFileInfo::exists(path)) {
+			if (!arc_exists(path)) {
 				shitHappens(QString("File not found:<br>%0").arg(path).toLocal8Bit().data());
 				recent_remove(path);
 				return;
@@ -3242,7 +3246,7 @@ void MainWin::fillUserMenu() {
 	QAction* act;
 	QString media = media_current();
 	if (!media.isEmpty()) {
-		QString name = QFileInfo(media).fileName().replace("&", "&&");
+		QString name = arc_name(media).replace("&", "&&");
 		int idx = findBookmark(media);
 		if (idx < 0) {
 			bookmarkMenu->addAction(QIcon(":/images/add.png"), QString("Add \"%1\"...").arg(name), this, [this, media]() {

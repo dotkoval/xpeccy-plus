@@ -11,6 +11,10 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **Images in archives**: a snapshot, tape or disk opens from a .zip, .gz or .7z; with
+  several images in it, a list asks which. The drive and tape menus offer the archive's
+  other sides and disks. *(requested by Volutar)*
+
 - **Dumps of any memory page**: the Debugger's Save dump and Load dump take a source - the
   CPU's 64K as before, or a RAM, ROM, divMMC or Multiface page, paged in or not, and the
   pages after it. *(requested by AlexZor)*

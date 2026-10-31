@@ -10,6 +10,7 @@ import tarfile
 import tempfile
 import unittest
 import zipfile
+import zlib
 
 HELPER = str(Path(sys.argv.pop(1)).resolve())
 
@@ -351,6 +352,191 @@ class Unpack(unittest.TestCase):
         result = self.extract_zip(zipped([("large", os.urandom(2_000_000))]), valid=False, cancel=8)
         self.assertIn(b"cancelled", result.stderr)
         self.assertLess((self.destination / "large").stat().st_size, 2_000_000)
+
+
+# what data/make7z.py packed into the 7z fixtures
+SIDE_A = bytes((i * 7 + 3) & 0xff for i in range(20_000))
+SIDE_B = bytes((i * 13 + 1) & 0xff for i in range(15_000))
+CODE = bytes([0xe8, 0x10, 0x20, 0x00, 0x00, 0x90] * 4000)
+DATA = Path(__file__).resolve().parent / "data"
+LIMIT = 256 << 20
+
+
+def renamed(raw, old, new, utf8_flag=None):
+    """The zip with an entry's name bytes swapped in both headers (same length)."""
+    assert len(old) == len(new)
+    raw = bytearray(raw)
+    for signature, flags in ((b"PK\x03\x04", 6), (b"PK\x01\x02", 8)):
+        at = raw.index(signature)
+        name = raw.index(old, at)
+        raw[name:name + len(old)] = new
+        if utf8_flag is not None:
+            raw[at + flags + 1] = (raw[at + flags + 1] & ~0x08) | (0x08 if utf8_flag else 0)
+    return bytes(raw)
+
+
+class Media(unittest.TestCase):
+    """The readers an image in an archive is opened with: list, then one entry out."""
+
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(prefix="media \u0430\u0440\u0445\u0438\u0432 ")
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        self.out = self.root / "out" / "Side A.tzx"
+        self.out.parent.mkdir()
+
+    def run_helper(self, *args):
+        return subprocess.run([HELPER, *map(str, args)], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, timeout=60)
+
+    def put(self, name, raw):
+        path = self.root / name
+        path.write_bytes(raw)
+        return path
+
+    def listing(self, path, valid=True):
+        result = self.run_helper("--list", path)
+        self.assertEqual(result.returncode, 0 if valid else 1, result.stderr.decode(errors="replace"))
+        if not valid:
+            self.assertTrue(result.stderr.strip())
+            return None
+        rows = [line.split("\t", 1) for line in result.stdout.decode("utf-8").splitlines()]
+        return {name: int(size) for size, name in rows}
+
+    def take(self, path, entry, valid=True):
+        result = self.run_helper("--extract", path, entry, self.out)
+        self.assertEqual(result.returncode, 0 if valid else 1, result.stderr.decode(errors="replace"))
+        if valid:
+            return self.out.read_bytes()
+        self.assertTrue(result.stderr.strip())
+        self.assertFalse(self.out.exists(), "a failed entry left a file behind")
+        return result.stderr
+
+    # zip
+
+    def test_zip_list_and_one_entry(self):
+        path = self.put("game.zip", zipped([
+            ("Side A.tzx", SIDE_A), ("Side B.tzx", SIDE_B), ("SCRSHOT/", b""),
+            ("SCRSHOT/game.scr", bytes(6912)), ("Side A.tzx", b"a second copy")]))
+        self.assertEqual(self.listing(path), {"Side A.tzx": len(SIDE_A), "Side B.tzx": len(SIDE_B),
+                                              "SCRSHOT/": 0, "SCRSHOT/game.scr": 6912})
+        self.assertEqual(self.take(path, "Side B.tzx"), SIDE_B)
+        self.assertEqual(self.take(path, "Side A.tzx"), SIDE_A)
+
+    def test_zip_names(self):
+        raw = zipped([("XXXXXX.tzx", SIDE_A)])
+        cases = (
+            # flagged UTF-8, UTF-8 with no flag, CP866 (letters together), CP437 (one alone)
+            ("\u0444\u0430\u0439.tzx", "utf-8", True),
+            ("\u00e9t\u00e9x.tzx", "utf-8", False),
+            ("\u041c\u042d\u0419\u0425\u0415\u041c.tzx", "cp866", False),
+            ("Acci\u00f3n.tzx", "cp437", False),
+        )
+        for index, (text, codec, flag) in enumerate(cases):
+            with self.subTest(name=text):
+                path = self.put(f"names-{index}.zip",
+                                renamed(raw, b"XXXXXX.tzx", text.encode(codec), flag))
+                self.assertEqual(list(self.listing(path)), [text])
+                self.assertEqual(self.take(path, text), SIDE_A)
+
+    def test_zip_over_the_limit(self):
+        raw = bytearray(zipped([("zeros.wav", bytes(1000))]))
+        for signature, offset in ((b"PK\x01\x02", 24), (b"PK\x03\x04", 22)):
+            at = raw.index(signature) + offset
+            raw[at:at + 4] = (LIMIT + 1).to_bytes(4, "little")
+        path = self.put("big.zip", bytes(raw))
+        self.assertEqual(self.listing(path), {"zeros.wav": LIMIT + 1})
+        self.assertIn(b"MB", self.take(path, "zeros.wav", valid=False))
+
+    def test_zip_refusals(self):
+        good = zipped([("Side A.tzx", SIDE_A)])
+        encrypted = bytearray(good)
+        for signature, offset in ((b"PK\x01\x02", 8), (b"PK\x03\x04", 6)):
+            encrypted[encrypted.index(signature) + offset] |= 1
+        bad_crc = bytearray(good)
+        at = bad_crc.index(b"PK\x01\x02") + 16
+        bad_crc[at] ^= 1
+        for index, raw in enumerate((bytes(encrypted), good[:-30], b"not a zip at all")):
+            with self.subTest(case=index):
+                self.listing(self.put(f"bad-{index}.zip", raw), valid=False)
+        self.take(self.put("crc.zip", bytes(bad_crc)), "Side A.tzx", valid=False)
+        self.take(self.put("good.zip", good), "Side B.tzx", valid=False)
+
+    # gz
+
+    def gz(self, data, fname=""):
+        output = io.BytesIO()
+        with gzip.GzipFile(filename=fname, mode="wb", fileobj=output, mtime=0) as stream:
+            stream.write(data)
+        return output.getvalue()
+
+    def test_gz_names(self):
+        # the archive's own name, unless nothing is left of it but a bare word
+        path = self.put("Game (Side A).tzx.gz", self.gz(SIDE_A, "game.tzx"))
+        self.assertEqual(self.listing(path), {"Game (Side A).tzx": len(SIDE_A)})
+        self.assertEqual(self.take(path, "Game (Side A).tzx"), SIDE_A)
+        path = self.put("game.gz", self.gz(SIDE_B, "C:\\files\\inner.tap"))
+        self.assertEqual(list(self.listing(path)), ["inner.tap"])
+        self.assertEqual(self.take(path, "inner.tap"), SIDE_B)
+        path = self.put("bare.gz", self.gz(SIDE_B))
+        self.assertEqual(list(self.listing(path)), ["bare"])
+
+    def test_gz_streams_and_padding(self):
+        path = self.put("two.tap.gz", self.gz(SIDE_A[:5000]) + self.gz(SIDE_A[5000:]) + bytes(16))
+        self.assertEqual(self.take(path, "two.tap"), SIDE_A)
+
+    def test_gz_errors(self):
+        packed = self.gz(SIDE_A)
+        damaged = bytearray(packed)
+        damaged[-8] ^= 1
+        for index, raw in enumerate((packed[:-8], bytes(damaged), packed + b"garbage")):
+            with self.subTest(case=index):
+                self.take(self.put(f"bad-{index}.tap.gz", raw), f"bad-{index}.tap", valid=False)
+        self.listing(self.put("not.tap.gz", b"not gzip"), valid=False)
+
+    def test_gz_over_the_limit(self):
+        pack = zlib.compressobj(9, zlib.DEFLATED, 31)
+        chunk = bytes(1 << 20)
+        raw = b"".join(pack.compress(chunk) for _ in range((LIMIT >> 20) + 1)) + pack.flush()
+        self.assertIn(b"MB", self.take(self.put("zeros.wav.gz", raw), "zeros.wav", valid=False))
+
+    # 7z, from data/
+
+    def test_7z_methods(self):
+        for name in ("solid.7z", "plain.7z"):
+            with self.subTest(archive=name):
+                self.assertEqual(self.listing(DATA / name), {
+                    "Side A.tzx": len(SIDE_A), "Side B.tzx": len(SIDE_B),
+                    "INFO/": 0, "INFO/readme.txt": 10})
+                self.assertEqual(self.take(DATA / name, "Side B.tzx"), SIDE_B)
+                self.assertEqual(self.take(DATA / name, "Side A.tzx"), SIDE_A)
+        self.assertEqual(self.take(DATA / "bcj.7z", "loader.bin"), CODE)
+        self.assertEqual(self.take(DATA / "ppmd.7z", "Side A.tzx"), SIDE_A)
+        self.assertEqual(self.take(DATA / "stored.7z", "Side A.tzx"), SIDE_A)
+
+    def test_7z_names(self):
+        russian = "\u0412 \u0433\u043d\u0435\u0437\u0434\u0435 \u043e\u0440\u043b\u0430.tzx"
+        self.assertEqual(set(self.listing(DATA / "names.7z")),
+                         {russian, "Edici\u00f3n/", "Edici\u00f3n/Side 1.tap"})
+        self.assertEqual(self.take(DATA / "names.7z", russian), SIDE_A)
+        self.assertEqual(self.take(DATA / "names.7z", "Edici\u00f3n/Side 1.tap"), SIDE_B)
+
+    def test_7z_refusals(self):
+        self.take(DATA / "encrypted.7z", "Side A.tzx", valid=False)
+        self.listing(DATA / "encrypted-names.7z", valid=False)
+        self.assertIn(b"MB", self.take(DATA / "huge.7z", "zeros.wav", valid=False))
+        raw = (DATA / "solid.7z").read_bytes()
+        self.listing(self.put("cut.7z", raw[:len(raw) // 2]), valid=False)
+        self.listing(self.put("junk.7z", b"7z but not"), valid=False)
+        self.take(DATA / "solid.7z", "Side C.tzx", valid=False)
+        # any byte of it flipped: refused or, where nothing checks it, read - never a crash
+        for at in range(32, len(raw), 7):
+            damaged = bytearray(raw)
+            damaged[at] ^= 0x5a
+            path = self.put("damaged.7z", bytes(damaged))
+            for args in (("--list", path), ("--extract", path, "Side A.tzx", self.out)):
+                self.assertIn(self.run_helper(*args).returncode, (0, 1), f"byte {at}")
+            self.out.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

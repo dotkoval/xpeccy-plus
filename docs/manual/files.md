@@ -31,6 +31,7 @@ tapes and disks. The **File** menu opens and saves them, keeps the quick save, a
 | Cartridge | `.rom`, `.bin` | yes | no |
 | Recording | `.rzx` | yes | from the **Capture** menu |
 | Cheats | `.pok` | yes, into the [Cheats](cheats.md) window | no |
+| Archive | `.zip`, `.gz`, `.7z` | yes, an image in it: see [Images in archives](#images-in-archives) | no |
 
 A Hobeta file opens as a TR-DOS file on a disk: in drive A, or in the drive picked from the
 file types of the open dialog. A drive with no disk gets a new, formatted one first.
@@ -71,6 +72,37 @@ run or mounted. If you loaded a labels file in the Debugger, it is read again to
 When **Auto-load labels** is ticked on the **Debugger** page of **Options**, opening a file
 also loads a `.labels` file of the same name from the same folder, if there is one. A disk
 opened into drive B, C or D does not load labels.
+
+### Images in archives
+
+```{index} archive, ZIP, 7z, gz, Open from Archive
+```
+
+A snapshot, tape or disk packed in a `.zip`, `.gz` or `.7z` archive opens as if it were not
+packed: open the archive, drop it onto the window, pick it from **Recent** or name it on the
+command line. No archiver is needed.
+
+Only the images the open is for are offered: **Disk A** in the open dialog offers the disks
+in the archive, the Tape Player's **Open** its tapes. Text files, pictures, cheats and the
+`SCRSHOT`, `INFO` and `POKES` folders of an archive are left out.
+
+![Open from Archive](images/open-archive.png)
+
+An archive with one image opens it at once. With several, **Open from Archive** lists them
+with their kind and size, the first one ready: Side A before Side B, Part 2 before Part 10.
+The command line takes the first one without asking.
+
+The window title, **Recent**, **Favorites** and **Reload** name the image with its archive,
+as `game.zip > Side B.tzx`, and open that image again. While a disk or a tape from an
+archive with several of its kind is in, the drive's menu and the tape menu list them under
+**Open...**, the one that is in marked: pick another to put it in.
+
+Nothing is written into an archive. A changed disk from one is saved as a file of its own:
+the save dialog offers the image's name in the archive's folder. A `.labels` file is looked
+for in that folder too, named after the image.
+
+An encrypted archive, a ZIP64 one, one split into parts, or an image that unpacks to more
+than 256 MB is not opened; a message says why.
 
 ### The file dialog
 

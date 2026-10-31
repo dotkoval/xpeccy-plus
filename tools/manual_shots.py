@@ -3,7 +3,8 @@
 Each docs/manual/shots/<name>.json says how one picture is made:
 
     {
-      "config": {"GENERAL": {"machine": "ZX48K"}},   settings on top of the factory ones
+      "config": {"GENERAL": {"machine": "ZX48K"}},   settings on top of the factory ones;
+                                                     {media} in a value as in "args"
       "args": ["-s", "2"],                           command line of the program;
                                                      {media} is the folder of shots/make_media.py
       "files": {"GAME.TAP": {"url": "...", "sha256": "..."}}
@@ -297,18 +298,19 @@ def shoot(src, name, exe):
     with tempfile.TemporaryDirectory() as tmp:
         cfg = Path(tmp) / "config"
         shutil.copytree(exe.parent / "config", cfg)
-        num = write_config(cfg, spec.get("config", {}))
-        # taken already: the program would move to the next one, and the
-        # commands would go to whatever holds this one
-        with socket.socket() as probe:
-            if probe.connect_ex(("127.0.0.1", num)) == 0:
-                sys.exit(f"port {num} is in use by another program")
         # {media}: the tape and disk of shots/make_media.py, made afresh for each shot.
         # Not in tmp: the Disk Manager shows the path, and a temp path has the user's name
         if os.name == "nt":
             media = Path(os.environ.get("PUBLIC", "C:\\Users\\Public")) / "Documents" / "Xpeccy+ manual"
         else:
             media = Path("/tmp/xpeccy-manual")
+        num = write_config(cfg, {sec: {k: str(v).replace("{media}", str(media)) for k, v in keys.items()}
+            for sec, keys in spec.get("config", {}).items()})
+        # taken already: the program would move to the next one, and the
+        # commands would go to whatever holds this one
+        with socket.socket() as probe:
+            if probe.connect_ex(("127.0.0.1", num)) == 0:
+                sys.exit(f"port {num} is in use by another program")
         sys.path.insert(0, str(src / "shots"))
         import make_media
         make_media.main(media)

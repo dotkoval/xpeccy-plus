@@ -208,6 +208,10 @@ see [`LICENSE_FREETYPE`](LICENSE_FREETYPE). Its sources are in `thirdparty/freet
 Portions of this software are copyright (C) 2026 The FreeType Project
 (https://freetype.org). All rights reserved.
 
+Images packed in a .7z archive are opened with the 7z reader of the LZMA SDK 26.05 by Igor
+Pavlov, which is in the public domain - see [`LICENSE_LZMA`](LICENSE_LZMA). Its sources are in
+`thirdparty/lzma/`.
+
 The lettering itself is "Xpeccy Keys Sans", cut down from Liberation Sans Bold 2.1.5 and
 built into the binary. It is under the SIL Open Font License 1.1 - see
 [`LICENSE_LIBERATION`](LICENSE_LIBERATION).
