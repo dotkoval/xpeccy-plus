@@ -879,6 +879,7 @@ void MainWin::tapeMenu(const QPoint& pos) {
 	menu.addAction(QIcon(":/images/tape-rewind.png"), "Rewind", this, [this]() {tapStateChanged(TW_REWIND, 0);});
 	menu.addSeparator();
 	menu.addAction(QIcon(":/images/fileopen.png"), "Open Tape...", this, [this]() {openMedia(QString(), FG_TAPE, -1, 0);});
+	if (tape->blkCount > 0) archiveImages(&menu, tape->path, FG_TAPE, -1);
 	QAction* act = menu.addAction(QIcon(":/images/tape-eject.png"), "Eject", this, &MainWin::tapeEject);
 	act->setEnabled(!tape->on);
 	menu.addSeparator();
