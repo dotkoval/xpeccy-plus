@@ -1,0 +1,136 @@
+name: itch
+
+# Puts a published release on the itch.io page named by the repository variable
+# ITCH_GAME (user/project), with butler, itch's own uploader. Nothing is built
+# or unpacked here: each of the release's files goes up as it is, and a build
+# of one file is what the page offers for download - the same name and bytes
+# as on GitHub.
+#
+#   gh workflow run itch.yml -R dotkoval/xpeccy-plus -f tag=v2026.9    # again
+#   gh workflow run itch.yml -R dotkoval/xpeccy-plus -f tag=nightly    # a nightly
+#
+# A release goes to the channels win-x64-qt6, win-x86, linux-x86_64 and
+# macos-arm64-qt6 - the tails of the asset names; butler tags the platform by
+# "win", "linux" and "mac" in them. A nightly goes to the same names plus
+# -nightly, hidden when first made: players cannot download a hidden upload.
+# A push replaces the channel's file; it does not add one.
+#
+# Needs the secret BUTLER_API_KEY (itch.io > Settings > API keys).
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (v2026.9, or nightly)'
+        required: true
+        type: string
+      dry_run:
+        description: 'Download and list only, push nothing'
+        type: boolean
+        default: false
+
+# one push at a time; a second waits instead of cancelling the first
+concurrency:
+  group: itch
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  push:
+    name: push to itch.io
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GAME: ${{ vars.ITCH_GAME }}
+      # nothing is checked out, and gh reads the repository off a git remote
+      # unless it is told which one
+      GH_REPO: ${{ github.repository }}
+      BUTLER_VERSION: 15.32.0
+      BUTLER_SHA256: 2335971394ef6596f95ded0833e85ee28755e13761716ef4c91d6b11f69162f5
+    steps:
+      - name: Check what to push
+        id: check
+        env:
+          PRERELEASE: ${{ github.event.release.prerelease }}
+          DRY: ${{ inputs.dry_run }}
+        run: |
+          go=true
+          # the nightly is a pre-release too, but GITHUB_TOKEN makes it, so it
+          # never fires this; one published by hand by mistake is not a release
+          if [ "$PRERELEASE" = true ]; then
+            echo "$TAG is a pre-release: not pushed." >> "$GITHUB_STEP_SUMMARY"
+            go=false
+          elif [ -z "$GAME" ] && [ "$DRY" != true ]; then
+            echo "No ITCH_GAME variable: nothing to push to." >> "$GITHUB_STEP_SUMMARY"
+            go=false
+          fi
+          echo "go=$go" >> "$GITHUB_OUTPUT"
+
+      - name: Install butler
+        if: steps.check.outputs.go == 'true'
+        run: |
+          curl -sSfL -o "$RUNNER_TEMP/butler.zip" \
+            "https://broth.itch.zone/butler/linux-amd64/$BUTLER_VERSION/archive/default"
+          echo "$BUTLER_SHA256  $RUNNER_TEMP/butler.zip" | sha256sum -c -
+          unzip -q "$RUNNER_TEMP/butler.zip" -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/butler/butler" -V
+
+      - name: Download the release
+        if: steps.check.outputs.go == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # one folder per channel, holding the one file it offers
+          for ch in win-x64-qt6.zip win-x86.zip linux-x86_64.AppImage macos-arm64-qt6.dmg; do
+            gh release download "$TAG" -p "*-$ch" -D "push/${ch%.*}"
+          done
+          # the version as the asset names give it: 2026.9, or 2026.10-dev+20261101
+          ver=$(basename push/win-x64-qt6/*.zip)
+          ver=${ver#xpeccy-plus-}
+          ver=${ver%-win-x64-qt6.zip}
+          echo "VER=$ver" >> "$GITHUB_ENV"
+          echo "version: $ver"
+          ls -lR push
+
+      - name: Push
+        if: steps.check.outputs.go == 'true' && inputs.dry_run != true
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          set -euo pipefail
+          suffix=
+          [ "$TAG" = nightly ] && suffix=-nightly
+          # --hidden is refused by a channel that exists, so ask which do; a
+          # failed answer stops here rather than make a nightly channel visible
+          butler --json status "$GAME" > status.json
+          have=$(jq -r 'select(.type == "result") | .value.channels[]?.name' status.json)
+          for dir in push/*; do
+            ch=$(basename "$dir")$suffix
+            hidden=
+            if [ -n "$suffix" ] && ! grep -qx "$ch" <<< "$have"; then hidden=--hidden; fi
+            echo "== $dir -> $GAME:$ch $hidden"
+            # --no-auto-unzip: the zip itself is the download, not what is in it
+            butler push "$dir" "$GAME:$ch" --userversion "$VER" --if-changed \
+              --no-auto-unzip $hidden
+          done
+
+      - name: Status
+        if: steps.check.outputs.go == 'true' && inputs.dry_run != true
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          # a channel is listed once itch has processed its build, a minute or
+          # so after the push
+          {
+            echo "### $TAG ($VER) on itch.io"
+            echo '```'
+            butler status "$GAME"
+            echo '```'
+          } | tee -a "$GITHUB_STEP_SUMMARY"
