@@ -1339,18 +1339,6 @@ none - nothing comes back (+2A, +3)</string>
                    <height>16777215</height>
                   </size>
                  </property>
-                 <property name="minimumSize">
-                  <size>
-                   <width>200</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>200</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
                    <property name="toolTip">
                     <string>How much border is shown around the screen</string>
                    </property>
@@ -1379,13 +1367,39 @@ none - nothing comes back (+2A, +3)</string>
                 </widget>
                </item>
                <item row="1" column="0">
+                <widget class="QLabel" name="labFit">
+                 <property name="text">
+                  <string>Fit</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="1" column="1">
+                <widget class="QComboBox" name="cbFit">
+                 <property name="minimumSize">
+                  <size>
+                   <width>200</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>200</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string>Fullscreen, a maximized or resized window: the picture's shape</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="0">
                 <widget class="QLabel" name="labSideFill">
                  <property name="text">
                   <string>Side fill</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="1">
+               <item row="2" column="1">
                 <widget class="QComboBox" name="cbSideFill">
                  <property name="minimumSize">
                   <size>
@@ -1404,7 +1418,7 @@ none - nothing comes back (+2A, +3)</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="2">
+               <item row="2" column="2">
                 <widget class="QToolButton" name="tbSideFill">
                  <property name="toolTip">
                   <string>How soft and bright the side fill is</string>
@@ -1418,27 +1432,15 @@ none - nothing comes back (+2A, +3)</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="0">
+               <item row="3" column="0">
                 <widget class="QLabel" name="labPalPreset">
                  <property name="text">
                   <string>Palette</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="1">
+               <item row="3" column="1">
                 <widget class="QComboBox" name="cbPalPreset">
-                 <property name="minimumSize">
-                  <size>
-                   <width>200</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>200</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
                  <property name="minimumSize">
                   <size>
                    <width>200</width>
@@ -1456,7 +1458,7 @@ none - nothing comes back (+2A, +3)</string>
                  </property>
                 </widget>
                </item>
-               <item row="2" column="2">
+               <item row="3" column="2">
                 <layout class="QHBoxLayout" name="horizontalLayout_40">
                  <item>
                   <widget class="QToolButton" name="tbPalEdit">
@@ -1501,27 +1503,15 @@ none - nothing comes back (+2A, +3)</string>
                  </item>
                 </layout>
                </item>
-               <item row="3" column="0">
+               <item row="4" column="0">
                 <widget class="QLabel" name="labShader">
                  <property name="text">
                   <string>Shader</string>
                  </property>
                 </widget>
                </item>
-               <item row="3" column="1">
+               <item row="4" column="1">
                 <widget class="QComboBox" name="cbShader">
-                 <property name="minimumSize">
-                  <size>
-                   <width>200</width>
-                   <height>0</height>
-                  </size>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>200</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
                  <property name="minimumSize">
                   <size>
                    <width>200</width>
@@ -1598,26 +1588,6 @@ Integer scaling, so every pixel is the same size</string>
                      </widget>
                     </item>
                     <item>
-                     <widget class="QCheckBox" name="cbKeepRatio">
-                      <property name="toolTip">
-                       <string>Fullscreen, or a maximized or resized window: keep the shape, do not stretch</string>
-                      </property>
-                      <property name="text">
-                       <string>Keep ratio</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
-                     <widget class="QCheckBox" name="cbIntScale">
-                      <property name="toolTip">
-                       <string>Fullscreen, or a maximized or resized window: the largest whole number of pixels per dot that fits, the side fill around it</string>
-                      </property>
-                      <property name="text">
-                       <string>Integer scale</string>
-                      </property>
-                     </widget>
-                    </item>
-                    <item>
                      <widget class="QCheckBox" name="cbVSync">
                       <property name="toolTip">
                        <string>No tearing; a machine near the screen's rate runs at it</string>
@@ -1643,7 +1613,7 @@ Integer scaling, so every pixel is the same size</string>
                        <string>Draw the picture in shades of gray</string>
                       </property>
                       <property name="text">
-                       <string>Gray scale</string>
+                       <string>Grayscale</string>
                       </property>
                      </widget>
                     </item>
