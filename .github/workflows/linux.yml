@@ -37,13 +37,27 @@ jobs:
     # built against, and 22.04 keeps that floor at 2.35 - old enough for the
     # distributions this is released for. It is what the local build uses too.
     runs-on: ubuntu-22.04
-    timeout-minutes: 40
+    # two builds and the training between them when profile-guided
+    timeout-minutes: 60
 
     env:
       RELEASE: ${{ inputs.release && '1' || '' }}
+      # whether the private training set can be fetched (not in a fork)
+      HAS_PGO_SET: ${{ secrets.PGO_SSH_KEY != '' }}
 
     steps:
       - uses: actions/checkout@v7
+
+      # what the profile-guided build trains on (windows.yml has the same): the
+      # Next's card, its programs, the TSConf's. Without the secret a plain build
+      - name: Fetch the training set
+        if: env.HAS_PGO_SET == 'true'
+        uses: actions/checkout@v7
+        with:
+          repository: dotkoval/xpeccy-pgo
+          ssh-key: ${{ secrets.PGO_SSH_KEY }}
+          path: build/pgo-set
+          persist-credentials: false
 
       - name: Install dependencies
         run: |
@@ -62,6 +76,13 @@ jobs:
           BUILD_DIR: ${{ runner.temp }}/build
           MANUAL: 1
         run: |
+          if [ -d build/pgo-set/sysnext ]; then
+            export PGO_SET="$PWD/build/pgo-set"
+            echo "PGO=yes" >> "$GITHUB_ENV"
+          else
+            echo "::warning::no training set (no PGO_SSH_KEY): a build without PGO"
+            echo "PGO=no (no training set)" >> "$GITHUB_ENV"
+          fi
           packaging/make-appimage.sh
           img=$(ls "$BUILD_DIR"/*.AppImage)
           # the artifact is named after the image, so the two cannot drift apart
@@ -78,13 +99,19 @@ jobs:
         run: |
           glibc=$(objdump -T "$APPDIR/usr/bin/xpeccy-plus" \
             | sed -n 's/.*GLIBC_\([0-9.]*\).*/\1/p' | sort -V | tail -n 1)
+          # the system's libstdc++ is taken, not one in the AppImage
+          glibcxx=$(objdump -T "$APPDIR/usr/bin/xpeccy-plus" \
+            | sed -n 's/.*GLIBCXX_\([0-9.]*\).*/\1/p' | sort -V | tail -n 1)
           {
             echo "| | |"
             echo "|---|---|"
             echo "| built on | $(lsb_release -ds) |"
+            echo "| compiler | $(gcc-12 --version | head -n 1) |"
+            echo "| PGO | $PGO |"
             echo "| Qt | $(dpkg-query -f '${Version}' -W qtbase5-dev) |"
             echo "| SDL | $(dpkg-query -f '${Version}' -W libsdl2-dev) |"
             echo "| needs glibc | $glibc or newer |"
+            echo "| needs libstdc++ | GLIBCXX_$glibcxx or newer |"
             echo "| AppImage | $APPIMAGE_NAME.AppImage, $(du -h "$APPIMAGE" | cut -f1) |"
           } >> "$GITHUB_STEP_SUMMARY"
 

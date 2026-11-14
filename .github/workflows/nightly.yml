@@ -48,11 +48,15 @@ jobs:
     needs: check
     if: needs.check.outputs.build == 'true'
     uses: ./.github/workflows/linux.yml
+    # PGO_SSH_KEY: the private training set
+    secrets: inherit
 
   macos:
     needs: check
     if: needs.check.outputs.build == 'true'
     uses: ./.github/workflows/macos.yml
+    # PGO_SSH_KEY: the private training set
+    secrets: inherit
 
   windows:
     needs: check
