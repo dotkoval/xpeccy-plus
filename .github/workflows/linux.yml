@@ -21,6 +21,10 @@ on:
       release:
         type: boolean
         default: false
+    secrets:
+      # the private training set; without it a plain build
+      PGO_SSH_KEY:
+        required: false
   schedule:
     - cron: '0 6 * * 1'
 
@@ -48,8 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # what the profile-guided build trains on (windows.yml has the same): the
-      # Next's card, its programs, the TSConf's. Without the secret a plain build
+      # the profile-guided build's training set; without the secret a plain build
       - name: Fetch the training set
         if: env.HAS_PGO_SET == 'true'
         uses: actions/checkout@v7
@@ -99,9 +102,18 @@ jobs:
         run: |
           glibc=$(objdump -T "$APPDIR/usr/bin/xpeccy-plus" \
             | sed -n 's/.*GLIBC_\([0-9.]*\).*/\1/p' | sort -V | tail -n 1)
-          # the system's libstdc++ is taken, not one in the AppImage
+          # the system's libstdc++ is taken, not one in the AppImage, and no newer than 22.04's
           glibcxx=$(objdump -T "$APPDIR/usr/bin/xpeccy-plus" \
             | sed -n 's/.*GLIBCXX_\([0-9.]*\).*/\1/p' | sort -V | tail -n 1)
+          floor=3.4.30
+          if [ "$(printf '%s\n' "$floor" "$glibcxx" | sort -V | tail -n 1)" != "$floor" ]; then
+            echo "::error::the AppImage needs GLIBCXX_$glibcxx, above GLIBCXX_$floor"
+            exit 1
+          fi
+          if find "$APPDIR" -name 'libstdc++.so*' | grep -q .; then
+            echo "::error::the AppImage carries a libstdc++"
+            exit 1
+          fi
           {
             echo "| | |"
             echo "|---|---|"

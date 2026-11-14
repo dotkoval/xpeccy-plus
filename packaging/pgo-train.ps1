@@ -10,12 +10,9 @@
 # copy of it) as its card, boots NextZXOS and runs programs that come with it. -Extra
 # adds every .nex found under the folders given (programs of one's own, run on the same
 # card with the folder of each put onto it, so the files beside a program are where it
-# looks). The card is copied first: a run may write to it. -TsConf adds every .spg and
-# .trd under the folders given, run on the TSConf, each in a config of its own (a disk
-# image run in the config the .spg had run in did not start).
-# The runs go one after another: the counts of each are added to the same files at its
-# exit. Windows, Linux and macOS alike (pwsh); on Linux without a display the caller
-# runs it under xvfb-run.
+# looks). The card is copied first: a run may write to it. -TsConf: every .spg and .trd
+# under the folders, on the TSConf, each in a fresh config. The runs go one after
+# another: the counts of each are added to the same files at its exit.
 
 param(
 	[Parameter(Mandatory)] [string]$App,
@@ -60,9 +57,9 @@ try {
 		# NextZXOS boots for some 1200 frames before a program starts
 		$next = "-m zxnext --sdcard `"$card`" --bench-skip 1500"
 		$cases.Add(@{ a = $next; own = $false })
-		foreach ($p in 'demos\scrollnutter\ScrollNutter.nex', 'demos\Spectron 2084\Spectron2084.nex',
-				'demos\tilemap\tm.nex', 'demos\WidescreenImageDemo\Daybreak.nex', 'games\Next\TX-1696\main.nex',
-				'games\Next\Warhawk\Warhawk.nex', 'games\Next\Nextoid\nextoid.nex', 'games\Next\AngryBloaters\Bloaters.nex') {
+		foreach ($p in 'demos/scrollnutter/ScrollNutter.nex', 'demos/Spectron 2084/Spectron2084.nex',
+				'demos/tilemap/tm.nex', 'demos/WidescreenImageDemo/Daybreak.nex', 'games/Next/TX-1696/main.nex',
+				'games/Next/Warhawk/Warhawk.nex', 'games/Next/Nextoid/nextoid.nex', 'games/Next/AngryBloaters/Bloaters.nex') {
 			$f = Join-Path $card $p
 			if (Test-Path $f) { $cases.Add(@{ a = "$next `"$f`""; own = $false }) }
 		}

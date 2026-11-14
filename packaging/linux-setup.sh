@@ -16,10 +16,9 @@ PACKAGES="build-essential gcc-12 g++-12 cmake pkg-config file ca-certificates wg
 	libsdl2-dev zlib1g-dev libgl1-mesa-dev libcurl4-openssl-dev
 	desktop-file-utils libfuse2"
 
-# gcc-12: what make-appimage.sh builds with. libfuse2: Ubuntu 22.04 ships fuse3
-# only, and an AppImage mounts itself through fuse2. Needed to run one, not to
-# build one. A profile-guided build (PGO_SET) needs pwsh too, which is not here:
-# the CI runners have it.
+# gcc-12: what make-appimage.sh builds with; PGO_SET also needs pwsh, not installed here.
+# libfuse2: Ubuntu 22.04 ships fuse3 only, and an AppImage mounts itself
+# through fuse2. Needed to run one, not to build one.
 
 echo "=== packages ==="
 sudo env DEBIAN_FRONTEND=noninteractive apt-get update -qq

@@ -23,6 +23,10 @@ on:
       release:
         type: boolean
         default: false
+    secrets:
+      # the private training set; without it a plain build
+      PGO_SSH_KEY:
+        required: false
   # Qt and SDL are pinned, but the runner image and its Xcode roll forward on
   # their own, so this can break with nobody having touched the repository.
   # Once a week is enough to notice.
@@ -60,8 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
-      # what the profile-guided build trains on (windows.yml has the same). Without
-      # the secret a plain build
+      # the profile-guided build's training set; without the secret a plain build
       - name: Fetch the training set
         if: env.HAS_PGO_SET == 'true'
         uses: actions/checkout@v7
@@ -126,10 +129,7 @@ jobs:
           "$RUNNER_TEMP/docs/bin/python3" -m pip install --disable-pip-version-check -r docs/manual/requirements.txt
           "$RUNNER_TEMP/docs/bin/python3" tools/manual.py html
 
-      # Profile-guided: an instrumented build of its own, run over the machines and
-      # the set's programs (pgo-train.ps1), its raw counts merged into the profile
-      # the build below is laid out by. clang keys the counts by function, not by
-      # object file, so the two builds need not share a folder
+      # an instrumented build of its own (clang keys counts by function), trained, merged
       - name: Train the profile-guided build
         run: |
           if [ ! -d build/pgo-set/sysnext ]; then

@@ -33,6 +33,10 @@ on:
       arm64:
         type: boolean
         default: false
+    secrets:
+      # the private training set; without it a plain build
+      PGO_SSH_KEY:
+        required: false
   schedule:
     - cron: '0 6 * * 1'
 

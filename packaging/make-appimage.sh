@@ -12,12 +12,8 @@
 # this script only drives cmake and linuxdeploy. Run packaging/linux-setup.sh
 # once first.
 #
-# gcc 12, Ubuntu 22.04's own: it lays the Next out better than 11 and needs no
-# newer glibc or libstdc++ than 22.04 has. CC/CXX pick another.
-#
-# A profile-guided build is built instrumented, run over the machines and the
-# set's programs by pgo-train.ps1 (pwsh; under xvfb-run without a display),
-# and built again by the counts it left beside the objects.
+# gcc 12 (22.04's own, same glibc and libstdc++ floor) is faster than 11; CC/CXX pick another.
+# PGO_SET: built instrumented, trained by pgo-train.ps1 (pwsh, xvfb-run), built again.
 #
 # BUILD_DIR must be on a real Linux filesystem. Under WSL the sources may well
 # live on /mnt/c, but linuxdeploy makes symlinks and sets permissions in the
@@ -55,6 +51,8 @@ done
 if [ -n "$PGO_SET" ]; then
 	[ -d "$PGO_SET/sysnext" ] || { echo "no card at $PGO_SET/sysnext"; exit 1; }
 	command -v "$PWSH" > /dev/null || { echo "missing pwsh, needed for PGO_SET"; exit 1; }
+	[ -n "$DISPLAY" ] || command -v xvfb-run > /dev/null \
+		|| { echo "missing xvfb-run, needed for PGO_SET without a display"; exit 1; }
 fi
 
 echo "=== $NAME $VERSION ==="
