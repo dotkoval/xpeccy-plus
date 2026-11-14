@@ -64,7 +64,7 @@ grays out the sizes smaller than the machine shows.
 
 ## Fullscreen
 
-```{index} Fullscreen, Keep Aspect Ratio, aspect ratio, Integer Scale
+```{index} Fullscreen, Keep Aspect Ratio, aspect ratio, Integer Scale, Fit
 ```
 
 **View > Fullscreen** fills the whole screen with the picture. In fullscreen the
@@ -83,6 +83,9 @@ resized:
 same number of screen pixels, as many as fit with the border the **Border** size sets.
 The room left around the picture is filled as **View > Side Fill** says. It is off by
 default, and grayed out while **Keep Aspect Ratio** is not ticked.
+
+**Fit** on the Video page of **Options** holds both: **Stretch**, **Keep ratio** or
+**Integer scale**.
 
 ```{index} Side Fill
 ```
@@ -191,10 +194,10 @@ on each, written as `#RRGGBB` - black, blue, red, magenta, green, cyan, yellow, 
 then the same eight colors bright. A file with fewer than 16 colors is not used; the
 built-in palette is shown instead.
 
-```{index} Gray scale
+```{index} Grayscale
 ```
 
-**Gray scale** in the **Picture** group of **Options > Video** draws the picture in shades of gray.
+**Grayscale** in the **Picture** group of **Options > Video** draws the picture in shades of gray.
 
 ```{index} ULA+, ULA plus
 ```
