@@ -103,6 +103,7 @@ class SetupWin : public QDialog {
 		void showShotSize();
 		vidFit pageFit();
 		int fitInt();
+		int fitKeep();
 		void alignVideoLabels();
 		xRecord recFromUi();
 		// the side fill's strength, in a pop-up under the gear beside its list; the

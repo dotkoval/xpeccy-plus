@@ -1369,7 +1369,7 @@ none - nothing comes back (+2A, +3)</string>
                <item row="1" column="0">
                 <widget class="QLabel" name="labFit">
                  <property name="toolTip">
-                  <string>Fullscreen or a resized window: the picture's shape</string>
+                  <string>Fullscreen, a maximized or resized window: the picture's shape</string>
                  </property>
                  <property name="text">
                   <string>Fit</string>
@@ -1391,7 +1391,7 @@ none - nothing comes back (+2A, +3)</string>
                   </size>
                  </property>
                  <property name="toolTip">
-                  <string>Fullscreen or a resized window: the picture's shape</string>
+                  <string>Fullscreen, a maximized or resized window: the picture's shape</string>
                  </property>
                 </widget>
                </item>

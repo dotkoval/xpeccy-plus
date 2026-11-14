@@ -566,12 +566,12 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.cbScale, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbFullscreen, &QCheckBox::toggled, this, &SetupWin::showShotSize);
 	// Keep ratio and Integer scale in one list: a stretched picture has no scale to keep whole
-	ui.cbFit->addItem("Stretch", FIT_STRETCH);
-	ui.cbFit->setItemData(FIT_STRETCH, "Fills the room, the shape changes", Qt::ToolTipRole);
-	ui.cbFit->addItem("Keep ratio", FIT_KEEP);
-	ui.cbFit->setItemData(FIT_KEEP, "Keeps the shape, the side fill around it", Qt::ToolTipRole);
-	ui.cbFit->addItem("Integer scale", FIT_INT);
-	ui.cbFit->setItemData(FIT_INT, "Whole pixels per dot, as many as fit", Qt::ToolTipRole);
+	ui.cbFit->addItem(tr("Stretch"), FIT_STRETCH);
+	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Fills the room, the shape changes"), Qt::ToolTipRole);
+	ui.cbFit->addItem(tr("Keep ratio"), FIT_KEEP);
+	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Keeps the shape, the side fill around it"), Qt::ToolTipRole);
+	ui.cbFit->addItem(tr("Integer scale"), FIT_INT);
+	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Whole pixels per dot, as many as fit"), Qt::ToolTipRole);
 	connect(ui.cbFit, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbSideFill, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	leShotName = new QLineEdit;
@@ -1210,7 +1210,7 @@ void SetupWin::fillPages() {
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	fullscreenTip(ui.cbFullscreen);
-	ui.cbFit->setCurrentIndex(!conf.vid.keepRatio ? FIT_STRETCH : conf.vid.intScale ? FIT_INT : FIT_KEEP);
+	setRFIndex(ui.cbFit, !conf.vid.keepRatio ? FIT_STRETCH : conf.vid.intScale ? FIT_INT : FIT_KEEP);
 	fillToUi();
 	fillTake();
 	ui.cbVSync->setChecked(conf.vid.vsync);
@@ -1698,7 +1698,7 @@ void SetupWin::applyGlobal() {
 	conf.emu.rewind.secs = ui.sbRewSecs->value();
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
-	conf.vid.keepRatio = (ui.cbFit->currentIndex() != FIT_STRETCH) ? 1 : 0;
+	conf.vid.keepRatio = fitKeep();
 	conf.vid.intScale = fitInt();
 	fillSet(getRFIData(ui.cbSideFill));
 	fillTake();		// the pop-up's values are in conf already: now they stay
@@ -4185,15 +4185,20 @@ void SetupWin::alignVideoLabels() {
 
 // integerscale as the Fit list leaves it: Stretch keeps it, as View > Integer Scale greyed does
 int SetupWin::fitInt() {
-	int fit = ui.cbFit->currentIndex();
+	int fit = getRFIData(ui.cbFit);
 	return (fit == FIT_STRETCH) ? conf.vid.intScale : (fit == FIT_INT) ? 1 : 0;
+}
+
+// keepratio as the Fit list sets it
+int SetupWin::fitKeep() {
+	return (getRFIData(ui.cbFit) != FIT_STRETCH) ? 1 : 0;
 }
 
 // where the picture goes in the main window with this page's settings
 vidFit SetupWin::pageFit() {
 	int fill = getRFIData(ui.cbSideFill);
 	return vid_fit(conf.zx->vid, ui.bszsld->value(), vid_room(ui.cbFullscreen->isChecked()), getRFIData(ui.cbScale),
-		ui.cbFit->currentIndex() != FIT_STRETCH, fitInt(), (fill & SFILL_BORDER) ? 1 : 0, conf.zx->hw->xscale,
+		fitKeep(), fitInt(), (fill & SFILL_BORDER) ? 1 : 0, conf.zx->hw->xscale,
 		main_dpr(this));
 }
 
