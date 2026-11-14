@@ -566,12 +566,15 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.cbScale, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbFullscreen, &QCheckBox::toggled, this, &SetupWin::showShotSize);
 	// Keep ratio and Integer scale in one list: a stretched picture has no scale to keep whole
-	ui.cbFit->addItem(tr("Stretch"), FIT_STRETCH);
-	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Fills the room, the shape changes"), Qt::ToolTipRole);
-	ui.cbFit->addItem(tr("Keep ratio"), FIT_KEEP);
-	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Keeps the shape, the side fill around it"), Qt::ToolTipRole);
-	ui.cbFit->addItem(tr("Integer scale"), FIT_INT);
-	ui.cbFit->setItemData(ui.cbFit->count() - 1, tr("Whole pixels per dot, as many as fit"), Qt::ToolTipRole);
+	static const struct {int fit; const char* name; const char* tip;} fits[] = {
+		{FIT_STRETCH, QT_TR_NOOP("Stretch"), QT_TR_NOOP("Fills the room, the shape changes")},
+		{FIT_KEEP, QT_TR_NOOP("Keep ratio"), QT_TR_NOOP("Keeps the shape")},
+		{FIT_INT, QT_TR_NOOP("Integer scale"), QT_TR_NOOP("Whole pixels per dot, as many as fit")},
+	};
+	for (auto& f : fits) {
+		ui.cbFit->addItem(tr(f.name), f.fit);
+		ui.cbFit->setItemData(ui.cbFit->count() - 1, tr(f.tip), Qt::ToolTipRole);
+	}
 	connect(ui.cbFit, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbSideFill, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	leShotName = new QLineEdit;
@@ -4183,7 +4186,7 @@ void SetupWin::alignVideoLabels() {
 		lab->setMinimumWidth(wid);
 }
 
-// integerscale as the Fit list leaves it: Stretch keeps it, as View > Integer Scale greyed does
+// integerscale as the Fit list leaves it: Stretch keeps it, as View > Integer Scale grayed does
 int SetupWin::fitInt() {
 	int fit = getRFIData(ui.cbFit);
 	return (fit == FIT_STRETCH) ? conf.vid.intScale : (fit == FIT_INT) ? 1 : 0;
