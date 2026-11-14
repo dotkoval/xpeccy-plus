@@ -341,14 +341,15 @@ void nx_uart_run(Computer* comp, long long e) {
 }
 
 // the first edge something here could fire on. A receiver at work with its interrupt
-// enabled is looked at on every edge; one without is read when the cpu asks
-long long nx_uart_quiet_until(Computer* comp) {
+// enabled is looked at on every edge; one without is read when the cpu asks, unless
+// stat: it sets its status bit all the same
+long long nx_uart_quiet_until(Computer* comp, int stat) {
 	long long q = LLONG_MAX;
 	for (int i = 0; i < 2; i++) {
 		nxUart* u = &UART[i];
 		if ((u->emptyT >= 0) && (u->emptyT < q)) q = u->emptyT;
 		if (u->busy && u->fifo && !(u->frame & 0xc0) && (u->end < q)) q = u->end;
-		if ((NX.nr[0xc6] >> (i ? 4 : 0)) & 3) {
+		if (stat || ((NX.nr[0xc6] >> (i ? 4 : 0)) & 3)) {
 			int busy = u->hqN || u->schN || (u->rst != RX_IDLE) || u->oav || u->avd || u->wrD
 				|| (u->oavReg != (u->rxStored > 0)) || (u->onfReg != rx_near(u));
 			if (busy && (u->rt >= 0) && (u->rt < q)) q = u->rt;
@@ -362,6 +363,7 @@ void nx_uart_out(Computer* comp, int reg, int val, long long w) {
 	int i = NX.uartSel;
 	nxUart* u = &UART[i];
 	nx_uart_run(comp, w);
+	NX.dmaIntDead = 0;		// a new schedule for the transmitter or the receiver
 	switch (reg) {
 		case 0:				// 143B: the prescaler's low 14 bits, 7 at a time
 			if (val & 0x80) u->presc = (u->presc & ~(0x7fL << 7)) | ((val & 0x7fL) << 7);
@@ -404,6 +406,7 @@ int nx_uart_in(Computer* comp, int reg, long long e) {
 	int i = NX.uartSel;
 	nxUart* u = &UART[i];
 	nx_uart_run(comp, e + 1);
+	NX.dmaIntDead = 0;		// a byte taken from the Rx FIFO
 	switch (reg) {
 		case 0: {
 			int v = 0;
@@ -446,6 +449,7 @@ void nx_uart_feed_at(Computer* comp, int i, const unsigned char* b, int n, long 
 		xlog(XLG_HW, XLL_WARN, "rzx: bytes from outside reached UART %i while recording: the recording will not play back the same", i);
 	}
 	nxUart* u = &UART[i];
+	NX.dmaIntDead = 0;		// bytes on the way in
 	if (!u->hqN && (e > u->feedAt)) u->feedAt = e;
 	for (int k = 0; (k < n) && (u->hqN < (int)sizeof(u->hq)); k++) {
 		u->hq[(u->hqHead + u->hqN) % (int)sizeof(u->hq)] = b[k];
@@ -462,6 +466,7 @@ int nx_uart_feed_room(Computer* comp, int i) {
 void nx_uart_line(Computer* comp, int i, long long e, int lv) {
 	nxUart* u = &UART[i];
 	if (u->schN >= UART_SCH) return;
+	NX.dmaIntDead = 0;
 	u->sch[(u->schHead + u->schN) % UART_SCH].e = e;
 	u->sch[(u->schHead + u->schN) % UART_SCH].lv = lv ? 1 : 0;
 	u->schN++;
@@ -470,6 +475,7 @@ void nx_uart_line(Computer* comp, int i, long long e, int lv) {
 // how the far end sends: a bit of bit16 CLK_28 edges (16.16), frame as uart_framing_r;
 // 0 sends at whatever the guest's UART is set to
 void nx_uart_far(Computer* comp, int i, long long bit16, int frame) {
+	NX.dmaIntDead = 0;
 	UART[i].farBit = bit16;
 	UART[i].farFrame = frame & 0x1f;
 }
@@ -495,6 +501,7 @@ double nx_clk28_hz(Computer* comp) {
 void nx_uart_cts(Computer* comp, int i, int cts_n) {
 	nxUart* u = &UART[i];
 	u->ctsN = cts_n ? 1 : 0;
+	NX.dmaIntDead = 0;
 	if (!u->ctsN && u->txWait && !u->busy && u->fifo)
 		nx_uart_start(comp, i, nx_now(comp) + 1);
 }
