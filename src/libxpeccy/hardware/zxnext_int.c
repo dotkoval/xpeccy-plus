@@ -493,7 +493,11 @@ static int nx_dma_int(Computer* comp) {
 	if (!(nr[0xc0] & 1)) return 0;		// pulse mode: the devices are held in reset
 	if (!(nr[0xcc] & 3) && !nr[0xcd] && !(nr[0xce] & 0x77)) return 0;
 	// the DMA asks on every clock edge while it waits: no catching up while nothing can
-	// have fired since the last answer (dmaIntDead)
+	// have fired since the last answer (dmaIntDead), nor while a device it waits for is
+	// in service (-1): that holds until the device's state or the enables change, and
+	// every change of them clears dmaIntDead. The sources skipped here are caught up by
+	// the next to look (the line's end, the cpu's INT, an i/o access), at their own edges.
+	if (NX.dmaIntDead < 0) return 1;
 	if (nx_now(comp) < NX.dmaIntDead) return 0;
 	nx_int_catch_up(comp);
 	int en = ((nr[0xcc] & 2) ? 1 : 0) | ((nr[0xcc] & 1) << 11) | ((nr[0xcd] & 0x0f) << 3)
@@ -503,7 +507,10 @@ static int nx_dma_int(Computer* comp) {
 	long long dead = nx_int_quiet_until(comp);	// the line compare, the CTC, the frame end
 	for (int i = 0; i < NX_IRQ_DEVS; i++) {
 		if (!((en >> i) & 1)) continue;
-		if (IRQ.st[i] != DEV_0) return 1;
+		if (IRQ.st[i] != DEV_0) {
+			NX.dmaIntDead = -1;
+			return 1;
+		}
 		if ((IRQ.pend >> i) & 1) {
 			if (IRQ.pendT[i] < t) return 1;	// S_REQ by the next edge (M1 is high under the DMA)
 			if (IRQ.pendT[i] + 1 < dead) dead = IRQ.pendT[i] + 1;
