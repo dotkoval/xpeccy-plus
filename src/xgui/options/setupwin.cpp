@@ -70,6 +70,9 @@
 // the SD card row's items
 enum {SD_BOARD_NONE = 0, SD_BOARD_DIVMMC, SD_BOARD_ZC};
 
+// the Fit list's items, in its order: keepratio and integerscale of the config
+enum {FIT_STRETCH = 0, FIT_KEEP, FIT_INT};
+
 void setRFIndex(QComboBox* box, QVariant data, int defidx) {
 	int idx = box->findData(data);
 	if (idx < 0) idx = defidx;
@@ -562,10 +565,14 @@ SetupWin::SetupWin(QWidget* par):QDialog(par) {
 	connect(ui.bszsld, &QSlider::valueChanged, this, &SetupWin::showShotSize);
 	connect(ui.cbScale, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbFullscreen, &QCheckBox::toggled, this, &SetupWin::showShotSize);
-	connect(ui.cbKeepRatio, &QCheckBox::toggled, this, &SetupWin::showShotSize);
-	connect(ui.cbIntScale, &QCheckBox::toggled, this, &SetupWin::showShotSize);
-	// a stretched picture has no scale to keep whole
-	connect(ui.cbKeepRatio, &QCheckBox::toggled, ui.cbIntScale, &QWidget::setEnabled);
+	// Keep ratio and Integer scale in one list: a stretched picture has no scale to keep whole
+	ui.cbFit->addItem("Stretch", FIT_STRETCH);
+	ui.cbFit->setItemData(FIT_STRETCH, "Fills the room, the shape changes", Qt::ToolTipRole);
+	ui.cbFit->addItem("Keep ratio", FIT_KEEP);
+	ui.cbFit->setItemData(FIT_KEEP, "Keeps the shape, the side fill around it", Qt::ToolTipRole);
+	ui.cbFit->addItem("Integer scale", FIT_INT);
+	ui.cbFit->setItemData(FIT_INT, "Whole pixels per dot, as many as fit", Qt::ToolTipRole);
+	connect(ui.cbFit, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	connect(ui.cbSideFill, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::showShotSize);
 	leShotName = new QLineEdit;
 	leShotName->setPlaceholderText(SHOT_NAME_DEF);
@@ -1203,9 +1210,7 @@ void SetupWin::fillPages() {
 // video
 	ui.cbFullscreen->setChecked(conf.vid.fullScreen);
 	fullscreenTip(ui.cbFullscreen);
-	ui.cbKeepRatio->setChecked(conf.vid.keepRatio);
-	ui.cbIntScale->setChecked(conf.vid.intScale);
-	ui.cbIntScale->setEnabled(conf.vid.keepRatio);
+	ui.cbFit->setCurrentIndex(!conf.vid.keepRatio ? FIT_STRETCH : conf.vid.intScale ? FIT_INT : FIT_KEEP);
 	fillToUi();
 	fillTake();
 	ui.cbVSync->setChecked(conf.vid.vsync);
@@ -1693,8 +1698,8 @@ void SetupWin::applyGlobal() {
 	conf.emu.rewind.secs = ui.sbRewSecs->value();
 // video
 	conf.vid.fullScreen = ui.cbFullscreen->isChecked() ? 1 : 0;
-	conf.vid.keepRatio = ui.cbKeepRatio->isChecked() ? 1 : 0;
-	conf.vid.intScale = ui.cbIntScale->isChecked() ? 1 : 0;
+	conf.vid.keepRatio = (ui.cbFit->currentIndex() != FIT_STRETCH) ? 1 : 0;
+	conf.vid.intScale = fitInt();
 	fillSet(getRFIData(ui.cbSideFill));
 	fillTake();		// the pop-up's values are in conf already: now they stay
 	conf.vid.vsync = ui.cbVSync->isChecked() ? 1 : 0;
@@ -4164,7 +4169,7 @@ void SetupWin::fillPut() {
 
 // the first column of the Video page's groups, one width for all of them
 void SetupWin::alignVideoLabels() {
-	QList<QLabel*> col = QList<QLabel*>() << ui.label_3 << ui.labPalPreset << ui.labShader << ui.labSideFill
+	QList<QLabel*> col = QList<QLabel*>() << ui.label_3 << ui.labFit << ui.labPalPreset << ui.labShader << ui.labSideFill
 		<< ui.label_12 << ui.antiflickerModeLabel << ui.label_13 << ui.label_5
 		<< labRecSrc << labRecOut << labRecFfm;
 	// Picture sets its column in the .ui, a label may be wider in a bigger font
@@ -4178,11 +4183,17 @@ void SetupWin::alignVideoLabels() {
 		lab->setMinimumWidth(wid);
 }
 
+// integerscale as the Fit list leaves it: Stretch keeps it, as View > Integer Scale greyed does
+int SetupWin::fitInt() {
+	int fit = ui.cbFit->currentIndex();
+	return (fit == FIT_STRETCH) ? conf.vid.intScale : (fit == FIT_INT) ? 1 : 0;
+}
+
 // where the picture goes in the main window with this page's settings
 vidFit SetupWin::pageFit() {
 	int fill = getRFIData(ui.cbSideFill);
 	return vid_fit(conf.zx->vid, ui.bszsld->value(), vid_room(ui.cbFullscreen->isChecked()), getRFIData(ui.cbScale),
-		ui.cbKeepRatio->isChecked(), ui.cbIntScale->isChecked(), (fill & SFILL_BORDER) ? 1 : 0, conf.zx->hw->xscale,
+		ui.cbFit->currentIndex() != FIT_STRETCH, fitInt(), (fill & SFILL_BORDER) ? 1 : 0, conf.zx->hw->xscale,
 		main_dpr(this));
 }
 
@@ -4243,7 +4254,7 @@ void SetupWin::showShotSize() {
 		int fill = getRFIData(ui.cbSideFill);
 		// a fill drawn beside the picture, as MainWin::fillWanted() has it
 		bool room = (f.x > 0) || (f.y > 0) || (f.x + f.w < f.roomW) || (f.y + f.h < f.roomH);
-		if (ui.cbIntScale->isChecked())
+		if (fitInt())
 			room = (f.px > 0) || (f.py > 0) || (f.px + f.pw < f.devW) || (f.py + f.ph < f.devH);
 		bool beside = conf.vid.gl && ((fill & ~SFILL_BORDER) != SFILL_BLACK) && room;
 		if (nob) {
