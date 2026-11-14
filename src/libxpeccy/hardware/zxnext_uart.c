@@ -180,6 +180,17 @@ static void rx_feed_line(Computer* comp, nxUart* u, long long now) {
 	}
 }
 
+// A settled IDLE receiver's step that would leave every register as it is: the reloads
+// (timer, bit count, parity, the frame and the prescaler taken) done by an earlier one,
+// nothing written to the frame or the prescaler since, RTR as the FIFO has it
+static int rx_idle_still(nxUart* u) {
+	int fr = u->frame;
+	return !(fr & 0x80) && (u->fpresc == u->presc) && (u->timer == (u->fpresc >> 1))
+		&& (u->fbits == ((fr >> 3) & 3)) && (u->bitc == (4 | u->fbits))
+		&& (u->rpar == ((fr >> 1) & 1)) && (u->fpar == ((fr >> 2) & 1)) && (u->fstop == (fr & 1))
+		&& (u->rtrN == ((fr & 0x20) && (u->rxStored >= UART_RXF - 2)));
+}
+
 // the receiver up to edge e, a stretch where nothing moves at a time
 static void rx_run(Computer* comp, int i, long long e) {
 	nxUart* u = &UART[i];
@@ -197,9 +208,10 @@ static void rx_run(Computer* comp, int i, long long e) {
 		if (settled) {
 			long long until = (nc == LLONG_MAX) ? e : ((nc + 1 < e) ? nc + 1 : e);
 			if ((u->rst == RX_IDLE) && u->lin && !(u->frame & 0x40)) {
-				// nothing comes: the idle reloads stand as they are
+				// nothing comes: the idle reloads stand as they are (taken by one step,
+				// none at all when an earlier one took them)
 				if (until > u->rt + 1) {
-					rx_step(comp, i, u->rt);
+					if (!rx_idle_still(u)) rx_step(comp, i, u->rt);
 					u->rt++;
 					if (u->hqN) continue;
 					u->rt = until;
