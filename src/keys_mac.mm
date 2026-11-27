@@ -1,10 +1,10 @@
-// Cocoa side of the host keyboard: Shift, Ctrl and Option told left from right.
+// Cocoa side of the host keyboard: Shift, Ctrl, Option and Command told left from right.
 //
 // Qt finds a modifier's change by the bit the two keys share (qnsview_keys.mm,
 // flagsChanged:), so its event has no side, and with one Shift held the other's
 // press and release send nothing at all. Every flags change carries the
 // device's own bits too, one per key; a local monitor reads them and hands the
-// six keys' state on (mac_mods_changed in emulwin.cpp). The event goes on to Qt
+// eight keys' state on (mac_mods_changed in emulwin.cpp). The event goes on to Qt
 // as it was: its modifiers stay right for the hotkeys.
 
 #import <AppKit/AppKit.h>
@@ -22,6 +22,12 @@
 #ifndef NX_DEVICERSHIFTKEYMASK
 #define NX_DEVICERSHIFTKEYMASK	0x00000004
 #endif
+#ifndef NX_DEVICELCMDKEYMASK
+#define NX_DEVICELCMDKEYMASK	0x00000008
+#endif
+#ifndef NX_DEVICERCMDKEYMASK
+#define NX_DEVICERCMDKEYMASK	0x00000010
+#endif
 #ifndef NX_DEVICELALTKEYMASK
 #define NX_DEVICELALTKEYMASK	0x00000020
 #endif
@@ -38,7 +44,8 @@ static const struct {
 } modTab[] = {
 	{NX_DEVICELSHIFTKEYMASK, MACMOD_LSHIFT}, {NX_DEVICERSHIFTKEYMASK, MACMOD_RSHIFT},
 	{NX_DEVICELCTLKEYMASK, MACMOD_LCTRL}, {NX_DEVICERCTLKEYMASK, MACMOD_RCTRL},
-	{NX_DEVICELALTKEYMASK, MACMOD_LALT}, {NX_DEVICERALTKEYMASK, MACMOD_RALT}
+	{NX_DEVICELALTKEYMASK, MACMOD_LALT}, {NX_DEVICERALTKEYMASK, MACMOD_RALT},
+	{NX_DEVICELCMDKEYMASK, MACMOD_LCMD}, {NX_DEVICERCMDKEYMASK, MACMOD_RCMD}
 };
 
 static unsigned dev_held(unsigned long flags) {
@@ -48,15 +55,27 @@ static unsigned dev_held(unsigned long flags) {
 	return held;
 }
 
-static void (*modsCb)(unsigned, unsigned long) = NULL;
+static void (*modsCb)(unsigned, unsigned long, unsigned) = NULL;
+static void (*otherCb)() = NULL;
 static id modsMonitor = nil;
 
-void mac_mods_watch(void (*cb)(unsigned, unsigned long)) {
+// The keys and mouse buttons going down are watched too: a key the menu bar or
+// the system's own shortcuts take (Cmd+Q) never comes to the window as a key
+// event, and it is what makes a Command held with it no tap.
+void mac_mods_watch(void (*cb)(unsigned, unsigned long, unsigned), void (*other)()) {
 	modsCb = cb;
+	otherCb = other;
 	if (modsMonitor != nil) return;
-	modsMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:NSEventMaskFlagsChanged handler:^NSEvent*(NSEvent* ev) {
+	NSEventMask mask = NSEventMaskFlagsChanged | NSEventMaskKeyDown | NSEventMaskLeftMouseDown
+		| NSEventMaskRightMouseDown | NSEventMaskOtherMouseDown;
+	modsMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:mask handler:^NSEvent*(NSEvent* ev) {
+		if ([ev type] != NSEventTypeFlagsChanged) {
+			// not a repeat: that key went down before, whatever is pressed now
+			if (otherCb && (([ev type] != NSEventTypeKeyDown) || ![ev isARepeat])) otherCb();
+			return ev;
+		}
 		unsigned long flags = (unsigned long)[ev modifierFlags];
-		if (modsCb) modsCb(dev_held(flags), flags);
+		if (modsCb) modsCb(dev_held(flags), flags, (unsigned)[ev keyCode]);
 		return ev;
 	}];
 #if !__has_feature(objc_arc)
@@ -75,7 +94,8 @@ unsigned mac_mods_live(unsigned last, unsigned long* flagsOut) {
 	} pairTab[] = {
 		{kCGEventFlagMaskShift, MACMOD_LSHIFT | MACMOD_RSHIFT},
 		{kCGEventFlagMaskControl, MACMOD_LCTRL | MACMOD_RCTRL},
-		{kCGEventFlagMaskAlternate, MACMOD_LALT | MACMOD_RALT}
+		{kCGEventFlagMaskAlternate, MACMOD_LALT | MACMOD_RALT},
+		{kCGEventFlagMaskCommand, MACMOD_CMDS}
 	};
 	unsigned long flags = (unsigned long)CGEventSourceFlagsState(kCGEventSourceStateHIDSystemState);
 	unsigned dev = dev_held(flags);

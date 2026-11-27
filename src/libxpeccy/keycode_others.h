@@ -117,6 +117,10 @@ enum {
 	XKEY_N8,
 	XKEY_N9,
 
+	// Command, left and right: machine keys when tapped (emulwin.cpp, mac_cmd_tab)
+	XKEY_LCMD,
+	XKEY_RCMD,
+
 };
 
 #endif

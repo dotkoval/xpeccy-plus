@@ -487,6 +487,77 @@ static struct {
 static MainWin* mac_mod_win = nullptr;
 static unsigned mac_mods_now = 0;		// MACMOD_* held, as the last flags change in the program said
 
+// Command is the program's own modifier (Cmd+R), so it is no key to hold in the
+// machine. One the keymap binds (RCMD in Robik.map) is a machine key when tapped:
+// pressed and let go with nothing between - no key, no other modifier, no click,
+// the window in front throughout. The machine then has its key for
+// MAC_TAP_FRAMES frames of its own.
+#define MAC_TAP_FRAMES	5
+static struct {
+	unsigned bit;		// MACMOD_*
+	int id;			// XKEY_*
+	int armed;		// down alone, nothing came between yet
+} mac_cmd_tab[2] = {
+	{MACMOD_LCMD, XKEY_LCMD, 0},
+	{MACMOD_RCMD, XKEY_RCMD, 0}
+};
+static int mac_tap_id = 0;		// the key a tap holds in the machine, 0 for none
+static int mac_tap_from = 0;		// ...and the frame it went down in
+
+static void mac_cmd_disarm() {
+	for (auto& c : mac_cmd_tab) c.armed = 0;
+}
+
+// the machine takes keys: not paused (key: a key press reaches it paused too), not
+// held by the Debugger, its window or the virtual keyboard's in front
+static bool mac_mods_take(bool key) {
+	MainWin* win = mac_mod_win;
+	if (!win) return false;
+	QWidget* front = QApplication::activeWindow();
+	return (key || !conf.emu.pause) && !(conf.zx && conf.zx->flgDBG)
+		&& (win->isActiveWindow() || (front && front->inherits("keyWindow")));
+}
+
+static void mac_tap_key(int id, bool down) {
+	MainWin* win = mac_mod_win;
+	if (!win) return;
+	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: tap %s %s", getKeyNameById(id), down ? "down" : "up");
+	QKeyEvent ev(down ? QEvent::KeyPress : QEvent::KeyRelease, Qt::Key_Control, Qt::NoModifier, MACMOD_EVENT, id, 0);
+	QApplication::sendEvent(win, &ev);
+}
+
+static void mac_tap_end() {
+	if (!mac_tap_id) return;
+	int id = mac_tap_id;
+	mac_tap_id = 0;
+	mac_tap_key(id, false);
+}
+
+// the 20 ms timer: counted in the machine's frames, so a slowed one sees the key too;
+// a counter that went back (a reset, a rewind) ends it as well
+void mac_tap_frame() {
+	if (!mac_tap_id || !conf.zx) return;
+	if ((unsigned)(conf.zx->vid->fcnt - mac_tap_from) >= MAC_TAP_FRAMES) mac_tap_end();
+}
+
+// diff: the keys the flags change moved, mac_mods_now already as it left them
+static void mac_cmd_changed(unsigned diff) {
+	for (auto& c : mac_cmd_tab) {
+		if (diff & ~c.bit) c.armed = 0;		// another modifier with it: a combination
+		if (!(diff & c.bit)) continue;
+		if (mac_mods_now & c.bit) {
+			c.armed = (mac_mods_now == c.bit) && keyRemapped(c.id);
+		} else if (c.armed) {
+			c.armed = 0;
+			if (!mac_mods_take(false) || !conf.zx) continue;
+			mac_tap_end();		// the other Command's, still held
+			mac_tap_id = c.id;
+			mac_tap_from = conf.zx->vid->fcnt;
+			mac_tap_key(c.id, true);
+		}
+	}
+}
+
 // what the system holds now, past what a menu's or a drag's own loop kept from the monitor
 static void mac_mods_reread() {
 	unsigned long flags;
@@ -494,6 +565,7 @@ static void mac_mods_reread() {
 	if (live == mac_mods_now) return;
 	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: reread flags %08lx, held %02x -> %02x", flags, mac_mods_now, live);
 	mac_mods_now = live;
+	mac_cmd_disarm();		// a change the monitor did not see: no tap of ours
 }
 
 // The machine given what is held: a press only while it takes keys, as on
@@ -505,9 +577,7 @@ void mac_mods_sync(bool key) {
 	MainWin* win = mac_mod_win;
 	if (!win) return;
 	if (key) mac_mods_reread();
-	QWidget* front = QApplication::activeWindow();
-	bool take = (key || !conf.emu.pause) && !(conf.zx && conf.zx->flgDBG)
-		&& (win->isActiveWindow() || (front && front->inherits("keyWindow")));
+	bool take = mac_mods_take(key);
 	for (auto& m : mac_mod_tab) {
 		int now = (mac_mods_now & m.bit) ? 1 : 0;
 		if ((now == m.held) || (now && !take)) continue;
@@ -517,10 +587,17 @@ void mac_mods_sync(bool key) {
 	}
 }
 
-static void mac_mods_changed(unsigned held, unsigned long flags) {
-	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: flags %08lx, held %02x", flags, held);
+static void mac_mods_changed(unsigned held, unsigned long flags, unsigned code) {
+	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: key %02x, flags %08lx, held %02x", code, flags, held);
+	unsigned diff = held ^ mac_mods_now;
 	mac_mods_now = held;
+	mac_cmd_changed(diff);
 	mac_mods_sync(false);
+}
+
+// a key or a mouse button went down in the program: a Command held is its modifier
+static void mac_other_down() {
+	mac_cmd_disarm();
 }
 
 // focusOutEvent: the machine lets go of what it was given, by a release of each
@@ -528,6 +605,8 @@ static void mac_mods_changed(unsigned held, unsigned long flags) {
 // up), and what is still held goes in again with the next key or change
 void mac_mods_let_go() {
 	MainWin* win = mac_mod_win;
+	mac_cmd_disarm();
+	mac_tap_end();
 	for (auto& m : mac_mod_tab) {
 		if (!m.held) continue;
 		m.held = 0;
@@ -540,6 +619,7 @@ void mac_mods_let_go() {
 // the program left: a key let go in another one is never told here
 static void mac_mods_away() {
 	mac_mods_now = 0;
+	mac_cmd_disarm();
 	mac_mods_sync(false);
 }
 
@@ -678,7 +758,7 @@ MainWin::MainWin(QMainWindow* frm) {
 
 #ifdef __APPLE__
 	mac_mod_win = this;
-	mac_mods_watch(mac_mods_changed);
+	mac_mods_watch(mac_mods_changed, mac_other_down);
 	connect(qApp, &QGuiApplication::applicationStateChanged, this, [](Qt::ApplicationState st) {
 		if (st != Qt::ApplicationActive) {
 			mac_mods_away();
@@ -1050,6 +1130,9 @@ void MainWin::timerEvent(QTimerEvent* ev) {
 //			conf.prof.changed = 0;
 //		}
 		if (block) return;
+#ifdef __APPLE__
+		mac_tap_frame();
+#endif
 		mouseWatch();
 		rzxWatch();
 		if (comp->rzx.overio) {

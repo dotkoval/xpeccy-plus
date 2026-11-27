@@ -126,6 +126,12 @@ static keyEntry keyMapInit[] = {
 	{"N8", XKEY_N8,{0,0},{0,0},{0,0},0x75,0x75,0x48,0},
 	{"N9", XKEY_N9,{0,0},{0,0},{0,0},0x7d,0x7d,0x49,0},
 
+#ifdef __APPLE__
+	// Command: nothing unless a keymap binds it, and then by a tap (mac_cmd_tab); no PS/2 code
+	{"LCMD", XKEY_LCMD,{0,0},{0,0},{0,0},0,0,0,0},
+	{"RCMD", XKEY_RCMD,{0,0},{0,0},{0,0},0,0,0,0},
+#endif
+
 	{"",ENDKEY,{0,0},{0,0},{0,0},0,0,0,0}
 };
 
@@ -295,6 +301,15 @@ bool keyRemapped(int id) {
 	return now.joyMask || memcmp(now.zxKey, keyMapInit[i].zxKey, KEYSEQ_MAXLEN);
 }
 
+// this system's name as a keymap file's section has it
+#if defined(__APPLE__)
+#define KMAP_SYSTEM "macOS"
+#elif defined(_WIN32)
+#define KMAP_SYSTEM "Windows"
+#else
+#define KMAP_SYSTEM "Linux"
+#endif
+
 static void load_key_file() {
 	QString nam = keymap_file();
 	xlog(XLG_INPUT, XLL_INFO, "keymap: %s%s", nam.isEmpty() ? KMAP_BUILTIN : nam.toUtf8().constData(),
@@ -310,10 +325,19 @@ static void load_key_file() {
 	char keys[KEYSEQ_MAXLEN];
 	int rlen;
 	unsigned int i;
+	bool mine = true;		// the lines are this system's: all of them before the first section
 	while (!file.atEnd()) {
 		QByteArray ba = file.readLine();
 		while (ba.endsWith('\n') || ba.endsWith('\r'))		// a CRLF checkout, see CLAUDE.md
 			ba.chop(1);
+		// [macOS], [Windows], [Linux]: the lines after it are for that system only.
+		// No tab in it: "[<tab>]" is the [ key pressing ]
+		QByteArray sec = ba.trimmed();
+		if ((sec.size() > 2) && sec.startsWith('[') && sec.endsWith(']') && !sec.contains('\t')) {
+			mine = !qstricmp(sec.mid(1, sec.size() - 2).constData(), KMAP_SYSTEM);
+			continue;
+		}
+		if (!mine) continue;
 		line = std::string(ba.data());
 		vec = splitstr(line,"\t");
 		memset(keys, 0, sizeof(keys));

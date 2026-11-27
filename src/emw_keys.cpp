@@ -134,6 +134,16 @@ static bool key_lone(QKeyEvent* ev) {
 	}
 }
 
+#ifdef __APPLE__
+// for a tester's log: the key as Qt gave it, or as we did (a modifier with its side, a tap)
+static void mac_key_log(QKeyEvent* ev, bool down) {
+	if (ev->isAutoRepeat() || !xlog_on(XLG_INPUT, XLL_DEBUG)) return;
+	xlog_put(XLG_INPUT, XLL_DEBUG, "key %s: qt %08x, code %02x, mods %08x%s", down ? "down" : "up",
+		(unsigned)ev->key(), (unsigned)ev->nativeVirtualKey(), (unsigned)int(ev->modifiers()),
+		(ev->nativeScanCode() == MACMOD_EVENT) ? " (ours)" : "");
+}
+#endif
+
 #if USE_HOST_KEYBOARD
 
 void MainWin::keyPressEvent(QKeyEvent* ev) {
@@ -141,6 +151,7 @@ void MainWin::keyPressEvent(QKeyEvent* ev) {
 	keyEntry kent;
 	Computer* comp = conf.zx;
 #ifdef __APPLE__
+	mac_key_log(ev, true);
 	// a Shift held while the machine took no keys goes in ahead of this key
 	if (!ev->isAutoRepeat() && (ev->nativeScanCode() != MACMOD_EVENT) && !mac_mod_key(ev))
 		mac_mods_sync(true);
@@ -611,6 +622,9 @@ void MainWin::xkey_press(int xkey, bool cmd, QKeyEvent* ev) {
 
 void MainWin::keyReleaseEvent(QKeyEvent *ev) {
 	if (ev->isAutoRepeat()) return;
+#ifdef __APPLE__
+	mac_key_log(ev, false);
+#endif
 	if (scrView.keys.remove(view_key(ev))) return;	// it ended a view
 	// any key up lets the NMI button go: its own may come up named otherwise, its modifier first
 	if (nmiKeyDown) nmi_let_go();

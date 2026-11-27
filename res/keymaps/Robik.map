@@ -14,3 +14,6 @@ BSP	#
 .	@
 RA	R
 RC	L
+[macOS]
+RCMD	R
+RA	L
