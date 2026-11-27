@@ -301,13 +301,13 @@ bool keyRemapped(int id) {
 	return now.joyMask || memcmp(now.zxKey, keyMapInit[i].zxKey, KEYSEQ_MAXLEN);
 }
 
-// this system's name as a keymap file's section has it
+// this system's name as a keymap file's section has it, in lower case
 #if defined(__APPLE__)
-#define KMAP_SYSTEM "macOS"
+#define KMAP_SYSTEM "macos"
 #elif defined(_WIN32)
-#define KMAP_SYSTEM "Windows"
+#define KMAP_SYSTEM "windows"
 #else
-#define KMAP_SYSTEM "Linux"
+#define KMAP_SYSTEM "linux"
 #endif
 
 static void load_key_file() {
@@ -330,11 +330,10 @@ static void load_key_file() {
 		QByteArray ba = file.readLine();
 		while (ba.endsWith('\n') || ba.endsWith('\r'))		// a CRLF checkout, see CLAUDE.md
 			ba.chop(1);
-		// [macOS], [Windows], [Linux]: the lines after it are for that system only.
-		// No tab in it: "[<tab>]" is the [ key pressing ]
-		QByteArray sec = ba.trimmed();
-		if ((sec.size() > 2) && sec.startsWith('[') && sec.endsWith(']') && !sec.contains('\t')) {
-			mine = !qstricmp(sec.mid(1, sec.size() - 2).constData(), KMAP_SYSTEM);
+		// [macOS], [Windows], [Linux]: the lines after it are for that system only
+		QByteArray sec = ba.trimmed().toLower();
+		if ((sec == "[macos]") || (sec == "[windows]") || (sec == "[linux]")) {
+			mine = (sec == "[" KMAP_SYSTEM "]");
 			continue;
 		}
 		if (!mine) continue;

@@ -22,16 +22,17 @@
 void mac_mods_watch(void (*cb)(unsigned, unsigned long, unsigned), void (*other)());
 // the MACMOD_* keys held as the system says now; last: for a pair it gives no side of
 unsigned mac_mods_live(unsigned last, unsigned long* flagsOut);
+double mac_key_idle();		// seconds since a key last went down anywhere in the system
 // emulwin.cpp: the machine given the modifiers held (key: ahead of a key press), and let go of them
 void mac_mods_sync(bool key);
 void mac_mods_let_go();
 // emulwin.cpp: a tapped Command's key let go once the machine has had it for a few frames
 void mac_tap_frame();
 
-// Qt's own event of a Shift, Ctrl or Option: no side, and not every one comes;
+// Qt's own event of a Shift, Ctrl, Option or Command: no side, and not every one comes;
 // the machine and the pads take these keys from our own events instead
 inline bool mac_mod_key(const QKeyEvent* ev) {
 	if (ev->nativeScanCode() == MACMOD_EVENT) return false;
 	int key = ev->key();
-	return (key == Qt::Key_Shift) || (key == Qt::Key_Meta) || (key == Qt::Key_Alt);
+	return (key == Qt::Key_Shift) || (key == Qt::Key_Meta) || (key == Qt::Key_Alt) || (key == Qt::Key_Control);
 }

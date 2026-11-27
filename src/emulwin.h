@@ -284,6 +284,7 @@ class MainWin : public QWidget, protected QOpenGLFunctions {
 		void onPrfChange();
 		void kPress(QKeyEvent*);
 		void kRelease(QKeyEvent*);
+		void keyTap(int id, bool down);		// a machine key of our own making, past the key events
 		void loadShader(bool tell = false);	// tell: say so when it is ready too (the reload key), not only a failure
 		bool reloadMedia();
 		// quick saves (emw_saves.cpp)

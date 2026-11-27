@@ -19,6 +19,10 @@ void MainWin::kRelease(QKeyEvent* ev) {
 	keyReleaseEvent(ev);
 }
 
+void MainWin::keyTap(int id, bool down) {
+	if (down) xkey_press(id); else xkey_release(id);
+}
+
 #ifdef __WIN32
 static QMap<qint32, int> key_press_map;
 #endif
@@ -135,7 +139,7 @@ static bool key_lone(QKeyEvent* ev) {
 }
 
 #ifdef __APPLE__
-// for a tester's log: the key as Qt gave it, or as we did (a modifier with its side, a tap)
+// for a tester's log: the key as Qt gave it, or as we did (a modifier with its side)
 static void mac_key_log(QKeyEvent* ev, bool down) {
 	if (ev->isAutoRepeat() || !xlog_on(XLG_INPUT, XLL_DEBUG)) return;
 	xlog_put(XLG_INPUT, XLL_DEBUG, "key %s: qt %08x, code %02x, mods %08x%s", down ? "down" : "up",

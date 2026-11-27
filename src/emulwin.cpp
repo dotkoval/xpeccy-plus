@@ -2,6 +2,7 @@
 #include <QMatrix4x4>
 #include <QCursor>
 #include <QTimer>
+#include <QElapsedTimer>
 #include <QMenu>
 #include <QMenuBar>
 #include <QSet>
@@ -487,12 +488,9 @@ static struct {
 static MainWin* mac_mod_win = nullptr;
 static unsigned mac_mods_now = 0;		// MACMOD_* held, as the last flags change in the program said
 
-// Command is the program's own modifier (Cmd+R), so it is no key to hold in the
-// machine. One the keymap binds (RCMD in Robik.map) is a machine key when tapped:
-// pressed and let go with nothing between - no key, no other modifier, no click,
-// the window in front throughout. The machine then has its key for
-// MAC_TAP_FRAMES frames of its own.
-#define MAC_TAP_FRAMES	5
+// A Command the keymap binds is a machine key only when tapped alone: held, it is the hotkeys'
+#define MAC_TAP_FRAMES	5		// the machine has the key this many frames
+#define MAC_TAP_MS	500		// held longer, it was no tap
 static struct {
 	unsigned bit;		// MACMOD_*
 	int id;			// XKEY_*
@@ -501,8 +499,9 @@ static struct {
 	{MACMOD_LCMD, XKEY_LCMD, 0},
 	{MACMOD_RCMD, XKEY_RCMD, 0}
 };
+static QElapsedTimer mac_cmd_since;	// the armed Command's press
 static int mac_tap_id = 0;		// the key a tap holds in the machine, 0 for none
-static int mac_tap_from = 0;		// ...and the frame it went down in
+static int mac_tap_from = 0;		// ...and conf.vid.fcount when it went down
 
 static void mac_cmd_disarm() {
 	for (auto& c : mac_cmd_tab) c.armed = 0;
@@ -518,12 +517,12 @@ static bool mac_mods_take(bool key) {
 		&& (win->isActiveWindow() || (front && front->inherits("keyWindow")));
 }
 
+// not as a key event: the Debugger drops those, and the release must reach the machine
 static void mac_tap_key(int id, bool down) {
 	MainWin* win = mac_mod_win;
 	if (!win) return;
 	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: tap %s %s", getKeyNameById(id), down ? "down" : "up");
-	QKeyEvent ev(down ? QEvent::KeyPress : QEvent::KeyRelease, Qt::Key_Control, Qt::NoModifier, MACMOD_EVENT, id, 0);
-	QApplication::sendEvent(win, &ev);
+	win->keyTap(id, down);
 }
 
 static void mac_tap_end() {
@@ -533,11 +532,20 @@ static void mac_tap_end() {
 	mac_tap_key(id, false);
 }
 
-// the 20 ms timer: counted in the machine's frames, so a slowed one sees the key too;
-// a counter that went back (a reset, a rewind) ends it as well
+// the 20 ms timer; in frames made, so a slowed machine sees the key too (vid->fcnt goes back in run-ahead)
 void mac_tap_frame() {
-	if (!mac_tap_id || !conf.zx) return;
-	if ((unsigned)(conf.zx->vid->fcnt - mac_tap_from) >= MAC_TAP_FRAMES) mac_tap_end();
+	if (mac_tap_id && ((unsigned)(conf.vid.fcount - mac_tap_from) >= MAC_TAP_FRAMES)) mac_tap_end();
+}
+
+// a tap it was: short, and no key went down anywhere meanwhile - Cmd+Space is the
+// system's and never comes to the program
+static bool mac_cmd_tapped() {
+	qint64 ms = mac_cmd_since.elapsed();
+	double idle = mac_key_idle();
+	bool tap = (ms <= MAC_TAP_MS) && (idle * 1000 > ms);
+	xlog(XLG_INPUT, XLL_DEBUG, "mac modifiers: Command up after %lld ms, last key %.0f ms ago: %s",
+		(long long)ms, idle * 1000, tap ? "a tap" : "no tap");
+	return tap;
 }
 
 // diff: the keys the flags change moved, mac_mods_now already as it left them
@@ -547,12 +555,13 @@ static void mac_cmd_changed(unsigned diff) {
 		if (!(diff & c.bit)) continue;
 		if (mac_mods_now & c.bit) {
 			c.armed = (mac_mods_now == c.bit) && keyRemapped(c.id);
+			if (c.armed) mac_cmd_since.start();
 		} else if (c.armed) {
 			c.armed = 0;
-			if (!mac_mods_take(false) || !conf.zx) continue;
+			if (!mac_cmd_tapped() || !mac_mods_take(false)) continue;
 			mac_tap_end();		// the other Command's, still held
 			mac_tap_id = c.id;
-			mac_tap_from = conf.zx->vid->fcnt;
+			mac_tap_from = conf.vid.fcount;
 			mac_tap_key(c.id, true);
 		}
 	}

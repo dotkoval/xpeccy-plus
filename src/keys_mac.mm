@@ -59,9 +59,7 @@ static void (*modsCb)(unsigned, unsigned long, unsigned) = NULL;
 static void (*otherCb)() = NULL;
 static id modsMonitor = nil;
 
-// The keys and mouse buttons going down are watched too: a key the menu bar or
-// the system's own shortcuts take (Cmd+Q) never comes to the window as a key
-// event, and it is what makes a Command held with it no tap.
+// keys and mouse buttons too: a key the menu bar takes (Cmd+Q) never comes to the window
 void mac_mods_watch(void (*cb)(unsigned, unsigned long, unsigned), void (*other)()) {
 	modsCb = cb;
 	otherCb = other;
@@ -70,8 +68,7 @@ void mac_mods_watch(void (*cb)(unsigned, unsigned long, unsigned), void (*other)
 		| NSEventMaskRightMouseDown | NSEventMaskOtherMouseDown;
 	modsMonitor = [NSEvent addLocalMonitorForEventsMatchingMask:mask handler:^NSEvent*(NSEvent* ev) {
 		if ([ev type] != NSEventTypeFlagsChanged) {
-			// not a repeat: that key went down before, whatever is pressed now
-			if (otherCb && (([ev type] != NSEventTypeKeyDown) || ![ev isARepeat])) otherCb();
+			if (otherCb) otherCb();
 			return ev;
 		}
 		unsigned long flags = (unsigned long)[ev modifierFlags];
@@ -81,6 +78,11 @@ void mac_mods_watch(void (*cb)(unsigned, unsigned long, unsigned), void (*other)
 #if !__has_feature(objc_arc)
 	[modsMonitor retain];		// kept for the program's life
 #endif
+}
+
+// seconds since a key last went down anywhere, the keys the system took itself among them
+double mac_key_idle() {
+	return CGEventSourceSecondsSinceLastEventType(kCGEventSourceStateHIDSystemState, kCGEventKeyDown);
 }
 
 // The keys as the system holds them now. A menu's or a window drag's own event
