@@ -110,7 +110,8 @@ keyboard has no right Control: there the 48K keymap's Symbol Shift is the right 
 The Robik keymap on a Mac has the Robik's C on the right Command and its L on the right
 Option, the two keys right of the space, as on its case; a right Control is L as well.
 Command is the emulator's own key there, so C is pressed by a tap: press the right Command
-and let it go with no other key. Held with a key it is a hotkey as before.
+and let it go at once, with no other key. Held, alone or with a key, it is the hotkeys' as
+before.
 
 ### Your own keymap
 
@@ -156,7 +157,8 @@ PC keys are named `1` to `0`, `A` to `Z`, `ENT`, `SPC`, `LS` and `RS` (left and 
 `` ` ``, `\`, `[`, `]`, `;`, `"` (the quote key), `-`, `+` (the = key), `,`, `.`, `/`, and on
 the numeric keypad `N0` to `N9`, `NDOT`, `NENT`, `NPLUS`, `NMINUS`, `NMUL`, `NSLASH`,
 `NLOCK`. On macOS `LCMD` and `RCMD` are the left and right Command: one given a Spectrum key
-presses it when tapped - pressed and let go alone - and stays the hotkeys' key when held.
+presses it when tapped - pressed and let go at once, alone - and stays the hotkeys' key when
+held.
 
 Spectrum keys are one character each: `1` to `0`, the letters in lower case `a` to `z`, `E`
 for Enter, `C` for Caps Shift, `S` for Symbol Shift, and a space for Space.
@@ -164,9 +166,9 @@ for Enter, `C` for Caps Shift, `S` for Symbol Shift, and a space for Space.
 A PC key can also move the Kempston joystick: `JU`, `JD`, `JL`, `JR` for up, down, left and
 right, `JF` for fire, `J2` to `J4` for the extra buttons.
 
-A line `[macOS]`, `[Windows]` or `[Linux]` starts the keys of that system alone: the lines
-after it, up to the next such line, are read only there. The lines before the first one are
-for every system. The Robik keymap moves its C and L for a Mac's keyboard this way:
+A line `[macOS]`, `[Windows]` or `[Linux]`, in any case, starts the keys of that system
+alone: the lines after it, up to the next such line, are read only there. The lines before
+the first one are for every system. The Robik keymap moves its C and L for a Mac's keyboard this way:
 
 ```
 RA	R
