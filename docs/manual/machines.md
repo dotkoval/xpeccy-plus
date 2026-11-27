@@ -243,7 +243,7 @@ The 11 keys of its own (Х, Ж, Э, Б, Ю, comma, period, EDIT, DELETE and the 
 and L) are on the PC keys at their places on the Robik's case in the keymap **Robik**,
 which the Robik takes by itself (see [Keymaps](input.md#keymaps)): Tab is EDIT, Backspace
 DELETE, `-` the period, `/` the comma, `[` Х, `;` Ж, `'` Э, `,` Б, `.` Ю, Right Alt C and
-Right Ctrl L.
+Right Ctrl L. On a Mac C is the right Command, tapped alone, and L the right Option.
 
 Not yet known: whether the piezo also sounds the tape output.
 
