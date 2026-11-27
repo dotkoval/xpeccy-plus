@@ -228,6 +228,11 @@ before that point is upstream's history and is not repeated here.
 - **macOS: the right Shift, Control and Option** are keys of their own, so the 48K and Robik
   keymaps have Symbol Shift there, and both Shifts held together give extended mode.
 
+- **macOS: the Robik's C and L keys** are on a MacBook's keyboard too, where they sit on its
+  case: C is the right Command tapped alone, L the right Option. A keymap file can keep keys
+  for one system under `[macOS]`, `[Windows]` or `[Linux]`.
+  *(reported by Pavel Druzhinin and Mikhail Sudakov)*
+
 - **OTLA turbo tapes load with Auto play** again (River Raid+, Crazy Cars II+): the tape no
   longer stays stopped after the BASIC part.
 
