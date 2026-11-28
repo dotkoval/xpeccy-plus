@@ -970,8 +970,6 @@ fragment:
 			vec3 j = floor(a);
 			vec3 share = clamp((j + 1.0 - a) / max(b - a, vec3(0.000001)), vec3(0.0), vec3(1.0));
 			own = mix(linesAt(uv.x, j + 1.0, apart), linesAt(uv.x, j, apart), share);
-			// (half a row down, a flat picture's edge rows have no line past them)
-			if (rows && (half_ > 0.0)) own *= clamp((min(b.g, spotSize.y) - max(a.g, 0.0)) / max(b.g - a.g, 0.000001), 0.0, 1.0);
 			a = a / BAND - roll;
 			b = b / BAND - roll;
 			span /= BAND;
@@ -986,10 +984,8 @@ fragment:
 		// says: with none, the picture is as much darker as the mask and the gaps take
 		float kept = keptOf(mean);
 		vec3 pass0 = through / kept;
+		// (half a row down, the edge row past the last line is a gap like any other: the edge line goes on past it)
 		vec3 sum = vec3(0.0);
-		// Half a row down, a flat picture's edge rows have no line past them: the green beam's share dims all three alike
-		vec3 cut = vec3(0.0);
-		bool edges = rows && !rolling && (half_ > 0.0);
 		for (int k = 0; k < (tall ? 3 : 2); k++) {
 			vec3 row = first + float(k);
 			vec3 col = rolling ? own : linesAt(uv.x, row, apart);
@@ -1009,11 +1005,6 @@ fragment:
 			}
 			vec3 line = bell(a, b, row + 0.5, col * pass_, reach, width);
 			sum += line;
-			if (edges) cut += line * step(vec3(0.0), row) * step(row, vec3(spotSize.y - 1.0));
-		}
-		if (edges) {
-			if (sum.g <= 0.000001) sum = cut;
-			else if (cut.g < sum.g) sum *= cut.g / sum.g;
 		}
 		vec3 lit = max(sum / span, vec3(0.0));
 
