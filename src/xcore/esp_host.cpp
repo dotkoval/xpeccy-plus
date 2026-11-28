@@ -38,8 +38,36 @@ static const xEspHost nxHost = {
 	nxh_reset, nxh_gpio0, nxh_gpio2, nxh_pins, nxh_fitted
 };
 
+// == the ZX Evo's ZiFi: the AVR's USART0, time in ns ==
+// The module hangs on the AVR's ISP header by GND, RX and TX, fed from the standby supply
+// with CH_PD tied high: the board has no reset line to it and sees neither of its pins.
+
+static double zfh_clk(Computer*) {return 1e9;}
+static long long zfh_now(Computer* comp) {return zifi_now(comp);}
+static long long zfh_sync(Computer* comp) {return zifi_sync(comp);}
+static void zfh_tx_cfg(Computer*, long* bit, int* frame) {zifi_tx_cfg(bit, frame);}
+static int zfh_rx_room(Computer* comp) {return zifi_feed_room(comp);}
+static int zfh_rx_left(Computer* comp) {return zifi_feed_left(comp);}
+static void zfh_rx_rate(Computer* comp, long long bit16, int frame) {zifi_far(comp, bit16, frame);}
+
+static void zfh_rx_feed(Computer* comp, const unsigned char* b, int n, long long at) {
+	zifi_feed_at(comp, b, n, at);
+}
+
+static int zfh_reset(Computer*) {return 0;}
+static int zfh_pin(Computer*) {return 1;}		// pulled up on the module
+static void zfh_pins(int) {}
+static void zfh_fitted(int) {}
+
+static const xEspHost zfHost = {
+	"ZiFi", zfh_clk, zfh_now, zfh_sync, zfh_tx_cfg,
+	zfh_rx_room, zfh_rx_left, zfh_rx_rate, zfh_rx_feed,
+	zfh_reset, zfh_pin, zfh_pin, zfh_pins, zfh_fitted
+};
+
 const xEspHost* esp_host_of(Computer* comp) {
 	if (!comp || !comp->hw) return nullptr;
 	if (comp->hw->id == HW_ZXNEXT) return &nxHost;
+	if ((comp->hw->id == HW_TSLAB) && comp->zifi->on) return &zfHost;
 	return nullptr;
 }

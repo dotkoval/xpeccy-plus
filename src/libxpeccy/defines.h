@@ -76,7 +76,8 @@ enum {
 	IRQ_TAP_0,	// tape
 	IRQ_TAP_1,
 	IRQ_TAP_BLK,
-	IRQ_NMI_UP	// the NMI button let go (IRQ_NMI is it going down)
+	IRQ_NMI_UP,	// the NMI button let go (IRQ_NMI is it going down)
+	IRQ_WTP		// tsconf: a wait port asks (the AVR's ZiFi and RS-232)
 };
 
 typedef void(*cbirq)(int, void*);

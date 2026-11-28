@@ -16,6 +16,15 @@
 // frame, PIXH the same in half dots, DUMP=f.ppm writes the frame, TSU=1 prints
 // the TSU state, HIDE=mask hides layers (TSL_HIDE_*), STATE=1 prints a hash of
 // the RAM, the CPU registers and the T count.
+//
+// ZIFI=1 fits ZiFi (the AVR's #xxEF ports) with the bench as the module on its line:
+//	ZFEED="us:spec ..."   bytes the module sends, each group handed over us microseconds
+//	                      after the start: hex pairs, or +N for the N bytes 1, 2, 3...
+//	ZFAR=baud             ...at that rate (8N1), else the AVR's own 115200
+//	ZLOOP=1               what the AVR sends comes back, a byte as its frame ends
+//	ZRESET=frame          the machine is reset at that frame and the program started again
+// It prints what the AVR sent (ZTX: how many, the first of them, when the first and the
+// last started, in us) and when the wait-port interrupt was latched (ZINT, us).
 
 #include "../bench.h"
 #include "filetypes/filetypes.h"
@@ -33,6 +42,85 @@ static void state_line(Computer* comp, const char* tag) {
 		comp->cpu->regPC, comp->cpu->regSP, comp->cpu->regAF, comp->tickTotal);
 }
 
+// == ZiFi: the bench as the module ==
+
+#define ZTX_MAX	1024
+#define ZINT_MAX 16
+
+static struct {
+	int on, loop;
+	long long t0;
+	const char* feed;
+	int ntx;
+	unsigned char tx[ZTX_MAX];
+	long long txFirst, txLast;
+	int nint, wint;
+	long long intAt[ZINT_MAX];
+} zf;
+
+static void zf_tx(Computer* comp, int b, long long start) {
+	if (zf.ntx < ZTX_MAX) zf.tx[zf.ntx] = (unsigned char)b;
+	if (!zf.ntx) zf.txFirst = start;
+	zf.txLast = start;
+	zf.ntx++;
+	if (zf.loop) {
+		unsigned char c = (unsigned char)b;
+		zifi_feed_at(comp, &c, 1, start + 95486);	// 11 bits at 115200
+	}
+}
+
+// before a step: the groups whose time has come, and the interrupt's latch
+static void zf_step(Computer* comp) {
+	if (!zf.on) return;
+	long long us = (zifi_now(comp) - zf.t0) / 1000;
+	while (zf.feed && *zf.feed) {
+		char* e;
+		long at = strtol(zf.feed, &e, 10);
+		if ((*e != ':') || (at > us)) break;
+		e++;
+		unsigned char buf[2048];
+		int n = 0;
+		if (*e == '+') {
+			int cnt = (int)strtol(e + 1, &e, 10);
+			for (int k = 1; (k <= cnt) && (n < (int)sizeof(buf)); k++) buf[n++] = k & 0xff;
+		} else {
+			unsigned v;
+			while ((n < (int)sizeof(buf)) && e[0] && (e[0] != ' ') && e[1] && (sscanf(e, "%2x", &v) == 1)) {
+				buf[n++] = v & 0xff;
+				e += 2;
+			}
+		}
+		zifi_feed_at(comp, buf, n, 0);
+		while (*e == ' ') e++;
+		zf.feed = e;
+	}
+	if (comp->zifi->wint && !zf.wint && (zf.nint < ZINT_MAX)) zf.intAt[zf.nint++] = us;
+	zf.wint = comp->zifi->wint;
+}
+
+static void zf_start(Computer* comp) {
+	if (!getenv("ZIFI")) return;
+	zf.on = 1;
+	comp->zifi->on = 1;
+	zifi_power(comp);
+	zifi_host_tx = zf_tx;
+	zf.loop = (getenv("ZLOOP") != NULL);
+	zf.feed = getenv("ZFEED");
+	const char* far = getenv("ZFAR");
+	if (far) zifi_far(comp, (long long)(1e9 / atof(far) * 65536.0), 0x18);
+	zf.t0 = zifi_now(comp);
+}
+
+static void zf_print(void) {
+	if (!zf.on) return;
+	printf("ZTX  : %d", zf.ntx);
+	for (int k = 0; (k < zf.ntx) && (k < 16); k++) printf(" %02X", zf.tx[k]);
+	if (zf.ntx) printf(" at %lld..%lld", (zf.txFirst - zf.t0) / 1000, (zf.txLast - zf.t0) / 1000);
+	printf("\nZINT :");
+	for (int k = 0; k < zf.nint; k++) printf(" %lld", zf.intAt[k]);
+	printf("\n");
+}
+
 // QUIET=1: steps as fast mode takes them (emuCycle's quiet loop): a HALT run on to the
 // next event, the steps run on in one go, else one quiet step - all of which must leave
 // the machine as compExec() does, one at a time
@@ -40,6 +128,7 @@ static void bench_step(Computer* comp) {
 	static int quiet = -1;
 	int ns;
 	if (quiet < 0) quiet = (getenv("QUIET") != NULL);
+	zf_step(comp);
 	if (!quiet) {
 		compExec(comp);
 		return;
@@ -209,6 +298,9 @@ int main(int argc, char** argv) {
 		cpu_start(comp);
 	}
 
+	zf_start(comp);
+	const char* zreset = getenv("ZRESET");
+	int resetAt = zreset ? atoi(zreset) : -1;
 	const char* hide = getenv("HIDE");
 	if (hide) comp->vid->tsconf.hide = (unsigned char)strtol(hide, NULL, 0);
 	// DMAAT="frames,t,...": stop at T t of a frame (after the whole ones) and print
@@ -236,8 +328,17 @@ int main(int argc, char** argv) {
 		return 0;
 	}
 	int fstart = comp->vid->fcnt;
-	while ((mbox_rd(comp, MBOX) != 0xaa) && (comp->vid->fcnt - fstart < frames))
+	while ((mbox_rd(comp, MBOX) != 0xaa) && (comp->vid->fcnt - fstart < frames)) {
 		bench_step(comp);
+		if ((resetAt >= 0) && (comp->vid->fcnt - fstart >= resetAt)) {
+			resetAt = -1;
+			compReset(comp, RES_DEFAULT);
+			comp->hw->out(comp, 0x11af, 5);
+			comp->hw->out(comp, 0x12af, 2);
+			comp->hw->out(comp, 0x13af, 0);
+			cpu_start(comp);
+		}
+	}
 	printf("%s: %zu bytes, %s after %d frames, pc=%04X\n", base_name(argv[1]), n,
 		(mbox_rd(comp, MBOX) == 0xaa) ? "done" : "TIMEOUT",
 		comp->vid->fcnt - fstart, comp->cpu->regPC);
@@ -245,6 +346,7 @@ int main(int argc, char** argv) {
 	probe(comp, "PIX", "PIX  ", 8);
 	probe(comp, "PIXH", "PIXH ", 4);
 	printf("BRD  : %02X\n", comp->vid->brdcol);
+	zf_print();
 	if (getenv("STATE")) state_line(comp, "STATE");
 	if (getenv("CACHE"))		// the cpu's cache, and what the steps count of its DRAM cycles
 		printf("CACHE: tags %08X conf %X dram %d t %lld\n", fnv((unsigned char*)comp->tsconf.cache, sizeof(comp->tsconf.cache)),

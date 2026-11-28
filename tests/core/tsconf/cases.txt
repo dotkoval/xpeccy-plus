@@ -104,3 +104,33 @@ run c01_haltodd         t21_haltodd.bin      3   CACHE=1
 run c01_haltodd_q       t21_haltodd.bin      3   CACHE=1 QUIET=1
 run c02_haltodd7        t21_haltodd7.bin     3   CACHE=1
 run c02_haltodd7_q      t21_haltodd7.bin     3   CACHE=1 QUIET=1
+
+# ZiFi: the AVR's #xxEF ports, the bench as the module on its line (ZIFI=1; README.md)
+bin z01_regs.bin         z01_regs.asm
+bin z02_fifo.bin         z02_fifo.asm
+bin z03_sel.bin          z03_sel.asm
+bin z04_int.bin          z04_int.asm
+bin z05_wait_c0.bin      z05_wait.asm         CLK=0
+bin z05_wait_c6.bin      z05_wait.asm         CLK=6
+bin z05_frames_c0.bin    z05_wait.asm         CLK=0 FRAMES=1
+bin z05_frames_c6.bin    z05_wait.asm         CLK=6 FRAMES=1
+bin z06_reset.bin        z06_reset.asm
+bin z07_loop.bin         z07_loop.asm
+bin z07_rate.bin         z07_loop.asm         RATE=1
+
+run z01_regs         z01_regs.bin         5   ZIFI=1
+run z01_regs_off     z01_regs.bin         5
+run z02_fifo         z02_fifo.bin         20  ZIFI=1 ZFEED=2000:+600
+run z03_sel          z03_sel.bin          5   ZIFI=1
+run z04_int          z04_int.bin          5   ZIFI=1 "ZFEED=3000:01020304 8000:0506"
+run z04_int_quiet    z04_int.bin          5   ZIFI=1 QUIET=1 "ZFEED=3000:01020304 8000:0506"
+run z05_wait_c0      z05_wait_c0.bin      5   ZIFI=1 STATE=1
+run z05_wait_c0_off  z05_wait_c0.bin      5   STATE=1
+run z05_wait_c6      z05_wait_c6.bin      5   ZIFI=1 STATE=1
+run z05_wait_c6_off  z05_wait_c6.bin      5   STATE=1
+run z05_frames_c0    z05_frames_c0.bin    70  ZIFI=1
+run z05_frames_c0_off z05_frames_c0.bin   70
+run z05_frames_c6    z05_frames_c6.bin    70  ZIFI=1
+run z06_reset        z06_reset.bin        10  ZIFI=1 ZRESET=2
+run z07_loop         z07_loop.bin         30  ZIFI=1 ZLOOP=1
+run z07_rate         z07_rate.bin         5   ZIFI=1 ZFAR=74880 ZFEED=2000:7265616479
