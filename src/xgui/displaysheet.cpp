@@ -178,7 +178,7 @@ void xDisplaySheet::refresh() {
 		const QString name = p.name;
 		const float val = look_value(look, name);
 		const int pos = knob_pos(p, val);
-		if (xSlider* sld = body->findChild<xSlider*>("knob_" + name)) {
+		if (QSlider* sld = body->findChild<QSlider*>("knob_" + name)) {
 			sld->blockSignals(true);
 			sld->setValue(pos);
 			sld->blockSignals(false);
