@@ -8,6 +8,7 @@
 #include <string.h>
 #include <limits.h>
 
+#include "uartframe.h"
 #include "zxnext.h"
 #include "../xlog.h"
 
@@ -142,28 +143,17 @@ static long long rx_next_change(nxUart* u) {
 	return u->schN ? u->sch[u->schHead].e : LLONG_MAX;
 }
 
-// the bytes waiting on the host's side onto the line, one frame at a time at the guest's
-// own rate: start bit, data from b0, parity, stop bits
+// the bytes waiting on the host's side onto the line, one frame at a time at the guest's own rate
 static void rx_feed_line(Computer* comp, nxUart* u, long long now) {
 	while (u->hqN && (u->schN + 12 <= UART_SCH)) {
 		int b = u->hq[u->hqHead];
 		// the far end's own rate and frame: a mismatch is what the receiver gets wrong
 		long long p = u->farBit ? u->farBit : ((long long)((u->presc > 1) ? u->presc : 1) << 16);
 		int fr = u->farBit ? u->farFrame : u->frame;
-		int bits = 5 + ((fr >> 3) & 3);
-		int par = (fr >> 2) & 1;
 		long long t = (u->lineFree > now) ? u->lineFree : now;
 		if (t < u->feedAt) t = u->feedAt;
-		int lv[12], n = 0;
-		int parity = (fr >> 1) & 1;
-		lv[n++] = 0;
-		for (int k = 0; k < bits; k++) {
-			lv[n++] = (b >> k) & 1;
-			parity ^= (b >> k) & 1;
-		}
-		if (par) lv[n++] = parity;
-		lv[n++] = 1;
-		if (fr & 1) lv[n++] = 1;
+		int lv[12];
+		int n = uart_frame_levels(b, fr, lv);
 		int cur = u->schN ? u->sch[(u->schHead + u->schN - 1) % UART_SCH].lv : u->lin;
 		for (int k = 0; k < n; k++) {
 			if (lv[k] != cur) {

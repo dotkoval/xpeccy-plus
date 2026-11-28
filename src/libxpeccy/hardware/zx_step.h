@@ -30,12 +30,12 @@ static inline void zx_irq_ack_in(Computer* comp) {
 #define TSL_FLG_VDOS	flag[1]
 #define TSL_FLG_LINT	flag[2]		// 1 on vid->intLINE, 0 on line int ack
 #define TSL_FLG_DINT	flag[3]		// (same for dma int)
+#define TSL_FLG_WINT	flag[4]		// (same for the wait ports' int: the AVR, ZiFi)
 
-// TSConf's (ts_irq): line and dma hold until acked; the cpu drops INT on every
-// ack it takes
+// TSConf's (ts_irq): line, DMA and the wait ports hold until acked; the CPU drops INT on every ack it takes
 static inline void ts_irq_ack_in(Computer* comp) {
 	zx_irq_ack_in(comp);
-	if (comp->TSL_FLG_LINT || comp->TSL_FLG_DINT) {
+	if (comp->TSL_FLG_LINT || comp->TSL_FLG_DINT || comp->TSL_FLG_WINT) {
 		comp->cpu->flgACK = 1;
 		comp->cpu->intrq |= Z80_INT;
 	}

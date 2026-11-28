@@ -601,7 +601,8 @@ static const szxField fld_rtc[] = {
 #define XR_NCLK	BID('N','C','L','K')	// ...the clock its times count by
 #define XR_RTC	BID('R','T','C',' ')	// ...and its clock chip
 #define XR_VCLK	BID('V','C','L','K')	// ...and the video clock's fraction of a dot
-#define XR_ESP	BID('E','S','P',' ')	// ...and its ESP-01, the program's (szx_esp_save)
+#define XR_ESP	BID('E','S','P',' ')	// ...and its ESP-01, the program's (szx_esp_save); the Evo's too
+#define XR_ZIFI	BID('Z','I','F','I')	// the ZX Evo's ZiFi, before its ESP-01
 #define XR_SDCD	BID('S','D','C','D')	// ...and the card it runs from (szx_card)
 
 static void ext_gs_save(szxBuf*, Computer*);
@@ -633,6 +634,68 @@ static const szxField fld_zc[] = {
 	FLD(ZCtrl, spiEnd),
 	FLDEND
 };
+
+// the Evo's ZiFi; its times, and the module's in the ESP record after it, count by zifi_now(): clk is that at the file
+static const szxField fld_zifi_clk[] = {
+	FLDRAW("clk", 0, sizeof(long long)),
+	FLDEND
+};
+
+static const szxField fld_zifi[] = {
+	FLD(xZifi, sel),
+	FLD(xZifi, imr),
+	FLD(xZifi, isr),
+	FLD(xZifi, api),
+	FLD(xZifi, err),
+	FLD(xZifi, zibtr),
+	FLD(xZifi, zitor),
+	FLD(xZifi, ribtr),
+	FLD(xZifi, ritor),
+	FLD(xZifi, dll),
+	FLD(xZifi, dlm),
+	FLD(xZifi, ier),
+	FLD(xZifi, lcr),
+	FLD(xZifi, mcr),
+	FLD(xZifi, scr),
+	FLD(xZifi, pass),
+	FLD(xZifi, ztx),
+	FLD(xZifi, rx),
+	FLD(xZifi, rxHd),
+	FLD(xZifi, rxTl),
+	FLD(xZifi, rxLast),
+	FLD(xZifi, hq),
+	FLD(xZifi, hqHead),
+	FLD(xZifi, hqN),
+	FLD(xZifi, farBit),
+	FLD(xZifi, farFrame),
+	FLD(xZifi, feedAt),
+	FLD(xZifi, lineFree),
+	FLD(xZifi, sch),
+	FLD(xZifi, schHead),
+	FLD(xZifi, schN),
+	FLD(xZifi, schLv),
+	FLD(xZifi, lin),
+	FLD(xZifi, inFrame),
+	FLD(xZifi, bit),
+	FLD(xZifi, shift),
+	FLD(xZifi, t0),
+	FLD(xZifi, rtx),
+	FLD(xZifi, rsBit),
+	FLD(xZifi, rsBits),
+	FLD(xZifi, rsTxc),
+	FLDEND
+};
+
+static int ext_zifi(Computer* comp, const unsigned char* p, size_t n) {
+	xZifi* z = comp->zifi;
+	long long clk;
+	// not fitted here, or no clock to read its times by: as a file without it
+	if (!z->on || !fld_get(&clk, fld_zifi_clk, p, n)) return 0;
+	fld_get(z, fld_zifi, p, n);
+	zifi_loaded(comp);
+	z->off += clk - zifi_now(comp);
+	return 1;
+}
 
 static void ext_zc(Computer* comp, const unsigned char* p, size_t n) {
 	ZCtrl* zc = comp->zc;
@@ -957,8 +1020,15 @@ void szx_ext_save(szxBuf* b, Computer* comp) {
 		sb_put(b, link, strlen(link));
 		rec_end(b, mark);
 	}
-	// the ESP-01 last: its times are the board's, put back by NCLK before it is read
-	if (ext_is_next(comp) && szx_esp_save) {
+	if (comp->zifi->on) {
+		long long clk = zifi_now(comp);
+		rec_begin(b, XR_ZIFI, &mark);
+		fld_put(b, &clk, fld_zifi_clk);
+		fld_put(b, comp->zifi, fld_zifi);
+		rec_end(b, mark);
+	}
+	// the ESP-01 last: its times are the board's, put back by NCLK (the Next) or ZIFI before it is read
+	if ((ext_is_next(comp) || comp->zifi->on) && szx_esp_save) {
 		rec_begin(b, XR_ESP, &mark);
 		szx_esp_save(comp, b);
 		rec_end(b, mark);
@@ -1375,6 +1445,7 @@ int szx_ext_load(Computer* comp, const unsigned char* ext, size_t len) {
 	size_t n;
 	int ray = -1;
 	int esp = 0;
+	int zifi = 0;
 	char core[64];
 	char mac[256];
 	szx_ext_forget();
@@ -1417,8 +1488,11 @@ int szx_ext_load(Computer* comp, const unsigned char* ext, size_t len) {
 				if (ext_is_next(comp)) ext_card_load(p, n);
 				break;
 			case XR_ESP:
-				if (ext_is_next(comp) && szx_esp_load) szx_esp_load(comp, p, n);
+				if ((ext_is_next(comp) || comp->zifi->on) && szx_esp_load) szx_esp_load(comp, p, n);
 				esp = 1;
+				break;
+			case XR_ZIFI:
+				zifi = ext_zifi(comp, p, n);
 				break;
 			case XR_VCLK:
 				if (ext_is_next(comp)) {
@@ -1526,8 +1600,10 @@ int szx_ext_load(Computer* comp, const unsigned char* ext, size_t len) {
 				break;
 		}
 	}
-	// a Next file with no ESP record: none was fitted, or the file is older than the record
-	if (same && !esp && ext_is_next(comp) && szx_esp_load) szx_esp_load(comp, NULL, 0);
+	// an Evo's file without its ZiFi: the AVR as it starts, and no interrupt of its asked for
+	if (same && !zifi && hw_takes_zifi(comp->hw)) zifi_absent(comp);
+	// a file with no ESP record: none was fitted, or the file is older than the record
+	if (same && !esp && (ext_is_next(comp) || comp->zifi->on) && szx_esp_load) szx_esp_load(comp, NULL, 0);
 	ext_held = same ? (unsigned char*)malloc(len ? len : 1) : NULL;
 	if (ext_held) {
 		memcpy(ext_held, ext, len);

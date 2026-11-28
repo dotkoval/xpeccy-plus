@@ -10,6 +10,7 @@
 #define flgVDOS	TSL_FLG_VDOS
 #define flgLINT	TSL_FLG_LINT
 #define flgDINT	TSL_FLG_DINT
+#define flgWINT	TSL_FLG_WINT
 
 #define regMADR	reg[16]		// 15AF[0..3] = MapAddr
 #define dmaLen	reg[17]
@@ -83,6 +84,7 @@ void tslReset(Computer* comp) {
 	comp->vid->inten = 1;
 	comp->flgLINT = 0;		// the ack latches are not cleared anywhere else
 	comp->flgDINT = 0;
+	comp->flgWINT = 0;		// the AVR's own state is not the Z80's to reset
 	comp->flgVDOS = 0;
 	comp->frmHold = 0;
 	comp->flgMEN = 0;			// FMAPS off
@@ -720,6 +722,7 @@ static void ts_dma_run(Computer* comp, int ns) {
 
 void ts_sync(Computer* comp, int ns) {
 	zx_sync_in(comp, ns);
+	if (comp->zifi->on && zifi_irq_live(comp->zifi, comp->vid->inten)) zifi_step(comp);
 	if (comp->tsconf.dma.act)
 		ts_dma_run(comp, ns);
 	comp->tsconf.cpuDram = 0;
@@ -778,6 +781,48 @@ void tsOut2AAF(Computer* comp, int port, int val) {
 		comp->vid->intDMA = 0;
 		comp->flgDINT = 0;
 	}
+	if (~val & 8) comp->flgWINT = 0;
+}
+
+// #xxEF, the AVR's ports (zifi.c): WAIT until it answers over SPI (zwait.v), the frame INT's count standing meanwhile (zint.v)
+static int tsAvrWait = 0;	// in that WAIT now...
+static int tsAvrInt = 0;	// ...and the frame INT began in it
+
+static int ts_int_dots(Computer* comp) {	// the frame pulse: 32 CPU clocks at whatever speed (zint.v)
+	return (int)((32 * comp->nsPerTickFixed + comp->vid->nsPerDotFixed - 1) / comp->vid->nsPerDotFixed);
+}
+
+static int ts_avr_reg(Computer* comp, int port) {
+	Video* vid = comp->vid;
+	int w = (int)(((long long)zifi_wait_ns() * NS_FIXED_ONE + comp->nsPerTickFixed / 2) / comp->nsPerTickFixed);
+	vid_settle(vid);
+	int left = vid->intFRAME;
+	int len = vid->intlen;
+	int base = res4;
+	tsAvrWait = 1;
+	tsAvrInt = 0;
+	comp->cpu->t += w;
+	comp_vid_to_lazy(comp, base + w);
+	vid_settle(vid);
+	tsAvrWait = 0;
+	if (!comp->flgVDOS && !comp->rzx.play && (tsAvrInt || (left > 0))) {	// a recording's INTs are its own
+		vid_set_int_frame(vid, tsAvrInt ? ts_int_dots(comp) : left);
+		if (!tsAvrInt) vid->intlen = len;
+		comp->cpu->intrq |= Z80_INT;
+	}
+	// five bits of the address reach the AVR (slavespi.v): the data register, #C0 + the low nibble, the 16550
+	int hi = (port >> 8) & 0xff;
+	if ((hi < 0xc0) || ((hi & 0xf8) == 0xf0)) return 0x00;
+	return (hi < 0xf0) ? (0xc0 | (hi & 0x0f)) : hi;
+}
+
+int tsInEF(Computer* comp, int port) {
+	if (!comp->zifi->on) return zx_in_float(comp, port);
+	return zifi_rd(comp, ts_avr_reg(comp, port));
+}
+
+void tsOutEF(Computer* comp, int port, int val) {
+	if (comp->zifi->on) zifi_wr(comp, ts_avr_reg(comp, port), val);
 }
 
 void tsOut40AF(Computer* comp, int port, int val) TS_LAT(t0xl, TSL_LAT_T0XL, val & 0xff)
@@ -848,6 +893,7 @@ static xPort tsPortMap[] = {
 	{0x00f7,0x00fe,2,2,2,xInFE,	tsOutFE},	// fe
 	{0x00ff,0x0057,2,2,2,tsIn57,	tsOut57},	// 57
 	{0x00ff,0x0077,2,2,2,tsIn77,	tsOut77},	// 77
+	{0x00ff,0x00ef,2,2,2,tsInEF,	tsOutEF},	// ef: the AVR, with ZiFi fitted
 	{0x00ff,0x001f,0,2,2,tsIn1F,	NULL},
 //	{0x00ff,0x00fb,0,2,2,NULL,	tsOutFB},	// fb
 	{0x10ff,0xeff7,2,2,2,NULL,	tsOutEFF7},	// eff7
@@ -973,6 +1019,8 @@ void ts_get_regs(Computer* comp, tsRegs* r) {
 // fast mode's run on (hwQuiet): no dma running, whose time the per-step DRAM count
 // sets; with it idle the count only starts again at every step
 static int ts_quiet_ok(Computer* comp) {
+	// an interrupt of the AVR's may come any time
+	if (comp->flgWINT || (comp->zifi->on && zifi_irq_live(comp->zifi, comp->vid->inten))) return 0;
 	return !comp->tsconf.dma.act;
 }
 
@@ -988,9 +1036,9 @@ void ts_irq(Computer* comp, int t) {
 	switch(t) {
 		case IRQ_VID_INT:
 			zx_irq(comp, t);
-			// the pulse is 32 cpu clocks at whatever speed the cpu runs (zint.v)
+			if (tsAvrWait && comp->vid->intFRAME) tsAvrInt = 1;
 			if (comp->vid->intFRAME)
-				vid_set_int_frame(comp->vid, (int)((32 * comp->nsPerTickFixed + comp->vid->nsPerDotFixed - 1) / comp->vid->nsPerDotFixed));
+				vid_set_int_frame(comp->vid, ts_int_dots(comp));
 			if (comp->vid->tsconf.intInc) {		// video_ports.v: past line 319 it wraps by 320
 				int v = comp->vid->tsconf.intLine + comp->vid->tsconf.intInc;
 				if ((v >> 6) == 5) v &= 0x3f;
@@ -1001,7 +1049,7 @@ void ts_irq(Computer* comp, int t) {
 				ts_hold_frame(comp);
 			break;
 		case IRQ_VID_IEND:
-			if (!comp->flgLINT && !comp->flgDINT) {
+			if (!comp->flgLINT && !comp->flgDINT && !comp->flgWINT) {
 				comp->cpu->intrq &= ~Z80_INT;	// reset cpu int line if there is no other ints
 			}
 			break;
@@ -1014,6 +1062,20 @@ void ts_irq(Computer* comp, int t) {
 			comp->flgDINT = 1;
 			comp->cpu->intrq |= Z80_INT;
 			comp->vid->intDMA = 0;		// reset on vector request
+			break;
+		// a wait port's int (the AVR) F9: latched only while enabled; none of its own while a recording plays
+		case IRQ_WTP:
+			if ((comp->vid->inten & 8) && !comp->rzx.play) {
+				static unsigned told = 0;	// the recording it was said for
+				if (rzx_recording && (told != rzx_recording)) {
+					// as bytes into the Next's UART: an RZX holds what the CPU reads, not when the AVR asks
+					told = rzx_recording;
+					comp->msg = (char*)" ZiFi interrupt: this RZX will not replay it ";
+					xlog(XLG_HW, XLL_WARN, "rzx: a ZiFi interrupt while recording: the recording will not play back the same");
+				}
+				comp->flgWINT = 1;
+				comp->cpu->intrq |= Z80_INT;
+			}
 			break;
 		case IRQ_NMI:				// the NMI line is tied off on TSConf (top.v)
 			break;
@@ -1034,17 +1096,20 @@ int ts_ack(Computer* comp) {
 	} else if (comp->flgDINT) {		// dma int
 		comp->flgDINT = 0;
 		comp->intVector = 0xfb;
+	} else if (comp->flgWINT) {		// wait ports, the last in line
+		comp->flgWINT = 0;
+		comp->intVector = 0xf9;
 	}
 	return comp->intVector & 0xff;
 }
 
 // the enabled sources, driven (zint.v), the one ts_ack takes next first
 static int ts_int_vecs(Computer* comp, xIntVec* vec) {
-	static const xIntVec src[3] = {{"frame", 0xff, 1}, {"line", 0xfd, 1}, {"DMA", 0xfb, 1}};
-	int wait = comp->vid->intFRAME ? 0 : comp->flgLINT ? 1 : comp->flgDINT ? 2 : -1;
+	static const xIntVec src[4] = {{"frame", 0xff, 1}, {"line", 0xfd, 1}, {"DMA", 0xfb, 1}, {"wait port", 0xf9, 1}};
+	int wait = comp->vid->intFRAME ? 0 : comp->flgLINT ? 1 : comp->flgDINT ? 2 : comp->flgWINT ? 3 : -1;
 	int n = 0;
 	if (wait >= 0) vec[n++] = src[wait];
-	for (int i = 0; i < 3; i++)
+	for (int i = 0; i < 4; i++)
 		if ((i != wait) && (comp->vid->inten & (1 << i))) vec[n++] = src[i];
 	return n;
 }
@@ -1077,6 +1142,7 @@ xPortDsc zx_port_tab_ts[] = {
 // in the FPGA, holds nothing (CRAM and the cache are tslReset's)
 static void tsl_power(Computer* comp) {
 	comp->tsconf.pwr_up = 1;
+	zifi_power(comp);		// the AVR starts with the board
 	memset(comp->vid->tsconf.sfile, 0x00, sizeof(comp->vid->tsconf.sfile));
 }
 

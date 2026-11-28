@@ -193,7 +193,8 @@ taken when the file's core is the running core; on another core only the sound c
 | `LINK` | a carried image's old name: `byte kind` (1 tape, 2 Beta disk, 3 +3 disk), `byte drive`, the name to the end |
 | `NEXT`, `NCLK`, `RTC `, `VCLK` | the ZX Spectrum Next: see below |
 | `SDCD` | the Next's SD card, named, not carried: see below |
-| `ESP ` | the Next's ESP-01 module: see below |
+| `ESP ` | the Next's ESP-01 module: see below; a ZX Evolution's with ZiFi fitted too |
+| `ZIFI` | the ZX Evolution's ZiFi: see [TSConf](#tsconf) |
 
 The order of reading matters in one place: the drives and the tape are mounted after the
 snapshot is in, so `FLPn`, `DIF ` and `TAPE` wait until their images are back.
@@ -213,6 +214,16 @@ TSConf is a ZX Evolution configuration, so its files carry machine id `0x80` and
   rows read ahead, and the line buffer half drawn when the snapshot was taken.
 - `MAP ` - windows 1-3 exist only in the pager's map (`#11AF`..`#13AF` write it directly), so
   the map is carried as it is rather than rebuilt from ports.
+
+With ZiFi fitted (see [ZiFi](machines.md#zifi)) two more follow:
+
+- `ZIFI` - the board controller's side: the API mode, which device the data register serves,
+  the interrupt mask and sources, the thresholds, both pairs of FIFOs with what is in them,
+  the bytes on their way from the module, and the clock its times count by.
+- `ESP ` - the module itself, as for the ZX Spectrum Next below.
+
+A file without them, loaded with ZiFi fitted, starts both as at power-on; with ZiFi not
+fitted they are passed over.
 
 `RAY ` puts the raster back to the dot, which matters here: TSConf moves its INT anywhere in
 the frame, and a T is a different number of dots at each of its three speeds.

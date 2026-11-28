@@ -232,6 +232,15 @@ int hw_takes_zc(const HardWare* hw) {
 	return 0;
 }
 
+// ZiFi, the AVR's FIFOs at #xxEF: only TSConf's FPGA hands the AVR enough of the address (BaseConf's passes three bits)
+int hw_takes_zifi(const HardWare* hw) {
+	return hw && (hw->id == HW_TSLAB);
+}
+
+int hw_zifi_on(const Computer* comp) {
+	return comp && hw_takes_zifi(comp->hw) && comp->zifi->on;
+}
+
 int comp_has_sd(const Computer* comp) {
 	if (!comp) return 0;
 	return hw_has_sd(comp->hw) || comp->zc->on;

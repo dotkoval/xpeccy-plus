@@ -1,9 +1,10 @@
-// The emulated ESP-01 with Espressif's NONOS AT 1.7.6 (SDK 3.0.6) on the Next's UART 0: this
-// part is the module itself - its line at its own rate, the receiver and the dispatcher as
-// the firmware has them, boot, flash and the two pins the Next sees. The commands are in
-// esp_basic.cpp, esp_wifi.cpp and esp_tcp.cpp. Replies go onto the line whole, back to back;
-// a guest at another rate reads garbage, as on the board. Its flash is nvram/esp01.conf.
-// Time is the guest's: CLK_28 edges.
+// The emulated ESP-01 with Espressif's NONOS AT 1.7.6 (SDK 3.0.6): this part is the module
+// itself - its line at its own rate, the receiver and the dispatcher as the firmware has
+// them, boot, flash and the two pins a board may see. The commands are in esp_basic.cpp,
+// esp_wifi.cpp and esp_tcp.cpp. Replies go onto the line whole, back to back; a guest at
+// another rate reads garbage, as on the board. The line is its host's (xEspHost): the Next's
+// UART 0 or the Evo's ZiFi, each with a flash file of its own in nvram. Time is the host's:
+// CLK_28 edges on the Next.
 
 #include <chrono>
 #include <cstdio>
@@ -20,10 +21,8 @@
 #include "espnet.h"
 #include "../libxpeccy/spectrum.h"
 #include "../libxpeccy/filetypes/szx.h"
-#include "../libxpeccy/hardware/hardware.h"
 #include "../libxpeccy/xlog.h"
 
-#define ESP_UART	0
 #define ESP_FRAME	0x18		// 8N1, as uart_framing_r
 #define ESP_LINE_MAX	255		// bytes after AT the receiver keeps (the 256th ends the line)
 #define ESP_NAME_MAX	128
@@ -62,13 +61,14 @@ static struct {
 	double farBaud = 0;
 	int farFrame = -1;
 	long long replyAt = 0;		// the reply to the line just ended starts here
-	bool rst0 = false;		// NR 02 b7 as last seen
+	bool rst0 = false;		// the host's reset line as last seen
 	// the pins: GPIO0, GPIO2
 	bool ioOut[2] = {false, false};
 	int ioLevel[2] = {1, 1};
 } E;
 
 static std::string flashFile;		// "" keeps nothing
+static const xEspHost* H = nullptr;	// the line it is on, from when it is plugged in
 static bool lanServer = false;		// a server listens on every interface, not only 127.0.0.1
 
 void esp_set_lan(bool on) {lanServer = on;}
@@ -77,16 +77,16 @@ bool esp_lan() {return lanServer;}
 // == time and rates ==
 
 static double esp_clk(Computer* comp) {
-	return nx_clk28_hz(comp);
+	return H->clk(comp);
 }
 
 long long esp_ms(Computer* comp, double ms) {
 	return (long long)(esp_clk(comp) * ms / 1000.0);
 }
 
-// not nx_uart_sync(): that may hand the next byte in while one is being taken
+// not the host's sync(): that may hand the next byte in while one is being taken
 long long esp_now(Computer* comp) {
-	return nx_now(comp);
+	return H->now(comp);
 }
 
 long long esp_host_ms() {
@@ -113,8 +113,11 @@ void esp_set_uart(long baud, int frame) {
 
 // == flash ==
 
+// another file is another module's flash: read when that one is plugged in
 void esp_flash_file(const char* path) {
-	flashFile = path ? path : "";
+	std::string f = path ? path : "";
+	if (f != flashFile) E.loaded = false;
+	flashFile = f;
 }
 
 static void fl_load() {
@@ -228,14 +231,14 @@ static void esp_pump(Computer* comp) {
 	while (!E.out.empty()) {
 		espMsg& m = E.out.front();
 		if ((m.baud != E.farBaud) || (m.frame != E.farFrame)) {
-			if (nx_uart_feed_left(comp, ESP_UART)) break;
+			if (H->rx_left(comp)) break;
 			E.farBaud = m.baud;
 			E.farFrame = m.frame;
 		}
-		if (nx_uart_feed_room(comp, ESP_UART) < (int)m.b.size()) break;
+		if (H->rx_room(comp) < (int)m.b.size()) break;
 		// asked again every time: a power-on of the machine clears it
-		nx_uart_far(comp, ESP_UART, (long long)(esp_clk(comp) / E.farBaud * 65536.0), E.farFrame);
-		nx_uart_feed_at(comp, ESP_UART, (const unsigned char*)m.b.data(), (int)m.b.size(), m.at);
+		H->rx_rate(comp, (long long)(esp_clk(comp) / E.farBaud * 65536.0), E.farFrame);
+		H->rx_feed(comp, (const unsigned char*)m.b.data(), (int)m.b.size(), m.at);
 		E.outBytes -= m.b.size();
 		E.out.pop_front();
 	}
@@ -247,7 +250,7 @@ static void pins_update() {
 	int v = 0;
 	if (E.ioOut[0]) v |= 1 | (E.ioLevel[0] ? 2 : 0);
 	if (E.ioOut[1]) v |= 4 | (E.ioLevel[1] ? 8 : 0);
-	next_esp_pins = v;
+	if (H) H->pins(v);
 }
 
 void esp_gpio_drive(int pin, bool out, int level) {
@@ -258,8 +261,8 @@ void esp_gpio_drive(int pin, bool out, int level) {
 }
 
 int esp_gpio_level(Computer* comp, int pin) {
-	if (!comp || !comp->hw || (comp->hw->id != HW_ZXNEXT)) return 1;
-	return (pin == 2) ? nx_esp_gpio2(comp) : nx_esp_gpio0(comp);
+	if (!comp || !H || (esp_host_of(comp) != H)) return 1;
+	return (pin == 2) ? H->gpio2(comp) : H->gpio0(comp);
 }
 
 static void pins_float() {
@@ -549,7 +552,7 @@ static void esp_snap_apply(Computer* comp, const unsigned char* p, size_t n) {
 }
 
 static void esp_szx_save(Computer* comp, szxBuf* b) {
-	if (E.st == ESP_OFF) return;		// none fitted: an empty record
+	if ((E.st == ESP_OFF) || (esp_host_of(comp) != H)) return;	// none fitted: an empty record
 	espSnap s(false);
 	esp_main_snap(s);
 	esp_basic_snap(s);
@@ -561,6 +564,10 @@ static void esp_szx_save(Computer* comp, szxBuf* b) {
 // A file without the module, or with an empty record, has none to put back: one plugged in
 // boots as on power-on, at the moment loaded
 static void esp_szx_load(Computer* comp, const unsigned char* p, size_t n) {
+	const xEspHost* h = esp_host_of(comp);
+	if (!h) return;
+	if ((E.st != ESP_OFF) && (h != H)) esp_detach(NULL);	// the load made another machine of it
+	if (E.st == ESP_OFF) H = h;
 	if (!p || !n) {
 		if (espFresh) {
 			esp_detach(comp);
@@ -570,12 +577,12 @@ static void esp_szx_load(Computer* comp, const unsigned char* p, size_t n) {
 		E.out.clear();
 		E.outBytes = 0;
 		E.line.reset();
-		esp_boot(comp, nx_uart_sync(comp));
+		esp_boot(comp, H->sync(comp));
 		return;
 	}
 	if (E.st == ESP_OFF) {
 		espFresh = true;
-		next_esp_fitted = 1;
+		H->fitted(1);
 	}
 	esp_snap_apply(comp, p, n);
 }
@@ -597,22 +604,27 @@ void esp_forget_snapshot() {
 // == the outside ==
 
 void esp_attach(Computer* comp) {
+	const xEspHost* h = esp_host_of(comp);
+	if (!h) return;
+	if ((E.st != ESP_OFF) && (h != H)) esp_detach(NULL);
 	if (!E.loaded) fl_load();
-	if (espFresh) {			// a snapshot's, put in by the load: it goes on
+	if (espFresh && (h == H) && (E.st != ESP_OFF)) {	// a snapshot's, put in by the load: it goes on
 		espFresh = false;
-		xlog(XLG_NET, XLL_INFO, "esp: on UART 0, from the snapshot");
+		xlog(XLG_NET, XLL_INFO, "esp: on %s, from the snapshot", H->name);
 		return;
 	}
+	espFresh = false;
+	H = h;
 	E.line.reset();
 	E.out.clear();
 	E.outBytes = 0;
 	E.farBaud = 0;
 	E.farFrame = -1;
 	E.rst0 = false;
-	long long now = nx_uart_sync(comp);
+	long long now = H->sync(comp);
 	esp_boot(comp, now);
-	next_esp_fitted = 1;
-	xlog(XLG_NET, XLL_INFO, "esp: on UART 0");
+	H->fitted(1);
+	xlog(XLG_NET, XLL_INFO, "esp: on %s", H->name);
 }
 
 void esp_detach(Computer* comp) {
@@ -621,9 +633,9 @@ void esp_detach(Computer* comp) {
 	E.out.clear();
 	E.outBytes = 0;
 	E.st = ESP_OFF;
-	next_esp_fitted = 0;
+	H->fitted(0);
 	pins_float();
-	if (comp && comp->hw && (comp->hw->id == HW_ZXNEXT)) nx_uart_far(comp, ESP_UART, 0, 0);
+	if (comp && (esp_host_of(comp) == H)) H->rx_rate(comp, 0, 0);
 	xlog(XLG_NET, XLL_INFO, "esp: off");
 }
 
@@ -636,20 +648,20 @@ static void esp_line_in(Computer* comp, long long now) {
 }
 
 void esp_byte(Computer* comp, int b, long long start) {
-	if ((E.st == ESP_OFF) || comp->rzx.play) return;
+	if ((E.st == ESP_OFF) || comp->rzx.play || (esp_host_of(comp) != H)) return;
 	long presc;
-	int frame, rtr;
-	nx_uart_cfg(comp, ESP_UART, &presc, &frame, &rtr);
+	int frame;
+	H->tx_cfg(comp, &presc, &frame);
 	E.line.put(b, start, presc, frame & 0x1f);
 	esp_line_in(comp, 0);
 	esp_pump(comp);
 }
 
 void esp_frame(Computer* comp) {
-	if ((E.st == ESP_OFF) || comp->rzx.play) return;
-	long long now = nx_uart_sync(comp);	// first: the bytes it hands in are taken here
-	// NR 02 b7 holds the peripherals in reset; GPIO0 low as it lets go is the loader
-	bool rst = nx_esp_reset(comp);
+	if ((E.st == ESP_OFF) || comp->rzx.play || (esp_host_of(comp) != H)) return;
+	long long now = H->sync(comp);		// first: the bytes it hands in are taken here
+	// the board's reset line (the Next's NR 02 b7); GPIO0 low as it lets go is the loader
+	bool rst = H->reset(comp);
 	if (rst && !E.rst0) {
 		esp_tcp_down();
 		E.out.clear();
@@ -658,7 +670,7 @@ void esp_frame(Computer* comp) {
 		E.st = ESP_HELD;
 		xlog(XLG_NET, XLL_INFO, "esp: held in reset");
 	} else if (!rst && E.rst0) {
-		if (!nx_esp_gpio0(comp)) {
+		if (!H->gpio0(comp)) {
 			E.st = ESP_LOADER;
 			xlog(XLG_NET, XLL_INFO, "esp: GPIO0 low, its ROM loader (not emulated)");
 		} else {

@@ -15,6 +15,8 @@
 #define TCP_LINKS	5
 #define TCP_SEND_MAX	2048		// one CIPSEND
 #define TCP_IPD_MAX	1460		// a segment: the first +IPD of a reply carries its header
+// after a full +IPD the rest waits this long for more: a sender fills every segment of the module's small window
+#define TCP_TAIL_MS	250
 #define TCP_OUT_MAX	16384		// queued for the line before the sockets are left to wait
 #define TCP_RX_MAX	65536		// read ahead of the line (active receive)
 #define TCP_HOLD_MAX	2920		// passive receive: the module's buffer, then TCP waits
@@ -42,6 +44,8 @@ struct tcpLink {
 	bool abort = false;		// CIPCLOSEMODE: a reset, not a FIN
 	std::string rx;			// received: to frame (active) or held for CIPRECVDATA (passive)
 	size_t rxSeen = 0;		// how much of rx the last frame end saw: the quiet test
+	bool bulk = false;		// a full +IPD went out and the stream may go on: a short rest waits
+	long long fullAt = 0;		// ...TCP_TAIL_MS from when it went
 	bool peerGone = false;
 	std::string tx;			// to the socket
 	int sendOk = 0;			// a CIPSEND of this many bytes waits for its SEND OK
@@ -235,6 +239,7 @@ static void link_reset(tcpLink& l, bool keepRx) {
 	l.abort = false;
 	if (!keepRx) l.rx.clear();
 	l.rxSeen = 0;
+	l.bulk = false;
 	l.peerGone = false;
 	l.tx.clear();
 	l.sendOk = 0;
@@ -265,6 +270,7 @@ static void rx_flush(int id, tcpOut out) {
 		l.rx.erase(0, n);
 	}
 	l.rxSeen = 0;
+	l.bulk = false;
 }
 
 static void send_wait_end();
@@ -307,6 +313,7 @@ static void pass_reconnect(Computer* comp, int id, long long now) {
 	l.used = false;
 	l.peerGone = false;
 	l.rxSeen = 0;
+	l.bulk = false;
 	l.tx.clear();
 	l.starting = true;
 	l.silent = true;
@@ -999,6 +1006,7 @@ static void recvdata_set(espCmdCall& c) {
 		esp_put("\r\n" + c.name + "," + std::to_string(k) + ":" + l.rx.substr(0, k));
 		l.rx.erase(0, k);
 		l.rxSeen = 0;
+		l.bulk = false;
 	}
 	esp_ok();
 }
@@ -1310,10 +1318,20 @@ static void link_frame(Computer* comp, int i, long long now) {
 			}
 		}
 	}
-	// a packet when the wire is quiet or a segment is full
+	// a packet when a segment is full or the wire is quiet; what a run of full ones leaves, when its wait is over
 	if (!passive(l)) {
-		while (!l.rx.empty() && (esp_out_queued() < TCP_OUT_MAX) && (raw || (l.rx.size() >= TCP_IPD_MAX) || (l.rx.size() == l.rxSeen) || l.peerGone)) {
+		// from the last full one, not from each arrival (a chat after a screenful); a time ahead of now is a rewind's: no wait
+		long long since = now - l.fullAt;
+		bool tail = l.bulk && !raw && (since >= 0) && (since < esp_ms(comp, TCP_TAIL_MS));
+		if (!tail) l.bulk = false;
+		while (!l.rx.empty() && (esp_out_queued() < TCP_OUT_MAX) && (raw || (l.rx.size() >= TCP_IPD_MAX) || ((l.rx.size() == l.rxSeen) && !tail) || l.peerGone)) {
 			size_t n = (l.rx.size() > TCP_IPD_MAX) ? TCP_IPD_MAX : l.rx.size();
+			if (n == TCP_IPD_MAX) {
+				l.bulk = tail = !raw;
+				l.fullAt = now;
+			} else {
+				l.bulk = false;
+			}
 			if (raw) {
 				esp_put_now(l.rx.substr(0, n));
 			} else {
@@ -1448,6 +1466,8 @@ void esp_tcp_snap(Computer* comp, espSnap& s) {
 		s.v(k + "abort", l.abort);
 		s.v(k + "rx", l.rx);
 		s.v(k + "rxSeen", l.rxSeen);
+		s.v(k + "bulk", l.bulk);
+		s.v(k + "fullAt", l.fullAt);
 		s.v(k + "peerGone", l.peerGone);
 		s.v(k + "tx", l.tx);
 		s.v(k + "sendOk", l.sendOk);

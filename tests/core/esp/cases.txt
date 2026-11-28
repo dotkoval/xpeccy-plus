@@ -52,3 +52,14 @@ run wifi_mode                    bridge.bin         6000   SCRIPT=wifi_mode.txt 
 run wifi_prog_netman_nihirash    bridge.bin         6000   SCRIPT=wifi_prog_netman_nihirash.txt FLASH=esp01.conf
 run wifi_prog_netmanzx           bridge.bin         6000   SCRIPT=wifi_prog_netmanzx.txt FLASH=esp01.conf
 run wifi_prog_wifibas            bridge.bin         6000   SCRIPT=wifi_prog_wifibas.txt FLASH=esp01.conf
+
+# The same module on a ZX Evo's ZiFi (MACHINE=zifi, zbridge.bin): the scripts' replies are
+# the Next's own cases', but for what the AVR's receiver makes of the boot ROM's log
+bin zbridge.bin          zbridge.asm
+
+run zf_basic_gmr                 zbridge.bin        6000   MACHINE=zifi SCRIPT=basic_gmr.txt FLASH=esp01.conf
+run zf_wifi_join                 zbridge.bin        6000   MACHINE=zifi SCRIPT=wifi_join.txt FLASH=esp01.conf
+run zf_tcp_link0                 zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_link0.txt FLASH=esp01.conf
+run zf_tcp_send                  zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_send.txt FLASH=esp01.conf
+run zf_tcp_pass                  zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_pass.txt FLASH=esp01.conf
+run tcp_tail                     bridge.bin         6000   SCRIPT=tcp_tail.txt FLASH=esp01.conf

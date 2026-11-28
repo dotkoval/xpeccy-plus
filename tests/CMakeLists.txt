@@ -74,10 +74,10 @@ if(XPECCY_QT_TESTS)
 	add_test(NAME labels COMMAND labels-check ${CMAKE_CURRENT_SOURCE_DIR}/core/labels)
 endif()
 
-# the emulated ESP-01 on the Next's UART, with its host sockets: the app's own sources
+# the emulated ESP-01 on the Next's UART and the Evo's ZiFi, with its host sockets: the app's own sources
 set(XESP ${XROOT}/src/xcore)
 add_executable(esp-bench core/esp/main.cpp ${XESP}/esp.cpp ${XESP}/esp_basic.cpp ${XESP}/esp_wifi.cpp ${XESP}/esp_tcp.cpp
-	${XESP}/espline.cpp ${XESP}/espnet.cpp)
+	${XESP}/espline.cpp ${XESP}/espnet.cpp ${XESP}/esp_host.cpp)
 target_link_libraries(esp-bench xpeccycore)
 if(WIN32)
 	target_link_libraries(esp-bench ws2_32 iphlpapi)

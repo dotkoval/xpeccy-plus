@@ -850,12 +850,13 @@ int iord(int port, void* ptr) {
 // play rzx
 	int res = 0xff;
 	int logged = -1;	// a Next recording's byte: the device is read all the same, for what
-				// a read does to it (the SD card's next SPI transfer), as recorded
+				// a read does to it (the SD card's next SPI transfer), as recorded;
+				// the Evo's AVR too, for the WAIT its answer costs
 	if (comp->rzx.play) {
 		if (comp->rzx.frm.pos < comp->rzx.frm.size) {
 			res = comp->rzx.frm.data[comp->rzx.frm.pos];
 			comp->rzx.frm.pos++;
-			if (comp->hw->id == HW_ZXNEXT) {
+			if ((comp->hw->id == HW_ZXNEXT) || (comp->zifi->on && ((port & 0xff) == 0xef))) {
 				logged = res;
 			} else {
 				if (hit) hit->val = res & 0xff;
@@ -1079,6 +1080,7 @@ Computer* compCreate() {
 	comp->slot = sltCreate();
 	comp->div = div_create(comp->mem, comp, comp_board_ns);
 	comp->zc = zc_create(comp->sdc, comp, comp_board_ns);
+	comp->zifi = zifi_create();
 	comp->cpu->xm1x = comp_m1x;
 // sound
 	comp->ts = tsCreate(TS_NONE,SND_AY,SND_NONE);
@@ -1122,6 +1124,7 @@ void compDestroy(Computer* comp) {
 	sdcDestroy(comp->sdc);
 	div_destroy(comp->div);
 	zc_destroy(comp->zc);
+	zifi_destroy(comp->zifi);
 	tsDestroy(comp->ts);
 	gsDestroy(comp->gs);
 	sdrvDestroy(comp->sdrv);

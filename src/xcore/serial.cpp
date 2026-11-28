@@ -1,4 +1,5 @@
-// The Next's UARTs to the host's serial ports. A port follows what the guest asks of its
+// The emulated ESP-01 on the machine that has a line for it (the Next's UART 0, the Evo's
+// ZiFi), and the Next's UARTs to the host's serial ports. A port follows what the guest asks of its
 // UART: the rate (the prescaler against CLK_28, snapped to a standard rate), the frame,
 // RTS from the Rx FIFO with flow control on, break; its CTS goes back to the guest. The
 // bytes are moved at frame ends on the emulation thread, both ways traced to the event log
@@ -57,7 +58,8 @@ typedef struct {
 static serPort ser[2];
 static std::mutex serLock;		// want[] and cli[]: the gui writes them, the emulation reads
 static std::string serWant[2] = {"esp", ""};	// a Next Plus has its ESP-01 fitted
-static bool serEsp = false;			// UART 0 goes to the emulated ESP
+enum {SER_ESP_NONE = 0, SER_ESP_NEXT, SER_ESP_ZIFI};
+static int serEsp = SER_ESP_NONE;		// the emulated ESP is on: the Next's UART 0, the Evo's ZiFi
 static std::string serCli[2];
 static int serCliSet[2] = {0, 0};
 
@@ -276,10 +278,29 @@ static void ser_host_tx(Computer* comp, int i, int b, long long start) {
 	if (ser[i].txq.size() < SER_TXQ_MAX) ser[i].txq.push_back((unsigned char)b);
 }
 
+// what the Evo's AVR sends to its module
+static void ser_zifi_tx(Computer* comp, int b, long long start) {
+	esp_byte(comp, b, start);
+}
+
 // the guest's bytes are taken from the start, not from the first frame on
 static struct serHooks {
-	serHooks() {next_uart_host_tx = ser_host_tx;}
+	serHooks() {
+		next_uart_host_tx = ser_host_tx;
+		zifi_host_tx = ser_zifi_tx;
+	}
 } serHooksSet;
+
+// the module onto this machine's line, with the flash that is this board's own
+static void ser_esp_on(Computer* comp, int kind, const char* flash) {
+	if (serEsp != kind) {		// from another machine's line too: esp_attach() takes it off that one
+		esp_flash_file((conf.path.nvDir + SLASH + flash).c_str());
+		esp_attach(comp);
+	}
+	esp_set_lan(conf.next.espLan);		// for the servers it opens from now on
+	serEsp = kind;
+	esp_frame(comp);
+}
 
 static void ser_reset_state(serPort* p) {
 	p->baud = 0;
@@ -308,18 +329,12 @@ static void ser_port_frame(Computer* comp, int i) {
 	std::string want = ser_wanted(i);
 	if ((i == 0) && (want == SERIAL_ESP)) {
 		if (ser_is_open(p)) ser_drop(comp, i, NULL);
-		if (!serEsp) {
-			esp_flash_file((conf.path.nvDir + SLASH + "esp01.conf").c_str());
-			esp_attach(comp);
-		}
-		esp_set_lan(conf.next.espLan);		// for the servers it opens from now on
-		serEsp = true;
-		esp_frame(comp);
+		ser_esp_on(comp, SER_ESP_NEXT, "esp01.conf");
 		return;
 	}
 	if ((i == 0) && serEsp) {
 		esp_detach(comp);
-		serEsp = false;
+		serEsp = SER_ESP_NONE;
 	}
 	if (i == 0) esp_forget_snapshot();	// a snapshot's module: none plugged in to take it
 	if (p->name != want) ser_drop(comp, i, NULL);
@@ -413,9 +428,11 @@ void serial_frame(Computer* comp) {
 		hooked = true;
 	}
 	bool next = comp && comp->hw && (comp->hw->id == HW_ZXNEXT);
-	if (!next && serEsp) {
+	if (hw_zifi_on(comp)) {
+		ser_esp_on(comp, SER_ESP_ZIFI, "esp01-zifi.conf");
+	} else if (!next && serEsp) {
 		esp_detach(comp);
-		serEsp = false;
+		serEsp = SER_ESP_NONE;
 	}
 	for (int i = 0; i < 2; i++) {
 		if (next) ser_port_frame(comp, i);
@@ -485,6 +502,6 @@ QStringList serial_ports() {
 
 void serial_close() {
 	if (serEsp) esp_detach(NULL);
-	serEsp = false;
+	serEsp = SER_ESP_NONE;
 	for (int i = 0; i < 2; i++) ser_drop(NULL, i, NULL);
 }

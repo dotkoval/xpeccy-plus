@@ -199,6 +199,9 @@ class SetupWin : public QDialog {
 		QComboBox* saaBox;
 		QComboBox* clockBox;		// the Gluk clock (MAC_CLOCK_*), where the board takes one
 		QList<QWidget*> clockRow;
+		QComboBox* zifiBox;		// what is on the Evo's ZiFi (MAC_ZIFI_*), where the board has it
+		QCheckBox* cbZifiLan;		// its sheet's Server on the network: the Next's cbEspLan, the same setting
+		QList<QWidget*> zifiRow;
 		// the Robik's board: its shadow RAM, BRIGHT and cell edges (rows of its own)
 		QComboBox* shadowBox;
 		QComboBox* brightBox;

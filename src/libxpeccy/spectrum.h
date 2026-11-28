@@ -16,6 +16,7 @@ extern "C" {
 #include "sdcard.h"
 #include "divmmc.h"
 #include "zcontroller.h"
+#include "hardware/zifi.h"
 #include "cartridge.h"
 #include "ds1307.h"
 
@@ -701,6 +702,7 @@ typedef struct Computer {
 	// the ZX Spectrum Next's ~120K, apart from the struct: a snapshot takes them only on the Next
 	xNextState* next;			// the ZX Spectrum Next
 	DS1307* rtc;				// the Next's clock, on its I2C bus: on its own battery, not reset with it
+	xZifi* zifi;				// the ZX Evo's AVR at TSConf's #xxEF: a snapshot takes it only while on
 	// TODO: try to move this somewhere
 	struct {
 		unsigned char Page0;

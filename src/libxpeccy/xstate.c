@@ -167,6 +167,9 @@ static int xst_build(Computer* comp, xStateChunk* list) {
 	// a Z-Controller: its port, up to the card (the slot's, above)
 	if (comp->zc->on)
 		ADD(comp->zc, offsetof(ZCtrl, card));
+	// the Evo's ZiFi: its registers, rings and what is on the module's line
+	if (comp->zifi->on)
+		ADD(comp->zifi, sizeof(xZifi));
 
 	return n;
 }
