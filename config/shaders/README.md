@@ -5,7 +5,7 @@ OpenGL 3.3 driver (OpenGL ES 3.0). Pick a look in the Display list of Options - 
 View - Display; in `config/config.conf` it is `shader = <file>` and, for a file with presets,
 `shader.preset = <name>`. A fresh config starts with the Sony PVM look of `crt.txt`; an empty or
 missing `shader` line turns filtering off. View - Display - Flat screen (`shader.flat`, on at
-first) keeps every look flat: no curvature, corners or vignette. A look's sheet still shows its
+first) keeps every look flat: no curvature or corners. A look's sheet still shows its
 own values, and moving one of them turns Flat screen off.
 
 A shader with parameters has a sheet of knobs: the gear beside the list, or View - Display -
