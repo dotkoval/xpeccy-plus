@@ -48,6 +48,13 @@ INTMASK	equ #2AAF
 		im 2
 	endm
 
+; ...and HANDLER itself, doing nothing
+	macro IM2_STUB
+		ds #8181 - $
+		ei
+		ret
+	endm
+
 	macro FINISH
 		di
 		ld a, DONE

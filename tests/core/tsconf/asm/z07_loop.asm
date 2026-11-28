@@ -16,7 +16,7 @@ RATE = 0
 	di
 	TSOUT INTMASK, 1
 	IM2_SETUP
-	ZOUT ZF_CR, ZF_API1
+	TSOUT ZF_CR, ZF_API1
 	if RATE
 	ei
 	halt
@@ -75,6 +75,4 @@ drain:	ld bc, ZF_IFR
 	jr drain
 	endif
 
-	ds #8181 - $
-	ei
-	ret
+	IM2_STUB

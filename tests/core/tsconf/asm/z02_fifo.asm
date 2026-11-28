@@ -22,7 +22,7 @@
 	di
 	TSOUT INTMASK, 1
 	IM2_SETUP
-	ZOUT ZF_CR, ZF_API1
+	TSOUT ZF_CR, ZF_API1
 	ei
 	ld b, 5
 w1:	halt
@@ -39,34 +39,22 @@ w1:	halt
 	ld b, a
 	call take
 	call count
-	ld bc, ZF_DR
-	in a, (c)
-	ld (ix), a
-	inc ix
-	ld bc, ZF_OFR
-	in a, (c)
-	ld (ix), a
-	inc ix
+	ZINX ZF_DR
+	ZINX ZF_OFR
 	ld bc, ZF_DR
 	ld d, 200
 w2:	out (c), d
 	dec d
 	jr nz, w2
-	ld bc, ZF_OFR
-	in a, (c)
-	ld (ix), a
-	inc ix
-	ZOUT ZF_CR, #02
+	ZINX ZF_OFR
+	TSOUT ZF_CR, #02
 	ld bc, ZF_OFR
 	in a, (c)
 	ld (ix), a
 	FINISH
 
 ; ZIFR into the mailbox and A
-count:	ld bc, ZF_IFR
-	in a, (c)
-	ld (ix), a
-	inc ix
+count:	ZINX ZF_IFR
 	ret
 
 ; B bytes by INIR, their sum into the mailbox
@@ -84,8 +72,6 @@ t1:	add a, (hl)
 	inc ix
 	ret
 
-	ds #8181 - $
-	ei
-	ret
+	IM2_STUB
 
 buf:	ds 192

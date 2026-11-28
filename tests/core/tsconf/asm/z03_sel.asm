@@ -11,29 +11,25 @@
 	include "zifi.inc"
 	org #8000
 	di
-	ZOUT ZF_CR, ZF_API1
+	TSOUT ZF_CR, ZF_API1
 	ld bc, #FDEF
 	in a, (c)
 	ld (MBOX + 1), a
-	ZOUT ZF_DR, 'A'
+	TSOUT ZF_DR, 'A'
 	ld bc, ZF_OFR
 	in a, (c)
-	ZOUT ZF_DR, 'B'
+	TSOUT ZF_DR, 'B'
 	ld bc, RS_OFR
 	in a, (c)
-	ZOUT ZF_DR, 'C'
+	TSOUT ZF_DR, 'C'
 	ld bc, ZF_IFR
 	in a, (c)
-	ZOUT ZF_DR, 'D'
-	ZOUT ZF_CR, #F0
-	ZOUT ZF_DR, 'E'
-	ZOUT ZF_CR, ZF_API1
-	ZOUT ZF_DR, 'F'
-	ld bc, 500			; 500 * 26 T = 3.7 ms
-w:	dec bc
-	ld a, b
-	or c
-	jr nz, w
+	TSOUT ZF_DR, 'D'
+	TSOUT ZF_CR, #F0
+	TSOUT ZF_DR, 'E'
+	TSOUT ZF_CR, ZF_API1
+	TSOUT ZF_DR, 'F'
+	ZDELAY 500			; 3.7 ms
 	ld bc, #FDEF
 	in a, (c)
 	ld (MBOX + 2), a

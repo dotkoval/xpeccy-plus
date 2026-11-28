@@ -15,21 +15,17 @@
 	sbc hl, de
 	jr z, second
 	ld (flag), de
-	ZOUT ZF_CR, ZF_API1
+	TSOUT ZF_CR, ZF_API1
 	ld bc, ZF_IFR
 	in a, (c)
-	ZOUT ZF_IBTR, #33
+	TSOUT ZF_IBTR, #33
 	jr $
 
 second:	ld hl, MBOX + 1
 	ZIN ZF_CR
 	ZIN ZF_IBTR
-	ZOUT ZF_DR, 'Z'
-	ld bc, 200
-w:	dec bc
-	ld a, b
-	or c
-	jr nz, w
+	TSOUT ZF_DR, 'Z'
+	ZDELAY 200
 	FINISH
 
 flag:	dw 0

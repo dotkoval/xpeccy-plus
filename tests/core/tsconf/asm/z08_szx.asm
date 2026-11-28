@@ -11,14 +11,10 @@
 	include "zifi.inc"
 	org #8000
 	di
-	ZOUT ZF_CR, ZF_API1
+	TSOUT ZF_CR, ZF_API1
 	ld bc, ZF_IFR
 	in a, (c)
-	ld bc, 800			; 800 * 26 T = 5.9 ms
-w1:	dec bc
-	ld a, b
-	or c
-	jr nz, w1
+	ZDELAY 800			; 5.9 ms
 	ld hl, MBOX + 1
 	ZIN ZF_IFR
 	ld d, 4
@@ -32,9 +28,5 @@ r1:	ld bc, ZF_DR
 	ld (hl), e
 	inc hl
 	ZIN ZF_IFR
-	ld bc, 900			; 6.7 ms more
-w2:	dec bc
-	ld a, b
-	or c
-	jr nz, w2
+	ZDELAY 900			; 6.7 ms more
 	FINISH

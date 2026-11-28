@@ -39,6 +39,7 @@ the ZX Evo TSConf configuration.
 | z06 | ZiFi: the Z80's reset leaves the AVR's state |
 | z07 | ZiFi: 300 bytes out and back at the UART's pace; a module at 74880 read at 115200 |
 | z08 | ZiFi in an SZX: made, loaded, the state and its clock as saved |
+| z09 | ZiFi: the interrupt sources polled with the wait-port interrupt masked; a late byte does not take a timeout back |
 
 The z tests run with `ZIFI=1`, the bench standing in for the module on ZiFi's line (`ZFEED`, `ZFAR`,
 `ZLOOP`, `ZRESET`, `ZSZX`: `main.c` says how); `ZTX` and `ZINT` are what the AVR sent and when its

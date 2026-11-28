@@ -24,9 +24,9 @@
 	IM2_SETUP
 	ld hl, wtp
 	ld (#BDF9), hl
-	ZOUT ZF_CR, ZF_API1
-	ZOUT ZF_IBTR, 4
-	ZOUT ZF_IMR, 1
+	TSOUT ZF_CR, ZF_API1
+	TSOUT ZF_IBTR, 4
+	TSOUT ZF_IMR, 1
 	ld hl, 0
 	ei
 loop:	inc hl				; 29 T a turn: 3072 turns are 25 ms
@@ -73,6 +73,4 @@ w9:	pop hl
 
 slot:	dw MBOX + 3
 
-	ds #8181 - $
-	ei
-	ret
+	IM2_STUB

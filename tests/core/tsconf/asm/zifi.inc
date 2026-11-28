@@ -22,8 +22,19 @@ ZF_VER	equ #FF
 		inc hl
 	endm
 
-	macro ZOUT port, val
+; the same by ix
+	macro ZINX port
 		ld bc, port
-		ld a, val
-		out (c), a
+		in a, (c)
+		ld (ix), a
+		inc ix
+	endm
+
+; n turns of 26 T through bc/a
+	macro ZDELAY n
+		ld bc, n
+.w:		dec bc
+		ld a, b
+		or c
+		jr nz, .w
 	endm
