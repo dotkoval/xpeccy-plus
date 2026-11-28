@@ -4075,3 +4075,699 @@ NR A9 = 05
 << +CWLAP:(3,"Xpeccy+",-55,"5c:cf:7f:00:00:01",6,-12,0,4,4,7,0)\r\n
 << \r\n
 << OK\r\n
+== zf_basic_gmr
+<< <garbage>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> AT+GMR\r\n
+<< AT+GMR\r\n
+<< AT version:1.7.6.0(Jan 24 2022 08:56:02)\r\n
+<< SDK version:3.0.6-dev(072755c)\r\n
+<< compile time:Jun 17 2024 07:38:00\r\n
+<< Bin version(Wroom 02):1.7.6\r\n
+<< OK\r\n
+>> AT+GMR?\r\n
+<< AT+GMR?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+GMR=?\r\n
+<< AT+GMR=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+GMR=1\r\n
+<< AT+GMR=1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+GMR1\r\n
+<< AT+GMR1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RST?\r\n
+<< AT+RST?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RST=?\r\n
+<< AT+RST=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RST=1\r\n
+<< AT+RST=1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RST1\r\n
+<< AT+RST1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RESTORE?\r\n
+<< AT+RESTORE?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RESTORE=?\r\n
+<< AT+RESTORE=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+RESTORE=1\r\n
+<< AT+RESTORE=1\r\n
+<< \r\n
+<< ERROR\r\n
+-- RST, echo comes back on
+>> AT+RST\r\n
+<< AT+RST\r\n
+<< \r\n
+<< OK\r\n
+<< <garbage>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+RST\r\n
+<< \r\n
+<< OK\r\n
+<< <garbage>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> AT\r\n
+<< AT\r\n
+<< \r\n
+<< OK\r\n
+-- RESTORE
+>> AT+RFAUTOTRACE=0\r\n
+<< AT+RFAUTOTRACE=0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+UART_DEF=115200,8,1,0,2\r\n
+<< AT+UART_DEF=115200,8,1,0,2\r\n
+<< \r\n
+<< OK\r\n
+>> AT+UART_DEF?\r\n
+<< AT+UART_DEF?\r\n
+<< +UART_DEF:115200,8,1,0,2\r\n
+<< OK\r\n
+>> AT+RESTORE\r\n
+<< AT+RESTORE\r\n
+<< \r\n
+<< OK\r\n
+<< <garbage>
+<< ready\r\n
+>> AT+UART_DEF?\r\n
+<< AT+UART_DEF?\r\n
+<< +UART_DEF:0,0,0,0,0\r\n
+<< OK\r\n
+>> AT+UART_CUR?\r\n
+<< AT+UART_CUR?\r\n
+<< +UART_CUR:115273,8,1,0,0\r\n
+<< OK\r\n
+>> AT+RFAUTOTRACE?\r\n
+<< AT+RFAUTOTRACE?\r\n
+<< +RFAUTOTRACE:1\r\n
+<< \r\n
+<< OK\r\n
+== zf_wifi_join
+<< rl\x00l\x9C\x9E|\x00\x8Cl\xE0|\x02\x0C\x0C\x0C\x8C\x0Cl\xEC\x0Cb|\x8E\x82\x02\xEC\x12\x92r\x92b\x8C\x0Cb\x8C\xF2nn\x9Elnn\x9C\xE2\xEC\x0Cb\x1Cp\x8C\x8Elrlrlp\xF2n\xE0\x10\x02\x0C\x0C\x82\x0Cl\x0C\x0C\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02l\x0Cl\x8E\x8Eb\x8C\xF2nn\xEE\x00l\x8C\x8El`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xE2\xECl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02\xEC\x8E\x8E\x8Eb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\x02\x8Cl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\xECl\x0C\x0Cb\x0Cn\xE2|\x02l\x8Er\x8C\x0Cb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xF2ll`\x02\x0Er\x92\x92n\x0C\x0C\xF2ll`\x02rl\x8C\x8Cn\x9C\x8C\xF2nn\x9E\x8C\x9E\xE2\x8Cr\x12nnn\x8C\x0Cl\x8Cbrrl\x00\x0C\xEC\x12\x92l\xEC\x12\x92\x92\x82\x02\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x8Elll~rl\x00\x0C\xEC\x12\x92llln\x9C\xE2\x00\x0C\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x90\x8C~\x92`\x02\x00\x0C\xEC\x12\x92l\x8C\x90n\xE0\x8E\x02n\xEC\x92n~\x12\x02\x8C\x8Cll\xE0\x80b\x0C\x0Cllpb\x82\x02br\x82\x8C\xECl`nl\x8Ep\x8C\xECl`bl`\x02l\x92\x92n\x02\x0C\x9En\x8C\x92\xE2nl\x9E|\x12b\x12\x0C\x0C\x02l\x0C\x0C\x0Cl`\x02rl\r\n
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP?\r\n
+<< +CWJAP:"Xpeccy+","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_CUR?\r\n
+<< +CWJAP_CUR:"Xpeccy+","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_DEF?\r\n
+<< +CWJAP_DEF:"Xpeccy+","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="","x"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR=abc,"x"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc","x",2\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc","x","zz:22:33:44:55:66"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc","x",,2\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc","x"junk\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="123456789012345678901234567890123","x"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="abc","ppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppppp"\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="Lab\\,Net","pw\\"1",,1\r\n
+<< WIFI DISCONNECT\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP?\r\n
+<< +CWJAP:"Lab,Net","5c:cf:7f:00:00:01",6,-55,1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_DEF?\r\n
+<< +CWJAP_DEF:"Xpeccy+","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_CUR="Lab","pw","5c:cf:7f:00:00:01"\r\n
+<< WIFI DISCONNECT\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP="Home","secret"\r\n
+<< WIFI DISCONNECT\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_DEF?\r\n
+<< +CWJAP_DEF:"Home","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAPTO?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWJAP_CUR="Home","secret","11:22:33:44:55:66"\r\n
+<< WIFI DISCONNECT\r\n
+<< +CWJAP:3\r\n
+<< \r\n
+<< FAIL\r\n
+>> AT+CWJAP?\r\n
+<< No AP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_DEF?\r\n
+<< No AP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWQAP=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWQAP?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWQAP=1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWQAP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP_CUR="Home","secret"\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWQAP\r\n
+<< \r\n
+<< OK\r\n
+<< WIFI DISCONNECT\r\n
+>> AT+CWJAP?\r\n
+<< No AP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWAUTOCONN?\r\n
+<< +CWAUTOCONN:1\r\n
+<< OK\r\n
+>> AT+CWAUTOCONN=2\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWAUTOCONN=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWAUTOCONN\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CWAUTOCONN=0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWAUTOCONN?\r\n
+<< +CWAUTOCONN:0\r\n
+<< OK\r\n
+>> AT+RST\r\n
+<< \r\n
+<< OK\r\n
+<< rl\x00l\x9C\x9E|\x00\x8Cl\xE0|\x02\x0C\x0C\x0C\x8C\x0Cl\xEC\x0Cb|\x8E\x82\x02\xEC\x12\x92r\x92b\x8C\x0Cb\x8C\xF2nn\x9Elnn\x9C\xE2\xEC\x0Cb\x1Cp\x8C\x8Elrlrlp\xF2n\xE0\x10\x02\x0C\x0C\x82\x0Cl\x0C\x0C\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02l\x0Cl\x8E\x8Eb\x8C\xF2nn\xEE\x00l\x8C\x8El`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xE2\xECl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02\xEC\x8E\x8E\x8Eb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\x02\x8Cl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\xECl\x0C\x0Cb\x0Cn\xE2|\x02l\x8Er\x8C\x0Cb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xF2ll`\x02\x0Er\x92\x92n\x0C\x0C\xF2ll`\x02rl\x8C\x8Cn\x9C\x8C\xF2nn\x9E\x8C\x9E\xE2\x8Cr\x12nnn\x8C\x0Cl\x8Cbrrl\x00\x0C\xEC\x12\x92l\xEC\x12\x92\x92\x82\x02\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x8Elll~rl\x00\x0C\xEC\x12\x92llln\x9C\xE2\x00\x0C\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x90\x8C~\x92`\x02\x00\x0C\xEC\x12\x92l\x8C\x90n\xE0\x8E\x02n\xEC\x92n~\x12\x02\x8C\x8Cll\xE0\x80b\x0C\x0Cllpb\x82\x02br\x82\x8C\xECl`nl\x8Ep\x8C\xECl`bl`\x02l\x92\x92n\x02\x0C\x9En\x8C\x92\xE2nl\x9E|\x12b\x12\x0C\x0C\x02l\x0C\x0C\x0Cl`\x02rl\r\n
+<< ready\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP?\r\n
+<< No AP\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWAUTOCONN?\r\n
+<< +CWAUTOCONN:0\r\n
+<< OK\r\n
+>> AT+CWAUTOCONN=1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+RST\r\n
+<< \r\n
+<< OK\r\n
+<< rl\x00l\x9C\x9E|\x00\x8Cl\xE0|\x02\x0C\x0C\x0C\x8C\x0Cl\xEC\x0Cb|\x8E\x82\x02\xEC\x12\x92r\x92b\x8C\x0Cb\x8C\xF2nn\x9Elnn\x9C\xE2\xEC\x0Cb\x1Cp\x8C\x8Elrlrlp\xF2n\xE0\x10\x02\x0C\x0C\x82\x0Cl\x0C\x0C\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02l\x0Cl\x8E\x8Eb\x8C\xF2nn\xEE\x00l\x8C\x8El`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xE2\xECl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\x0C\x0C\x0C\x0Cb\x0Cn\xE2|\x02\xEC\x8E\x8E\x8Eb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\x02\x8Cl`\x02p\xF2n\xE0\x10\x02\x0C\x0Cr\x8C\x9C\x9C\xE2\xE0\xECl\x0C\x0Cb\x0Cn\xE2|\x02l\x8Er\x8C\x0Cb\x8C\xF2nn\xEE\x00\x0C\x0Cl`\x02\x90\x12\x12nn\x0Cl`\x02\x0E\x02nr\x8E\x92\x92n\x0C\x0C\xF2ll`\x02\x0Er\x92\x92n\x0C\x0C\xF2ll`\x02rl\x8C\x8Cn\x9C\x8C\xF2nn\x9E\x8C\x9E\xE2\x8Cr\x12nnn\x8C\x0Cl\x8Cbrrl\x00\x0C\xEC\x12\x92l\xEC\x12\x92\x92\x82\x02\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x8Elll~rl\x00\x0C\xEC\x12\x92llln\x9C\xE2\x00\x0C\x0C\x0C\x0C\x0C\x0C\x8C\x0C\x0C\x90\x8C~\x92`\x02\x00\x0C\xEC\x12\x92l\x8C\x90n\xE0\x8E\x02n\xEC\x92n~\x12\x02\x8C\x8Cll\xE0\x80b\x0C\x0Cllpb\x82\x02br\x82\x8C\xECl`nl\x8Ep\x8C\xECl`bl`\x02l\x92\x92n\x02\x0C\x9En\x8C\x92\xE2nl\x9E|\x12b\x12\x0C\x0C\x02l\x0C\x0C\x0Cl`\x02rl\r\n
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CWJAP?\r\n
+<< +CWJAP:"Home","5c:cf:7f:00:00:01",6,-55,0\r\n
+<< \r\n
+<< OK\r\n
+== zf_tcp_link0
+<< <romlog>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS\r\n
+<< STATUS:2\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIFSR=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIFSR\r\n
+<< +CIFSR:STAIP,"<ip>"\r\n
+<< +CIFSR:STAMAC,"<mac>"\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPMUX?\r\n
+<< +CIPMUX:0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPMODE?\r\n
+<< +CIPMODE:0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART=?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPCLOSE\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPCLOSE=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPCLOSE=0\r\n
+<< MUX=0\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPCLOSEMODE=1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPALIVE?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="XYZ","127.0.0.1",80\r\n
+<< Link type ERROR\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART=TCP,"127.0.0.1",80\r\n
+<< Link type ERROR\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP",127.0.0.1,80\r\n
+<< IP ERROR\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1"80\r\n
+<< ENTRY ERROR\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",99999\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",80,8000\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",80,\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="UDP","127.0.0.1",0\r\n
+<< Miss param\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>,60\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS\r\n
+<< STATUS:3\r\n
+<< +CIPSTATUS:0,"TCP","127.0.0.1",<port>,<lport>,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>\r\n
+<< ALREADY CONNECTED\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPMUX=1\r\n
+<< link is builded\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPMUX=0\r\n
+<< link is builded\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPCLOSEMODE=2\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPCLOSEMODE=1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS\r\n
+<< STATUS:4\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",1\r\n
+<< \r\n
+<< ERROR\r\n
+<< CLOSED\r\n
+>> AT+CIPSTATUS\r\n
+<< STATUS:4\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART="TCP","nonexistent.invalid",80\r\n
+<< DNS Fail\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","localhost",<port>\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
+== zf_tcp_send
+<< <romlog>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=5\r\n
+<< link is not valid\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND?\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSENDEX=?\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSENDEX\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=2049\r\n
+<< too long\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=5,1\r\n
+<< no tail\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=abc\r\n
+<< no tail\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=5,"127.0.0.1",80\r\n
+<< no tail\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=0\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND5\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=3\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> abc\r\n
+<< \r\n
+<< Recv 3 bytes\r\n
+<< \r\n
+<< busy s...\r\n
+<< \r\n
+<< SEND OK\r\n
+<< \r\n
+<< +IPD,3:abc
+>> AT+CIPSENDEX=10\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> ab\\0
+<< \r\n
+<< Recv 2 bytes\r\n
+<< \r\n
+<< SEND OK\r\n
+<< \r\n
+<< +IPD,2:ab
+>> AT+CIPSENDEX=3\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> a\\\\b
+<< \r\n
+<< Recv 3 bytes\r\n
+<< \r\n
+<< SEND OK\r\n
+<< \r\n
+<< +IPD,3:a\\b
+>> AT+CIPDINFO=1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=2\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> hi
+<< \r\n
+<< Recv 2 bytes\r\n
+<< \r\n
+<< SEND OK\r\n
+<< \r\n
+<< +IPD,2,127.0.0.1,<port>:hi
+>> AT+CIPDINFO=0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=7\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> hello\r\n
+<< \r\n
+<< Recv 7 bytes\r\n
+<< \r\n
+<< SEND OK\r\n
+<< \r\n
+<< +IPD,7:hello\r\n
+<< CLOSED\r\n
+>> AT+CIPSEND=1\r\n
+<< link is not valid\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="UDP","127.0.0.1",<port>,5101,3\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="UDP","127.0.0.1",<port>,5100,0\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTATUS\r\n
+<< STATUS:4\r\n
+<< +CIPSTATUS:0,"UDP","127.0.0.1",<port>,5100,0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=3,"127.0.0.1"\r\n
+<< no port\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=3,127.0.0.1,5\r\n
+<< ip error\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=3,"127.0.0.1",0\r\n
+<< port range error\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=3,"127.0.0.1",5,6\r\n
+<< port error\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSENDBUF=3\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND=3\r\n
+<< \r\n
+<< OK\r\n
+<< > 
+>> abc
+<< \r\n
+<< Recv 3 bytes\r\n
+<< \r\n
+<< SEND OK\r\n
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
+== zf_tcp_pass
+<< <romlog>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPMODE=2\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPMODE=1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPMODE?\r\n
+<< +CIPMODE:1\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSEND=5\r\n
+<< IPMODE=1\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSENDBUF=5\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPMUX=1\r\n
+<< link is builded\r\n
+<< \r\n
+<< ERROR\r\n
+>> AT+CIPSEND\r\n
+<< \r\n
+<< OK\r\n
+<< \r\n
+<< >
+>> hello
+<< hello
+>> +++
+>> AT\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPMODE=0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
+== tcp_tail
+<< <romlog>
+<< ready\r\n
+<< WIFI CONNECTED\r\n
+<< WIFI GOT IP\r\n
+>> ATE0\r\n
+<< ATE0\r\n
+<< \r\n
+<< OK\r\n
+>> AT+CIPSTART="TCP","127.0.0.1",<port>\r\n
+<< CONNECT\r\n
+<< \r\n
+<< OK\r\n
+-> <xs>
+<< \r\n
+<< +IPD,1460:<xs>
+-> A1
+<< <xs>
+-> A2
+<< \r\n
+<< +IPD,544:<xs>A1A2
+-- after the wait
+-> B1
+<< \r\n
+<< +IPD,2:B1
+-- B1 by now
+-> B2
+<< \r\n
+<< +IPD,2:B2
+-- B2 by now
+-> B3
+<< \r\n
+<< +IPD,2:B3
+>> AT+CIPCLOSE\r\n
+<< CLOSED\r\n
+<< \r\n
+<< OK\r\n
