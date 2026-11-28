@@ -139,7 +139,8 @@ them, under **Output filters**, **Low cut (DC)** and **High cut (anti-alias)**. 
 there is on the filter the running machine is heard through, and **By machine** names its
 board's: **By machine (TV (RF))**. A filter picked there is this page's, for every machine,
 and is heard at once: if the running machine had a filter of its own, that one goes, and
-the message says which. Other machines keep theirs.
+the message says which. Other machines keep theirs. The marked filter picked again changes
+nothing.
 
 The filter runs in the machine's time, so it slows down and speeds up with it: in **Slow
 Motion** a high tone it cuts stays cut as it drops in pitch.
