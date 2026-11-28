@@ -212,7 +212,7 @@ QString look_legacy_tip() {
 }
 
 QString look_flat_tip() {
-	return QCoreApplication::translate("Display", "Every look without curvature, corners or vignette. Moving one of them in a look's settings turns this off");
+	return QCoreApplication::translate("Display", "Every look without curvature or corners. Moving one of them in a look's settings turns this off");
 }
 
 QList<xLook> look_list() {

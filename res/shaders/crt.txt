@@ -111,7 +111,7 @@ tip CONTRAST = Darks darker and lights lighter, as a set turned up
 #pragma parameter CURVEX "Curve of the sides" 1 0 1 0.05
 #pragma parameter CURVEY "Curve of top and bottom" 1 0 1 0.05
 more CONTRAST CURVEX CURVEY
-flat CURVE CORNER VIGN
+flat CURVE CORNER
 
 group "Glow" when GLOW 0.3
 #pragma parameter GLOW "Amount" 0.0 0.0 1.0 0.05
