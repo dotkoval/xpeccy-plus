@@ -835,10 +835,9 @@ void MainWin::makeBoardActs() {
 	}
 	connect(boardGrp, &QActionGroup::triggered, this, [this](QAction* act) {
 		conf.snd.all.board = act->data().toInt();
-		QString own = board_own_drop();
-		xm_snd_apply();
-		setMessage(own.isEmpty() ? QString(" board filter: %0 ").arg(act->text())
-			: QString(" board filter: %0; own %1 dropped ").arg(act->text(), own));
+		int own = xm_snd_drop_running(SND_GRP_BOARD);
+		setMessage((own == SND_GLOBAL) ? QString(" board filter: %0 ").arg(act->text())
+			: QString(" board filter: %0; own %1 dropped ").arg(act->text(), board_type_name(own)));
 		saveConfig();
 	});
 	// and the Sound page's Low cut and High cut, switches of their own

@@ -193,6 +193,7 @@ class SetupWin : public QDialog {
 		// after each one's list (SND_GRP_*): how many machines override it, hidden with none
 		QToolButton* btnOwn[2] = {nullptr, nullptr};
 		xIconGroup* grpSnd[2] = {nullptr, nullptr};	// Stereo and Filters: their titles name what the machine shown has
+		void sndGroupTitles();
 		QStringList sndOwnTips[2];	// each of them and what it has of its own
 		void sndResetOwn(int grp);	// the list's value for all machines, asked first
 		int psgFrqMul = 1;	// the chip's clock against the AY's the setting holds

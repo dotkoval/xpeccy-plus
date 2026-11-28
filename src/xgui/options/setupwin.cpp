@@ -528,6 +528,9 @@ QString psg_lay_name(int lay) {
 // LAY_MACHINE and BOARD_MACHINE (both -1) heard as the machine's spec
 static int snd_heard(int pick, int spec) {return (pick == LAY_MACHINE) ? spec : pick;}
 
+// a machine's pick heard: its own, the Sound page's with none, either one's spec the machine's
+static int snd_heard(int own, int global, int spec) {return snd_heard((own == SND_GLOBAL) ? global : own, spec);}
+
 // a list item in two parts (xTwoPartDelegate): "Global setting (Machine spec)"
 static QString two_part(const QString& name, const QString& detail) {
 	return name + detail_sep + QString("(%0)").arg(detail);
@@ -558,17 +561,6 @@ static bool snd_owns_grp(const xSndPicks& p, int grp) {
 
 // the first item's tooltip in a machine's lists
 static const char* const ownGlobalTip = QT_TR_NOOP("What the Sound page picks; By machine there:\nas this machine's board was made");
-
-// A pick in the sound menus is the Sound page's and the running machine's too: its own Board
-// filter goes, from its file as well. The one that went by name, for the message; empty with none
-QString board_own_drop() {
-	Computer* comp = conf.zx;
-	if (!comp || (comp->hw->id == HW_ZXNEXT) || (conf.snd.own.board == SND_GLOBAL)) return QString();
-	QString res = board_type_name(snd_heard(conf.snd.own.board, comp->beepType));
-	conf.snd.own.board = SND_GLOBAL;
-	xm_save_over();
-	return res;
-}
 
 // By machine in those menus, with the running machine's board: "By machine (TV (RF))"
 QString board_machine_note() {
@@ -733,6 +725,7 @@ xSndPicks SetupWin::ownPicks() {
 // the machine's own picks as the lists stand, and the Sound page's marks with them
 void SetupWin::sndOwnShow() {
 	if (!grpSnd[SND_GRP_BOARD] || !ownLayNote) return;		// still being built
+	sndGroupTitles();
 	Computer* comp = conf.zx;
 	int spec = comp->ts->chipA->stereo;
 	int sboard = comp->beepType;
@@ -748,14 +741,6 @@ void SetupWin::sndOwnShow() {
 		: tr("Result: %0").arg(own_pick_name(glay, spec, psg_lay_name)));
 	ownBoardNote->setFull((oboard != SND_GLOBAL) ? QString()
 		: tr("Result: %0").arg(own_pick_name(gboard, sboard, board_type_name)));
-	// the Sound page's groups name what this machine has: its own pick or the list's. No
-	// order with no PSG, nor on the Next, whose software sets it
-	bool noLay = (getRFIData(cbPsgCount) == PSG_NONE) || (comp->hw->id == HW_ZXNEXT);
-	int hlay = snd_heard((olay == SND_GLOBAL) ? glay : olay, spec);
-	int hboard = snd_heard((oboard == SND_GLOBAL) ? gboard : oboard, sboard);
-	grpSnd[SND_GRP_LAY]->setText(noLay ? tr("Stereo")
-		: tr("Stereo (current: %0)").arg(psg_lay_name(hlay)));
-	grpSnd[SND_GRP_BOARD]->setText(tr("Filters (board: %0)").arg(board_type_name(hboard)));
 	// the marks: this machine as its lists have it, the others as their files do
 	QList<xSndOwnRow> macs;
 	const xMachine* mac = xm_find(conf.macId);
@@ -774,6 +759,18 @@ void SetupWin::sndOwnShow() {
 		btnOwn[grp]->setText(QString::number(n));
 		btnOwn[grp]->setToolTip(tr("Overridden, click to reset:") + "\n" + sndOwnTips[grp].join("\n"));
 	}
+}
+
+// The Sound page's groups name what the machine shown has: its own pick or the list's. No
+// order with no PSG, nor on the Next, whose software sets it
+void SetupWin::sndGroupTitles() {
+	if (!grpSnd[SND_GRP_BOARD] || !ownLayNote) return;		// still being built
+	Computer* comp = conf.zx;
+	bool noLay = (getRFIData(cbPsgCount) == PSG_NONE) || (comp->hw->id == HW_ZXNEXT);
+	int lay = snd_heard(getRFIData(cbOwnLay), getRFIData(cbPsgLay), comp->ts->chipA->stereo);
+	int board = snd_heard(getRFIData(cbOwnBoard), getRFIData(cbBoard), comp->beepType);
+	grpSnd[SND_GRP_LAY]->setText(noLay ? tr("Stereo") : tr("Stereo (current: %0)").arg(psg_lay_name(lay)));
+	grpSnd[SND_GRP_BOARD]->setText(tr("Filters (board: %0)").arg(board_type_name(board)));
 }
 
 // the other machines with picks of their own, as their files have them (the Next's are
@@ -891,11 +888,10 @@ void SetupWin::makeDevWidgets() {
 		box->setFocusPolicy(Qt::StrongFocus);
 		connect(box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
 	}
-	connect(cbPsgCount, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
 	// a note under each: empty, it keeps its line. The Machine page's asks for no width
 	ownBoardNote = new xElideLabel;
 	ownLayNote = new QLabel;
-	for (QLabel* note : {(QLabel*)ownBoardNote, ownLayNote}) {
+	for (QLabel* note : QList<QLabel*>{ownBoardNote, ownLayNote}) {
 		QFont nfnt = note->font();
 		nfnt.setItalic(true);
 		note->setFont(nfnt);
@@ -4095,6 +4091,7 @@ void SetupWin::chapsg() {
 	}
 	if (moved)		// renaming the current item wipes a figure typed in
 		opt_set_psg_frq(cbPsgFrq, ay * mul);
+	sndGroupTitles();		// no PSG, no order to name
 }
 
 // the crash is a property of the snow, not a setting of its own: it says nothing

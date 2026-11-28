@@ -2048,6 +2048,23 @@ void xm_snd_drop_own(int grp) {
 	xlog(XLG_CONF, XLL_INFO, "sound picks (group %i) of %i machine files dropped", grp, done);
 }
 
+// The sound menus' pick: the running machine's own pick of a group goes, from its file too,
+// and it is heard as Global at once. What the own was heard as (a BEEP_* type, an AY_*
+// order), SND_GLOBAL with none. The Next never has one (nextOwnKeys)
+int xm_snd_drop_running(int grp) {
+	Computer* comp = conf.zx;
+	if (!comp) return SND_GLOBAL;
+	int& own = (grp == SND_GRP_LAY) ? conf.snd.own.lay : conf.snd.own.board;
+	int was = own;
+	if (was == LAY_MACHINE) was = (grp == SND_GRP_LAY) ? comp->ts->chipA->stereo : comp->beepType;
+	if (own != SND_GLOBAL) {
+		own = SND_GLOBAL;
+		xm_save_over();
+	}
+	xm_snd_apply();
+	return was;
+}
+
 // A config from before the machine files kept the same settings in
 // [MACHINE.<id>] blocks of config.conf. Read once, they are written out as
 // machine files - merged into a file the machine may already have.

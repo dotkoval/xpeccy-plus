@@ -243,7 +243,6 @@ enum {CUT_LOW = 0, CUT_HIGH};
 QList<xCutPick> cut_picks();
 QString board_type_name(int type);	// a BEEP_* type's name in those lists
 QString psg_lay_name(int lay);		// an AY_* layout's: Mono, ABC...
-QString board_own_drop();		// the running machine's own filter dropped: its name, or empty with none
 QString board_machine_note();		// "By machine (TV (RF))": the running machine's board
 extern const QString detail_sep;	// " - ", between a two-part list item's name and its detail
 
