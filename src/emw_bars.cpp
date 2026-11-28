@@ -823,7 +823,7 @@ QMenu* MainWin::volumeMenu() {
 
 // The Sound page's Board filter, one pick for every machine: its actions, made once and
 // listed under the volume and in the right-click menu's Sound. A pick there is heard at
-// once: the running machine's own filter goes for it
+// once: the running machine's own filter goes for it. The checked one picked again does nothing
 void MainWin::makeBoardActs() {
 	boardGrp = new QActionGroup(this);
 	for (const xBoardPick& p : board_picks()) {
@@ -834,6 +834,7 @@ void MainWin::makeBoardActs() {
 		if (p.val == BOARD_MACHINE) boardMacAct = act;
 	}
 	connect(boardGrp, &QActionGroup::triggered, this, [this](QAction* act) {
+		if (act->data().toInt() == conf.snd.vol.board) return;		// the one heard, checked already
 		conf.snd.all.board = act->data().toInt();
 		int own = xm_snd_drop_running(SND_GRP_BOARD);
 		setMessage((own == SND_GLOBAL) ? QString(" board filter: %0 ").arg(act->text())
