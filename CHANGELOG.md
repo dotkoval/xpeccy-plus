@@ -11,6 +11,11 @@ before that point is upstream's history and is not repeated here.
 
 ### Added
 
+- **Wi-Fi on the ZX Evolution (TSConf)**: ZiFi, the board's ports for an ESP-01 module.
+  Options > Machine, ZiFi: ESP-01 (emulated) fits the module the ZX Spectrum Next has, on
+  the computer's network; the ZiFi client and ESP probe 2 run on it. Not connected as the
+  machine starts. A snapshot keeps it.
+
 - **Display, with knobs**: the Shader list of Options > Video is Display, and View > Shaders
   is View > Display. A look with settings has a sheet of knobs - the gear beside the list, or
   View > Display > Settings: each move shows on the picture and stays with the look, and an
