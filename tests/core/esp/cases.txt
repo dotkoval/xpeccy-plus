@@ -62,3 +62,4 @@ run zf_wifi_join                 zbridge.bin        6000   MACHINE=zifi SCRIPT=w
 run zf_tcp_link0                 zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_link0.txt FLASH=esp01.conf
 run zf_tcp_send                  zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_send.txt FLASH=esp01.conf
 run zf_tcp_pass                  zbridge.bin        6000   MACHINE=zifi SCRIPT=tcp_pass.txt FLASH=esp01.conf
+run tcp_tail                     bridge.bin         6000   SCRIPT=tcp_tail.txt FLASH=esp01.conf
