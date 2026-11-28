@@ -46,7 +46,10 @@ Under it are four groups.
 **Stereo** and **Filters**, side by side, are how every machine is heard. This is a matter
 of taste, as a shader is, so it is set once here for all of them and stays when the machine
 changes. A machine can have its own **PSG stereo** and **Board filter** over these (see
-[A machine's own](#a-machines-own) below).
+[A machine's own](#a-machines-own) below). Each group's title names what the machine
+shown in **Options** has now: **Stereo (current: Mono)**, **Filters (board: TV (RF))**. With
+**By machine** it is the board's own; it is the machine's own choice where it has one. A
+machine with no PSG has no order to name, nor has the ZX Next.
 
 **Stereo**:
 
@@ -104,13 +107,15 @@ A machine can be heard otherwise than this page says: its **PSG stereo** in **Ma
 
 - **Global setting**, the default - this page's choice, named in gray: **Global setting
   (ABC)**, or with **By machine** here, **Global setting (Machine spec)**: each machine as
-  its board was made. What it gives this machine is noted under **Stereo** in **Machine:
-  PSG** - **Result: Mono (machine spec)** - and in the **Board filter**'s tooltip;
+  its board was made. What it gives this machine is noted under the list: **Result: Mono
+  (machine spec)**, **Result: TV (RF) (machine spec)**;
 - then, under a line, the values. The one the board was made with is marked: **Mono
   (Machine spec)**, **TV (RF) (Machine spec)**.
 
 Any choice but the first is the machine's own. It is heard whatever this page says, and a
-change here does not take it away. The first choice puts the machine back on this page.
+change here does not take it away. The first choice puts the machine back on this page, and
+so does a filter picked in the sound menus while that machine runs (see
+[Board filter](#board-filter) below).
 
 While some machine has a choice of its own, a button marked {icon}`exclamation` stands
 after **PSG stereo** or **Board filter** with how many do, and its tooltip names them, one
@@ -130,10 +135,11 @@ The beeper is a single bit of a port, but what you heard from it depended on the
 On some machines the sound chip went the same way. **Board filter** in **Filters**
 picks what every machine sounds through. Its choices are also under the arrow of the
 toolbar's {icon}`speaker` **Mute** button and in **Sound** of the right-click menu, and with
-them, under **Output filters**, **Low cut (DC)** and **High cut (anti-alias)**. They are
-this page's: when the running machine is heard through a filter of its own, the menu says so
-over them. **By machine** there names what it gives the running machine: **By machine (TV
-(RF))**.
+them, under **Output filters**, **Low cut (DC)** and **High cut (anti-alias)**. The mark
+there is on the filter the running machine is heard through, and **By machine** names its
+board's: **By machine (TV (RF))**. A filter picked there is this page's, for every machine,
+and is heard at once: if the running machine had a filter of its own, that one goes, and
+the message says which. Other machines keep theirs.
 
 The filter runs in the machine's time, so it slows down and speeds up with it: in **Slow
 Motion** a high tone it cuts stays cut as it drops in pitch.
