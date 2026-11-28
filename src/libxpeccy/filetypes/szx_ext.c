@@ -689,7 +689,9 @@ static void ext_zifi(Computer* comp, const unsigned char* p, size_t n) {
 	xZifi* z = comp->zifi;
 	if (!z->on) return;		// not fitted here: as a file without it
 	fld_get(z, fld_zifi, p, n);
-	z->off = z->clk - comp_ns(comp);
+	zifi_loaded(comp);
+	z->off = 0;
+	z->off = z->clk - zifi_now(comp);
 }
 
 static void ext_zc(Computer* comp, const unsigned char* p, size_t n) {

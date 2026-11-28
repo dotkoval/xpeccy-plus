@@ -722,7 +722,7 @@ static void ts_dma_run(Computer* comp, int ns) {
 void ts_sync(Computer* comp, int ns) {
 	zx_sync_in(comp, ns);
 	xZifi* zf = comp->zifi;
-	if (zf->on && (zf->imr | zf->isr)) zifi_step(comp);	// the AVR's interrupt sources, as time goes
+	if (zf->on && zifi_irq_live(zf)) zifi_step(comp);	// the AVR's interrupt sources, as time goes
 	if (comp->tsconf.dma.act)
 		ts_dma_run(comp, ns);
 	comp->tsconf.cpuDram = 0;
@@ -794,7 +794,7 @@ void tsOut2AAF(Computer* comp, int port, int val) {
 static int tsAvrWait = 0;	// in that WAIT now...
 static int tsAvrInt = 0;	// ...and the frame INT began in it
 
-static int ts_int_dots(Computer* comp) {	// the frame pulse: 32 cpu clocks at whatever speed (zint.v)
+static int ts_int_dots(Computer* comp) {	// the frame pulse: 32 CPU clocks at whatever speed (zint.v)
 	return (int)((32 * comp->nsPerTickFixed + comp->vid->nsPerDotFixed - 1) / comp->vid->nsPerDotFixed);
 }
 
@@ -811,7 +811,7 @@ static int ts_avr_reg(Computer* comp, int port) {
 	comp_vid_to_lazy(comp, base + w);
 	vid_settle(vid);
 	tsAvrWait = 0;
-	if (!comp->flgVDOS && (tsAvrInt || (left > 0))) {
+	if (!comp->flgVDOS && !comp->rzx.play && (tsAvrInt || (left > 0))) {	// a recording's INTs are its own
 		vid_set_int_frame(vid, tsAvrInt ? ts_int_dots(comp) : left);
 		if (!tsAvrInt) vid->intlen = len;
 		comp->cpu->intrq |= Z80_INT;
@@ -1027,7 +1027,7 @@ void ts_get_regs(Computer* comp, tsRegs* r) {
 // sets; with it idle the count only starts again at every step
 static int ts_quiet_ok(Computer* comp) {
 	xZifi* zf = comp->zifi;
-	if (zf->on && (zf->imr | zf->isr | zf->wint)) return 0;	// an interrupt of the AVR's may come any time
+	if (zf->on && (zf->wint || zifi_irq_live(zf))) return 0;	// an interrupt of the AVR's may come any time
 	return !comp->tsconf.dma.act;
 }
 
@@ -1043,7 +1043,7 @@ void ts_irq(Computer* comp, int t) {
 	switch(t) {
 		case IRQ_VID_INT:
 			zx_irq(comp, t);
-			if (tsAvrWait) tsAvrInt = 1;
+			if (tsAvrWait && comp->vid->intFRAME) tsAvrInt = 1;
 			if (comp->vid->intFRAME)
 				vid_set_int_frame(comp->vid, ts_int_dots(comp));
 			if (comp->vid->tsconf.intInc) {		// video_ports.v: past line 319 it wraps by 320
@@ -1072,6 +1072,13 @@ void ts_irq(Computer* comp, int t) {
 			break;
 		case IRQ_WTP:				// a wait port's int (the AVR) F9: latched only while enabled
 			if (comp->vid->inten & 8) {
+				static unsigned told = 0;	// the recording it was said for
+				if (rzx_recording && (told != rzx_recording)) {
+					// an RZX holds what the CPU reads, not when the AVR asks: said once a recording
+					told = rzx_recording;
+					comp->msg = (char*)" ZiFi interrupt: this RZX will not replay it ";
+					xlog(XLG_HW, XLL_WARN, "rzx: a ZiFi interrupt while recording: the recording will not play back the same");
+				}
 				comp->zifi->wint = 1;
 				comp->cpu->intrq |= Z80_INT;
 			}

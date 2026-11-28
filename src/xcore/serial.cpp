@@ -293,8 +293,7 @@ static struct serHooks {
 
 // the module onto this machine's line, with the flash that is this board's own
 static void ser_esp_on(Computer* comp, int kind, const char* flash) {
-	if (serEsp != kind) {
-		if (serEsp) esp_detach(comp);
+	if (serEsp != kind) {		// from another machine's line too: esp_attach() takes it off that one
 		esp_flash_file((conf.path.nvDir + SLASH + flash).c_str());
 		esp_attach(comp);
 	}

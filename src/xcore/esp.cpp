@@ -609,7 +609,7 @@ void esp_attach(Computer* comp) {
 	if (!h) return;
 	if ((E.st != ESP_OFF) && (h != H)) esp_detach(NULL);
 	if (!E.loaded) fl_load();
-	if (espFresh && (h == H)) {	// a snapshot's, put in by the load: it goes on
+	if (espFresh && (h == H) && (E.st != ESP_OFF)) {	// a snapshot's, put in by the load: it goes on
 		espFresh = false;
 		xlog(XLG_NET, XLL_INFO, "esp: on %s, from the snapshot", H->name);
 		return;

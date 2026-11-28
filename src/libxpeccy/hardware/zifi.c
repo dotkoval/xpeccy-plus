@@ -44,8 +44,14 @@ int zifi_wait_ns(void) {
 	return ZF_WAIT_NS;
 }
 
+// Inside a port access comp_ns() is right. Between instructions it counts the last one
+// twice: its T are in tickTotal already and still in the CPU's count.
+static int zfInIo = 0;
+
 long long zifi_now(Computer* comp) {
-	return comp_ns(comp) + ZF->off;
+	long long ns = comp_ns(comp) + ZF->off;
+	if (!zfInIo) ns -= (long long)(comp->cpu->t * comp->nsPerTick);
+	return ns;
 }
 
 void zifi_tx_cfg(long* bit, int* frame) {
@@ -210,9 +216,9 @@ static void zf_run(Computer* comp, long long now) {
 	tx_run(comp, &z->rtx, now, z->rsBit, z->rsBits);
 	rx_run(z, now);
 	long long pass = now / ZF_PASS_NS;
-	if (pass != z->pass) {
+	if (pass > z->pass) {
 		z->pass = pass;
-		if (z->imr | z->isr) zf_task(comp, now);
+		if (zifi_irq_live(z)) zf_task(comp, now);
 	}
 }
 
@@ -287,6 +293,7 @@ static void rs_put(Computer* comp, int val, long long now) {
 
 void zifi_wr(Computer* comp, int hi, int val) {
 	xZifi* z = ZF;
+	zfInIo = 1;
 	long long now = zifi_now(comp);
 	zf_run(comp, now);
 	val &= 0xff;
@@ -346,12 +353,15 @@ void zifi_wr(Computer* comp, int hi, int val) {
 		case UART_SPR: z->scr = val; break;
 	}
 	zf_run(comp, now);
+	zfInIo = 0;
 }
 
 int zifi_rd(Computer* comp, int hi) {
 	xZifi* z = ZF;
+	zfInIo = 1;
 	long long now = zifi_now(comp);
 	zf_run(comp, now);
+	zfInIo = 0;
 	int res = 0xff;
 	int n;
 	if (hi <= ZF_LIM) {
@@ -408,6 +418,23 @@ int zifi_rd(Computer* comp, int hi) {
 		}
 	}
 	return res;
+}
+
+// A snapshot's state is a file's: whatever it says, the rings' places stay inside them
+void zifi_loaded(Computer* comp) {
+	xZifi* z = ZF;
+	z->rxHd &= ZF_RXF - 1;
+	z->rxTl &= ZF_RXF - 1;
+	z->hqHead = (unsigned)z->hqHead % ZF_HQ;
+	if ((z->hqN < 0) || (z->hqN > ZF_HQ)) z->hqN = 0;
+	z->schHead = (unsigned)z->schHead % ZF_SCH;
+	if ((z->schN < 0) || (z->schN > ZF_SCH)) z->schN = 0;
+	if ((z->bit < 0) || (z->bit > 9)) z->inFrame = z->bit = 0;
+	z->farFrame &= 0x1f;
+	z->lin &= 1;
+	z->schLv &= 1;
+	if (z->rsBit < 1) z->rsBit = ZF_BIT16;
+	if ((z->rsBits < 7) || (z->rsBits > 12)) z->rsBits = 11;
 }
 
 // == the AVR starts ==

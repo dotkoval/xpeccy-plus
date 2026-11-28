@@ -116,7 +116,7 @@ static void zf_step(Computer* comp) {
 		long long clk = zifi_now(comp);
 		xZifi now = *comp->zifi;
 		now.off = now.clk = zf.was.off = zf.was.clk = 0;	// the clock's own: compared by what it reads
-		printf("ZSZX : %u bytes, load %d, the clock %s, ZiFi %s\n", (unsigned)zf.szx.len, err,
+		printf("ZSZX : load %d, the clock %s, ZiFi %s\n", err,
 			(clk == zf.wasClk) ? "goes on" : "MOVED", memcmp(&now, &zf.was, sizeof(xZifi)) ? "DIFFERS" : "as saved");
 		free(zf.szx.data);
 		zf.szxStage = 3;

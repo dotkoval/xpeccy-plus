@@ -31,7 +31,7 @@ static inline void zx_irq_ack_in(Computer* comp) {
 #define TSL_FLG_LINT	flag[2]		// 1 on vid->intLINE, 0 on line int ack
 #define TSL_FLG_DINT	flag[3]		// (same for dma int)
 
-// TSConf's (ts_irq): line, dma and the wait ports hold until acked; the cpu drops INT on
+// TSConf's (ts_irq): line, DMA and the wait ports hold until acked; the CPU drops INT on
 // every ack it takes
 static inline void ts_irq_ack_in(Computer* comp) {
 	zx_irq_ack_in(comp);

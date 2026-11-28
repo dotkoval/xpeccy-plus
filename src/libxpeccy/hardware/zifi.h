@@ -13,7 +13,7 @@ struct Computer;
 
 #define ZF_RXF	512		// a receive ring: 511 bytes held
 #define ZF_TXF	256		// a transmit ring: 255 bytes held
-#define ZF_HQ	4096		// from the module, not on the line yet
+#define ZF_HQ	8192		// from the module, not on the line yet: a message goes in whole
 #define ZF_SCH	64
 
 // one of the AVR's transmitters: the ring, the data register and the shifter behind it
@@ -66,6 +66,12 @@ typedef struct {
 	long long rsTxc;		// its first byte was out by then (0: none sent yet)
 } xZifi;
 
+// an interrupt source that can still come up: the model's RS-232 ring is empty for good, so
+// its threshold is met at 0 alone and its timeout never
+static inline int zifi_irq_live(const xZifi* z) {
+	return z->isr || (z->imr & 3) || ((z->imr & 4) && !z->ribtr);
+}
+
 xZifi* zifi_create(void);
 void zifi_destroy(xZifi*);
 void zifi_power(struct Computer*);		// the AVR starts: rs232_init()
@@ -74,6 +80,7 @@ void zifi_power(struct Computer*);		// the AVR starts: rs232_init()
 int zifi_rd(struct Computer*, int hi);
 void zifi_wr(struct Computer*, int hi, int val);
 void zifi_step(struct Computer*);		// an instruction went by with an interrupt asked for
+void zifi_loaded(struct Computer*);		// its state came from a file: kept inside its rings
 int zifi_wait_ns(void);				// how long the AVR takes to answer
 
 // the module's side: time is zifi_now()'s ns

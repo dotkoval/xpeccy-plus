@@ -2264,8 +2264,7 @@ void SetupWin::applyGlobal() {
 		QString port = (k >= 0) ? uartBox[i]->itemData(k).toString() : txt;
 		if (port != serial_name(i)) serial_set(i, port, true);		// else a --uart-* stays
 	}
-	// one setting, shown in the sheet of whichever machine has a module
-	conf.next.espLan = (hw_takes_zifi(comp->hw) ? cbZifiLan : cbEspLan)->isChecked() ? 1 : 0;
+	conf.next.espLan = cbEspLan->isChecked() ? 1 : 0;		// cbZifiLan follows it
 // emulation
 	conf.vid.lowLatency = ui.cbLowLat->isChecked() ? 1 : 0;
 	conf.emu.runahead = getRFIData(ui.cbRunAhead);
@@ -3246,6 +3245,8 @@ void SetupWin::buildDevices() {
 	cbEspLan = new QCheckBox;
 	xOptSheet esp;
 	esp.check(cbEspLan, tr("Server on the network"), lanTip, true);
+	connect(cbEspLan, &QCheckBox::toggled, cbZifiLan, &QCheckBox::setChecked);	// one setting
+	connect(cbZifiLan, &QCheckBox::toggled, cbEspLan, &QCheckBox::setChecked);
 	for (int i = 0; i < 2; i++) {
 		uartBox[i] = new QComboBox;
 		uartBox[i]->setObjectName(i ? "uartPi" : "uartEsp");
