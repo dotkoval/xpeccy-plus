@@ -299,6 +299,9 @@ kept in the `nvram` folder of the settings.
 Not there: secure connections (SSL/TLS), joining the module's own access point, and
 updating the module's firmware.
 
+The ZX Evolution (TSConf) takes the same module on its ZiFi ports: see
+[ZiFi](machines.md#zifi).
+
 ```{index} ZX Spectrum Next; clock
 ```
 

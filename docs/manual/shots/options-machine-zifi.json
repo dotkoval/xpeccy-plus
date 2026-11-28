@@ -1,0 +1,13 @@
+{
+  "config": {"GENERAL": {"machine": "evo-tsconf", "start.machine": "evo-tsconf"}},
+  "steps": [
+    ["wait", 4000],
+    ["run", "run-action key.options"],
+    ["wait", 1200],
+    ["click", "pageList", 60, 16],
+    ["wait", 800],
+    ["run", "set-value zifiBox ESP-01 (emulated)"],
+    ["wait", 500]
+  ],
+  "frames": []
+}

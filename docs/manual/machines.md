@@ -40,7 +40,7 @@ The machine list shows them in this order, in five groups.
 | **Profi v5** | 1024 KB | Beta Disk | version 5 board; YM, Covox; Profi hard disk, DD palette, Kempston mouse and joystick, turbo x2 |
 | **ZXM-Phoenix** | 2048 KB | Beta Disk | the board of revision 08.1 with the ROM made for revision 07: two YM (TurboSound); NemoIDE hard disk, SD card, clock, Kempston mouse with wheel and joystick, turbo x2 by a switch; see [ZXM-Phoenix](#zxm-phoenix) |
 | **ZX Evolution (BaseConf)** | 4096 KB | Beta Disk | the ZX Evolution board running BaseConf: two YM (TurboSound), Covox; NemoIDE hard disk, SD card, PC keyboard, mouse with wheel, turbo x2 and x4 |
-| **ZX Evolution (TSConf)** | 4096 KB | Beta Disk | the same board running TSConf; as BaseConf |
+| **ZX Evolution (TSConf)** | 4096 KB | Beta Disk | the same board running TSConf; as BaseConf, and Wi-Fi (see [ZiFi](#zifi)) |
 | **ALF TV Game** | 48 KB | - | a games console built on the 48K: no AY; cartridges, two joysticks |
 | **ALF TV Game 128K** | 128 KB | - | the 128K version of the console; YM |
 
@@ -199,6 +199,32 @@ In the **Memory** list of the [Machine page](options-machine.md), **1024 KB** is
 with one memory module and **128 KB** the board with its 128 KB jumper closed, for programs
 that set the memory ports carelessly. The older ROM of these boards, BIOS 5.03, is
 `phoenix.rom` in the ROM folder: pick it as the machine's ROM to run it.
+
+## ZiFi
+
+```{index} ZiFi, ZX Evolution; Wi-Fi, TSConf; Wi-Fi, Wi-Fi; ZX Evolution
+```
+
+ZiFi is the ZX Evolution's Wi-Fi under TSConf: an ESP-01 module on the board's controller,
+which a program reaches through the ports `#xxEF`. The **ZiFi** row on the **Machine** page of
+**Options** fits it - **ESP-01 (emulated)** - or leaves it out, **Not connected**, as the
+machine starts (see [Machine page](options-machine.md)). The row is shown for the
+ZX Evolution (TSConf) only: BaseConf does not have these ports.
+
+![The Machine page on the ZX Evolution (TSConf), the module on ZiFi](images/options-machine-zifi.png)
+
+The module is the one the ZX Spectrum Next has (see
+[Wi-Fi and serial ports](zx-next.md#wi-fi-and-serial-ports)). It answers as Espressif's AT
+firmware 1.7.6 does, the connections a program opens go out through this computer's network,
+and it joins an access point of any name with any password. Its settings are kept apart
+from the Next's module, in `nvram/esp01-zifi.conf` of the settings folder. **Server on the
+network** in the row's window is one setting for both.
+
+The ZiFi client by HackerVBI (`zifi.spg`) takes the name and the password from `zifi.ini` on
+the SD card; ESP probe 2 takes them from the file `wifipass` on its disk.
+
+Not there: the board's RS-232 connector, which shares these ports - what is sent to it goes
+nowhere; and ZiFi32, the newer board with an ESP32.
 
 ## Robik
 
