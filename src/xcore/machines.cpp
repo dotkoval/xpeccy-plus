@@ -376,14 +376,9 @@ bool xm_gluk_fitted(Computer* comp, const xMachine* mac, int clock) {
 	return hw_takes_gluk(comp->hw) && ((clock == MAC_CLOCK_GLUK) || board);
 }
 
-// The AVR is on the board either way; fitted is the module on its line and the ports that
-// reach it. Fitting it starts the firmware's side as a power-on does.
+// the AVR is on the board either way: fitted is the module on its line and the ports that reach it
 void xm_zifi_set(Computer* comp, int zifi) {
-	int on = (hw_takes_zifi(comp->hw) && (zifi == MAC_ZIFI_ESP)) ? 1 : 0;
-	if (on == comp->zifi->on) return;
-	comp->zifi->on = on;
-	comp->zifi->wint = 0;
-	if (on) zifi_power(comp);
+	zifi_fit(comp, (hw_takes_zifi(comp->hw) && (zifi == MAC_ZIFI_ESP)) ? 1 : 0);
 }
 
 void xm_turbo_set(Computer* comp, std::string src) {

@@ -10,6 +10,7 @@
 #define flgVDOS	TSL_FLG_VDOS
 #define flgLINT	TSL_FLG_LINT
 #define flgDINT	TSL_FLG_DINT
+#define flgWINT	TSL_FLG_WINT
 
 #define regMADR	reg[16]		// 15AF[0..3] = MapAddr
 #define dmaLen	reg[17]
@@ -83,7 +84,7 @@ void tslReset(Computer* comp) {
 	comp->vid->inten = 1;
 	comp->flgLINT = 0;		// the ack latches are not cleared anywhere else
 	comp->flgDINT = 0;
-	comp->zifi->wint = 0;		// the FPGA's latch; the AVR's own state is not the Z80's to reset
+	comp->flgWINT = 0;		// the AVR's own state is not the Z80's to reset
 	comp->flgVDOS = 0;
 	comp->frmHold = 0;
 	comp->flgMEN = 0;			// FMAPS off
@@ -721,8 +722,7 @@ static void ts_dma_run(Computer* comp, int ns) {
 
 void ts_sync(Computer* comp, int ns) {
 	zx_sync_in(comp, ns);
-	xZifi* zf = comp->zifi;
-	if (zf->on && zifi_irq_live(zf)) zifi_step(comp);	// the AVR's interrupt sources, as time goes
+	if (comp->zifi->on && zifi_irq_live(comp->zifi, comp->vid->inten)) zifi_step(comp);
 	if (comp->tsconf.dma.act)
 		ts_dma_run(comp, ns);
 	comp->tsconf.cpuDram = 0;
@@ -781,16 +781,10 @@ void tsOut2AAF(Computer* comp, int port, int val) {
 		comp->vid->intDMA = 0;
 		comp->flgDINT = 0;
 	}
-	if (~val & 8) comp->zifi->wint = 0;
+	if (~val & 8) comp->flgWINT = 0;
 }
 
-// #xxEF: the AVR's ports - ZiFi, RS-232 and its 16550 (zifi.c). The FPGA holds the Z80 in
-// WAIT until the AVR has answered over SPI (zwait.v), a write reaching the firmware as WAIT
-// is let go (zx_wait_task). The frame INT's 32-clock count stands meanwhile (zint.v: intctr
-// with !wait_r): a pulse under way keeps what it had left, one that begins has it all.
-// The AVR is handed five bits of the address (slavespi.v, comport_addr_unpack_tab): #00..#BF
-// and #F0..#F7 are the data register, #C0..#EF the register #C0 + the low nibble, #F8..#FF
-// the 16550.
+// #xxEF, the AVR's ports (zifi.c): WAIT until it answers over SPI (zwait.v), the frame INT's count standing meanwhile (zint.v)
 static int tsAvrWait = 0;	// in that WAIT now...
 static int tsAvrInt = 0;	// ...and the frame INT began in it
 
@@ -816,6 +810,7 @@ static int ts_avr_reg(Computer* comp, int port) {
 		if (!tsAvrInt) vid->intlen = len;
 		comp->cpu->intrq |= Z80_INT;
 	}
+	// five bits of the address reach the AVR (slavespi.v): the data register, #C0 + the low nibble, the 16550
 	int hi = (port >> 8) & 0xff;
 	if ((hi < 0xc0) || ((hi & 0xf8) == 0xf0)) return 0x00;
 	return (hi < 0xf0) ? (0xc0 | (hi & 0x0f)) : hi;
@@ -827,9 +822,7 @@ int tsInEF(Computer* comp, int port) {
 }
 
 void tsOutEF(Computer* comp, int port, int val) {
-	if (!comp->zifi->on) return;
-	int reg = ts_avr_reg(comp, port);
-	zifi_wr(comp, reg, val);
+	if (comp->zifi->on) zifi_wr(comp, ts_avr_reg(comp, port), val);
 }
 
 void tsOut40AF(Computer* comp, int port, int val) TS_LAT(t0xl, TSL_LAT_T0XL, val & 0xff)
@@ -1026,8 +1019,8 @@ void ts_get_regs(Computer* comp, tsRegs* r) {
 // fast mode's run on (hwQuiet): no dma running, whose time the per-step DRAM count
 // sets; with it idle the count only starts again at every step
 static int ts_quiet_ok(Computer* comp) {
-	xZifi* zf = comp->zifi;
-	if (zf->on && (zf->wint || zifi_irq_live(zf))) return 0;	// an interrupt of the AVR's may come any time
+	// an interrupt of the AVR's may come any time
+	if (comp->flgWINT || (comp->zifi->on && zifi_irq_live(comp->zifi, comp->vid->inten))) return 0;
 	return !comp->tsconf.dma.act;
 }
 
@@ -1056,7 +1049,7 @@ void ts_irq(Computer* comp, int t) {
 				ts_hold_frame(comp);
 			break;
 		case IRQ_VID_IEND:
-			if (!comp->flgLINT && !comp->flgDINT && !comp->zifi->wint) {
+			if (!comp->flgLINT && !comp->flgDINT && !comp->flgWINT) {
 				comp->cpu->intrq &= ~Z80_INT;	// reset cpu int line if there is no other ints
 			}
 			break;
@@ -1070,16 +1063,17 @@ void ts_irq(Computer* comp, int t) {
 			comp->cpu->intrq |= Z80_INT;
 			comp->vid->intDMA = 0;		// reset on vector request
 			break;
-		case IRQ_WTP:				// a wait port's int (the AVR) F9: latched only while enabled
-			if (comp->vid->inten & 8) {
+		// a wait port's int (the AVR) F9: latched only while enabled; none of its own while a recording plays
+		case IRQ_WTP:
+			if ((comp->vid->inten & 8) && !comp->rzx.play) {
 				static unsigned told = 0;	// the recording it was said for
 				if (rzx_recording && (told != rzx_recording)) {
-					// an RZX holds what the CPU reads, not when the AVR asks: said once a recording
+					// as bytes into the Next's UART: an RZX holds what the CPU reads, not when the AVR asks
 					told = rzx_recording;
 					comp->msg = (char*)" ZiFi interrupt: this RZX will not replay it ";
 					xlog(XLG_HW, XLL_WARN, "rzx: a ZiFi interrupt while recording: the recording will not play back the same");
 				}
-				comp->zifi->wint = 1;
+				comp->flgWINT = 1;
 				comp->cpu->intrq |= Z80_INT;
 			}
 			break;
@@ -1102,8 +1096,8 @@ int ts_ack(Computer* comp) {
 	} else if (comp->flgDINT) {		// dma int
 		comp->flgDINT = 0;
 		comp->intVector = 0xfb;
-	} else if (comp->zifi->wint) {		// wait ports, the last in line
-		comp->zifi->wint = 0;
+	} else if (comp->flgWINT) {		// wait ports, the last in line
+		comp->flgWINT = 0;
 		comp->intVector = 0xf9;
 	}
 	return comp->intVector & 0xff;
@@ -1112,7 +1106,7 @@ int ts_ack(Computer* comp) {
 // the enabled sources, driven (zint.v), the one ts_ack takes next first
 static int ts_int_vecs(Computer* comp, xIntVec* vec) {
 	static const xIntVec src[4] = {{"frame", 0xff, 1}, {"line", 0xfd, 1}, {"DMA", 0xfb, 1}, {"wait port", 0xf9, 1}};
-	int wait = comp->vid->intFRAME ? 0 : comp->flgLINT ? 1 : comp->flgDINT ? 2 : comp->zifi->wint ? 3 : -1;
+	int wait = comp->vid->intFRAME ? 0 : comp->flgLINT ? 1 : comp->flgDINT ? 2 : comp->flgWINT ? 3 : -1;
 	int n = 0;
 	if (wait >= 0) vec[n++] = src[wait];
 	for (int i = 0; i < 4; i++)

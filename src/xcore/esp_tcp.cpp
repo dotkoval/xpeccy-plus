@@ -1320,8 +1320,7 @@ static void link_frame(Computer* comp, int i, long long now) {
 	}
 	// a packet when a segment is full or the wire is quiet; what a run of full ones leaves, when its wait is over
 	if (!passive(l)) {
-		// counted from the last full one, not from each arrival: a chat after a screenful is held once.
-		// A time ahead of now is a rewind's (the module is not rolled back): no wait
+		// from the last full one, not from each arrival (a chat after a screenful); a time ahead of now is a rewind's: no wait
 		long long since = now - l.fullAt;
 		bool tail = l.bulk && !raw && (since >= 0) && (since < esp_ms(comp, TCP_TAIL_MS));
 		if (!tail) l.bulk = false;

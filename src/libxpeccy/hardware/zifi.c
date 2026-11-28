@@ -1,29 +1,17 @@
-// ZiFi and RS-232 on the ZX Evo's AVR, as the TS firmware has them (pentevo/avr/current:
-// rs232.c the registers, rs232_asm.S the UARTs' interrupts, interrupts.c the 1 ms tick).
-//
-// - DR (#00..#BF) is a FIFO pair's data: ZiFi's once ZIFR or ZOFR has been read, RS-232's
-//   after RIFR or ROFR and from the start. The counts stop at 191, so a count in B reads or
-//   writes that many with INIR / OTIR.
-// - Nothing but Set API is taken until the API is on; what is read then is #FF.
-// - A receive ring holds 511 bytes and drops what comes when full; a transmit ring 255.
-// - The module is on USART0 at 115200, 8 bits, two stop bits out. The RS-232 connector is on
-//   USART1 with nothing on its line here: what is sent there goes out at its rate and is lost.
-//
-// Time is ns. The UARTs run when a port is touched or the module's side asks (zifi_sync), up
-// to that moment; the interrupt sources are looked at once a pass of the AVR's main loop.
+// ZiFi and RS-232 on the ZX Evo's AVR as the TS firmware has them (rs232.c, rs232_asm.S); time is ns, kept up at a port or zifi_sync
 
 #include <stdlib.h>
 #include <string.h>
 
 #include "zifi.h"
+#include "uartframe.h"
 #include "hardware.h"
+#include "zx_step.h"
 #include "../spectrum.h"
 
 #define ZF		(comp->zifi)
 
-// The AVR answers a port in the main-loop task it is in plus two SPI bytes; nobody has
-// measured a board, the firmware's path puts it at 15-30 us. The same stands for a pass
-// of that loop, where rs232_task() looks at the interrupt sources.
+// not measured on a board: the firmware's path puts an answer to a port and a pass of its main loop at 15-30 us
 #define ZF_WAIT_NS	20000
 #define ZF_PASS_NS	20000
 #define ZF_MS_NS	1000000		// TIMER1: OCR1A 11059 at 11.0592 MHz
@@ -44,17 +32,14 @@ int zifi_wait_ns(void) {
 	return ZF_WAIT_NS;
 }
 
-// Inside a port access comp_ns() is right. Between instructions it counts the last one
-// twice: its T are in tickTotal already and still in the CPU's count.
-static int zfInIo = 0;
-
+// between instructions comp_ns() counts the last one twice: its T are in tickTotal already and still in the CPU's count
 long long zifi_now(Computer* comp) {
 	long long ns = comp_ns(comp) + ZF->off;
-	if (!zfInIo) ns -= (long long)(comp->cpu->t * comp->nsPerTick);
+	if (!ZF->io) ns -= (long long)(comp->cpu->t * comp->nsPerTick);
 	return ns;
 }
 
-void zifi_tx_cfg(long* bit, int* frame) {
+void zifi_tx_cfg(Computer* comp, long* bit, int* frame) {
 	if (bit) *bit = (long)((ZF_BIT16 + 0x8000) >> 16);
 	if (frame) *frame = ZF_FRAME_TX;
 }
@@ -65,9 +50,7 @@ static int tx_free(zfTx* x) {
 	return (unsigned char)(x->tl - 1 - x->hd);
 }
 
-// Up to t. The ring's next byte goes to the data register as that empties (the UDRE
-// interrupt), and to the shifter when the byte before is out: a ring cleared meanwhile
-// takes neither of those two back.
+// up to t: a byte goes to the data register as that empties, to the shifter when the one before is out
 static void tx_run(Computer* comp, zfTx* x, long long t, long long bit16, int bits) {
 	long long len = (bits * bit16) >> 16;
 	for (;;) {
@@ -98,25 +81,13 @@ static void tx_put(Computer* comp, zfTx* x, int val, long long now) {
 
 // == the receiver on the module's line ==
 
-// the bytes handed over onto the line, a frame at a time at the module's rate: start bit,
-// data from b0, parity, stop bits
+// the bytes handed over onto the line, a frame at a time at the module's rate
 static void rx_feed_line(xZifi* z) {
 	while (z->hqN && (z->schN + 12 <= ZF_SCH)) {
-		int b = z->hq[z->hqHead];
 		long long p = z->farBit ? z->farBit : ZF_BIT16;
-		int fr = z->farBit ? z->farFrame : 0x18;
-		int bits = 5 + ((fr >> 3) & 3);
 		long long t = (z->lineFree > z->feedAt) ? z->lineFree : z->feedAt;
-		int lv[12], n = 0;
-		int parity = (fr >> 1) & 1;
-		lv[n++] = 0;
-		for (int k = 0; k < bits; k++) {
-			lv[n++] = (b >> k) & 1;
-			parity ^= (b >> k) & 1;
-		}
-		if (fr & 4) lv[n++] = parity;
-		lv[n++] = 1;
-		if (fr & 1) lv[n++] = 1;
+		int lv[12];
+		int n = uart_frame_levels(z->hq[z->hqHead], z->farBit ? z->farFrame : 0x18, lv);
 		for (int k = 0; k < n; k++) {
 			if (lv[k] == z->schLv) continue;
 			zfEdge* e = &z->sch[(z->schHead + z->schN) % ZF_SCH];
@@ -141,10 +112,16 @@ static int rx_edge(xZifi* z, long long t, zfEdge* e) {
 	return 1;
 }
 
-// Up to t, as USART0 takes the line at its own 115200: a falling edge starts a frame, each
-// bit is read in its middle, a start bit found high was noise. The byte is kept whatever
-// the stop bit reads (the firmware does not look at the frame error), and dropped when the
-// ring is full; either way the timeout starts again (USART0_RX_vect).
+static int zf_ifr(xZifi* z) {
+	return (z->rxHd - z->rxTl) & (ZF_RXF - 1);
+}
+
+// the timeout source at now: ms since a byte last came, with bytes held
+static int zf_timed_out(xZifi* z, long long now) {
+	return (now >= z->rxLast) && ((now - z->rxLast) / ZF_MS_NS >= z->zitor) && zf_ifr(z);
+}
+
+// up to t, as USART0 takes the line at 115200: a bit is read in its middle, the byte kept whatever the stop bit is
 static void rx_run(xZifi* z, long long t) {
 	zfEdge e;
 	for (;;) {
@@ -171,6 +148,12 @@ static void rx_run(xZifi* z, long long t) {
 			z->shift |= z->lin << (z->bit - 1);
 			z->bit++;
 		} else {
+			// a timeout up at a pass nobody looked in (zifi_irq_live) is not taken back by this byte
+			long long edge = ts - ts % ZF_PASS_NS;
+			if ((z->imr & 2) && (edge / ZF_PASS_NS > z->pass) && zf_timed_out(z, edge)) {
+				z->imr &= ~2;
+				z->isr |= 2;
+			}
 			if (((z->rxTl - 1) & (ZF_RXF - 1)) != z->rxHd) {
 				z->rx[z->rxHd] = z->shift & 0xff;
 				z->rxHd = (z->rxHd + 1) & (ZF_RXF - 1);
@@ -179,10 +162,6 @@ static void rx_run(xZifi* z, long long t) {
 			z->inFrame = 0;
 		}
 	}
-}
-
-static int zf_ifr(xZifi* z) {
-	return (z->rxHd - z->rxTl) & (ZF_RXF - 1);
 }
 
 // == rs232_task(): the interrupt sources, once a pass ==
@@ -198,13 +177,9 @@ static void zf_task(Computer* comp, long long now) {
 		z->imr &= ~4;
 		z->isr |= 4;
 	}
-	if (z->imr & 2) {
-		long long ms = (now - z->rxLast) / ZF_MS_NS;
-		if (ms > 255) ms = 255;
-		if ((ms >= z->zitor) && zf_ifr(z)) {
-			z->imr &= ~2;
-			z->isr |= 2;
-		}
+	if ((z->imr & 2) && zf_timed_out(z, now)) {
+		z->imr &= ~2;
+		z->isr |= 2;
 	}
 	// bit 5 of the config register, pulsed every pass while a source is up
 	if (z->isr && comp->hw->irq) comp->hw->irq(comp, IRQ_WTP);
@@ -217,13 +192,15 @@ static void zf_run(Computer* comp, long long now) {
 	rx_run(z, now);
 	long long pass = now / ZF_PASS_NS;
 	if (pass > z->pass) {
+		zf_task(comp, now);
 		z->pass = pass;
-		if (zifi_irq_live(z)) zf_task(comp, now);
 	}
 }
 
+// nothing is due before the next pass: the UARTs catch up there, or at a port
 void zifi_step(Computer* comp) {
-	zf_run(comp, zifi_now(comp));
+	long long now = zifi_now(comp);
+	if (now / ZF_PASS_NS > ZF->pass) zf_run(comp, now);
 }
 
 long long zifi_sync(Computer* comp) {
@@ -243,8 +220,9 @@ void zifi_far(Computer* comp, long long bit16, int frame) {
 // bytes from the module, the first of them on the line no sooner than at
 void zifi_feed_at(Computer* comp, const unsigned char* b, int n, long long at) {
 	xZifi* z = ZF;
+	long long now = zifi_now(comp);
+	rx_run(z, now);		// what was handed over before is on the line by now, or still waits
 	if (!z->hqN) {
-		long long now = zifi_now(comp);
 		if (at < now) at = now;
 		if (at > z->feedAt) z->feedAt = at;
 	}
@@ -264,8 +242,7 @@ int zifi_feed_left(Computer* comp) {
 
 // == the registers ==
 
-// USART1's rate from the 16550's divisor (rs232_set_baud): 115200 over it; with DLM b7
-// the rest is the AVR's own UBRR; 0 is 230400
+// USART1's rate from the 16550's divisor (rs232_set_baud): 115200 over it; DLM b7: the rest is UBRR; 0 is 230400
 static void rs_set_baud(xZifi* z) {
 	int ubrr;
 	int div = (z->dlm << 8) | z->dll;
@@ -287,13 +264,9 @@ static void rs_set_format(xZifi* z) {
 	z->rsBits = 1 + 5 + (z->lcr & 3) + par + 1 + ((z->lcr >> 2) & 1);
 }
 
-static void rs_put(Computer* comp, int val, long long now) {
-	tx_put(comp, &ZF->rtx, val, now);
-}
-
 void zifi_wr(Computer* comp, int hi, int val) {
 	xZifi* z = ZF;
-	zfInIo = 1;
+	z->io = 1;
 	long long now = zifi_now(comp);
 	zf_run(comp, now);
 	val &= 0xff;
@@ -301,7 +274,7 @@ void zifi_wr(Computer* comp, int hi, int val) {
 		if (z->sel) {
 			if (z->api == 1) tx_put(comp, &z->ztx, val, now);
 		} else if (z->api) {
-			rs_put(comp, val, now);
+			tx_put(comp, &z->rtx, val, now);
 		}
 	} else switch (hi) {
 		case ZF_CR:
@@ -331,7 +304,7 @@ void zifi_wr(Computer* comp, int hi, int val) {
 				z->dll = val;
 				rs_set_baud(z);
 			} else {
-				rs_put(comp, val, now);
+				tx_put(comp, &z->rtx, val, now);
 			}
 			break;
 		case UART_IER:
@@ -353,17 +326,21 @@ void zifi_wr(Computer* comp, int hi, int val) {
 		case UART_SPR: z->scr = val; break;
 	}
 	zf_run(comp, now);
-	zfInIo = 0;
+	z->io = 0;
+}
+
+// a count as a register shows it
+static int zf_cnt(int n) {
+	return (n > ZF_LIM) ? ZF_LIM : n;
 }
 
 int zifi_rd(Computer* comp, int hi) {
 	xZifi* z = ZF;
-	zfInIo = 1;
+	z->io = 1;
 	long long now = zifi_now(comp);
 	zf_run(comp, now);
-	zfInIo = 0;
+	z->io = 0;
 	int res = 0xff;
-	int n;
 	if (hi <= ZF_LIM) {
 		// RS-232's ring is empty for good
 		if (z->sel && (z->api == 1) && (z->rxTl != z->rxHd)) {
@@ -374,13 +351,11 @@ int zifi_rd(Computer* comp, int hi) {
 		if (z->api) switch (hi) {
 			case ZF_IFR:
 				z->sel = 1;
-				n = zf_ifr(z);
-				res = (n > ZF_LIM) ? ZF_LIM : n;
+				res = zf_cnt(zf_ifr(z));
 				break;
 			case ZF_OFR:
 				z->sel = 1;
-				n = tx_free(&z->ztx);
-				res = (n > ZF_LIM) ? ZF_LIM : n;
+				res = zf_cnt(tx_free(&z->ztx));
 				break;
 			case RS_IFR:
 				z->sel = 0;
@@ -388,8 +363,7 @@ int zifi_rd(Computer* comp, int hi) {
 				break;
 			case RS_OFR:
 				z->sel = 0;
-				n = tx_free(&z->rtx);
-				res = (n > ZF_LIM) ? ZF_LIM : n;
+				res = zf_cnt(tx_free(&z->rtx));
 				break;
 			case ZF_ISR:
 				res = z->isr;
@@ -420,7 +394,7 @@ int zifi_rd(Computer* comp, int hi) {
 	return res;
 }
 
-// A snapshot's state is a file's: whatever it says, the rings' places stay inside them
+// a snapshot's state is a file's: whatever it says, the rings' places stay inside them
 void zifi_loaded(Computer* comp) {
 	xZifi* z = ZF;
 	z->rxHd &= ZF_RXF - 1;
@@ -433,19 +407,15 @@ void zifi_loaded(Computer* comp) {
 	z->farFrame &= 0x1f;
 	z->lin &= 1;
 	z->schLv &= 1;
+	z->io = 0;
 	if (z->rsBit < 1) z->rsBit = ZF_BIT16;
 	if ((z->rsBits < 7) || (z->rsBits > 12)) z->rsBits = 11;
 }
 
 // == the AVR starts ==
 
-void zifi_power(Computer* comp) {
-	xZifi* z = ZF;
-	int on = z->on;
-	long long off = z->off;
+static void zf_defaults(xZifi* z) {
 	memset(z, 0, sizeof(xZifi));
-	z->on = on;
-	z->off = off;
 	z->zibtr = z->ribtr = 0x80;
 	z->zitor = z->ritor = 1;
 	z->dll = 0x01;
@@ -453,17 +423,39 @@ void zifi_power(Computer* comp) {
 	z->lin = z->schLv = 1;
 	z->rsBit = ZF_BIT16;
 	z->rsBits = 11;
+}
+
+void zifi_power(Computer* comp) {
+	xZifi* z = ZF;
+	int on = z->on;
+	long long off = z->off;
+	zf_defaults(z);
+	z->on = on;
+	z->off = off;
 	long long now = zifi_now(comp);
 	z->rxLast = now;
 	z->pass = now / ZF_PASS_NS;
 }
 
+// the AVR as it starts, and no interrupt of its asked for
+void zifi_absent(Computer* comp) {
+	comp->TSL_FLG_WINT = 0;
+	if (ZF->on) zifi_power(comp);
+}
+
+// taken out with its interrupt asked for: the request goes with it
+void zifi_fit(Computer* comp, int on) {
+	if (on == ZF->on) return;
+	ZF->on = on;
+	if (on) zifi_power(comp);
+	if (!hw_takes_zifi(comp->hw)) return;
+	comp->TSL_FLG_WINT = 0;
+	if (!comp->TSL_FLG_LINT && !comp->TSL_FLG_DINT && !comp->vid->intFRAME) comp->cpu->intrq &= ~Z80_INT;
+}
+
 xZifi* zifi_create(void) {
 	xZifi* z = (xZifi*)malloc(sizeof(xZifi));
-	memset(z, 0, sizeof(xZifi));
-	z->lin = z->schLv = 1;
-	z->rsBit = ZF_BIT16;
-	z->rsBits = 11;
+	zf_defaults(z);
 	return z;
 }
 

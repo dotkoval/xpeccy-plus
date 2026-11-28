@@ -428,8 +428,7 @@ void serial_frame(Computer* comp) {
 		hooked = true;
 	}
 	bool next = comp && comp->hw && (comp->hw->id == HW_ZXNEXT);
-	bool zifi = comp && comp->hw && (comp->hw->id == HW_TSLAB) && comp->zifi->on;
-	if (zifi) {
+	if (hw_zifi_on(comp)) {
 		ser_esp_on(comp, SER_ESP_ZIFI, "esp01-zifi.conf");
 	} else if (!next && serEsp) {
 		esp_detach(comp);

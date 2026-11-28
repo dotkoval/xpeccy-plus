@@ -635,12 +635,13 @@ static const szxField fld_zc[] = {
 	FLDEND
 };
 
-// The Evo's ZiFi: the AVR's registers and rings, and what is on the module's line. Its
-// times count by a clock of its own (zifi_now), which the file's clk sets going again -
-// the module's times in the ESP record after it count by the same.
+// the Evo's ZiFi; its times, and the module's in the ESP record after it, count by zifi_now(): clk is that at the file
+static const szxField fld_zifi_clk[] = {
+	FLDRAW("clk", 0, sizeof(long long)),
+	FLDEND
+};
+
 static const szxField fld_zifi[] = {
-	FLD(xZifi, wint),
-	FLD(xZifi, clk),
 	FLD(xZifi, sel),
 	FLD(xZifi, imr),
 	FLD(xZifi, isr),
@@ -685,13 +686,15 @@ static const szxField fld_zifi[] = {
 	FLDEND
 };
 
-static void ext_zifi(Computer* comp, const unsigned char* p, size_t n) {
+static int ext_zifi(Computer* comp, const unsigned char* p, size_t n) {
 	xZifi* z = comp->zifi;
-	if (!z->on) return;		// not fitted here: as a file without it
+	long long clk;
+	// not fitted here, or no clock to read its times by: as a file without it
+	if (!z->on || !fld_get(&clk, fld_zifi_clk, p, n)) return 0;
 	fld_get(z, fld_zifi, p, n);
 	zifi_loaded(comp);
-	z->off = 0;
-	z->off = z->clk - zifi_now(comp);
+	z->off += clk - zifi_now(comp);
+	return 1;
 }
 
 static void ext_zc(Computer* comp, const unsigned char* p, size_t n) {
@@ -1018,14 +1021,13 @@ void szx_ext_save(szxBuf* b, Computer* comp) {
 		rec_end(b, mark);
 	}
 	if (comp->zifi->on) {
-		xZifi* z = (xZifi*)malloc(sizeof(xZifi));
-		*z = *comp->zifi;
-		z->clk = zifi_now(comp);
-		rec_fields(b, XR_ZIFI, z, fld_zifi);
-		free(z);
+		long long clk = zifi_now(comp);
+		rec_begin(b, XR_ZIFI, &mark);
+		fld_put(b, &clk, fld_zifi_clk);
+		fld_put(b, comp->zifi, fld_zifi);
+		rec_end(b, mark);
 	}
-	// the ESP-01 last: its times are the board's, put back by NCLK (the Next) or ZIFI before
-	// it is read
+	// the ESP-01 last: its times are the board's, put back by NCLK (the Next) or ZIFI before it is read
 	if ((ext_is_next(comp) || comp->zifi->on) && szx_esp_save) {
 		rec_begin(b, XR_ESP, &mark);
 		szx_esp_save(comp, b);
@@ -1490,8 +1492,7 @@ int szx_ext_load(Computer* comp, const unsigned char* ext, size_t len) {
 				esp = 1;
 				break;
 			case XR_ZIFI:
-				ext_zifi(comp, p, n);
-				zifi = 1;
+				zifi = ext_zifi(comp, p, n);
 				break;
 			case XR_VCLK:
 				if (ext_is_next(comp)) {
@@ -1599,8 +1600,8 @@ int szx_ext_load(Computer* comp, const unsigned char* ext, size_t len) {
 				break;
 		}
 	}
-	// an Evo's file without its ZiFi, fitted here: the AVR as it starts
-	if (same && !zifi && comp->zifi->on) zifi_power(comp);
+	// an Evo's file without its ZiFi: the AVR as it starts, and no interrupt of its asked for
+	if (same && !zifi && hw_takes_zifi(comp->hw)) zifi_absent(comp);
 	// a file with no ESP record: none was fitted, or the file is older than the record
 	if (same && !esp && (ext_is_next(comp) || comp->zifi->on) && szx_esp_load) szx_esp_load(comp, NULL, 0);
 	ext_held = same ? (unsigned char*)malloc(len ? len : 1) : NULL;

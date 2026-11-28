@@ -32,6 +32,7 @@
 #include "filetypes/filetypes.h"
 #include "filetypes/szx.h"
 #include "xreplay.h"
+#include "hardware/zx_step.h"
 
 static unsigned fnv(const unsigned char* p, size_t n) {
 	unsigned h = 2166136261u;
@@ -103,8 +104,8 @@ static void zf_step(Computer* comp) {
 		while (*e == ' ') e++;
 		zf.feed = e;
 	}
-	if (comp->zifi->wint && !zf.wint && (zf.nint < ZINT_MAX)) zf.intAt[zf.nint++] = us;
-	zf.wint = comp->zifi->wint;
+	if (comp->TSL_FLG_WINT && !zf.wint && (zf.nint < ZINT_MAX)) zf.intAt[zf.nint++] = us;
+	zf.wint = comp->TSL_FLG_WINT;
 	if ((zf.szxStage == 1) && (us >= zf.szxAt[0])) {
 		zf.wasClk = zifi_sync(comp);
 		int err = szx_build(comp, &zf.szx);
@@ -115,7 +116,7 @@ static void zf_step(Computer* comp) {
 		int err = loadSZX_buf(comp, zf.szx.data, zf.szx.len);
 		long long clk = zifi_now(comp);
 		xZifi now = *comp->zifi;
-		now.off = now.clk = zf.was.off = zf.was.clk = 0;	// the clock's own: compared by what it reads
+		now.off = zf.was.off = 0;	// the clock's own: compared by what it reads
 		printf("ZSZX : load %d, the clock %s, ZiFi %s\n", err,
 			(clk == zf.wasClk) ? "goes on" : "MOVED", memcmp(&now, &zf.was, sizeof(xZifi)) ? "DIFFERS" : "as saved");
 		free(zf.szx.data);

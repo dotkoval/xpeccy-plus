@@ -21,7 +21,6 @@
 #include "espnet.h"
 #include "../libxpeccy/spectrum.h"
 #include "../libxpeccy/filetypes/szx.h"
-#include "../libxpeccy/hardware/hardware.h"
 #include "../libxpeccy/xlog.h"
 
 #define ESP_FRAME	0x18		// 8N1, as uart_framing_r
@@ -62,7 +61,7 @@ static struct {
 	double farBaud = 0;
 	int farFrame = -1;
 	long long replyAt = 0;		// the reply to the line just ended starts here
-	bool rst0 = false;		// NR 02 b7 as last seen
+	bool rst0 = false;		// the host's reset line as last seen
 	// the pins: GPIO0, GPIO2
 	bool ioOut[2] = {false, false};
 	int ioLevel[2] = {1, 1};

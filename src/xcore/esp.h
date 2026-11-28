@@ -1,14 +1,10 @@
 #pragma once
 
-// An ESP-01 with Espressif's NONOS AT 1.x firmware, its network the host's. What it answers
-// is what the machines' own software needs. It hangs on a machine's serial line through an
-// xEspHost: the Next's UART 0, the ZX Evo's ZiFi (esp_host.cpp).
+// an ESP-01 with Espressif's NONOS AT 1.x firmware, its network the host's, on a machine's serial line (xEspHost, esp_host.cpp)
 
 struct Computer;
 
-// What the module asks of the line it is on. Time is the host's own count, clk() of them a
-// second; a frame is as the Next's uart_framing_r has it (b4,3 bits - 5, b2 parity, b1 odd,
-// b0 two stop bits).
+// what the module asks of its line: time is the host's own count, clk() a second; a frame as uart_frame_levels() takes it
 typedef struct {
 	const char* name;			// for the log
 	double (*clk)(Computer*);
