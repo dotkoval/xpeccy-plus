@@ -111,7 +111,7 @@ tip CONTRAST = Darks darker and lights lighter, as a set turned up
 #pragma parameter CURVEX "Curve of the sides" 1 0 1 0.05
 #pragma parameter CURVEY "Curve of top and bottom" 1 0 1 0.05
 more CONTRAST CURVEX CURVEY
-flat CURVE CORNER VIGN
+flat CURVE CORNER
 
 group "Glow" when GLOW 0.3
 #pragma parameter GLOW "Amount" 0.0 0.0 1.0 0.05
@@ -155,7 +155,7 @@ preset "Home TV (composite)": INPUT 1, MASK 2, MASKS 0.6, PITCH 1.2, SCAN 0.6, W
 preset "RGB monitor": MASK 2, MASKS 0.45, PITCH 1.9, SCAN 0.9, WIDTH 0.8, FOCUS 0.5, SPOT 0.5, GROW 0.15, DIVERGE 0.2, GLOW 0.1, CURVE 0.04, VIGN 0.1
 preset "Commodore 1084S": MASK 2, MSIZE 2, SLOTB 1, MASKS 0.8, BLOOM 0.3, PITCH 1.9, SCAN 0.9, WIDTH 0.8, FOCUS 0.5, SPOT 0.5, GROW 0.15, DIVERGE 0.2, GLOW 0.1, CURVE 0.04, VIGN 0.1
 preset "Sony PVM": MASK 1, MASKS 0.3, PITCH 3.0, SCAN 0.95, WIDTH 1.0, FOCUS 0.7, SPOT 0.3, GROW 0.2, DIVERGE 0.15, CURVE 0.02, CURVEX 0
-preset "Tridot": SHIMMER 0.1, GHOST 0.25, GHOSTX 0.5, WIGGLE 0.15, NOISE 0.05, MASK 3, MASKS 0.6, PITCH 1, MSIZE 2, MBEND 1, SCAN 0.7, WIDTH 0.9, FOCUS 0.4, SPOT 0.1, GROW 0.2, CORNER 0.015, BLOOM 0.35, CONTRAST 0.55, CURVEX 0, CURVEY 0.5, GLOW 0.35, GLOWR 0.5, DIVERGE 0.95, DIVMID 0, DIVRX 0.2, DIVRY 0.2, DIVBX -0.2, DIVBY -0.2, AFTER 0.15
+preset "Tridot": SHIMMER 0.1, GHOST 0.25, GHOSTX 0.5, WIGGLE 0.15, NOISE 0.05, MASK 3, MASKS 0.6, PITCH 1, MSIZE 2, MBEND 1, SCAN 0.7, WIDTH 0.9, FOCUS 0.4, SPOT 0.1, GROW 0.2, CURVE 0.05, VIGN 0.25, BLOOM 0.35, CONTRAST 0.55, GLOW 0.35, GLOWR 0.5, DIVERGE 0.95, DIVMID 0, DIVRX 0.2, DIVRY 0.2, DIVBX -0.2, DIVBY -0.2, AFTER 0.15
 preset "Xpixie": MASK 1, MASKS 0.25, PITCH 1.0, SCAN 0.4, WIDTH 1.0, FOCUS 0.2, SPOT 0.4, GROW 0, DIVERGE 1.0, DIVFIX 1.0, DIVRX -0.24, DIVRY 0.46, DIVBX 0.54, DIVBY 0.25, ROLL 0.5, GLOW 0.35, AFTER 0.3, GHOST 0.1, GHOSTX 0.8, NOISE 0.5, CURVE 0.03, VIGN 0.7, BRIGHT 0.9, CONTRAST 0.5
 
 common:
@@ -970,8 +970,6 @@ fragment:
 			vec3 j = floor(a);
 			vec3 share = clamp((j + 1.0 - a) / max(b - a, vec3(0.000001)), vec3(0.0), vec3(1.0));
 			own = mix(linesAt(uv.x, j + 1.0, apart), linesAt(uv.x, j, apart), share);
-			// (half a row down, a flat picture's edge rows have no line past them)
-			if (rows && (half_ > 0.0)) own *= clamp((min(b.g, spotSize.y) - max(a.g, 0.0)) / max(b.g - a.g, 0.000001), 0.0, 1.0);
 			a = a / BAND - roll;
 			b = b / BAND - roll;
 			span /= BAND;
@@ -986,10 +984,8 @@ fragment:
 		// says: with none, the picture is as much darker as the mask and the gaps take
 		float kept = keptOf(mean);
 		vec3 pass0 = through / kept;
+		// (half a row down, the edge row past the last line is a gap like any other: the edge line goes on past it)
 		vec3 sum = vec3(0.0);
-		// Half a row down, a flat picture's edge rows have no line past them: the green beam's share dims all three alike
-		vec3 cut = vec3(0.0);
-		bool edges = rows && !rolling && (half_ > 0.0);
 		for (int k = 0; k < (tall ? 3 : 2); k++) {
 			vec3 row = first + float(k);
 			vec3 col = rolling ? own : linesAt(uv.x, row, apart);
@@ -1009,11 +1005,6 @@ fragment:
 			}
 			vec3 line = bell(a, b, row + 0.5, col * pass_, reach, width);
 			sum += line;
-			if (edges) cut += line * step(vec3(0.0), row) * step(row, vec3(spotSize.y - 1.0));
-		}
-		if (edges) {
-			if (sum.g <= 0.000001) sum = cut;
-			else if (cut.g < sum.g) sum *= cut.g / sum.g;
 		}
 		vec3 lit = max(sum / span, vec3(0.0));
 

@@ -180,8 +180,8 @@ there. The list has up to four parts:
 ```
 
 **View > Display > Flat screen**, also a tick under the **Display** list in **Options**,
-keeps every look flat: no **Curvature**, **Corners** or **Vignette**. It is on at first.
-A look's settings still show its own values, and moving one of the three turns Flat screen off.
+keeps every look flat: no **Curvature** or **Corners**. It is on at first. A look's
+settings still show its own values, and moving one of the two turns Flat screen off.
 
 The shader files the tube's looks came instead of are still there, in **View > Display >
 Legacy shaders (deprecated)** and as **Legacy:** items in the **Options** list. They are to
