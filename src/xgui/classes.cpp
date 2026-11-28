@@ -805,6 +805,12 @@ void xIconGroup::setIcon(const QString& path) {
 	padTitle();
 }
 
+void xIconGroup::setText(const QString& txt) {
+	if (txt == text) return;
+	text = txt;
+	padTitle();
+}
+
 void xIconGroup::padTitle() {
 	if (icon.isNull()) return;
 	int spc = qMax(1, fontMetrics().horizontalAdvance(' '));

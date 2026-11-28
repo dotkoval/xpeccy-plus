@@ -551,13 +551,6 @@ static void own_mark_spec(QComboBox* box, int spec, QString (*name)(int), QStrin
 	}
 }
 
-// a machine's own Board filter heard as the Sound page's gives it: the same pick, or no
-// filter either way
-static bool snd_board_same(int own, int gboard, int spec) {
-	if ((own == SND_GLOBAL) || (own == gboard)) return true;
-	return (snd_heard(own, spec) == BEEP_LINE) && (snd_heard(gboard, spec) == BEEP_LINE);
-}
-
 // a machine has its own in a group: Stereo's order, Filters' type
 static bool snd_owns_grp(const xSndPicks& p, int grp) {
 	return ((grp == SND_GRP_BOARD) ? p.board : p.lay) != SND_GLOBAL;
@@ -566,24 +559,23 @@ static bool snd_owns_grp(const xSndPicks& p, int grp) {
 // the first item's tooltip in a machine's lists
 static const char* const ownGlobalTip = QT_TR_NOOP("What the Sound page picks; By machine there:\nas this machine's board was made");
 
-// the right-click menu's Board filter is the Sound page's: the running machine heard
-// through its own says so there
-QString board_own_note() {
+// A pick in the sound menus is the Sound page's and the running machine's too: its own Board
+// filter goes, from its file as well. The one that went by name, for the message; empty with none
+QString board_own_drop() {
 	Computer* comp = conf.zx;
-	if (!comp || (comp->hw->id == HW_ZXNEXT)
-		|| snd_board_same(conf.snd.own.board, conf.snd.all.board, comp->beepType)) return QString();
-	const xMachine* mac = xm_find(conf.macId);
-	QString name = mac ? QString::fromLocal8Bit(mac->name.c_str()) : QString();
-	return QObject::tr("%0 keeps its own: %1").arg(name, own_pick_name(conf.snd.own.board, comp->beepType, board_type_name));
+	if (!comp || (comp->hw->id == HW_ZXNEXT) || (conf.snd.own.board == SND_GLOBAL)) return QString();
+	QString res = board_type_name(snd_heard(conf.snd.own.board, comp->beepType));
+	conf.snd.own.board = SND_GLOBAL;
+	xm_save_over();
+	return res;
 }
 
-// By machine in those menus, with what it gives the running machine: "By machine (TV (RF))"
+// By machine in those menus, with the running machine's board: "By machine (TV (RF))"
 QString board_machine_note() {
 	QString name = QObject::tr("By machine");
 	Computer* comp = conf.zx;
 	if (!comp) return name;
-	int own = (conf.snd.own.board == SND_GLOBAL) ? BOARD_MACHINE : conf.snd.own.board;
-	return QString("%0 (%1)").arg(name, board_type_name(snd_heard(own, comp->beepType)));
+	return QString("%0 (%1)").arg(name, board_type_name(comp->beepType));
 }
 
 // the machine list's names, with their marks of the user's changes
@@ -661,7 +653,7 @@ void SetupWin::makeSoundGroup() {
 	int lw = 0;
 	for (QLabel* lab : labs) lw = qMax(lw, lab->sizeHint().width());
 	for (QLabel* lab : labs) lab->setMinimumWidth(lw);
-	QGroupBox* stereo = new xIconGroup(":/images/grp-stereo.png", tr("Stereo"));
+	xIconGroup* stereo = grpSnd[SND_GRP_LAY] = new xIconGroup(":/images/grp-stereo.png", tr("Stereo"));
 	QGridLayout* sg = new QGridLayout(stereo);
 	sg->addWidget(labs[0], 0, 0);
 	sg->addWidget(fieldPair(cbPsgLay, btnOwn[SND_GRP_LAY], true), 0, 1);
@@ -671,7 +663,7 @@ void SetupWin::makeSoundGroup() {
 	sg->setRowStretch(2, 1);		// spare height under the rows
 	// Filters: the names in one column, the check boxes left of theirs and the Board filter's
 	// icon left of it, the list after its name
-	QGroupBox* filters = new xIconGroup(":/images/grp-filters.png", tr("Filters"));
+	xIconGroup* filters = grpSnd[SND_GRP_BOARD] = new xIconGroup(":/images/grp-filters.png", tr("Filters"));
 	QGridLayout* fg = new QGridLayout(filters);
 	QLabel* ico = new QLabel;
 	ico->setPixmap(QIcon(":/images/board-filter.png").pixmap(16, 16));
@@ -750,11 +742,20 @@ void SetupWin::sndOwnShow() {
 	QString spectxt = tr("Machine spec");
 	cbOwnLay->setItemText(0, two_part(tr("Global setting"), (glay == LAY_MACHINE) ? spectxt : psg_lay_name(glay)));
 	cbOwnBoard->setItemText(0, two_part(tr("Global setting"), (gboard == BOARD_MACHINE) ? spectxt : board_type_name(gboard)));
-	// the Board filter has no note: its result is in the first item's tooltip
-	cbOwnBoard->setItemData(0, tr(ownGlobalTip) + "\n"
-		+ tr("Result: %0").arg(board_type_name(snd_heard(gboard, sboard))), Qt::ToolTipRole);
-	ownLayNote->setText((getRFIData(cbOwnLay) != SND_GLOBAL) ? QString()
+	int olay = getRFIData(cbOwnLay);
+	int oboard = getRFIData(cbOwnBoard);
+	ownLayNote->setText((olay != SND_GLOBAL) ? QString()
 		: tr("Result: %0").arg(own_pick_name(glay, spec, psg_lay_name)));
+	ownBoardNote->setText((oboard != SND_GLOBAL) ? QString()
+		: tr("Result: %0").arg(own_pick_name(gboard, sboard, board_type_name)));
+	// the Sound page's groups name what this machine has: its own pick or the list's. No
+	// order with no PSG, nor on the Next, whose software sets it
+	int psg = getRFIData(cbPsgCount);
+	int hlay = snd_heard((olay == SND_GLOBAL) ? glay : olay, spec);
+	int hboard = snd_heard((oboard == SND_GLOBAL) ? gboard : oboard, sboard);
+	grpSnd[SND_GRP_LAY]->setText(((psg == PSG_NONE) || (psg == PSG_NEXT)) ? tr("Stereo")
+		: tr("Stereo (current: %0)").arg(psg_lay_name(hlay)));
+	grpSnd[SND_GRP_BOARD]->setText(tr("Filters (board: %0)").arg(board_type_name(hboard)));
 	// the marks: this machine as its lists have it, the others as their files do
 	QList<xSndOwnRow> macs;
 	const xMachine* mac = xm_find(conf.macId);
@@ -890,11 +891,16 @@ void SetupWin::makeDevWidgets() {
 		box->setFocusPolicy(Qt::StrongFocus);
 		connect(box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
 	}
-	ownLayNote = new QLabel;
-	QFont nfnt = ownLayNote->font();
-	nfnt.setItalic(true);
-	ownLayNote->setFont(nfnt);
-	ownLayNote->setMinimumHeight(QFontMetrics(nfnt).height());	// empty, it keeps its line
+	connect(cbPsgCount, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
+	// a note under each: empty, it keeps its line
+	QLabel** notes[2] = {&ownBoardNote, &ownLayNote};
+	for (QLabel** note : notes) {
+		*note = new QLabel;
+		QFont nfnt = (*note)->font();
+		nfnt.setItalic(true);
+		(*note)->setFont(nfnt);
+		(*note)->setMinimumHeight(QFontMetrics(nfnt).height());
+	}
 	foreach(QComboBox* box, QList<QComboBox*>() << cbPsgCount << cbPsgType << cbPsgFrq) {
 		box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
 		box->setMinimumContentsLength(8);
@@ -2997,10 +3003,10 @@ void SetupWin::buildDevices() {
 
 	grid = devGroup(cols, 0, 1, ":/images/speaker.png", tr("Sound"));
 	// the board filter this machine is heard through: the Sound page's, its board's own or
-	// another; no sheet, so no gear where the others have theirs
-	QToolButton* noSheet = devRow(grid, tr("Board filter"), cbOwnBoard, NULL, NULL);
-	grid->removeWidget(noSheet);
-	delete noSheet;
+	// another; no sheet, so the list takes the gear's place too. Its note under it
+	grid->addWidget(new QLabel(tr("Board filter")), 0, 0);
+	grid->addWidget(cbOwnBoard, 0, 1, 1, 2);
+	grid->addWidget(ownBoardNote, 1, 1, 1, 2);
 	xOptSheet psg;
 	psg.field(tr("Chip"), cbPsgType);
 	psg.field(tr("Clock"), fieldPair(cbPsgFrq, labPsgMhz, false),

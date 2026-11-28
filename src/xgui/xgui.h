@@ -178,6 +178,7 @@ class xIconGroup : public QGroupBox {
 		xIconGroup(const QString&, const QString&, QWidget* p = NULL);
 		xIconGroup(QWidget* p = NULL);
 		void setIcon(const QString&);
+		void setText(const QString&);	// the title, the icon kept
 	protected:
 		void paintEvent(QPaintEvent*);
 		void changeEvent(QEvent*);
@@ -242,8 +243,8 @@ enum {CUT_LOW = 0, CUT_HIGH};
 QList<xCutPick> cut_picks();
 QString board_type_name(int type);	// a BEEP_* type's name in those lists
 QString psg_lay_name(int lay);		// an AY_* layout's: Mono, ABC...
-QString board_own_note();		// "ZX Spectrum 128K keeps its own: machine spec (TV (RF))", or empty
-QString board_machine_note();		// "By machine (TV (RF))": what it gives the running machine
+QString board_own_drop();		// the running machine's own filter dropped: its name, or empty with none
+QString board_machine_note();		// "By machine (TV (RF))": the running machine's board
 extern const QString detail_sep;	// " - ", between a two-part list item's name and its detail
 
 // a window over the middle of another, and the first time a window is shown,
