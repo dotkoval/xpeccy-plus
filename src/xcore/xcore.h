@@ -846,6 +846,12 @@ enum {
 	MAC_CLOCK_GLUK		// Mr Gluk's: #EFF7 bit 7, #DFF7, #BFF7
 };
 
+// what hangs on a board's ZiFi (hw_takes_zifi); the Options list in this order
+enum {
+	MAC_ZIFI_NONE = 0,
+	MAC_ZIFI_ESP		// the emulated ESP-01
+};
+
 // how the shadow RAM under the ROM is switched in; the Options list in this order
 enum {
 	MAC_SHADOW_NONE = 0,
@@ -879,6 +885,7 @@ typedef struct {
 	int builtin;			// MAC_BI_*: devices on the board, which the user cannot swap
 	int resbank;			// RES_*
 	int clock;			// MAC_CLOCK_*
+	int zifi;			// MAC_ZIFI_*
 	int earback;			// EAR_*
 	int beepType;			// BEEP_*: what the beeper goes out through
 	unsigned earrc:1;
@@ -942,6 +949,7 @@ void xm_turbo_set(Computer*, std::string);
 int xm_turbo_index(Computer*);
 void xm_turbo_step(Computer*, int);
 bool xm_gluk_fitted(Computer*, const xMachine*, int);	// the Gluk clock in, for a MAC_CLOCK_* choice
+void xm_zifi_set(Computer*, int);		// a MAC_ZIFI_* choice onto the board, where it takes one
 const xMachine* xm_find(std::string);		// as the user has it
 const xMachine* xm_stock(std::string);		// as it ships
 const xMachine* xm_find_by_core(std::string);

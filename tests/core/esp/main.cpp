@@ -26,6 +26,10 @@
 //	udp PORT TEXT    the bench's UDP socket (<uport>) sends TEXT to 127.0.0.1:PORT
 //	udpshow          the datagrams it got, printed
 // TEXT takes \r \n \t \\ \xNN, and <port> / <uport> for the server's / the UDP socket's port.
+//
+// MACHINE=zifi makes the machine a ZX Evo (TSConf) with the ESP on ZiFi, the AVR's FIFOs at
+// #xxEF: scripts only, through zbridge.bin at #8000, both rings in its RAM (zbridge.asm).
+// nr, nrget and presc mean nothing there.
 
 #include <cstdio>
 #include <cstdlib>
@@ -37,6 +41,7 @@
 #include <vector>
 
 #include "spectrum.h"
+#include "cpu/Z80/z80.h"		// the register names
 #include "../../../src/xcore/esp.h"
 #include "../../../src/xcore/espnet.h"
 
@@ -58,9 +63,17 @@ typedef int sock_t;
 #endif
 
 #define PAGE 48000
-#define RING 0x048100		// the bridge's ring in the SRAM: CPU 0x8100, page 4 as reset leaves it
-#define RING_WR 0x048000
-#define RING_RD 0x048001
+// the bridge's ring in the SRAM: CPU 0x8100, page 4 as reset leaves it; on the Evo CPU #9100,
+// page 2, with the ring the ESP's bytes come back in at #A000
+#define RING (zifi ? 0x9100 : 0x048100)
+#define RING_WR (zifi ? 0x9000 : 0x048000)
+#define RING_RD (zifi ? 0x9001 : 0x048001)
+#define ZB_OWR 0x9002
+#define ZB_ORD 0x9003
+#define ZB_FIN 0x9004
+#define ZB_OBUF 0xa000
+
+static bool zifi = false;		// MACHINE=zifi
 
 static Computer* comp;
 static std::string guest;		// what the guest printed (the ESP's bytes, in script mode)
@@ -78,6 +91,12 @@ static void log_out(Computer*, int p, int val) {
 static void host_tx(Computer* c, int uart, int b, long long start) {
 	if (uart == 0) esp_byte(c, b, start);
 }
+
+static void zifi_tx(Computer* c, int b, long long start) {
+	esp_byte(c, b, start);
+}
+
+static int frame_no();
 
 static unsigned char page_byte(long i) {
 	return (unsigned char)((i * 31 + (i >> 8)) & 0xff);
@@ -238,17 +257,68 @@ static bool dial(int p) {
 
 // == the machine ==
 
+static int frame_no() {
+	return zifi ? comp->vid->fcnt : comp->next->vsyncCount;
+}
+
 static int frame0;
 static void step() {
 	compExec(comp);
-	if (comp->next->vsyncCount != frame0) {
-		frame0 = comp->next->vsyncCount;
+	if (zifi) {			// what the bridge has put into its ring
+		unsigned char* ram = comp->mem->ramData;
+		while (ram[ZB_ORD] != ram[ZB_OWR]) {
+			guest += (char)ram[ZB_OBUF + ram[ZB_ORD]];
+			ram[ZB_ORD]++;
+		}
+		if (ram[ZB_FIN]) done = 1;
+	}
+	if (frame_no() != frame0) {
+		frame0 = frame_no();
 		esp_frame(comp);
 		conn_service();
 	}
 }
 
+// A ZX Evo as tsconf-bench makes it, ZiFi fitted: the bridge at #8000 of page 2, windows
+// 1..3 = pages 5, 2, 0
+static Computer* machine_zifi(const char* prog) {
+	Computer* c = compCreate();
+	if (!compSetHardware(c, "TSConf")) {
+		fprintf(stderr, "no TSConf core\n");
+		exit(1);
+	}
+	vLayout lay = {{448, 320}, {52, 48}, {88, 32}, {256, 192}, {0, 0}, 64};
+	comp_set_layout(c, &lay);
+	memSetSize(c->mem, MEM_4M, MEM_512K);
+	compSetBaseFrq(c, 3.5);
+	compReset(c, RES_DEFAULT);
+	FILE* f = fopen(prog, "rb");
+	if (!f) {
+		fprintf(stderr, "can't open %s\n", prog);
+		exit(1);
+	}
+	size_t n = fread(c->mem->ramData + 0x8000, 1, 0x1000, f);
+	fclose(f);
+	(void)n;
+	memset(c->mem->ramData + 0x9000, 0, 0x2000);
+	c->hw->out(c, 0x11af, 5);
+	c->hw->out(c, 0x12af, 2);
+	c->hw->out(c, 0x13af, 0);
+	c->cpu->regPC = 0x8000;
+	c->cpu->regSP = 0xbf00;
+	c->cpu->flgIFF1 = c->cpu->flgIFF2 = 0;
+	c->zifi->on = 1;
+	zifi_power(c);
+	zifi_host_tx = zifi_tx;
+	comp = c;			// frame_no() below
+	esp_flash_file(getenv("FLASH"));
+	esp_attach(c);
+	frame0 = frame_no();
+	return c;
+}
+
 static Computer* machine(const char* prog) {
+	if (zifi) return machine_zifi(prog);
 	Computer* c = compCreate();
 	if (!compSetHardware(c, "ZXNext")) {
 		fprintf(stderr, "no ZXNext core\n");
@@ -308,18 +378,18 @@ static int frames_of(long ms) {
 }
 
 static bool run_frames(int n, int limit) {
-	int end = comp->next->vsyncCount + n;
-	while ((comp->next->vsyncCount < end) && (comp->next->vsyncCount < limit)) {
+	int end = frame_no() + n;
+	while ((frame_no() < end) && (frame_no() < limit)) {
 		ring_feed();
 		step();
 	}
-	return comp->next->vsyncCount < limit;
+	return frame_no() < limit;
 }
 
 // the ring empty and the bridge done with it
 static void flush(int limit) {
 	unsigned char* ram = comp->mem->ramData;
-	while ((!ringq.empty() || (ram[RING_WR] != ram[RING_RD])) && (comp->next->vsyncCount < limit)) {
+	while ((!ringq.empty() || (ram[RING_WR] != ram[RING_RD])) && (frame_no() < limit)) {
 		ring_feed();
 		step();
 	}
@@ -394,7 +464,7 @@ static int run_script(const char* path, int limit) {
 		return 1;
 	}
 	char buf[8192];
-	while (fgets(buf, sizeof(buf), f) && (comp->next->vsyncCount < limit)) {
+	while (fgets(buf, sizeof(buf), f) && (frame_no() < limit)) {
 		std::string l(buf);
 		while (!l.empty() && ((l.back() == '\n') || (l.back() == '\r'))) l.pop_back();
 		size_t i = l.find_first_not_of(" \t");
@@ -418,8 +488,8 @@ static int run_script(const char* path, int limit) {
 			}
 			std::string w = unescape(what);
 			size_t from = shown;
-			int end = comp->next->vsyncCount + frames_of(ms);
-			while ((guest.find(w, from) == std::string::npos) && (comp->next->vsyncCount < end) && (comp->next->vsyncCount < limit)) {
+			int end = frame_no() + frames_of(ms);
+			while ((guest.find(w, from) == std::string::npos) && (frame_no() < end) && (frame_no() < limit)) {
 				ring_feed();
 				step();
 			}
@@ -427,17 +497,17 @@ static int run_script(const char* path, int limit) {
 			if (guest.find(w, from) == std::string::npos) printf("-- no %s\n", masked(shown_text(w)).c_str());
 		} else if (op == "quiet") {
 			int q = frames_of(atol(arg.c_str()));
-			int end = comp->next->vsyncCount + frames_of(15000);
+			int end = frame_no() + frames_of(15000);
 			size_t seen = guest.size();
-			int since = comp->next->vsyncCount;
-			while ((comp->next->vsyncCount < end) && (comp->next->vsyncCount < limit)) {
+			int since = frame_no();
+			while ((frame_no() < end) && (frame_no() < limit)) {
 				ring_feed();
 				step();
 				if (guest.size() != seen) {
 					seen = guest.size();
-					since = comp->next->vsyncCount;
+					since = frame_no();
 				}
-				if (comp->next->vsyncCount - since >= q) break;
+				if (frame_no() - since >= q) break;
 			}
 			show_rx();
 		} else if (op == "pause") {
@@ -457,7 +527,7 @@ static int run_script(const char* path, int limit) {
 			nrvals.clear();
 			ring_put(2, r);
 			flush(limit);
-			while (nrvals.empty() && (comp->next->vsyncCount < limit)) step();
+			while (nrvals.empty() && (frame_no() < limit)) step();
 			show_rx();
 			printf("NR %02X = %02X\n", r, nrvals.empty() ? 0 : nrvals.front());
 		} else if (op == "presc") {
@@ -517,16 +587,18 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 	const char* script = getenv("SCRIPT");
+	const char* mach = getenv("MACHINE");
+	zifi = mach && !strcmp(mach, "zifi");
 	comp = machine(argv[1]);
 	if (script) {
 		std::string path = script;
 		if (getenv("XPECCY_ROOT")) path = std::string(getenv("XPECCY_ROOT")) + "/tests/core/esp/scripts/" + script;
 		int r = run_script(path.c_str(), frames);
-		if (comp->next->vsyncCount >= frames) printf("-- frame limit\n");
+		if (frame_no() >= frames) printf("-- frame limit\n");
 		esp_detach(comp);
 		return r;
 	}
-	while (!done && (comp->next->vsyncCount < frames)) step();
+	while (!done && (frame_no() < frames)) step();
 	esp_detach(comp);
 	std::string out = masked(guest);
 	printf("%s", out.c_str());

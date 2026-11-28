@@ -1618,6 +1618,7 @@ void SetupWin::fillPages() {
 		}
 	}
 	cbEspLan->setChecked(conf.next.espLan);
+	cbZifiLan->setChecked(conf.next.espLan);
 	ui.tvHotkeys->load();
 // machine
 	fill_machine_list(ui.machbox);
@@ -1801,6 +1802,7 @@ void SetupWin::fillPages() {
 
 	saaBox->setCurrentIndex(comp->saa->enabled ? 1 : 0);
 	clockBox->setCurrentIndex(comp->flgGLUK ? MAC_CLOCK_GLUK : MAC_CLOCK_NONE);
+	zifiBox->setCurrentIndex(comp->zifi->on ? MAC_ZIFI_ESP : MAC_ZIFI_NONE);
 	shadowBox->setCurrentIndex(comp->flgSHDW ? MAC_SHADOW_ROBIK : MAC_SHADOW_NONE);
 	brightBox->setCurrentIndex(comp->vid->allBright ? 0 : 1);
 	edgesBox->setCurrentIndex(comp->vid->cellEdge ? 1 : 0);
@@ -2115,6 +2117,7 @@ void SetupWin::applyMachine() {
 	if ((msz != shown.mem) || (frq != shown.cpu)) compSetBaseFrq(comp, frq);
 	if (!own) xm_turbo_set(comp, getRFSData(cbCpuTurbo).toStdString());
 	comp->flgGLUK = xm_gluk_fitted(comp, xm_find(conf.macId), clockBox->currentIndex());
+	xm_zifi_set(comp, zifiBox->currentIndex());
 	if (ui.sldSpeed->value() != xspeed_get())
 		xspeed_set(ui.sldSpeed->value());
 	if (!own) comp->flgEM1 = ui.scrpwait->isChecked();
@@ -2261,7 +2264,8 @@ void SetupWin::applyGlobal() {
 		QString port = (k >= 0) ? uartBox[i]->itemData(k).toString() : txt;
 		if (port != serial_name(i)) serial_set(i, port, true);		// else a --uart-* stays
 	}
-	conf.next.espLan = cbEspLan->isChecked() ? 1 : 0;
+	// one setting, shown in the sheet of whichever machine has a module
+	conf.next.espLan = (hw_takes_zifi(comp->hw) ? cbZifiLan : cbEspLan)->isChecked() ? 1 : 0;
 // emulation
 	conf.vid.lowLatency = ui.cbLowLat->isChecked() ? 1 : 0;
 	conf.emu.runahead = getRFIData(ui.cbRunAhead);
@@ -3042,6 +3046,16 @@ void SetupWin::buildDevices() {
 	btn = devRow(grid, tr("Clock"), clockBox, NULL, NULL);
 	clockRow << grid->itemAtPosition(grid->rowCount() - 1, 0)->widget() << clockBox << btn;
 	clockRow[0]->setToolTip(tr("Mr Gluk's clock on ports #EFF7, #DFF7, #BFF7. It tells your computer's time"));
+	// the Evo's Wi-Fi: an ESP-01 on the AVR's ZiFi ports
+	const QString lanTip = tr("The emulated module's server (AT+CIPSERVER) and a UDP link's own port take clients from other computers too. Off: the server only from this one, at 127.0.0.1; a UDP link hears only whom it sent to");
+	zifiBox = devCombo(QStringList() << tr("Not connected") << tr("ESP-01 (emulated)"));	// MAC_ZIFI_*
+	zifiBox->setObjectName("zifiBox");
+	cbZifiLan = new QCheckBox;
+	xOptSheet zifi;
+	zifi.check(cbZifiLan, tr("Server on the network"), lanTip, true);
+	btn = devRow(grid, tr("ZiFi"), zifiBox, zifi.body, "Machine: ZiFi");
+	zifiRow << grid->itemAtPosition(grid->rowCount() - 1, 0)->widget() << zifiBox << btn;
+	zifiRow[0]->setToolTip(tr("The Wi-Fi module on the ZiFi ports, #xxEF. It reaches the network through this computer"));
 	// the Robik's own
 	auto robikRow = [this, grid](const QString& name, QComboBox* box, const QString& tip) {
 		QToolButton* b = devRow(grid, name, box, NULL, NULL);
@@ -3231,8 +3245,7 @@ void SetupWin::buildDevices() {
 		<< flag("ULAplus", tr("ULAplus"), tr("64 colors, when the program asks for them"))), NULL, true);
 	cbEspLan = new QCheckBox;
 	xOptSheet esp;
-	esp.check(cbEspLan, tr("Server on the network"),
-		tr("The emulated module's server (AT+CIPSERVER) and a UDP link's own port take clients from other computers too. Off: the server only from this one, at 127.0.0.1; a UDP link hears only whom it sent to"), true);
+	esp.check(cbEspLan, tr("Server on the network"), lanTip, true);
 	for (int i = 0; i < 2; i++) {
 		uartBox[i] = new QComboBox;
 		uartBox[i]->setObjectName(i ? "uartPi" : "uartEsp");
@@ -3500,6 +3513,7 @@ void SetupWin::showDevRows() {
 	foreach(QWidget* w, slotRow) w->setVisible(slot);
 	foreach(QWidget* w, kbdRow) w->setVisible(kbd);
 	foreach(QWidget* w, clockRow) w->setVisible(hw_takes_gluk(conf.zx->hw));
+	foreach(QWidget* w, zifiRow) w->setVisible(hw_takes_zifi(conf.zx->hw));
 	foreach(QWidget* w, robikRows) w->setVisible(hw == HW_ROBIK);
 	showDriveRows();
 	showBoardStorage();

@@ -140,6 +140,10 @@ static xMacWord clockTab[] = {
 	{"none", MAC_CLOCK_NONE}, {"gluk", MAC_CLOCK_GLUK}, {NULL, 0}
 };
 
+static xMacWord zifiTab[] = {
+	{"none", MAC_ZIFI_NONE}, {"esp", MAC_ZIFI_ESP}, {NULL, 0}
+};
+
 // the shadow RAM's switch; the first name of a value is the one written
 static xMacWord shadowTab[] = {
 	{"no", MAC_SHADOW_NONE}, {"robik", MAC_SHADOW_ROBIK},
@@ -261,7 +265,7 @@ static const struct {
 	{"memory", "machine"}, {"ram.cold", "machine"}, {"ram.noise", "machine"},
 	{"reset", "machine"}, {"contio", "machine"}, {"issue", "machine"}, {"ear.rc", "machine"},
 	{"contmem", "machine"}, {"scrp.wait", "machine"}, {"builtin", "machine"}, {"snapshot", "machine"},
-	{"clock", "machine"}, {"shadow", "machine"},
+	{"clock", "machine"}, {"shadow", "machine"}, {"zifi", "machine"},
 	{"geometry", "video"}, {"contPattern", "video"}, {"earlyTiming", "video"},
 	{"4t-border", "video"}, {"ULAplus", "video"}, {"DDpal", "video"},
 	{"snow", "video"}, {"snow.crash", "video"}, {"floatbus", "video"}, {"border.min", "video"},
@@ -372,6 +376,16 @@ bool xm_gluk_fitted(Computer* comp, const xMachine* mac, int clock) {
 	return hw_takes_gluk(comp->hw) && ((clock == MAC_CLOCK_GLUK) || board);
 }
 
+// The AVR is on the board either way; fitted is the module on its line and the ports that
+// reach it. Fitting it starts the firmware's side as a power-on does.
+void xm_zifi_set(Computer* comp, int zifi) {
+	int on = (hw_takes_zifi(comp->hw) && (zifi == MAC_ZIFI_ESP)) ? 1 : 0;
+	if (on == comp->zifi->on) return;
+	comp->zifi->on = on;
+	comp->zifi->wint = 0;
+	if (on) zifi_power(comp);
+}
+
 void xm_turbo_set(Computer* comp, std::string src) {
 	if (!comp) return;
 	comp->turboCount = mac_turbo_tab(src, comp->turboTab);
@@ -387,6 +401,7 @@ static void mac_defaults(xMachine& mac) {
 	mac.builtin = 0;
 	mac.resbank = RES_128;
 	mac.clock = MAC_CLOCK_NONE;
+	mac.zifi = MAC_ZIFI_NONE;
 	mac.earback = EAR_ISSUE3;
 	mac.earrc = 0;
 	mac.contio = 0;
@@ -463,6 +478,7 @@ static void mac_apply(xMachine& mac, const QList<xMacLine>& lines) {
 			}
 			else if (nam == "reset") mac.resbank = mac_word(resetTab, val, RES_128, id);
 			else if (nam == "clock") mac.clock = mac_word(clockTab, val, MAC_CLOCK_NONE, id);
+			else if (nam == "zifi") mac.zifi = mac_word(zifiTab, val, MAC_ZIFI_NONE, id);
 			else if (nam == "issue") mac.earback = mac_word(earTab, val, EAR_ISSUE3, id);
 			else if (nam == "ear.rc") mac.earrc = arg.b;
 			else if (nam == "contio") mac.contio = arg.b;
@@ -1525,6 +1541,7 @@ static void mac_from_def(const xMachine* mac) {
 	ide_set_type(comp->ide, mac->ide);
 	div_set_model(comp->div, hw_takes_divmmc(comp->hw) ? mac->divmmc : DIV_NONE, mac->divmmcRam >> 3);
 	comp->zc->on = (hw_takes_zc(comp->hw) && mac->zc) ? 1 : 0;
+	xm_zifi_set(comp, mac->zifi);
 	comp_board_storage(comp);		// a file that names both boards has the divMMC
 	comp->div->eeWrite = mac->divmmcWr;
 	comp->mouse->enable = mac->mouse;
@@ -1825,6 +1842,9 @@ static void mac_put_all(QList<xMacLine>& out, const xMachine* mac, bool withSoun
 	if (hw_takes_gluk(comp->hw) && !(mac->builtin & MAC_BI_CLOCK))	// one on the board is no choice
 		mac_put(out, "clock", mac_word_name(clockTab, comp->flgGLUK ? MAC_CLOCK_GLUK : MAC_CLOCK_NONE),
 			mac_word_name(clockTab, mac->clock));
+	if (hw_takes_zifi(comp->hw))
+		mac_put(out, "zifi", mac_word_name(zifiTab, comp->zifi->on ? MAC_ZIFI_ESP : MAC_ZIFI_NONE),
+			mac_word_name(zifiTab, mac->zifi));
 	mac_put(out, "issue", mac_word_name(earTab, comp->earback), mac_word_name(earTab, mac->earback));
 	mac_put_yn(out, "ear.rc", comp->earRC, mac->earrc);
 	mac_put_yn(out, "contio", comp->flgCNTI, mac->contio);
