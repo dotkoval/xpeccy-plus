@@ -957,6 +957,7 @@ int xm_ram_size(std::string, int* mask = NULL);
 // the sound picks a machine has over Global (conf.snd)
 void xm_snd_apply();			// the running machine heard with its own picks over Global
 enum {SND_GRP_LAY = 0, SND_GRP_BOARD};	// the Sound page's groups: Stereo (layout), Filters (board filter)
+int xm_snd_drop_running(int grp);	// the running machine's own pick of a group dropped: what it was heard as, SND_GLOBAL with none
 void xm_snd_drop_own(int grp);		// every machine's own pick of a group dropped from its file
 
 // layouts

@@ -118,7 +118,8 @@ before that point is upstream's history and is not repeated here.
   machine can have its own filter and stereo on the Machine page and in its PSG sheet
   (Global setting or a value, the board's own marked Machine spec: that filter takes what
   the board filtered, any other all of the sound), and the Sound page marks a list some
-  machines override, with how many: a click puts them all back on it.
+  machines override, with how many: a click puts them all back on it. A filter picked in
+  the menus is for every machine, the running one too: its own goes.
   The page's Enabled is now Emulate sound, over its groups, which grey while it is off.
 
 - **Integer Scale**: View > Integer Scale and Options > Video. In fullscreen and in a maximized

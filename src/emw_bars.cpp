@@ -822,7 +822,8 @@ QMenu* MainWin::volumeMenu() {
 }
 
 // The Sound page's Board filter, one pick for every machine: its actions, made once and
-// listed under the volume and in the right-click menu's Sound
+// listed under the volume and in the right-click menu's Sound. A pick there is heard at
+// once: the running machine's own filter goes for it. The checked one picked again does nothing
 void MainWin::makeBoardActs() {
 	boardGrp = new QActionGroup(this);
 	for (const xBoardPick& p : board_picks()) {
@@ -833,12 +834,11 @@ void MainWin::makeBoardActs() {
 		if (p.val == BOARD_MACHINE) boardMacAct = act;
 	}
 	connect(boardGrp, &QActionGroup::triggered, this, [this](QAction* act) {
+		if (act->data().toInt() == conf.snd.vol.board) return;		// the one heard, checked already
 		conf.snd.all.board = act->data().toInt();
-		xm_snd_apply();
-		// a machine heard through its own is not through it: the message says so
-		QString own = board_own_note();
-		setMessage(own.isEmpty() ? QString(" board filter: %0 ").arg(act->text())
-			: QString(" board filter: %0; %1 ").arg(act->text(), own));
+		int own = xm_snd_drop_running(SND_GRP_BOARD);
+		setMessage((own == SND_GLOBAL) ? QString(" board filter: %0 ").arg(act->text())
+			: QString(" board filter: %0; own %1 dropped ").arg(act->text(), board_type_name(own)));
 		saveConfig();
 	});
 	// and the Sound page's Low cut and High cut, switches of their own
@@ -873,9 +873,6 @@ void MainWin::addBoardActs(QMenu* menu) {
 	menu->setToolTipsVisible(true);
 	menu->addSeparator();
 	menu_heading(menu, "Board filter");
-	// the picks are the Sound page's: a machine heard through its own says so over them
-	QAction* own = menu->addAction(QString());
-	own->setEnabled(false);
 	QList<xBoardPick> picks = board_picks();
 	QList<QAction*> acts = boardGrp->actions();
 	for (int i = 0; (i < picks.size()) && (i < acts.size()); i++) {
@@ -886,12 +883,10 @@ void MainWin::addBoardActs(QMenu* menu) {
 	menu_heading(menu, "Output filters");
 	menu->addAction(lowCutAct);
 	menu->addAction(highCutAct);
-	connect(menu, &QMenu::aboutToShow, menu, [this, own]() {
-		QString note = board_own_note();
-		own->setText(note);
-		own->setVisible(!note.isEmpty());
+	connect(menu, &QMenu::aboutToShow, menu, [this]() {
+		// the check on what is heard: a machine's own filter where it has one
 		for (QAction* act : boardGrp->actions())
-			act->setChecked(act->data().toInt() == conf.snd.all.board);
+			act->setChecked(act->data().toInt() == conf.snd.vol.board);
 		boardMacAct->setText(board_machine_note());
 		lowCutAct->setChecked(conf.snd.vol.dc);
 		highCutAct->setChecked(conf.snd.filter);

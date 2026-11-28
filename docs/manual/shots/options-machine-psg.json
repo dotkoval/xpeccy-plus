@@ -10,7 +10,7 @@
     ["wait", 1200],
     ["click", "pageList", 60, 16],
     ["wait", 800],
-    ["click", "SetupWin", 735, 246],
+    ["click", "SetupWin", 735, 268],
     ["wait", 800],
     ["run", "activate-window Machine: PSG"],
     ["wait", 500]

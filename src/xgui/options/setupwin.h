@@ -177,7 +177,8 @@ class SetupWin : public QDialog {
 		QLabel *labTapeSpeedVal, *labPsgMhz;
 		// the machine's own sound picks: the PSG sheet's Stereo, the Machine page's Board filter
 		QComboBox *cbOwnLay = nullptr, *cbOwnBoard = nullptr;
-		QLabel* ownLayNote = nullptr;
+		QLabel* ownLayNote = nullptr;		// under each: what Global setting gives
+		xElideLabel* ownBoardNote = nullptr;
 		xSndPicks ownPicks();		// the picks as the lists stand
 		// the other machines with picks of their own (sndOthersRead), and their spec
 		struct xSndOwnRow {QString name; xSndPicks snd; int specLay; int specBoard;};
@@ -191,6 +192,8 @@ class SetupWin : public QDialog {
 		QLabel* labSep;
 		// after each one's list (SND_GRP_*): how many machines override it, hidden with none
 		QToolButton* btnOwn[2] = {nullptr, nullptr};
+		xIconGroup* grpSnd[2] = {nullptr, nullptr};	// Stereo and Filters: their titles name what the machine shown has
+		void sndGroupTitles();
 		QStringList sndOwnTips[2];	// each of them and what it has of its own
 		void sndResetOwn(int grp);	// the list's value for all machines, asked first
 		int psgFrqMul = 1;	// the chip's clock against the AY's the setting holds

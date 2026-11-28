@@ -188,13 +188,16 @@ heard through:
 
 - **Global setting**, the default - the **Board filter** of the **Sound** page, in gray:
   **Global setting (No filter)**, or with **By machine** there, **Global setting (Machine
-  spec)**, its board's own. Its tooltip says what this machine is heard through.
+  spec)**, its board's own. The line under the list says what this machine is heard
+  through: **Result: TV (RF) (machine spec)**.
 - under a line, **No filter**, and under another, the filters. The board's own is marked: **TV (RF)
   (Machine spec)** on the 128K, **No filter (Machine spec)** on the Pentagon.
 
 Every choice but the first is this machine's own, heard whatever the **Sound** page says.
 The marked one filters what the board filtered; another filter takes all of the sound. The
-wheel does not change the list while it is closed. The filters are
+wheel does not change the list while it is closed. A filter picked under the **Mute**
+button's arrow or in **Sound** of the right-click menu is for every machine, this one too:
+its own choice goes, back to **Global setting**. The filters are
 described in [Board filter](options-sound.md#board-filter); [A machine's own](options-sound.md#a-machines-own)
 says how the **Sound** page shows the machines with a choice of their own.
 

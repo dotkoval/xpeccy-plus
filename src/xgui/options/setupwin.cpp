@@ -528,6 +528,9 @@ QString psg_lay_name(int lay) {
 // LAY_MACHINE and BOARD_MACHINE (both -1) heard as the machine's spec
 static int snd_heard(int pick, int spec) {return (pick == LAY_MACHINE) ? spec : pick;}
 
+// a machine's pick heard: its own, the Sound page's with none, either one's spec the machine's
+static int snd_heard(int own, int global, int spec) {return snd_heard((own == SND_GLOBAL) ? global : own, spec);}
+
 // a list item in two parts (xTwoPartDelegate): "Global setting (Machine spec)"
 static QString two_part(const QString& name, const QString& detail) {
 	return name + detail_sep + QString("(%0)").arg(detail);
@@ -551,13 +554,6 @@ static void own_mark_spec(QComboBox* box, int spec, QString (*name)(int), QStrin
 	}
 }
 
-// a machine's own Board filter heard as the Sound page's gives it: the same pick, or no
-// filter either way
-static bool snd_board_same(int own, int gboard, int spec) {
-	if ((own == SND_GLOBAL) || (own == gboard)) return true;
-	return (snd_heard(own, spec) == BEEP_LINE) && (snd_heard(gboard, spec) == BEEP_LINE);
-}
-
 // a machine has its own in a group: Stereo's order, Filters' type
 static bool snd_owns_grp(const xSndPicks& p, int grp) {
 	return ((grp == SND_GRP_BOARD) ? p.board : p.lay) != SND_GLOBAL;
@@ -566,24 +562,12 @@ static bool snd_owns_grp(const xSndPicks& p, int grp) {
 // the first item's tooltip in a machine's lists
 static const char* const ownGlobalTip = QT_TR_NOOP("What the Sound page picks; By machine there:\nas this machine's board was made");
 
-// the right-click menu's Board filter is the Sound page's: the running machine heard
-// through its own says so there
-QString board_own_note() {
-	Computer* comp = conf.zx;
-	if (!comp || (comp->hw->id == HW_ZXNEXT)
-		|| snd_board_same(conf.snd.own.board, conf.snd.all.board, comp->beepType)) return QString();
-	const xMachine* mac = xm_find(conf.macId);
-	QString name = mac ? QString::fromLocal8Bit(mac->name.c_str()) : QString();
-	return QObject::tr("%0 keeps its own: %1").arg(name, own_pick_name(conf.snd.own.board, comp->beepType, board_type_name));
-}
-
-// By machine in those menus, with what it gives the running machine: "By machine (TV (RF))"
+// By machine in those menus, with the running machine's board: "By machine (TV (RF))"
 QString board_machine_note() {
 	QString name = QObject::tr("By machine");
 	Computer* comp = conf.zx;
 	if (!comp) return name;
-	int own = (conf.snd.own.board == SND_GLOBAL) ? BOARD_MACHINE : conf.snd.own.board;
-	return QString("%0 (%1)").arg(name, board_type_name(snd_heard(own, comp->beepType)));
+	return QString("%0 (%1)").arg(name, board_type_name(comp->beepType));
 }
 
 // the machine list's names, with their marks of the user's changes
@@ -661,7 +645,7 @@ void SetupWin::makeSoundGroup() {
 	int lw = 0;
 	for (QLabel* lab : labs) lw = qMax(lw, lab->sizeHint().width());
 	for (QLabel* lab : labs) lab->setMinimumWidth(lw);
-	QGroupBox* stereo = new xIconGroup(":/images/grp-stereo.png", tr("Stereo"));
+	xIconGroup* stereo = grpSnd[SND_GRP_LAY] = new xIconGroup(":/images/grp-stereo.png", tr("Stereo"));
 	QGridLayout* sg = new QGridLayout(stereo);
 	sg->addWidget(labs[0], 0, 0);
 	sg->addWidget(fieldPair(cbPsgLay, btnOwn[SND_GRP_LAY], true), 0, 1);
@@ -671,7 +655,7 @@ void SetupWin::makeSoundGroup() {
 	sg->setRowStretch(2, 1);		// spare height under the rows
 	// Filters: the names in one column, the check boxes left of theirs and the Board filter's
 	// icon left of it, the list after its name
-	QGroupBox* filters = new xIconGroup(":/images/grp-filters.png", tr("Filters"));
+	xIconGroup* filters = grpSnd[SND_GRP_BOARD] = new xIconGroup(":/images/grp-filters.png", tr("Filters"));
 	QGridLayout* fg = new QGridLayout(filters);
 	QLabel* ico = new QLabel;
 	ico->setPixmap(QIcon(":/images/board-filter.png").pixmap(16, 16));
@@ -740,7 +724,8 @@ xSndPicks SetupWin::ownPicks() {
 
 // the machine's own picks as the lists stand, and the Sound page's marks with them
 void SetupWin::sndOwnShow() {
-	if (!btnOwn[0] || !ownLayNote) return;		// still being built
+	if (!grpSnd[SND_GRP_BOARD] || !ownLayNote) return;		// still being built
+	sndGroupTitles();
 	Computer* comp = conf.zx;
 	int spec = comp->ts->chipA->stereo;
 	int sboard = comp->beepType;
@@ -750,11 +735,12 @@ void SetupWin::sndOwnShow() {
 	QString spectxt = tr("Machine spec");
 	cbOwnLay->setItemText(0, two_part(tr("Global setting"), (glay == LAY_MACHINE) ? spectxt : psg_lay_name(glay)));
 	cbOwnBoard->setItemText(0, two_part(tr("Global setting"), (gboard == BOARD_MACHINE) ? spectxt : board_type_name(gboard)));
-	// the Board filter has no note: its result is in the first item's tooltip
-	cbOwnBoard->setItemData(0, tr(ownGlobalTip) + "\n"
-		+ tr("Result: %0").arg(board_type_name(snd_heard(gboard, sboard))), Qt::ToolTipRole);
-	ownLayNote->setText((getRFIData(cbOwnLay) != SND_GLOBAL) ? QString()
+	int olay = getRFIData(cbOwnLay);
+	int oboard = getRFIData(cbOwnBoard);
+	ownLayNote->setText((olay != SND_GLOBAL) ? QString()
 		: tr("Result: %0").arg(own_pick_name(glay, spec, psg_lay_name)));
+	ownBoardNote->setFull((oboard != SND_GLOBAL) ? QString()
+		: tr("Result: %0").arg(own_pick_name(gboard, sboard, board_type_name)));
 	// the marks: this machine as its lists have it, the others as their files do
 	QList<xSndOwnRow> macs;
 	const xMachine* mac = xm_find(conf.macId);
@@ -773,6 +759,18 @@ void SetupWin::sndOwnShow() {
 		btnOwn[grp]->setText(QString::number(n));
 		btnOwn[grp]->setToolTip(tr("Overridden, click to reset:") + "\n" + sndOwnTips[grp].join("\n"));
 	}
+}
+
+// The Sound page's groups name what the machine shown has: its own pick or the list's. No
+// order with no PSG, nor on the Next, whose software sets it
+void SetupWin::sndGroupTitles() {
+	if (!grpSnd[SND_GRP_BOARD] || !ownLayNote) return;		// still being built
+	Computer* comp = conf.zx;
+	bool noLay = (getRFIData(cbPsgCount) == PSG_NONE) || (comp->hw->id == HW_ZXNEXT);
+	int lay = snd_heard(getRFIData(cbOwnLay), getRFIData(cbPsgLay), comp->ts->chipA->stereo);
+	int board = snd_heard(getRFIData(cbOwnBoard), getRFIData(cbBoard), comp->beepType);
+	grpSnd[SND_GRP_LAY]->setText(noLay ? tr("Stereo") : tr("Stereo (current: %0)").arg(psg_lay_name(lay)));
+	grpSnd[SND_GRP_BOARD]->setText(tr("Filters (board: %0)").arg(board_type_name(board)));
 }
 
 // the other machines with picks of their own, as their files have them (the Next's are
@@ -890,11 +888,15 @@ void SetupWin::makeDevWidgets() {
 		box->setFocusPolicy(Qt::StrongFocus);
 		connect(box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
 	}
+	// a note under each: empty, it keeps its line. The Machine page's asks for no width
+	ownBoardNote = new xElideLabel;
 	ownLayNote = new QLabel;
-	QFont nfnt = ownLayNote->font();
-	nfnt.setItalic(true);
-	ownLayNote->setFont(nfnt);
-	ownLayNote->setMinimumHeight(QFontMetrics(nfnt).height());	// empty, it keeps its line
+	for (QLabel* note : QList<QLabel*>{ownBoardNote, ownLayNote}) {
+		QFont nfnt = note->font();
+		nfnt.setItalic(true);
+		note->setFont(nfnt);
+		note->setMinimumHeight(QFontMetrics(nfnt).height());
+	}
 	foreach(QComboBox* box, QList<QComboBox*>() << cbPsgCount << cbPsgType << cbPsgFrq) {
 		box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
 		box->setMinimumContentsLength(8);
@@ -2997,10 +2999,10 @@ void SetupWin::buildDevices() {
 
 	grid = devGroup(cols, 0, 1, ":/images/speaker.png", tr("Sound"));
 	// the board filter this machine is heard through: the Sound page's, its board's own or
-	// another; no sheet, so no gear where the others have theirs
-	QToolButton* noSheet = devRow(grid, tr("Board filter"), cbOwnBoard, NULL, NULL);
-	grid->removeWidget(noSheet);
-	delete noSheet;
+	// another; no sheet, so the list takes the gear's place too. Its note under it
+	grid->addWidget(new QLabel(tr("Board filter")), 0, 0);
+	grid->addWidget(cbOwnBoard, 0, 1, 1, 2);
+	grid->addWidget(ownBoardNote, 1, 1, 1, 2);
 	xOptSheet psg;
 	psg.field(tr("Chip"), cbPsgType);
 	psg.field(tr("Clock"), fieldPair(cbPsgFrq, labPsgMhz, false),
@@ -4089,6 +4091,7 @@ void SetupWin::chapsg() {
 	}
 	if (moved)		// renaming the current item wipes a figure typed in
 		opt_set_psg_frq(cbPsgFrq, ay * mul);
+	sndGroupTitles();		// no PSG, no order to name
 }
 
 // the crash is a property of the snow, not a setting of its own: it says nothing
