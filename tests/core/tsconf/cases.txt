@@ -117,6 +117,7 @@ bin z05_frames_c6.bin    z05_wait.asm         CLK=6 FRAMES=1
 bin z06_reset.bin        z06_reset.asm
 bin z07_loop.bin         z07_loop.asm
 bin z07_rate.bin         z07_loop.asm         RATE=1
+bin z08_szx.bin          z08_szx.asm
 
 run z01_regs         z01_regs.bin         5   ZIFI=1
 run z01_regs_off     z01_regs.bin         5
@@ -134,3 +135,4 @@ run z05_frames_c6    z05_frames_c6.bin    70  ZIFI=1
 run z06_reset        z06_reset.bin        10  ZIFI=1 ZRESET=2
 run z07_loop         z07_loop.bin         30  ZIFI=1 ZLOOP=1
 run z07_rate         z07_rate.bin         5   ZIFI=1 ZFAR=74880 ZFEED=2000:7265616479
+run z08_szx          z08_szx.bin          5   ZIFI=1 ZFEED=2000:+10 ZSZX=4000,9000

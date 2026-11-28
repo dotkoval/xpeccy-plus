@@ -23,11 +23,14 @@
 //	ZFAR=baud             ...at that rate (8N1), else the AVR's own 115200
 //	ZLOOP=1               what the AVR sends comes back, a byte as its frame ends
 //	ZRESET=frame          the machine is reset at that frame and the program started again
+//	ZSZX=us1,us2          an SZX is made at us1 and loaded at us2: ZSZX says whether ZiFi and
+//	                      its clock came back as they were
 // It prints what the AVR sent (ZTX: how many, the first of them, when the first and the
 // last started, in us) and when the wait-port interrupt was latched (ZINT, us).
 
 #include "../bench.h"
 #include "filetypes/filetypes.h"
+#include "filetypes/szx.h"
 #include "xreplay.h"
 
 static unsigned fnv(const unsigned char* p, size_t n) {
@@ -56,6 +59,12 @@ static struct {
 	long long txFirst, txLast;
 	int nint, wint;
 	long long intAt[ZINT_MAX];
+	// ZSZX
+	long szxAt[2];
+	int szxStage;			// 0 none asked, 1 to save, 2 to load, 3 done
+	szxBuf szx;
+	xZifi was;
+	long long wasClk;
 } zf;
 
 static void zf_tx(Computer* comp, int b, long long start) {
@@ -96,6 +105,22 @@ static void zf_step(Computer* comp) {
 	}
 	if (comp->zifi->wint && !zf.wint && (zf.nint < ZINT_MAX)) zf.intAt[zf.nint++] = us;
 	zf.wint = comp->zifi->wint;
+	if ((zf.szxStage == 1) && (us >= zf.szxAt[0])) {
+		zf.wasClk = zifi_sync(comp);
+		int err = szx_build(comp, &zf.szx);
+		zf.was = *comp->zifi;
+		zf.szxStage = (err || zf.szx.fail) ? 3 : 2;
+		if (zf.szxStage == 3) printf("ZSZX : not made (%d)\n", err);
+	} else if ((zf.szxStage == 2) && (us >= zf.szxAt[1])) {
+		int err = loadSZX_buf(comp, zf.szx.data, zf.szx.len);
+		long long clk = zifi_now(comp);
+		xZifi now = *comp->zifi;
+		now.off = now.clk = zf.was.off = zf.was.clk = 0;	// the clock's own: compared by what it reads
+		printf("ZSZX : %u bytes, load %d, the clock %s, ZiFi %s\n", (unsigned)zf.szx.len, err,
+			(clk == zf.wasClk) ? "goes on" : "MOVED", memcmp(&now, &zf.was, sizeof(xZifi)) ? "DIFFERS" : "as saved");
+		free(zf.szx.data);
+		zf.szxStage = 3;
+	}
 }
 
 static void zf_start(Computer* comp) {
@@ -109,6 +134,8 @@ static void zf_start(Computer* comp) {
 	const char* far = getenv("ZFAR");
 	if (far) zifi_far(comp, (long long)(1e9 / atof(far) * 65536.0), 0x18);
 	zf.t0 = zifi_now(comp);
+	const char* szx = getenv("ZSZX");
+	if (szx && (sscanf(szx, "%ld,%ld", &zf.szxAt[0], &zf.szxAt[1]) == 2)) zf.szxStage = 1;
 }
 
 static void zf_print(void) {
