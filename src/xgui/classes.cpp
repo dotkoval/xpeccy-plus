@@ -808,7 +808,8 @@ void xIconGroup::setIcon(const QString& path) {
 void xIconGroup::setText(const QString& txt) {
 	if (txt == text) return;
 	text = txt;
-	padTitle();
+	if (icon.isNull()) setTitle(txt);
+	else padTitle();
 }
 
 void xIconGroup::padTitle() {

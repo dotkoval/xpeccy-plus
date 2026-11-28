@@ -177,7 +177,8 @@ class SetupWin : public QDialog {
 		QLabel *labTapeSpeedVal, *labPsgMhz;
 		// the machine's own sound picks: the PSG sheet's Stereo, the Machine page's Board filter
 		QComboBox *cbOwnLay = nullptr, *cbOwnBoard = nullptr;
-		QLabel *ownLayNote = nullptr, *ownBoardNote = nullptr;	// under each: what Global setting gives
+		QLabel* ownLayNote = nullptr;		// under each: what Global setting gives
+		xElideLabel* ownBoardNote = nullptr;
 		xSndPicks ownPicks();		// the picks as the lists stand
 		// the other machines with picks of their own (sndOthersRead), and their spec
 		struct xSndOwnRow {QString name; xSndPicks snd; int specLay; int specBoard;};

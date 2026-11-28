@@ -732,7 +732,7 @@ xSndPicks SetupWin::ownPicks() {
 
 // the machine's own picks as the lists stand, and the Sound page's marks with them
 void SetupWin::sndOwnShow() {
-	if (!btnOwn[0] || !ownLayNote) return;		// still being built
+	if (!grpSnd[SND_GRP_BOARD] || !ownLayNote) return;		// still being built
 	Computer* comp = conf.zx;
 	int spec = comp->ts->chipA->stereo;
 	int sboard = comp->beepType;
@@ -746,14 +746,14 @@ void SetupWin::sndOwnShow() {
 	int oboard = getRFIData(cbOwnBoard);
 	ownLayNote->setText((olay != SND_GLOBAL) ? QString()
 		: tr("Result: %0").arg(own_pick_name(glay, spec, psg_lay_name)));
-	ownBoardNote->setText((oboard != SND_GLOBAL) ? QString()
+	ownBoardNote->setFull((oboard != SND_GLOBAL) ? QString()
 		: tr("Result: %0").arg(own_pick_name(gboard, sboard, board_type_name)));
 	// the Sound page's groups name what this machine has: its own pick or the list's. No
 	// order with no PSG, nor on the Next, whose software sets it
-	int psg = getRFIData(cbPsgCount);
+	bool noLay = (getRFIData(cbPsgCount) == PSG_NONE) || (comp->hw->id == HW_ZXNEXT);
 	int hlay = snd_heard((olay == SND_GLOBAL) ? glay : olay, spec);
 	int hboard = snd_heard((oboard == SND_GLOBAL) ? gboard : oboard, sboard);
-	grpSnd[SND_GRP_LAY]->setText(((psg == PSG_NONE) || (psg == PSG_NEXT)) ? tr("Stereo")
+	grpSnd[SND_GRP_LAY]->setText(noLay ? tr("Stereo")
 		: tr("Stereo (current: %0)").arg(psg_lay_name(hlay)));
 	grpSnd[SND_GRP_BOARD]->setText(tr("Filters (board: %0)").arg(board_type_name(hboard)));
 	// the marks: this machine as its lists have it, the others as their files do
@@ -892,14 +892,14 @@ void SetupWin::makeDevWidgets() {
 		connect(box, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
 	}
 	connect(cbPsgCount, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &SetupWin::sndOwnShow);
-	// a note under each: empty, it keeps its line
-	QLabel** notes[2] = {&ownBoardNote, &ownLayNote};
-	for (QLabel** note : notes) {
-		*note = new QLabel;
-		QFont nfnt = (*note)->font();
+	// a note under each: empty, it keeps its line. The Machine page's asks for no width
+	ownBoardNote = new xElideLabel;
+	ownLayNote = new QLabel;
+	for (QLabel* note : {(QLabel*)ownBoardNote, ownLayNote}) {
+		QFont nfnt = note->font();
 		nfnt.setItalic(true);
-		(*note)->setFont(nfnt);
-		(*note)->setMinimumHeight(QFontMetrics(nfnt).height());
+		note->setFont(nfnt);
+		note->setMinimumHeight(QFontMetrics(nfnt).height());
 	}
 	foreach(QComboBox* box, QList<QComboBox*>() << cbPsgCount << cbPsgType << cbPsgFrq) {
 		box->setSizeAdjustPolicy(QComboBox::AdjustToMinimumContentsLengthWithIcon);
